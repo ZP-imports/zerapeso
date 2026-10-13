@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%23ffb703%22%2F%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%3E%3Crect%20x%3D%2226%22%20y%3D%2212%22%20width%3D%2212%22%20height%3D%2240%22%20rx%3D%223%22%2F%3E%3Crect%20x%3D%2212%22%20y%3D%2226%22%20width%3D%2240%22%20height%3D%2212%22%20rx%3D%223%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%23ffb703%22%2F%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%3E%3Crect%20x%3D%2226%22%20y%3D%2212%22%20width%3D%2212%22%20height%3D%2240%22%20rx%3D%223%22%2F%3E%3Crect%20x%3D%2212%22%20y%3D%2226%22%20width%3D%2240%22%20height%3D%2212%22%20rx%3D%223%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
 <meta name="theme-color" content="#0a6e5c">
-<title>ZP Imports | Protótipo da loja</title>
+<title>ZP Imports</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -279,10 +279,26 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 /* foto do produto */
 .pimg,.pbig{position:relative;overflow:hidden}
 .pimg img,.pbig img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
+
+/* página do produto: foto menor e variações */
+.prod{grid-template-columns:minmax(0,340px) 1fr;align-items:start}
+.pbig{max-width:340px;width:100%;margin:0 auto}
+.pinfo .legal,.legal{background:#f4f7f6;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:14px 0;font-size:.85rem;color:var(--ink2)}
+.legal b{display:block;color:var(--ink);margin-bottom:2px}
+.vars{display:grid;gap:12px;margin:14px 0}
+.vcard{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff}
+.vh{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.vst{font-size:.78rem;font-weight:600;border-radius:999px;padding:2px 10px}.vst.ok{background:var(--pl);color:var(--pd)}.vst.no{background:#fdecea;color:#8a1c14}
+.vp{margin:8px 0;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;font-size:.95rem;color:var(--muted)}.vp b{font-size:1.3rem;color:var(--ink)}.vp del{color:#9a9a9a}
+.vq{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.vl{font-size:.9rem;color:var(--ink2);font-weight:600}
+.ptot{display:flex;justify-content:space-between;align-items:center;margin:16px 0 10px;padding:12px 0;border-top:1px solid var(--line);font-size:.85rem;letter-spacing:.04em;color:var(--muted)}.ptot b{font-size:1.5rem;color:var(--ink);letter-spacing:0}
+.apart{font-size:.72rem;color:var(--muted);font-weight:500}
+.pimg img{max-width:100%}
+@media(max-width:760px){.prod{grid-template-columns:1fr}.pbig{max-width:260px}}
 </style>
 </head>
 <body>
-<div class="proto">Protótipo navegável para aprovação do layout e da experiência. Contas, pedidos e carrinho ficam só neste navegador. O número do WhatsApp é um exemplo.</div>
+
 <header>
   <div class="hd">
     <button class="burger" id="burger" aria-label="Abrir menu" aria-expanded="false"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
@@ -320,7 +336,7 @@ const AMDEF={ativa:true,nome:'Amigo Emagrece Amigo, campanha Out/Nov 2026',pct:1
 const UFS=['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 const TURNOS={manha:'Manhã',tarde:'Tarde',noite:'Noite'};
 const LOGDEF={turnos:{manha:true,tarde:true,noite:true},antecedencia:1,janela:30,dias:[1,2,3,4,5,6],bloqueados:[],atrasoHoras:24,alertaAmarelo:12,alertaLaranja:20,fim:{manha:12,tarde:18,noite:22}};
-const ADMINS=[{email:'admin@zpimports.com',senha:'admin123',nome:'Administrador',papel:'admin'},{email:'logistica@zpimports.com',senha:'logistica123',nome:'Logística',papel:'logistica'},{email:'separador@zpimports.com',senha:'separador123',nome:'Separação',papel:'separador'}];
+const ADMINS=[];
 const ICON={
  inj:'<rect x="4" y="9" width="12" height="6" rx="2" transform="rotate(-35 10 12)"/><path d="m15 7 3-3M17 9l3-3M5.5 18.5 8 16"/>',
  pill:'<rect x="3" y="9" width="18" height="6" rx="3" transform="rotate(-40 12 12)"/>',
@@ -342,23 +358,13 @@ const TREE={
 const waUrl=msg=>'https://wa.me/'+CFG.wa+'?text='+encodeURIComponent(msg||('Olá, '+CFG.brand+'! Gostaria de atendimento.'));
 const EXTRA=[{t:'Campanhas',go:'/amigo',sub:[['Amigo Emagrece Amigo','/amigo'],['Regulamento Amigo Emagrece Amigo','/reg/amigo'],['Desconto na primeira compra','/reg/primeira-compra']]},{t:'Atendimento',go:'wa:',sub:[['Falar com o atendimento','wa:'],['Dúvidas frequentes','/info/duvidas'],['Como comprar','/info/como-comprar'],['Entregas','/info/entregas'],['Formas de pagamento','/info/pagamento']]}];
 const PRODUCTS=[
- {id:1,sku:'MED-101',n:'Medicamento injetável para emagrecimento, caneta (exemplo)',p:899.00,st:8,c:'#0a6e5c',ic:'inj',cat:['Medicamentos','Injetáveis','Canetas Aplicadoras'],d:'Produto de exemplo. Cadastre aqui o nome, a descrição e a apresentação reais do medicamento.',opts:['Caixa com 1 caneta','Caixa com 4 canetas'],lab:'Apresentação'},
- {id:2,sku:'MED-103',n:'Medicamento injetável para emagrecimento, caneta dose maior (exemplo)',p:1199.00,st:5,c:'#074d40',ic:'inj',cat:['Medicamentos','Injetáveis','Canetas Aplicadoras'],d:'Produto de exemplo. Cadastre aqui o nome, a descrição e a apresentação reais do medicamento.',opts:['Caixa com 1 caneta','Caixa com 4 canetas'],lab:'Apresentação'},
- {id:3,sku:'MED-102',n:'Medicamento oral para emagrecimento, 30 comprimidos (exemplo)',p:249.00,st:20,c:'#0b5a8a',ic:'pill',cat:['Medicamentos','Orais','Comprimidos'],d:'Produto de exemplo. Cadastre aqui o nome, a descrição e a apresentação reais do medicamento.'},
- {id:4,sku:'MED-105',n:'Medicamento oral para emagrecimento, 60 comprimidos (exemplo)',p:419.00,st:12,c:'#2f6f8f',ic:'pill',cat:['Medicamentos','Orais','Comprimidos'],d:'Produto de exemplo. Cadastre aqui o nome, a descrição e a apresentação reais do medicamento.'},
- {id:5,sku:'MED-104',n:'Medicamento oral para emagrecimento, 60 cápsulas (exemplo)',p:289.00,st:15,c:'#7a4ea0',ic:'caps',cat:['Medicamentos','Orais','Cápsulas'],d:'Produto de exemplo. Cadastre aqui o nome, a descrição e a apresentação reais do medicamento.'},
- {id:6,sku:'ACE-101',n:'Agulhas para caneta aplicadora, caixa com 100',p:59.90,sale:49.90,st:60,c:'#0a6e5c',ic:'needle',cat:['Medicamentos','Acessórios de Aplicação','Agulhas'],d:'Agulhas descartáveis para uso com canetas aplicadoras.'},
- {id:7,sku:'ACE-102',n:'Seringas descartáveis, caixa com 10',p:24.90,st:40,c:'#0b5a8a',ic:'needle',cat:['Medicamentos','Acessórios de Aplicação','Seringas'],d:'Seringas descartáveis.'},
- {id:8,sku:'ACE-103',n:'Álcool 70% 1 litro',p:12.90,sale:9.90,st:50,c:'#2f7d6d',ic:'bottle',cat:['Medicamentos','Acessórios de Aplicação','Álcool e Algodão'],d:'Para higienizar o local da aplicação.'},
- {id:15,ativo:false,sku:'BON-003',n:'Fita Métrica Corporal',p:19.90,st:5,c:'#6b4fa0',ic:'tape',cat:['Acompanhamento','Medidas','Fitas Métricas'],d:'Para acompanhar suas medidas.'},
- {id:16,ativo:false,sku:'MOC-004',n:'Balança Digital Corporal',p:199.00,st:0,c:'#6c7a74',ic:'scale',cat:['Acompanhamento','Medidas','Balanças'],d:'Balança digital com display.'},
 ];
 const BASE=JSON.parse(JSON.stringify(PRODUCTS));
 const OFERTA=p=>!!p.sale;
 const LIVE=()=>PRODUCTS.filter(p=>p.ativo!==false);
 const REG={'primeira-compra':'Desconto na primeira compra'};
 const brl=v=>'R$ '+Number(v).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
-const unit=p=>p.sale||p.p;
+const unit=p=>p.vars&&p.vars.length?Math.min(...p.vars.map(v=>v.sale!=null?v.sale:v.p)):(p.sale||p.p);
 const byId=id=>PRODUCTS.find(p=>p.id===+id);
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -402,8 +408,6 @@ function migrate(){
     if(!o.avisos){o.avisos=[];ch=true}
     if(migPag(o))ch=true;
   });
-  if(users['indicador@demo.com']&&users['indicador@demo.com'].code==='XPDEMO2026'){users['indicador@demo.com'].code='ZPDEMO2026';DB.set('users',users)}
-  if(!users['indicador@demo.com']){users['indicador@demo.com']={nome:'Amigo',sobrenome:'Demonstração',fone:'(11) 90000-0000',senha:'demo123',end:{cep:'01000-000',uf:'SP',cidade:'São Paulo',bairro:'Sé',rua:'Rua Demonstração',num:'1',comp:'',ref:''},consent:Date.now(),code:'ZPDEMO2026',refBy:null,demo:true};DB.set('users',users)}
   if(ch)DB.set('orders',orders.filter(o=>!o.real));
 }
 load();
@@ -483,7 +487,7 @@ function validarEnd(a,pre){
 /* ======================= TOTAIS, COMPRAS E DESCONTOS ======================= */
 const stockLeft=p=>window.__bancoProd?p.st:p.st-orders.filter(o=>o.reduced).reduce((s,o)=>s+o.items.filter(i=>i.id===p.id).reduce((a,i)=>a+i.qty,0),0);
 const cartQty=()=>cart.reduce((s,i)=>s+i.qty,0);
-const cartSub=()=>cart.reduce((s,i)=>s+unit(byId(i.id))*i.qty,0);
+const cartSub=()=>cart.reduce((s,i)=>s+ipreco(i)*i.qty,0);
 const user=()=>me&&users[me];
 const myOrders=()=>orders.filter(o=>o.user===me);
 const purchases=u=>orders.filter(o=>o.user===u&&COUNT.includes(o.status)).sort((a,b)=>a.conf-b.conf);
@@ -560,7 +564,7 @@ function friendRows(owner){
 function paintShell(){
   $('#brand').textContent=CFG.brand;$('#faixa').textContent=CFG.faixa;$('#faixa').style.cursor='pointer';$('#faixa').onclick=()=>nav('/reg/primeira-compra');
   $('#wafloat').href=waUrl();
-  document.title=CFG.brand+' | Protótipo da loja';buildMenu();buildFoot();
+  document.title=CFG.brand;buildMenu();buildFoot();
 }
 function buildMenu(){
   let h='';
@@ -591,7 +595,7 @@ function buildFoot(){
   $('#foot').innerHTML=`<div class="fg"><div><h3>Informações</h3><a ${wa}>Central de Atendimento</a><a onclick="nav('/info/duvidas')">Dúvidas Frequentes</a><a onclick="nav('/info/como-comprar')">Como comprar</a><a onclick="nav('/amigo')">Amigo Emagrece Amigo</a><a onclick="nav('/reg/amigo')">Regulamento: Amigo Emagrece Amigo</a><a onclick="nav('/reg/primeira-compra')">Regulamento: Desconto na Primeira Compra</a></div>
   <div><h3>Acesso rápido</h3><a onclick="nav('/conta')">Minha Conta</a><a onclick="nav('/pedidos')">Meus Pedidos e Rastreio</a><a onclick="nav('/acompanhar')">Acompanhar pelo código</a><a onclick="tab='cad';nav('/conta')">Cadastre-se</a></div>
   <div><h3>Políticas</h3><a onclick="nav('/info/entregas')">Entregas</a><a onclick="nav('/info/trocas')">Troca e Devolução</a><a onclick="nav('/info/pagamento')">Formas de Pagamento</a><a onclick="nav('/info/privacidade')">Política de Privacidade</a><a onclick="nav('/info/termos')">Termos de uso</a></div>
-  <div><h3>Formas de pagamento</h3><span>Débito, Pix e Cartão de Crédito.</span><span style="font-size:.85rem;color:var(--muted)">O pagamento é feito por link, enviado quando o pedido sai para entrega.</span>${payLogos()}<a onclick="nav('/operador')" style="color:var(--muted);font-size:.8rem;margin-top:14px">Área administrativa (demonstração)</a></div></div>
+  <div><h3>Formas de pagamento</h3><span>Débito, Pix e Cartão de Crédito.</span><span style="font-size:.85rem;color:var(--muted)">O pagamento é combinado com a nossa equipe pelo WhatsApp.</span>${payLogos()}<a onclick="nav('/operador')" style="color:var(--muted);font-size:.8rem;margin-top:14px">Área administrativa</a></div></div>
   <div class="fb"><div class="wrap"><p>${esc(CFG.aviso)}</p></div></div>`;
 }
 $('#burger').onclick=()=>{const n=$('#mainnav');const o=n.classList.toggle('open');$('#burger').setAttribute('aria-expanded',o)};
@@ -710,7 +714,7 @@ function pageConta(){
   ${tab==='entrar'?`<form onsubmit="return doLogin(event)"><label for="le">E-mail</label><input id="le" type="email" required autocomplete="email"><div style="height:10px"></div><label for="lp">Senha</label><input id="lp" type="password" required autocomplete="current-password"><p><button class="btn acc full" style="padding:1em">Entrar</button></p></form>`
   :`<form onsubmit="return doReg(event)"><div class="fr"><div class="c2"><label for="rn">Nome</label><input id="rn" required autocomplete="given-name"></div><div class="c2"><label for="rs">Sobrenome</label><input id="rs" required autocomplete="family-name"></div><div><label for="rf">Telefone com WhatsApp</label>${foneCampo('rf','',false)}</div><div><label for="re">E-mail</label><input id="re" type="email" required autocomplete="email"></div><div><label for="rp">Senha (mínimo 6 caracteres)</label><input id="rp" type="password" required minlength="6" autocomplete="new-password"></div></div>
   <p style="font-size:.85rem;color:var(--muted)"><label style="font-weight:400"><input type="checkbox" id="rc" style="width:auto"> Li e concordo com a Política de Privacidade e autorizo o uso dos meus dados para processar e entregar meus pedidos.</label></p><p><button class="btn acc full" style="padding:1em">Criar conta</button></p></form>`}
-  <p style="margin:10px 0 0;font-size:.9rem"><a style="cursor:pointer;font-weight:600" onclick="nav('/acompanhar')">Acompanhar um pedido sem entrar</a></p><p class="note" style="font-size:.8rem">Protótipo: a conta fica salva só neste navegador.</p></div></div>`;
+  <p style="margin:10px 0 0;font-size:.9rem"><a style="cursor:pointer;font-weight:600" onclick="nav('/acompanhar')">Acompanhar um pedido sem entrar</a></p></div></div>`;
 }
 const msg=(t,c='err')=>{const m=$('#fmsg');if(m)m.innerHTML=`<div class="note ${c}">${t}</div>`};
 function doLogin(e){e.preventDefault();const em=$('#le').value.trim().toLowerCase(),pw=$('#lp').value;const u=users[em];if(!u||u.senha!==pw){msg('E-mail ou senha incorretos.');return false}me=em;save();updHead();toast('Bem-vindo(a), '+u.nome+'.');const nx=sessionStorage.getItem('xp_next');sessionStorage.removeItem('xp_next');nav(nx||'/pedidos');return false}
@@ -725,7 +729,7 @@ function ufSelect(id,val){return `<select id="${id}" required><option value="">U
 const endOk=()=>{const u=user();return !!(u&&u.end&&validarEnd(u.end).length===0)};
 
 /* ---------- revisão e finalização ---------- */
-let ent={sec:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:'',turno:'',obs:'',erros:[]};
+let ent={sec:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:'',turno:'',pag:'',obs:'',erros:[]};
 const entSet=(k,v)=>{ent[k]=v};
 const entS=(k,v)=>{ent.s[k]=v};
 function applyCode(){rv.code=$('#rvCode').value.trim().toUpperCase();rv.use=false;const v=validateRef(rv.code);rv.msg=v.ok?'':v.err;if(!v.ok)rv.code='';route()}
@@ -762,7 +766,6 @@ function pageIndRoute(code){sessionStorage.setItem('xp_ind',code);toast('Código
 function regAmigo(){
   const p=AM.pct,l=AM.limite;
   return `<div class="wrap pg reg" style="max-width:900px"><span class="regtag">Regulamento interno</span><h1 class="t">Campanha Amigo Emagrece Amigo</h1><div class="regbox"><b>${esc(AM.nome)}</b><br>Período: ${fmtDay(AM.inicio)} a ${fmtDay(AM.fim)} (campanha bimestral). Desconto: ${p}%. Limite: ${l} novos amigos que comprarem por mês, por indicador.</div><div class="box">
-  <p><em>Texto modelo para revisão jurídica e do responsável técnico antes de publicar. Os valores acima mudam automaticamente quando o operador edita a campanha.</em></p>
   <h3>1. Objetivo</h3><p>A campanha Amigo Emagrece Amigo da ${esc(CFG.brand)} premia clientes que indicam novos clientes. Quem indica e quem é indicado recebem desconto, nas condições abaixo.</p>
   <h3>2. Período e vigência</h3><p>A campanha é bimestral. Esta edição vale de ${fmtDay(AM.inicio)} a ${fmtDay(AM.fim)}. A cada bimestre o operador da loja pode definir um novo percentual de desconto e um novo período, que será divulgado no site. Os descontos só podem ser usados enquanto a campanha estiver ativa.</p>
   <h3>3. Quem pode participar</h3><p>Clientes com cadastro no site, maiores de 18 anos, que aceitaram a Política de Privacidade. Cada cliente cadastrado recebe um código pessoal de indicação.</p>
@@ -779,7 +782,6 @@ function regAmigo(){
 function regPrimeira(){
   const p=PC.pct;
   return `<div class="wrap pg reg" style="max-width:900px"><span class="regtag">Regulamento oficial</span><h1 class="t">Desconto na primeira compra</h1><div class="regbox"><b>${p}% de desconto na primeira compra</b><br>Válido para clientes novos da ${esc(CFG.brand)}, aplicado automaticamente na revisão do pedido.</div><div class="box">
-  <p><em>Texto modelo para revisão jurídica e do responsável técnico antes de publicar. O percentual muda automaticamente quando for alterado no painel.</em></p>
   <h3>1. Objetivo</h3><p>Oferecer ${p}% de desconto na primeira compra de clientes novos da ${esc(CFG.brand)}.</p>
   <h3>2. Quem pode participar</h3><p>Pessoas maiores de 18 anos, com cadastro no site e que aceitaram a Política de Privacidade, que ainda não tenham nenhum pedido registrado na loja.</p>
   <h3>3. Como funciona</h3><ul><li>O desconto de ${p}% incide sobre o valor dos produtos do primeiro pedido e é aplicado automaticamente na revisão do pedido, sem necessidade de cupom.</li><li>O desconto não incide sobre o frete.</li><li>Vale para um único pedido, o primeiro do cliente.</li></ul>
@@ -1155,27 +1157,28 @@ function pageRev(){
     <p style="font-size:.8rem;color:var(--muted);margin:10px 0 0">Um desconto por pedido, não cumulativo. <a style="cursor:pointer" onclick="nav('/reg/amigo')">Ver regulamento</a></p></div>`}
   const min=addDias(hojeS(),LOG.antecedencia),max=addDias(hojeS(),LOG.janela);
   const verr=ent.data?validarEntrega(ent.data,ent.turno||'manha'):'';
+  const pronto=!!(endOk()&&ent.data&&!verr&&ent.turno&&ent.pag);
   const turnos=Object.keys(TURNOS).filter(t=>LOG.turnos[t]);
   const sv=k=>esc(ent.s[k]||'');
   const entrega=`<h3>Dados de entrega</h3>
    ${endOk()?`<address><b>${esc(u.nome)} ${esc(u.sobrenome)}</b><br>Telefone: ${esc(u.fone)}<br>${esc(e.rua)}, ${esc(e.num)}${e.comp?', '+esc(e.comp):''}<br>${esc(e.bairro)}<br>${esc(e.cidade)}/${esc(e.uf)}, CEP ${esc(e.cep)}${e.ref?'<br>Referência: '+esc(e.ref):''}</address><p><a style="cursor:pointer" onclick="nav('/endereco')">Alterar endereço principal</a></p>`:`<div class="note err">Falta completar seu endereço de entrega. <button class="btn sm" onclick="nav('/endereco')">Completar endereço</button></div>`}
    <p><label style="font-weight:500"><input type="checkbox" style="width:auto" ${ent.sec?'checked':''} onchange="ent.sec=this.checked;route()"> Entregar em outro endereço (endereço secundário)</label></p>
    ${ent.sec?`<div class="box" style="box-shadow:none"><div class="fr"><div class="c2"><label>CEP</label><input value="${sv('cep')}" oninput="entCep(this)" placeholder="00000-000" inputmode="numeric"></div><div class="c2"><label>Estado (UF)</label><select onchange="entS('uf',this.value)" ${ent.slock?'style="pointer-events:none;background:#eee"':''}><option value="">UF</option>${UFS.map(x=>`<option ${x===ent.s.uf?'selected':''}>${x}</option>`).join('')}</select></div><div class="c2"><label>Cidade</label><input value="${sv('cidade')}" oninput="entS('cidade',this.value)" ${ent.slock?'readonly':''}></div><div class="c3"><label>Bairro</label><input value="${sv('bairro')}" oninput="entS('bairro',this.value)"></div><div class="c4"><label>Rua</label><input value="${sv('rua')}" oninput="entS('rua',this.value)"></div><div class="c2"><label>Número do imóvel</label><input id="sNum" value="${sv('num')}" oninput="entS('num',this.value)"></div><div class="c4"><label>Complemento</label><input value="${sv('comp')}" oninput="entS('comp',this.value)"></div><div><label>Ponto de referência</label><input value="${sv('ref')}" oninput="entS('ref',this.value)"></div></div></div>`:''}
-   <h3>Data e turno desejados</h3>
+   <h3>Preferência de entrega</h3>
    <div class="fr"><div class="c3"><label for="entData">Data desejada</label><input id="entData" type="date" min="${min}" max="${max}" value="${esc(ent.data)}" onchange="ent.data=this.value;route()"></div>
-   <div class="c4"><label>Turno desejado</label><div class="turnos">${turnos.map(t=>`<label class="turno ${ent.turno===t?'on':''}"><input type="radio" name="turno" value="${t}" ${ent.turno===t?'checked':''} onchange="ent.turno=this.value;route()"> ${TURNOS[t]}</label>`).join('')||'<span class="note err">Nenhum turno disponível no momento.</span>'}</div></div></div>
+   <div class="c4"><label>Melhor horário para a entrega</label><div class="turnos">${turnos.map(t=>`<label class="turno ${ent.turno===t?'on':''}"><input type="radio" name="turno" value="${t}" ${ent.turno===t?'checked':''} onchange="ent.turno=this.value;route()"> ${TURNOS[t]}</label>`).join('')||'<span class="note err">Nenhum turno disponível no momento.</span>'}</div></div></div>
    ${verr&&ent.data?`<div class="note err">${verr}</div>`:''}
    <p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">Datas de ${fmtDay(min)} a ${fmtDay(max)}. Entregamos de ${LOG.dias.map(i=>['dom','seg','ter','qua','qui','sex','sáb'][i]).join(', ')}. A data é uma preferência: a loja confirma a programação e você acompanha tudo em Rastrear pedido.</p>
    <label for="obs">Observações sobre o pedido ou a entrega (opcional)</label><textarea id="obs" rows="2" maxlength="500" oninput="ent.obs=this.value" placeholder="Ex.: portão azul, deixar com o porteiro">${esc(ent.obs)}</textarea>`;
-  const pagInfo=`<h3>Pagamento</h3><div class="paybox wait"><b>Você não paga agora.</b><p style="margin:6px 0 0">O valor combinado será pago por um link de pagamento, enviado quando o seu pedido entrar em rota para entrega. A taxa de entrega é informada pela loja e somada ao valor do link.</p></div>`;
-  return `<div class="wrap pg"><h1 class="t">Finalizar compra</h1><div class="two"><div class="box"><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td>${esc(p.n)}${i.opt?' ('+esc(i.opt)+')':''}</td><td>${i.qty}</td><td class="r">${brl(unit(p)*i.qty)}</td></tr>`}).join('')}</tbody></table></div>
+  const pagInfo=`<h3>Forma de pagamento</h3><div class="turnos">${PAGS.map(x=>`<label class="turno ${ent.pag===x[0]?'on':''}"><input type="radio" name="pag" value="${x[0]}" ${ent.pag===x[0]?'checked':''} onchange="ent.pag=this.value;route()"> ${x[1]}</label>`).join('')}</div><p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">O pagamento é combinado com a nossa equipe pelo WhatsApp.</p>`;
+  return `<div class="wrap pg"><h1 class="t">Finalizar compra</h1><div class="two"><div class="box"><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td>${esc(p.n)} (${esc(i.opt)})</td><td>${i.qty}</td><td class="r">${brl(ipreco(i)*i.qty)}</td></tr>`}).join('')}</tbody></table></div>
   <div class="tot"><span>Subtotal dos produtos</span><span>${brl(sub)}</span><span>Entrega</span><span>${esc(CFG.frete)}</span>${d?`<span class="dsc">${dLabel(d)} (${d.pct}%)</span><span class="dsc">- ${brl(d.valor)}</span>`:''}<span class="big">Total</span><span class="big">${brl(tot)}</span></div>
   ${nota}${amigo}
   ${entrega}
   ${pagInfo}
   ${ent.erros.length?`<div class="note err"><b>Confira antes de finalizar:</b><ul style="margin:6px 0 0;padding-left:18px">${ent.erros.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
-  <p><button class="btn acc full" id="fin" style="padding:1em" onclick="finish()">Finalizar pedido</button></p><p style="color:var(--muted);font-size:.82rem">Você não paga agora. O pagamento é feito por link, quando o pedido entrar em rota.</p></div>
-  <div class="box"><h3 style="margin-top:0">Como funciona</h3><ol style="padding-left:18px;margin:0"><li>Você escolhe a entrega e finaliza o pedido.</li><li>A loja prepara e programa a entrega.</li><li>Quando o pedido entrar em <b>rota</b>, enviamos o link de pagamento, no valor combinado com a taxa de entrega.</li><li>Acompanhe cada etapa em Rastrear pedido.</li></ol></div></div></div>`;
+  <p><button class="btn acc full" id="fin" style="padding:1em" onclick="finish()" ${pronto?'':'disabled'}>Enviar pedido no WhatsApp</button></p>${pronto?'':'<p style="color:var(--muted);font-size:.82rem;margin:0">Preencha a preferência de entrega, o melhor horário e a forma de pagamento para liberar o envio.</p>'}${LEGAL}</div>
+  <div class="box"><h3 style="margin-top:0">Como funciona</h3><ol style="padding-left:18px;margin:0"><li>Você escolhe a entrega e o pagamento.</li><li>Ao tocar em Enviar pedido no WhatsApp, o pedido é registrado e a conversa abre já com os dados.</li><li>Nossa equipe confirma tudo com você pelo WhatsApp.</li><li>Acompanhe cada etapa em Rastrear pedido.</li></ol></div></div></div>`;
 }
 const STEPDESC={realizado:'Recebemos o seu pedido.',confirmado:'A loja confere o pedido e libera para preparação.',preparacao:'A equipe prepara os itens do seu pedido.',separacao:'Os itens são separados e conferidos com a etiqueta do pedido.','aguardando-programacao':'A loja organiza a rota e define a programação da entrega.',programada:'A entrega está programada para a data e o turno do pedido.','em-rota':'O pedido saiu para entrega. Fique atento ao telefone informado.',entregue:'Pedido entregue.'};
 function enderecoHtml(d){return esc(d.rua)+', '+esc(d.num)+(d.comp?', '+esc(d.comp):'')+'<br>'+esc(d.bairro)+'<br>'+esc(d.cidade)+'/'+esc(String(d.uf).toUpperCase())+', CEP '+esc(d.cep)+(d.ref?'<br><small>Referência: '+esc(d.ref)+'</small>':'')}
@@ -1255,7 +1258,7 @@ function infoCorpo(s){
 }
 function pageInfo(s){
   const t=INFO.find(x=>x[0]===s);if(!t)return pageNF();
-  return `<div class="wrap pg"><div class="bc"><a onclick="nav('/')">Início</a> / ${t[1]}</div><h1 class="t">${t[1]}</h1><div class="infog"><nav class="infonav" aria-label="Institucional">${INFO.map(x=>`<a class="${x[0]===s?'on':''}" onclick="nav('/info/${x[0]}')">${x[1]}</a>`).join('')}</nav><div class="box infobox">${infoCorpo(s)}<p style="font-size:.8rem;color:var(--muted);margin-top:18px"><em>Texto modelo. Revise com o jurídico e o responsável técnico antes de publicar.</em></p></div></div></div>`;
+  return `<div class="wrap pg"><div class="bc"><a onclick="nav('/')">Início</a> / ${t[1]}</div><h1 class="t">${t[1]}</h1><div class="infog"><nav class="infonav" aria-label="Institucional">${INFO.map(x=>`<a class="${x[0]===s?'on':''}" onclick="nav('/info/${x[0]}')">${x[1]}</a>`).join('')}</nav><div class="box infobox">${infoCorpo(s)}</div></div></div>`;
 }
 
 /* ---------- avisos do pedido: um só banner, abre todos os não lidos ---------- */
@@ -1510,7 +1513,7 @@ function waRHtml(o,pend){
 }
 function admWaDispensar(id){const o=orders.find(x=>x.id===id);if(o){delete o.waRea;save();route()}}
 
-/* ======================= TELEFONE, PERFIL, NOTIFICAÇÕES, PAINEL EXECUTIVO E DEMONSTRAÇÃO ======================= */
+/* ======================= TELEFONE, PERFIL, NOTIFICAÇÕES, PAINEL EXECUTIVO ======================= */
 
 /* ---------- telefone: (XX) 9 XXXX-XXXX, ou (XX) XXXX-XXXX para quem não tem o 9 ---------- */
 const DDDS=new Set('11 12 13 14 15 16 17 18 19 21 22 24 27 28 31 32 33 34 35 37 38 41 42 43 44 45 46 47 48 49 51 53 54 55 61 62 63 64 65 66 67 68 69 71 73 74 75 77 79 81 82 83 84 85 86 87 88 89 91 92 93 94 95 96 97 98 99'.split(' '));
@@ -1693,7 +1696,7 @@ function finish(){
     save();busy2=false;updHead();nav('/pedido/'+o.id);
   },500);
 }
-function pageOrder(id){
+function pageOrderBase(id){
   const o=orders.find(x=>x.id==id);
   if(!o||o.user!==me){if(!me){needLogin('/pedido/'+id);return ''}return `<div class="wrap pg"><div class="box"><h2>Pedido não encontrado</h2><p>Confira seus pedidos em <a style="cursor:pointer" onclick="nav('/pedidos')">Rastrear pedido</a>.</p></div></div>`}
   const e=o.entrega;
@@ -1792,7 +1795,7 @@ function admTaxa(id){
   save();toast('Taxa salva. Valor combinado: '+brl(valorAcordado(o))+'.');route();
 }
 
-/* ======================= CONTROLE DE CARTÃO, ENTREGADORES, ROTAS, PAINEL E DEMONSTRAÇÃO ======================= */
+/* ======================= CONTROLE DE CARTÃO, ENTREGADORES, ROTAS, PAINEL ======================= */
 
 /* ---------- registro do pagamento recebido ---------- */
 const PGDEF={taxaCredito:3.5,taxaDebito:1.5,taxaPix:0,prazoCredito:30,prazoDebito:1,prazoPix:0};
@@ -2041,74 +2044,6 @@ function tabDash(){
   <div class="two" style="grid-template-columns:1fr 1fr;margin-top:16px"><div class="box"><h3 style="margin-top:0">Pedidos por cidade</h3>${chartH(k.cidades.slice(0,8),'#0a6e5c')}</div><div class="box"><h3 style="margin-top:0">Pedidos por turno</h3>${chartH(Object.keys(TURNOS).map(t=>[TURNOS[t],k.turnos[t]||0]),'#b97a00')}<p style="color:var(--muted);font-size:.82rem;margin-bottom:0">Os indicadores se atualizam sozinhos quando o painel, a loja ou outra aba mudam um pedido.</p></div></div>`;
 }
 
-/* ---------- clientes, entregadores e pedidos de demonstração ---------- */
-function seedDemo(silent){
-  orders=orders.filter(o=>!o.demo);Object.keys(users).forEach(e=>{if(users[e].demo&&e!=='indicador@demo.com')delete users[e]});
-  ENTR=ENTR.filter(e=>!e.demo);ROTE=ROTE.filter(r=>!r.demo);RETIR=RETIR.filter(r=>!r.demo);
-  const H=36e5,M=6e4,hoje=hojeS();
-  const SEQ=['realizado','confirmado','preparacao','separacao','aguardando-programacao','programada','em-rota','entregue'];
-  const en=[['Marcos Oliveira','(12) 9 8123-4567'],['Paulo Henrique','(12) 9 8234-5678'],['Rafael Santos','(12) 9 8345-6789']].map((x,i)=>({id:'Edemo'+(i+1),nome:x[0],whats:x[1],sem9:false,ativo:true,criadoEm:now(),demo:true}));
-  ENTR.push(...en);
-  const JAC=['SP','Jacareí','Centro','12327-000','Rua Doutor Lúcio Malta'],SJC=['SP','São José dos Campos','Urbanova','12244-000','Avenida Cassiano Ricardo'],CAC=['SP','Caçapava','Centro','12281-000','Rua Capitão Antônio Pereira'],TAU=['SP','Taubaté','Centro','12020-000','Rua Quinze de Novembro'];
-  const S=[
-   {n:'Ana Souza',c:JAC,it:[[1,1,'Caixa com 1 caneta'],[6,1]],a:'realizado',par:1,off:2,t:'manha',tx:12},
-   {n:'Bruno Lima',c:SJC,it:[[3,1],[8,1]],a:'realizado',par:3,off:2,t:'tarde',tx:15},
-   {n:'Carla Dias',c:CAC,it:[[4,1]],a:'confirmado',par:2,off:2,t:'noite',tx:10},
-   {n:'Diego Rocha',c:TAU,it:[[5,1],[7,2]],a:'preparacao',par:8,off:3,t:'manha',tx:18},
-   {n:'Elisa Prado',c:['SP','São José dos Campos','Jardim das Indústrias','12240-000','Rua Alfredo Ignácio Nogueira Penido'],it:[[2,1,'Caixa com 1 caneta']],a:'separacao',par:14,off:2,t:'tarde',tx:12},
-   {n:'Fábio Nunes',c:['SP','Jacareí','Jardim Esperança','12307-000','Rua Moreira César'],it:[[3,2],[6,1]],a:'aguardando-programacao',par:21,off:2,t:'manha',tx:12,rea:true},
-   {n:'Gabriela Melo',c:SJC,it:[[1,1,'Caixa com 4 canetas']],a:'programada',par:26,off:-1,t:'tarde',tx:12,rt:'A'},
-   {n:'Hugo Vieira',c:JAC,it:[[4,1],[8,2]],a:'confirmado',par:52,off:1,t:'tarde',tx:12},
-   {n:'Isabela Cruz',c:TAU,it:[[5,1]],a:'em-rota',par:2,off:0,t:'noite',tx:18,rt:'B',pg:{st:'link',hAtras:1}},
-   {n:'João Pires',c:['SP','São José dos Campos','Centro','12210-000','Rua Sete de Setembro'],it:[[3,1],[7,1]],a:'entregue',par:30,off:-1,t:'manha',tx:12,rt:'C',pg:{st:'pago',forma:'credito',parc:2,hAtras:20}},
-   {n:'Larissa Moura',c:JAC,it:[[1,1,'Caixa com 1 caneta']],a:'entregue',par:144,off:-6,t:'tarde',tx:12,rt:'D',pg:{st:'pago',forma:'credito',parc:3,hAtras:140,rep:true}},
-   {n:'Márcio Alves',c:TAU,it:[[4,1],[6,2]],a:'entregue',par:96,off:-4,t:'manha',tx:18,rt:'E',pg:{st:'pago',forma:'debito',parc:1,hAtras:94}},
-   {n:'Nádia Freitas',c:SJC,it:[[2,1,'Caixa com 1 caneta']],a:'entregue',par:48,off:-2,t:'noite',tx:15,rt:'F',pg:{st:'pago',forma:'pix',parc:1,hAtras:46}}
-  ];
-  const RM={D:{en:0,h:140},E:{en:2,h:94},F:{en:1,h:46},C:{en:0,h:26},B:{en:1,h:3},A:{en:0,h:20,enviada:true}};
-  const c=pgcfg();const porRota={};let n=0;
-  S.forEach((s,i)=>{
-    const em='demo'+i+'@demo.com';const [uf,cidade,bairro,cep,rua]=s.c;
-    const dest={cep,uf,cidade,bairro,rua,num:String(20+i*13),comp:i%3===0?'Apto '+(i+2):'',ref:''};
-    const fone=fmtFone('12'+'9'+String(81000000+i*173519).slice(0,8),false);
-    users[em]={nome:s.n.split(' ')[0],sobrenome:s.n.split(' ').slice(1).join(' '),fone,sem9:false,senha:'demo123',end:dest,code:makeCode(s.n),refBy:null,demo:true,consent:now()};
-    const idx=SEQ.indexOf(s.a);const ultimo=now()-s.par*H;const criado=ultimo-Math.max(0,idx)*40*M-20*M;
-    const its=s.it.map(([id,q,opt])=>{const p=byId(id);return {id:p.id,sku:p.sku,name:p.n+(opt?' ('+opt+')':''),base:p.n,opt:opt||'',qty:q,unit:unit(p)}});
-    const o={id:clock++,user:em,seq:1,status:'realizado',items:its,at:criado,eventos:[],avisos:[],etiquetas:[],token:tokenNovo(),pagamento:{modo:'link',status:'pendente',taxaEntrega:s.tx},conf:null,reduced:false,track:null,demo:true,
-      entrega:{nome:s.n,fone,principal:dest,secundario:null,dest,data:addDias(hoje,s.off),turno:s.t,obs:i%4===0?'Deixar com o porteiro':''},disc:null,ref:null};
-    o.eventos.push({id:uid(),t:criado,tipo:'status',para:'realizado',publico:true,texto:pubTxt(o,'realizado',''),por:'Cliente'});
-    for(let j=1;j<=idx;j++){
-      const t=ultimo-(idx-j)*40*M;const st=SEQ[j];o.status=st;
-      if(COUNT.includes(st)){o.conf=o.conf||clock++;o.reduced=true}
-      o.eventos.push({id:uid(),t,tipo:'status',de:SEQ[j-1],para:st,publico:true,texto:pubTxt(o,st,''),por:['programada','em-rota','entregue'].includes(st)?'Logística':'Separação'});
-    }
-    if(s.rea){const ev={id:uid(),t:ultimo-30*M,tipo:'reagendado',publico:true,texto:'Entrega reagendada de '+fmtDM(addDias(hoje,s.off-1))+' ('+turnoNome(s.t)+') para '+fmtDM(addDias(hoje,s.off))+' ('+turnoNome(s.t)+'). Motivo: ajuste na programação logística.',de:'',para:'',motivo:'ajuste na programação logística',por:'Logística'};o.eventos.push(ev);o.avisos.push({id:uid(),t:ev.t,titulo:'Entrega reagendada',texto:'A entrega do seu pedido foi reagendada.',motivo:ev.motivo,previsao:{data:addDias(hoje,s.off),turno:s.t},lido:false,evId:ev.id})}
-    const pg=s.pg;
-    if(pg&&pg.st==='link'){o.pagamento.status='link';o.pagamento.linkEnviadoEm=now()-pg.hAtras*H;o.msgPag={t:o.pagamento.linkEnviadoEm,texto:msgLinkCliente(o)}}
-    if(pg&&pg.st==='pago'){
-      const bruto=valorAcordado(o);const tx={credito:c.taxaCredito,debito:c.taxaDebito,pix:c.taxaPix}[pg.forma];const prazo={credito:c.prazoCredito,debito:c.prazoDebito,pix:c.prazoPix}[pg.forma];
-      const taxaValor=+(bruto*tx/100).toFixed(2);const pagoEm=now()-pg.hAtras*H;
-      Object.assign(o.pagamento,{status:'pago',forma:pg.forma,parcelas:pg.parc,bruto,taxaPct:tx,taxaValor,liquido:+(bruto-taxaValor).toFixed(2),pagoEm,prevRepasse:addDias(ymd(new Date(pagoEm)),prazo),repassado:false});
-      o.eventos.push({id:uid(),t:pagoEm,tipo:'pagamento',publico:true,texto:'Pagamento recebido: '+pagLabel(o.pagamento)+'.',por:'Administrador'});
-    }
-    orders.push(o);gerarEtiquetas(o,'Geração a partir de pedido existente');n++;
-    if(s.rt){(porRota[s.rt]=porRota[s.rt]||[]).push(o)}
-  });
-  let nr=Math.max(0,...ROTE.map(x=>x.n));
-  Object.keys(RM).forEach(k=>{
-    const os=porRota[k]||[];if(!os.length)return;const e=en[RM[k].en];
-    const r={id:'Rdemo'+k,n:++nr,criadaEm:now()-(RM[k].h+4)*H,data:os[0].entrega.data,entregadorId:e.id,orders:os.map(o=>o.id),por:'Logística',demo:true};
-    if(RM[k].enviada||['B','C','D','E','F'].includes(k))r.enviadaEm=now()-(RM[k].h+2)*H;
-    if(['B','C','D','E','F'].includes(k))r.saiuEm=now()-(RM[k].h+1)*H;
-    os.forEach(o=>{o.rotaId=r.id;o.entregadorId=e.id});ROTE.push(r);
-  });
-  const h1=porRota.D&&porRota.D[0];
-  if(h1){const ret={id:'Tdemo1',n:Math.max(0,...RETIR.map(x=>x.n))+1,data:addDias(hoje,-2),criadaEm:now()-48*H,total:h1.pagamento.liquido,pedidos:[h1.id],por:'Administrador',demo:true};h1.pagamento.repassado=true;h1.pagamento.retiradaId=ret.id;RETIR.push(ret)}
-  ROTAS[['SP',norm('São José dos Campos'),hoje,'tarde'].join('|')]={lista:['Jardim das Indústrias','Urbanova','Centro'],atual:0,saida:'14:00',min:25};
-  save();
-  if(!silent){toast(n+' pedidos, 3 entregadores e rotas de demonstração criados. Clientes: demo0@demo.com a demo12@demo.com, senha demo123.');route()}
-}
-if(!DB.get('seed3',false)&&(/[?&]local=1/.test(location.search)||typeof supabase==='undefined')&&(!orders.length||orders.every(o=>o.demo))){seedDemo(true);DB.set('seed3',true)}
 
 /* ======================= ÁREA ADMINISTRATIVA ======================= */
 let A={tab:'dash',ord:null,ot:'resumo',ab:{cid:'',tur:'',sem:'',pag:'todos'},lg:{uf:'',cid:'',data:'',turno:''},lgAll:false,fo:{q:'',st:'',per:'',cid:'',tur:'',pag:''},fa:{cid:'',data:'',turno:'',st:'',min:''},verSeen:false,msg:''};
@@ -2389,28 +2324,10 @@ async function admLogo(inp){const f=inp.files&&inp.files[0];if(!f)return;if(f.si
   try{const l=await logoLoad(f);LBL.logo=l;LBL.logoKey=hashStr(l.data.slice(0,4000)+l.data.length);saveLbl();toast('Logomarca salva. As próximas etiquetas já usam a nova identidade.');route()}catch(e){toast('Não foi possível ler a imagem.')}}
 function admLogoRem(){LBL.logo=null;LBL.logoKey='';saveLbl();toast('Logomarca removida.');route()}
 
-/* ---------- dados de demonstração e ferramentas ---------- */
-function demoAvancar(){OFFSET+=864e5;save();toast('Relógio da demonstração avançou 1 dia.');route()}
-function demoReset(){OFFSET=0;save();route()}
-function demoRemover(){
-  if(!confirm('Remover todos os pedidos e clientes de demonstração?'))return;
-  orders=orders.filter(o=>!o.demo);ENTR=ENTR.filter(e=>!e.demo);ROTE=ROTE.filter(r=>!r.demo);RETIR=RETIR.filter(r=>!r.demo);Object.keys(users).forEach(e=>{if(users[e].demo)delete users[e]});save();toast('Dados de demonstração removidos.');route()}
-function resetTudo(){if(confirm('Apagar todos os dados do protótipo neste navegador?')){try{localStorage.clear()}catch(e){};location.reload()}}
-
-/* ---------- página da área administrativa ---------- */
-function pageOp(){
-  if(!ADMIN)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required><div style="height:10px"></div><label for="ap">Senha</label><input id="ap" type="password" required><p><button class="btn acc full" style="padding:1em">Entrar</button></p></form><div class="note" style="font-size:.82rem"><b>Acessos de demonstração</b><br>Administrador: admin@zpimports.com / admin123 (acesso total)<br>Logística: logistica@zpimports.com / logistica123 (pedidos, separação, logística, atrasos, alertas)<br>Separação: separador@zpimports.com / separador123 (só a tela de bipar etiqueta)</div></div></div>`;
-  if(!can(A.tab))A.tab=ADMIN.papel==='separador'?'bipar':'dash';
-  const pend=alertasPend(),crit=pend.filter(a=>a.sev==='critico').length,atr=orders.filter(o=>atraso(o)).length,nvm=orders.filter(o=>!FINAL.includes(o.status)&&nivelPedido(o).n===3).length;
-  const tabs=TABS_ALL.filter(t=>can(t[0])).map(t=>`<button class="${A.tab===t[0]&&!A.ord?'on':''}" onclick="admTab('${t[0]}')">${t[1]}${t[0]==='alertas'&&pend.length?` <i class="bd ${crit?'blink':''}">${pend.length}</i>`:''}${t[0]==='atrasados'&&atr?` <i class="bd">${atr}</i>`:''}${t[0]==='aberto'&&nvm?` <i class="bd blink">${nvm}</i>`:''}</button>`).join('');
-  const body=A.ord&&ADMIN.papel!=='separador'?pageOrdAdm(A.ord):({dash:tabDash,pedidos:tabPedidos,bipar:tabBipar,aberto:tabAberto,entregadores:tabEntregadores,pagamentos:tabPagamentos,logistica:tabLogistica,atrasados:tabAtrasados,alertas:tabAlertas,produtos:tabProdutos,site:tabSite,entrega:tabEntrega,campanha:tabCampanha,etiquetas:tabEtiquetas}[A.tab]||tabDash)();
-  return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="font-size:.85rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]}) · <a style="cursor:pointer" onclick="admSair()">Sair</a></div></div>
-  ${ADMIN.papel==='admin'?`<div class="demobar"><b>Demonstração</b> · agora: ${fmtD(now())}${OFFSET?' (relógio adiantado)':''} · <a onclick="demoAvancar()">avançar 1 dia</a>${OFFSET?' · <a onclick="demoReset()">voltar ao relógio real</a>':''} · <a onclick="seedDemo()">gerar pedidos de demonstração</a> · <a onclick="demoRemover()">remover demonstração</a> · <a onclick="resetTudo()">apagar tudo</a> · <span>Para ver a atualização automática, abra a loja em outra aba.</span></div>`:''}
-  <div class="tabs adm">${tabs}</div>${body}</div>`;
-}
 
 /* ======================= ROTAS, SINCRONIZAÇÃO E INÍCIO ======================= */
 function route(fromHash){
+  if(window.__banco&&!window.__bancoProd){$('#app').innerHTML='<div class="wrap pg"><p style="text-align:center;padding:60px 0;color:var(--muted)">Carregando a loja...</p></div>';return}
   const h=location.hash.replace(/^#/,'')||'/';const [_,a,b,c]=h.split('/');let html='';
   clearInterval(slT);
   switch(a){
@@ -2457,7 +2374,6 @@ paintShell();updHead();route(true);
 
 /* ======================= LIGAÇÃO COM O BANCO (SUPABASE): CLIENTES, PRODUTOS E PEDIDOS =======================
    Este bloco troca o cadastro/login/pedido "de mentira" (salvo no navegador) pelo banco de verdade.
-   Para ver o protótipo antigo, abra o site com ?local=1 no final do endereço.
    Só funções e variáveis var aqui: este arquivo roda depois do restante e as funções substituem as de teste. */
 var SB_URL='https://nnajpgujipucpymhoinq.supabase.co';
 var SB_KEY='sb_publishable_vu1Dxk2lC2tkVrLtJgq2tA_V94HsJY0';
@@ -2506,15 +2422,17 @@ function bancoTree(){
 async function bancoProdutos(){
   const r=await SB.from('produtos').select('*').order('id');
   if(r.error)throw r.error;
-  const arr=r.data.map(x=>{const p={id:x.id,sku:x.sku,n:x.nome,d:x.descricao,p:x.preco!=null?+x.preco:0,consulta:!!x.sob_consulta||x.preco==null,img:x.imagem?(/^https?:/.test(x.imagem)?x.imagem:SB_URL+'/storage/v1/object/public/produtos/'+encodeURIComponent(x.imagem)):'',st:x.estoque,c:x.cor,ic:x.icone,cat:x.categoria,ativo:x.ativo};
-    if(x.preco_promo!=null)p.sale=+x.preco_promo;
-    if(x.opcoes&&x.opcoes.length){p.opts=x.opcoes;p.lab=x.rotulo_opcao||'Opção'}
+  const rvar=await SB.from('produto_variacoes').select('*').eq('ativo',true).order('ordem');
+  const dvar=rvar.error?[]:rvar.data;
+  const arr=r.data.map(x=>{const p={id:x.id,sku:x.sku,n:x.nome,d:x.descricao,p:x.preco!=null?+x.preco:0,consulta:false,img:x.imagem?(/^https?:/.test(x.imagem)?x.imagem:SB_URL+'/storage/v1/object/public/produtos/'+encodeURIComponent(x.imagem)):'',st:x.estoque,c:x.cor,ic:x.icone,cat:x.categoria,ativo:x.ativo};
+    p.vars=dvar.filter(v=>v.produto_id===x.id).map(v=>({id:v.id,n:v.nome,un:v.unidades,p:+v.preco,sale:v.preco_promo!=null?+v.preco_promo:null}));
+    p.consulta=!p.vars.length;if(p.vars.length)p.p=Math.min(...p.vars.map(v=>v.sale!=null?v.sale:v.p));
     return p});
   PRODUCTS.length=0;arr.forEach(p=>PRODUCTS.push(p));
   BASE.length=0;JSON.parse(JSON.stringify(PRODUCTS)).forEach(p=>BASE.push(p));
   bancoTree();
   window.__bancoProd=true;
-  cart=cart.filter(i=>{const p=PRODUCTS.find(x=>x.id===+i.id);return p&&p.ativo!==false});
+  cart=cart.filter(i=>{const p=PRODUCTS.find(x=>x.id===+i.id);return p&&p.ativo!==false&&i.v&&(p.vars||[]).some(v=>v.id===i.v)});
 }
 function applyProd(){
   if(window.__bancoProd)return;
@@ -2708,13 +2626,293 @@ async function bancoInit(){
   paintShell();updHead();route();
 }
 (function(){
-  const local=/[?&]local=1/.test(location.search);
-  if(local||typeof supabase==='undefined'||!supabase.createClient)return;
+  if(typeof supabase==='undefined'||!supabase.createClient){$('#app').innerHTML='<div class="wrap pg"><p style="text-align:center;padding:60px 0">Não foi possível carregar a loja. Verifique a internet e recarregue a página.</p></div>';return}
   SB=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
   window.__banco=true;
   bancoInit();
   setInterval(()=>{if(SB&&me&&!document.hidden&&/^#\/(pedido|pedidos|notificacoes)/.test(location.hash)){bancoPedidos().then(()=>{if(!emEdicao())route()}).catch(()=>{})}},20000);
 })();
+
+/* ======================= VARIAÇÕES, CARRINHO, PEDIDO PELO WHATSAPP E PAINEL ADMINISTRATIVO =======================
+   Roda depois de tudo. Só funções e var aqui: as funções substituem as anteriores de mesmo nome. */
+
+var PAGS=[['pix','Pix'],['credito','Cartão de crédito'],['debito','Cartão de débito']];
+var PAGNOME={pix:'Pix',credito:'Cartão de crédito',debito:'Cartão de débito'};
+var LEGAL='<div class="legal"><b>Seus dados estão protegidos</b><span>As informações são usadas exclusivamente para o atendimento e a entrega do seu pedido.</span></div>';
+var vPreco=v=>v.sale!=null?v.sale:v.p;
+var vOf=i=>{const p=byId(i.id);return p&&p.vars?p.vars.find(v=>v.id===i.v):null};
+var ipreco=i=>{const v=vOf(i);return v?vPreco(v):0};
+var cartUn=(p,exceto)=>cart.reduce((s,i)=>{if(i.id!==p.id||i===exceto)return s;const v=vOf(i);return s+(v?v.un*i.qty:0)},0);
+var maxVar=(p,v,exceto)=>Math.max(0,Math.floor((stockLeft(p)-cartUn(p,exceto))/v.un));
+var nl=s=>String(s).replace(/ /g,' ');
+
+/* ---------- mensagem do WhatsApp com o carrinho ---------- */
+function linhasCarrinho(){
+  return cart.map(i=>{const p=byId(i.id);return '• '+p.n+' ('+i.qty+' '+i.opt+') = '+brl(ipreco(i)*i.qty)}).join('\n');
+}
+function msgCarrinho(){
+  if(!cart.length)return '';
+  return nl('Olá! Gostaria de mais informações sobre os produtos.\nMeu carrinho:\n'+linhasCarrinho()+'\nSubtotal: '+brl(cartSub()));
+}
+function updHead(){
+  $('#cnt').textContent=cartQty();const u=user();$('#accLb').textContent=u?('Olá, '+u.nome):'Entre ou cadastre-se';
+  const n=me?avisosNaoLidos():0;const b=$('#tBell');if(b){b.hidden=!me;$('#bellN').textContent=n;$('#bellN').style.display=n?'':'none'}
+  const w=$('#wafloat');if(w)w.href=cart.length?waUrl(msgCarrinho()):waUrl();
+}
+
+/* ---------- carrinho (cada linha é uma variação) ---------- */
+function cartAdd(id,vid,qty){
+  const p=byId(id);if(!p||p.ativo===false)return false;const v=(p.vars||[]).find(x=>x.id===vid);if(!v)return false;
+  const ex=cart.find(i=>i.id===id&&i.v===vid);const lim=maxVar(p,v,ex);
+  const novo=(ex?ex.qty:0)+qty;
+  if(novo>lim){toast(lim>0?'Só há '+lim+' disponível'+(lim>1?'is':'')+' desta opção.':'Esta opção está sem estoque.');return false}
+  if(ex)ex.qty=novo;else cart.push({id,v:vid,opt:v.n,qty});
+  return true;
+}
+function addCart(id,qty,opt,btn){const p=byId(id);if(p&&p.consulta){window.open(waProd(p),'_blank');return}nav('/produto/'+id)}
+function setQty(id,vid,d){
+  const i=cart.find(x=>x.id===id&&x.v===vid);if(!i)return;const p=byId(id),v=vOf(i);const q=i.qty+d;
+  if(q<1)cart=cart.filter(x=>x!==i);else if(v&&q<=maxVar(p,v,i))i.qty=q;else toast('Não há mais unidades desta opção em estoque.');
+  save();updHead();drawDrawer();reRoute();
+}
+function rmItem(id,vid){cart=cart.filter(x=>!(x.id===id&&x.v===vid));save();updHead();drawDrawer();reRoute()}
+function linhaCart(i,tabela){
+  const p=byId(i.id);const q=`<div class="qty"><button onclick="setQty(${i.id},'${i.v}',-1)" aria-label="Diminuir">−</button><span>${i.qty}</span><button onclick="setQty(${i.id},'${i.v}',1)" aria-label="Aumentar">+</button></div>`;
+  return {p,q};
+}
+function drawDrawer(){
+  const b=$('#dwb'),f=$('#dwf');
+  if(!cart.length){b.innerHTML='<p style="text-align:center;color:var(--muted);padding:40px 0">Seu carrinho está vazio.</p>';f.innerHTML='<button class="btn full" onclick="closeCart();nav(\'/\')">Continuar comprando</button>';return}
+  b.innerHTML=cart.map(i=>{const {p,q}=linhaCart(i);return `<div class="mi"><div class="th" style="background:${p.c}">${svg(p.ic,30)}${fotoHtml(p)}</div><div><div style="font-size:.88rem;color:var(--ink);font-weight:500">${esc(p.n)} (${esc(i.opt)})</div><div style="display:flex;align-items:center;gap:10px;margin-top:4px;flex-wrap:wrap">${q}<b>${brl(ipreco(i)*i.qty)}</b><button class="btn ghost sm" onclick="rmItem(${i.id},'${i.v}')">Remover</button></div></div></div>`}).join('');
+  f.innerHTML=`<div class="tot" style="margin:0 0 12px"><span>Total</span><b>${brl(cartSub())}</b></div><button class="btn acc full" onclick="closeCart();nav('/carrinho')">Ver carrinho e finalizar</button>`;
+}
+function pageCart(){
+  if(!cart.length)return `<div class="wrap pg"><h1 class="t">Carrinho</h1><div class="box" style="text-align:center;padding:50px 10px"><p>Seu carrinho está vazio.</p><button class="btn" onclick="nav('/')">Continuar comprando</button></div></div>`;
+  return `<div class="wrap pg"><h1 class="t">Carrinho</h1><div class="two"><div class="box tbl"><table><thead><tr><th>Produto</th><th>Preço</th><th>Qtd.</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>${cart.map(i=>{const {p,q}=linhaCart(i);return `<tr><td><b style="color:var(--ink)">${esc(p.n)}</b><div style="color:var(--muted);font-size:.82rem">${esc(i.opt)}</div></td><td>${brl(ipreco(i))}</td><td>${q}</td><td class="r">${brl(ipreco(i)*i.qty)}</td><td class="r"><button class="btn ghost sm" onclick="rmItem(${i.id},'${i.v}')">Remover</button></td></tr>`}).join('')}</tbody></table></div>
+  <div class="box"><h3 style="margin-top:0">Resumo</h3><div class="tot"><span>Subtotal</span><span>${brl(cartSub())}</span><span class="big">Total</span><span class="big">${brl(cartSub())}</span></div><button class="btn acc full" style="padding:1em" onclick="nav('/revisar')">Continuar</button><p style="text-align:center;margin:12px 0 0"><a onclick="nav('/')" style="cursor:pointer">Continuar comprando</a></p></div></div></div>`;
+}
+
+/* ---------- vitrine e página do produto ---------- */
+function card(p){
+  const ok=p.consulta||stockLeft(p)>0;
+  return `<div class="card">${ok?'':'<span class="out">Sem estoque</span>'}
+  <div class="pimg" style="background:${p.c}" onclick="nav('/produto/${p.id}')">${svg(p.ic,64)}${fotoHtml(p)}</div>
+  <div class="pn" onclick="nav('/produto/${p.id}')">${esc(p.n)}</div>
+  <div class="price">${p.consulta?'<span class="consulte">Consulte o preço</span>':'<small class="apart">A partir de</small> '+brl(unit(p))}</div>
+  ${p.consulta?`<a class="btn wa" href="${waProd(p)}" target="_blank" rel="noopener">Consultar no WhatsApp</a>`:`<button class="btn acc" onclick="nav('/produto/${p.id}')">Ver produto</button>`}</div>`;
+}
+var PV={id:0,q:{}};
+function pageProd(id){
+  const p=byId(id);if(!p||p.ativo===false)return pageNF();
+  if(PV.id!==p.id)PV={id:p.id,q:{}};
+  const desc=(p.d&&!/^Produto sob consulta/i.test(p.d))?`<p>${esc(p.d)}</p>`:'';
+  let compra;
+  if(p.consulta){
+    compra=`<div style="margin:14px 0"><a class="btn wa" style="padding:1em 1.6em" href="${waProd(p)}" target="_blank" rel="noopener">Consultar no WhatsApp</a></div><div class="note">Produto sob consulta. Fale com a nossa equipe pelo WhatsApp para saber valores, disponibilidade e condições.</div>`;
+  }else{
+    compra=`<div class="vars">${p.vars.map((v,k)=>{const m=maxVar(p,v);const q=PV.q[k]||0;
+      return `<div class="vcard"><div class="vh"><b>${esc(v.n)}</b><span class="vst ${m>0?'ok':'no'}">${m>0?'Disponível':'Sem estoque'}</span></div>
+      <div class="vp">${v.sale!=null?`<span>de <del>${brl(v.p)}</del></span> <span>por <b>${brl(v.sale)}</b></span>`:`<b>${brl(v.p)}</b>`}</div>
+      <div class="vq"><div class="qty"><button onclick="pvq(${k},-1)" aria-label="Diminuir" ${m>0?'':'disabled'}>−</button><span id="pq${k}">${q}</span><button onclick="pvq(${k},1)" aria-label="Aumentar" ${m>0?'':'disabled'}>+</button></div><span class="vl" id="vl${k}">${q>0?q+' × '+brl(vPreco(v))+' = '+brl(vPreco(v)*q):''}</span></div></div>`}).join('')}</div>
+    <div class="ptot"><span>TOTAL DO PRODUTO</span><b id="ptot">${brl(pvTotal(p))}</b></div>
+    <button class="btn acc full" id="padd" style="padding:1em;font-weight:700;letter-spacing:.03em" onclick="pvAdd()" ${pvTotal(p)>0?'':'disabled'}>ADICIONAR AO CARRINHO</button>
+    ${LEGAL}`;
+  }
+  const cat=p.cat.length?`<a onclick="nav('/cat/${encodeURIComponent(p.cat.join('/'))}')">${esc(p.cat[p.cat.length-1])}</a> / `:'';
+  return `<div class="wrap pg"><div class="bc"><a onclick="nav('/')">Início</a> / ${cat}${esc(p.n)}</div>
+  <div class="prod"><div class="pbig" style="background:${p.c}">${svg(p.ic,120)}${fotoHtml(p)}</div><div class="pinfo"><h1>${esc(p.n)}</h1><div style="color:var(--muted);font-size:.85rem">SKU ${esc(p.sku)}</div>${desc}${compra}</div></div></div>`;
+}
+function pvTotal(p){return (p.vars||[]).reduce((s,v,k)=>s+vPreco(v)*(PV.q[k]||0),0)}
+function pvq(k,d){
+  const p=byId(PV.id);if(!p)return;const v=p.vars[k];const m=maxVar(p,v);const q=Math.min(m,Math.max(0,(PV.q[k]||0)+d));
+  if((PV.q[k]||0)+d>m)toast('Só há '+m+' disponível'+(m>1?'is':'')+' desta opção.');
+  PV.q[k]=q;$('#pq'+k).textContent=q;$('#vl'+k).textContent=q>0?q+' × '+brl(vPreco(v))+' = '+brl(vPreco(v)*q):'';
+  const t=pvTotal(p);$('#ptot').textContent=brl(t);$('#padd').disabled=!(t>0);
+}
+function pvAdd(){
+  const p=byId(PV.id);if(!p)return;let n=0;
+  (p.vars||[]).forEach((v,k)=>{const q=PV.q[k]||0;if(q>0&&cartAdd(p.id,v.id,q))n++});
+  if(!n)return;PV={id:p.id,q:{}};save();updHead();bump();route();openCart();
+}
+
+/* ---------- envio do pedido pelo WhatsApp ---------- */
+var WA_P=null;
+function dataBr(s){return s?s.split('-').reverse().join('/'):''}
+async function finish(){
+  if(busy2)return;
+  if(!SB){ent.erros=[semConexao];route();return}
+  const u=user(),er=[];
+  if(!endOk())er.push('Complete o endereço principal de entrega.');
+  if(ent.sec)validarEnd(ent.s,'Endereço secundário: ').forEach(x=>er.push(x));
+  const v=validarEntrega(ent.data,ent.turno);if(v)er.push(v);
+  if(!ent.turno)er.push('Escolha o melhor horário para a entrega.');
+  if(!ent.pag)er.push('Escolha a forma de pagamento.');
+  if(cart.find(i=>!vOf(i)||i.qty>maxVar(byId(i.id),vOf(i),i)))er.push('Um item ficou sem estoque suficiente. Ajuste o carrinho.');
+  ent.erros=er;if(er.length){route();return}
+  busy2=true;const b=$('#fin');b.disabled=true;b.textContent='Registrando o pedido...';
+  const w=window.open('about:blank','_blank');
+  const itens=cart.map(i=>({var:i.v,qty:i.qty}));
+  const entrega={data:ent.data,turno:ent.turno,pagamento:ent.pag,obs:ent.obs.trim(),sec:ent.sec?Object.assign({},normEnd(ent.s),{cep:fmtCep(ent.s.cep)}):null};
+  const r=await SB.rpc('criar_pedido',{p_itens:itens,p_entrega:entrega,p_codigo:(rv.ref&&rv.code)?rv.code:null,p_usar_credito:!!rv.use});
+  busy2=false;
+  if(r.error){if(w)w.close();ent.erros=[msgRpc(r.error)];try{await bancoProdutos()}catch(x){}route();return}
+  const d=r.data,e=u.end||{},dest=ent.sec?ent.s:e;
+  const msg=nl('Olá! Acabei de fazer o pedido '+d.codigo+' pelo site.\n'+linhasCarrinho()+'\nSubtotal: '+brl(d.subtotal)+(d.desconto>0?'\nDesconto: - '+brl(d.desconto):'')+'\nTotal: '+brl(d.total)
+    +'\n\nEntrega desejada: '+dataBr(ent.data)+', '+TURNOS[ent.turno]+'\nForma de pagamento: '+PAGNOME[ent.pag]
+    +'\nEndereço: '+dest.rua+', '+dest.num+(dest.comp?', '+dest.comp:'')+', '+dest.bairro+', '+dest.cidade+'/'+dest.uf
+    +'\nCliente: '+u.nome+' '+u.sobrenome+(u.fone?' ('+u.fone+')':'')+(ent.obs.trim()?'\nObservações: '+ent.obs.trim():''));
+  const url=waUrl(msg);WA_P={id:d.id,url};
+  cart=[];rv={code:'',use:false,msg:'',ref:null};
+  ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:'',turno:'',pag:'',obs:'',erros:[]};
+  sessionStorage.removeItem('xp_ind');
+  try{await bancoPedidos();await bancoCreditos();await bancoProdutos()}catch(x){}
+  save();updHead();
+  if(w)w.location.href=url;
+  nav('/pedido/'+d.id);
+}
+function pageOrder(id){
+  const h=pageOrderBase(id);
+  if(typeof h==='string'&&WA_P&&String(WA_P.id)===String(id)){
+    return h.replace('<div class="wrap pg">','<div class="wrap pg"><div class="note"><b>Falta só um passo.</b> Seu pedido foi registrado. Se o WhatsApp não abriu, toque no botão abaixo para enviá-lo à nossa equipe.<div style="margin-top:10px"><a class="btn wa" href="'+WA_P.url+'" target="_blank" rel="noopener">Enviar pedido no WhatsApp</a></div></div>');
+  }
+  return h;
+}
+
+/* ---------- painel administrativo (conta do Supabase com papel de equipe) ---------- */
+var A9={prods:null,pedidos:null,ed:null,msg:'',busy:false,fotoArq:null};
+function syncAdmin(){
+  const u=me&&users[me];
+  ADMIN=u&&['admin','logistica','separador'].includes(u.papel)?{email:me,nome:u.nome||me,papel:u.papel}:null;
+}
+function admTab(t){A.tab=t;A9.ed=null;A9.msg='';route()}
+async function admLogin(e){
+  e.preventDefault();const m=document.getElementById('amsg');
+  if(!SB){m.innerHTML='<div class="note err">'+semConexao+'</div>';return false}
+  const r=await SB.auth.signInWithPassword({email:v_('ae').trim().toLowerCase(),password:v_('ap')});
+  if(r.error){m.innerHTML='<div class="note err">'+esc(traduzErro(r.error))+'</div>';return false}
+  try{await bancoSessao(r.data.session)}catch(x){m.innerHTML='<div class="note err">'+esc(traduzErro(x))+'</div>';return false}
+  updHead();A9.prods=null;A9.pedidos=null;route();return false;
+}
+function admSair(){sair()}
+async function admCarregarProdutos(){
+  const [a,b]=await Promise.all([SB.from('produtos').select('*').order('id'),SB.from('produto_variacoes').select('*').order('ordem')]);
+  if(a.error||b.error){A9.msg='Não foi possível carregar os produtos. Confirme que o arquivo 07 já foi rodado no Supabase.';A9.prods=[];route();return}
+  A9.prods=a.data.map(p=>Object.assign({},p,{vars:b.data.filter(v=>v.produto_id===p.id)}));route();
+}
+async function admCarregarPedidos(){
+  const r=await SB.from('pedidos').select('id,status,criado_em,itens,entrega,pagamento,desconto').order('id',{ascending:false}).limit(100);
+  A9.pedidos=r.error?[]:r.data;if(r.error)A9.msg='Não foi possível carregar os pedidos.';route();
+}
+var STLB={realizado:'Recebido',confirmado:'Confirmado',preparacao:'Em preparação',separacao:'Em separação','aguardando-programacao':'Aguardando programação',programada:'Entrega programada','em-rota':'Em rota',entregue:'Entregue',tentativa:'Tentativa de entrega',cancelado:'Cancelado'};
+function admFotoUrl(f){return f?(/^https?:/.test(f)?f:SB_URL+'/storage/v1/object/public/produtos/'+encodeURIComponent(f)):''}
+
+function tabProdutos(){
+  if(!A9.prods){if(!A9.busy){A9.busy=true;admCarregarProdutos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando produtos...</div>'}
+  if(A9.ed)return admFormProduto();
+  const msg=A9.msg?`<div class="note ${/Não|Erro|erro/.test(A9.msg)?'err':''}">${esc(A9.msg)}</div>`:'';
+  return `<div class="box"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><p style="margin:0;color:var(--muted)">As mudanças valem na hora na loja. Produto sem variação cadastrada aparece como "sob consulta" (WhatsApp).</p><button class="btn acc" onclick="admNovoProduto()">Novo produto</button></div>${msg}
+  <div class="tbl"><table><thead><tr><th></th><th>SKU</th><th>Produto</th><th>Categoria</th><th>Variações</th><th>Estoque (un.)</th><th>Situação</th><th></th></tr></thead><tbody>${A9.prods.map(p=>`<tr><td>${p.imagem?`<img src="${esc(admFotoUrl(p.imagem))}" alt="" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#fff" onerror="this.remove()">`:''}</td><td>${esc(p.sku)}</td><td><b>${esc(p.nome)}</b></td><td>${esc((p.categoria||[]).join(' / '))}</td><td>${p.vars.length?p.vars.map(v=>esc(v.nome)+' '+brl(v.preco_promo!=null?v.preco_promo:v.preco)).join('<br>'):'<span style="color:var(--muted)">sob consulta</span>'}</td><td>${p.estoque}</td><td>${p.ativo?'Ativo':'Inativo'}</td><td><button class="btn ghost sm" onclick="admEditar(${p.id})">Editar</button></td></tr>`).join('')||'<tr><td colspan="8">Nenhum produto cadastrado.</td></tr>'}</tbody></table></div></div>`;
+}
+function admNovoProduto(){A9.ed={id:null,sku:'',nome:'',descricao:'',estoque:0,ativo:true,cat:'Produtos injetáveis',sub:'',imagem:'',vars:[{id:null,nome:'',unidades:1,preco:'',preco_promo:'',ativo:true}]};A9.msg='';A9.fotoArq=null;route()}
+function admEditar(id){
+  const p=A9.prods.find(x=>x.id===id);if(!p)return;const c=p.categoria||[];
+  A9.ed={id:p.id,sku:p.sku,nome:p.nome,descricao:p.descricao||'',estoque:p.estoque,ativo:p.ativo,cat:c[0]||'',sub:c[1]||'',imagem:p.imagem||'',vars:p.vars.map(v=>({id:v.id,nome:v.nome,unidades:v.unidades,preco:v.preco,preco_promo:v.preco_promo==null?'':v.preco_promo,ativo:v.ativo}))};
+  A9.msg='';A9.fotoArq=null;route();
+}
+function admLerForm(){
+  const e=A9.ed;e.sku=v_('fSku').trim();e.nome=v_('fNome').trim();e.descricao=v_('fDesc').trim();e.estoque=parseInt(v_('fEst'),10);e.ativo=c_('fAtivo');e.cat=v_('fCat').trim();e.sub=v_('fSub').trim();
+  e.vars.forEach((x,k)=>{x.nome=v_('vn'+k).trim();x.unidades=parseInt(v_('vu'+k),10);x.preco=v_('vp'+k).replace(',','.');x.preco_promo=v_('vq'+k).replace(',','.');x.ativo=c_('va'+k)});
+}
+function admAddVar(){admLerForm();A9.ed.vars.push({id:null,nome:'',unidades:1,preco:'',preco_promo:'',ativo:true});route()}
+function admDelVar(k){admLerForm();A9.ed.vars.splice(k,1);route()}
+function admCancelar(){A9.ed=null;A9.msg='';route()}
+function admEscolheFoto(inp){A9.fotoArq=inp.files&&inp.files[0]||null;const s=document.getElementById('fFotoNome');if(s)s.textContent=A9.fotoArq?A9.fotoArq.name:''}
+function admFormProduto(){
+  const e=A9.ed;const cats=[...new Set(A9.prods.map(p=>(p.categoria||[])[0]).filter(Boolean))];const subs=[...new Set(A9.prods.map(p=>(p.categoria||[])[1]).filter(Boolean))];
+  const msg=A9.msg?`<div class="note err">${esc(A9.msg)}</div>`:'';
+  return `<div class="box"><h3 style="margin-top:0">${e.id?'Editar produto':'Novo produto'}</h3>${msg}
+  <div class="fr"><div class="c2"><label for="fSku">SKU</label><input id="fSku" value="${esc(e.sku)}" maxlength="40"></div><div class="c4"><label for="fNome">Nome do produto</label><input id="fNome" value="${esc(e.nome)}" maxlength="120"></div>
+  <div class="c3"><label for="fCat">Categoria</label><input id="fCat" list="dlCat" value="${esc(e.cat)}"><datalist id="dlCat">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
+  <div class="c3"><label for="fSub">Subcategoria</label><input id="fSub" list="dlSub" value="${esc(e.sub)}"><datalist id="dlSub">${subs.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
+  <div class="c2"><label for="fEst">Estoque (em unidades)</label><input id="fEst" type="number" min="0" value="${isNaN(e.estoque)?0:e.estoque}"></div>
+  <div class="c2"><label style="margin-top:28px"><input id="fAtivo" type="checkbox" style="width:auto" ${e.ativo?'checked':''}> Ativo na loja</label></div></div>
+  <label for="fDesc">Descrição (opcional)</label><textarea id="fDesc" rows="3" maxlength="1500">${esc(e.descricao)}</textarea>
+  <label>Foto do produto</label><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">${e.imagem?`<img src="${esc(admFotoUrl(e.imagem))}" alt="" style="width:64px;height:64px;object-fit:contain;border:1px solid var(--line);border-radius:8px;background:#fff" onerror="this.remove()">`:''}<input type="file" accept="image/jpeg,image/png,image/webp" onchange="admEscolheFoto(this)" style="width:auto"><span id="fFotoNome" style="color:var(--muted);font-size:.85rem"></span></div>
+  <p style="color:var(--muted);font-size:.82rem;margin:4px 0 0">A foto é reduzida automaticamente para ficar leve na loja.</p>
+  <h3>Variações e preços</h3><p style="color:var(--muted);font-size:.85rem;margin-top:0">Ex.: "Caixa com 4 Ampolas" (4 unidades) e "Ampola Unidade" (1 unidade). As unidades descontam do estoque. O preço promocional é opcional e aparece como "por", com o preço normal riscado como "de".</p>
+  <div class="tbl"><table><thead><tr><th>Nome da variação</th><th>Unidades</th><th>Preço (R$)</th><th>Preço promo (R$)</th><th>Ativa</th><th></th></tr></thead><tbody>${e.vars.map((x,k)=>`<tr><td><input id="vn${k}" value="${esc(x.nome)}" maxlength="80"></td><td><input id="vu${k}" type="number" min="1" value="${x.unidades}" style="width:80px"></td><td><input id="vp${k}" inputmode="decimal" value="${esc(x.preco)}" style="width:110px"></td><td><input id="vq${k}" inputmode="decimal" value="${esc(x.preco_promo)}" style="width:110px"></td><td><input id="va${k}" type="checkbox" style="width:auto" ${x.ativa===false||x.ativo===false?'':'checked'}></td><td><button class="btn ghost sm" onclick="admDelVar(${k})">Remover</button></td></tr>`).join('')}</tbody></table></div>
+  <p><button class="btn ghost sm" onclick="admAddVar()">Adicionar variação</button></p>
+  <div style="display:flex;gap:10px;margin-top:14px"><button class="btn acc" id="fSalvar" onclick="admSalvar()">Salvar produto</button><button class="btn ghost" onclick="admCancelar()">Cancelar</button></div></div>`;
+}
+function redimensionar(file){
+  return new Promise((ok,no)=>{
+    const img=new Image(),url=URL.createObjectURL(file);
+    img.onload=()=>{const M=640,s=Math.min(1,M/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+      const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+      c.toBlob(b=>b?ok(b):no(new Error('foto')),'image/webp',.8)};
+    img.onerror=()=>{URL.revokeObjectURL(url);no(new Error('foto'))};img.src=url;
+  });
+}
+async function admSalvar(){
+  if(A9.busy)return;admLerForm();const e=A9.ed;const er=[];
+  if(!e.sku)er.push('Informe o SKU.');if(!e.nome)er.push('Informe o nome do produto.');if(!e.cat)er.push('Informe a categoria.');
+  if(isNaN(e.estoque)||e.estoque<0)er.push('Informe o estoque em unidades (zero ou mais).');
+  e.vars.forEach((x,k)=>{const n=k+1;
+    if(!x.nome)er.push('Variação '+n+': informe o nome.');
+    if(isNaN(x.unidades)||x.unidades<1)er.push('Variação '+n+': unidades deve ser 1 ou mais.');
+    if(x.preco===''||isNaN(+x.preco)||+x.preco<0)er.push('Variação '+n+': informe o preço.');
+    if(x.preco_promo!==''&&(isNaN(+x.preco_promo)||+x.preco_promo<0||+x.preco_promo>=+x.preco))er.push('Variação '+n+': o preço promocional deve ser menor que o preço.');
+  });
+  if(er.length){A9.msg=er.join(' ');route();return}
+  A9.busy=true;const b=document.getElementById('fSalvar');if(b){b.disabled=true;b.textContent='Salvando...'}
+  try{
+    let imagem=e.imagem||null;
+    if(A9.fotoArq){
+      const blob=await redimensionar(A9.fotoArq);const nome=e.sku.replace(/[^A-Za-z0-9_-]/g,'')+'-'+Date.now().toString(36)+'.webp';
+      const up=await SB.storage.from('produtos').upload(nome,blob,{contentType:'image/webp',upsert:true});
+      if(up.error)throw up.error;imagem=nome;
+    }
+    const cat=[e.cat].concat(e.sub?[e.sub]:[]);
+    const dados={sku:e.sku,nome:e.nome,descricao:e.descricao,preco:null,sob_consulta:false,estoque:e.estoque,ativo:e.ativo,categoria:cat,imagem};
+    let pid=e.id;
+    if(pid){const r=await SB.from('produtos').update(Object.assign(dados,{atualizado_em:new Date().toISOString()})).eq('id',pid);if(r.error)throw r.error}
+    else{Object.assign(dados,{cor:'#0a6e5c',icone:'inj'});const r=await SB.from('produtos').insert(dados).select('id').single();if(r.error)throw r.error;pid=r.data.id}
+    const antigos=(A9.prods.find(p=>p.id===pid)||{vars:[]}).vars.map(v=>v.id);
+    const manter=e.vars.filter(x=>x.id).map(x=>x.id);
+    const apagar=antigos.filter(i=>!manter.includes(i));
+    if(apagar.length){const r=await SB.from('produto_variacoes').delete().in('id',apagar);if(r.error)throw r.error}
+    for(let k=0;k<e.vars.length;k++){const x=e.vars[k];
+      const linha={produto_id:pid,nome:x.nome,unidades:x.unidades,preco:+x.preco,preco_promo:x.preco_promo===''?null:+x.preco_promo,ordem:k+1,ativo:x.ativo!==false};
+      const r=x.id?await SB.from('produto_variacoes').update(linha).eq('id',x.id):await SB.from('produto_variacoes').insert(linha);
+      if(r.error)throw r.error;
+    }
+    A9.ed=null;A9.fotoArq=null;A9.msg='Produto salvo. A loja já está atualizada.';A9.busy=false;
+    try{await bancoProdutos()}catch(x){}
+    await admCarregarProdutos();
+  }catch(x){
+    A9.busy=false;
+    A9.msg=(x&&x.code==='23505')?'Já existe um produto com este SKU.':(x&&(x.code==='42501'||/row-level security|permission/i.test(x.message||'')))?'Sem permissão para salvar. Entre com a conta de administrador.':'Não foi possível salvar o produto agora. Confira os dados e tente de novo.';
+    route();
+  }
+}
+function tabPedidos(){
+  if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
+  const tot=o=>(o.itens||[]).reduce((s,i)=>s+i.unit*i.qty,0)-(o.desconto?+o.desconto.valor:0);
+  return `<div class="box"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><p style="margin:0;color:var(--muted)">Pedidos enviados pelos clientes (os 100 mais recentes).</p><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar</button></div>
+  <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Entrega desejada</th><th>Pagamento</th><th>Situação</th></tr></thead><tbody>${A9.pedidos.map(o=>{const en=o.entrega||{};const fone=String(en.fone||'').replace(/\D/g,'');return `<tr><td><b>ZP-${String(o.id).padStart(6,'0')}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div></td><td>${esc(en.nome||'')}<div style="font-size:.82rem">${fone?`<a href="https://wa.me/55${fone}" target="_blank" rel="noopener">${esc(en.fone)}</a>`:''}</div><div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' '+((en.dest||{}).cidade||''))}</div></td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td><td>${brl(tot(o))}</td><td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td>${esc(STLB[o.status]||o.status)}</td></tr>`}).join('')||'<tr><td colspan="7">Nenhum pedido ainda.</td></tr>'}</tbody></table></div></div>`;
+}
+function pageOp(){
+  syncAdmin();
+  if(!ADMIN){
+    if(me)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div class="note err">Esta conta não tem acesso à área administrativa.</div><p><button class="btn" onclick="admSair()">Sair</button></p></div></div>`;
+    return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username"><div style="height:10px"></div><label for="ap">Senha</label><input id="ap" type="password" required autocomplete="current-password"><p><button class="btn acc full" style="padding:1em">Entrar</button></p></form></div></div>`;
+  }
+  const tabs=ADMIN.papel==='admin'?[['produtos','Produtos'],['pedidos','Pedidos']]:[['pedidos','Pedidos']];
+  if(!tabs.some(t=>t[0]===A.tab))A.tab=tabs[0][0];
+  const body=(A.tab==='produtos'?tabProdutos:tabPedidos)();
+  return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="font-size:.85rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]}) · <a style="cursor:pointer" onclick="admSair()">Sair</a></div></div>
+  <div class="tabs adm">${tabs.map(t=>`<button class="${A.tab===t[0]?'on':''}" onclick="admTab('${t[0]}')">${t[1]}</button>`).join('')}</div>${body}</div>`;
+}
 
 </script>
 </body>
