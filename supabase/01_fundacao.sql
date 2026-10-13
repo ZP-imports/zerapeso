@@ -84,9 +84,9 @@ for each row execute function public.novo_usuario();
 
 -- O cliente não pode mudar o próprio papel, e-mail, código de indicação etc.
 create or replace function public.proteger_perfil() returns trigger
-language plpgsql security definer set search_path = public as $$
+language plpgsql security invoker set search_path = public as $$
 begin
-  if auth.uid() is not null and not public.eh_admin() then
+  if current_user in ('authenticated', 'anon') and not public.eh_admin() then
     if new.id <> old.id
        or new.papel is distinct from old.papel
        or new.ativo is distinct from old.ativo
