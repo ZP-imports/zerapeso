@@ -275,6 +275,10 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 .inativo td{opacity:.55}
 
 .consulte{font-size:.95rem;color:var(--pd);font-weight:700}
+
+/* foto do produto */
+.pimg,.pbig{position:relative;overflow:hidden}
+.pimg img,.pbig img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
 </style>
 </head>
 <body>
@@ -633,11 +637,12 @@ function closeModal(){$('#modal').classList.remove('on');if(!$('#dw').classList.
 
 /* ======================= PÁGINAS DA LOJA ======================= */
 const nav=p=>{location.hash='#'+p};
+const fotoHtml=p=>p.img?`<img src="${esc(p.img)}" alt="${esc(p.n)}" loading="lazy" onerror="this.remove()">`:'';
 function waProd(p){return waUrl('Olá! Tenho interesse em '+p.n+' (SKU '+p.sku+'). Pode me passar os valores e a disponibilidade?')}
 function card(p){
   const left=p.consulta?1:stockLeft(p);
   return `<div class="card">${p.sale?'<span class="sale">Oferta</span>':''}${left<=0?'<span class="out">Sem estoque</span>':''}
-  <div class="pimg" style="background:${p.c}" onclick="nav('/produto/${p.id}')">${svg(p.ic,64)}</div>
+  <div class="pimg" style="background:${p.c}" onclick="nav('/produto/${p.id}')">${svg(p.ic,64)}${fotoHtml(p)}</div>
   <div class="pn" onclick="nav('/produto/${p.id}')">${esc(p.n)}</div>
   <div class="price">${p.consulta?'<span class="consulte">Consulte o preço</span>':(p.sale?`<del>${brl(p.p)}</del>`:'')+brl(unit(p))}</div>
   ${p.consulta?`<a class="btn wa" href="${waProd(p)}" target="_blank" rel="noopener">Consultar no WhatsApp</a>`:left<=0?'<button class="btn" disabled>Indisponível</button>':p.opts?`<button class="btn" onclick="nav('/produto/${p.id}')">Escolher opção</button>`:`<button class="btn" onclick="addCart(${p.id},1,'',this)">Adicionar ao carrinho</button>`}</div>`;
@@ -688,7 +693,7 @@ function pageProd(id){
   <div style="color:var(--muted);font-size:.85rem">${left>0?(left<=5?'Restam '+left+' unidades':'Em estoque'):'Indisponível no momento'}</div>
   <div class="note">O pagamento é feito por um link, enviado quando o pedido sair para entrega.</div>`;
   return `<div class="wrap pg"><div class="bc"><a onclick="nav('/')">Início</a> / <a onclick="nav('/cat/${encodeURIComponent(p.cat.join('/'))}')">${p.cat[p.cat.length-1]}</a> / ${esc(p.n)}</div>
-  <div class="prod"><div class="pbig" style="background:${p.c}">${svg(p.ic,160)}</div><div class="pinfo"><h1>${esc(p.n)}</h1><div style="color:var(--muted);font-size:.85rem">SKU ${p.sku}</div>
+  <div class="prod"><div class="pbig" style="background:${p.c}">${svg(p.ic,160)}${fotoHtml(p)}</div><div class="pinfo"><h1>${esc(p.n)}</h1><div style="color:var(--muted);font-size:.85rem">SKU ${p.sku}</div>
   <div class="price" style="margin:14px 0">${p.consulta?'<span class="consulte">Consulte o preço</span>':(p.sale?`<del>${brl(p.p)}</del>`:'')+brl(unit(p))}</div><p>${esc(p.d)}</p>
   ${compra}</div></div></div>`;
 }
@@ -2501,7 +2506,7 @@ function bancoTree(){
 async function bancoProdutos(){
   const r=await SB.from('produtos').select('*').order('id');
   if(r.error)throw r.error;
-  const arr=r.data.map(x=>{const p={id:x.id,sku:x.sku,n:x.nome,d:x.descricao,p:x.preco!=null?+x.preco:0,consulta:!!x.sob_consulta,st:x.estoque,c:x.cor,ic:x.icone,cat:x.categoria,ativo:x.ativo};
+  const arr=r.data.map(x=>{const p={id:x.id,sku:x.sku,n:x.nome,d:x.descricao,p:x.preco!=null?+x.preco:0,consulta:!!x.sob_consulta||x.preco==null,img:x.imagem?(/^https?:/.test(x.imagem)?x.imagem:SB_URL+'/storage/v1/object/public/produtos/'+encodeURIComponent(x.imagem)):'',st:x.estoque,c:x.cor,ic:x.icone,cat:x.categoria,ativo:x.ativo};
     if(x.preco_promo!=null)p.sale=+x.preco_promo;
     if(x.opcoes&&x.opcoes.length){p.opts=x.opcoes;p.lab=x.rotulo_opcao||'Opção'}
     return p});
