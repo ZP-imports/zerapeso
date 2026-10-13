@@ -302,6 +302,7 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 <div id="toast" role="status" aria-live="polite"></div>
 <div class="modal" id="modal" role="dialog" aria-modal="true"><div id="modalb"></div></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 /* ======================= CONFIGURAÇÃO ======================= */
 const PC={ativa:true,pct:10};   // desconto de primeira compra (editável no painel)
@@ -363,13 +364,13 @@ const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(
 const DB={get(k,d){try{const v=localStorage.getItem('xp_'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('xp_'+k,JSON.stringify(v))}catch(e){}}};
 let cart,users,me,orders,seqUser,clock,AM,SITE,LOG,PEDIT,ROTAS,SEEN,ADMIN,OFFSET,REV,ENTR,ROTE,RETIR;
 function load(){
-  cart=DB.get('cart',[]).filter(i=>{const p=PRODUCTS.find(x=>x.id===+i.id);return p&&p.ativo!==false});users=DB.get('users',{});me=DB.get('me',null);orders=DB.get('orders',[]);seqUser=DB.get('seq',{});clock=DB.get('clock',100);
+  cart=DB.get('cart',[]).filter(i=>{const p=PRODUCTS.find(x=>x.id===+i.id);return p&&p.ativo!==false});users=DB.get('users',{});me=DB.get('me',null);orders=DB.get('orders',[]).filter(o=>!o.real).concat((typeof MEUS!=='undefined'&&MEUS)||[]);seqUser=DB.get('seq',{});clock=DB.get('clock',100);
   AM=Object.assign({},AMDEF,DB.get('amigo',{}));AM.nome=String(AM.nome).replace('Amigo Indica Amigo','Amigo Emagrece Amigo');
   SITE=DB.get('site',{});LOG=Object.assign({},LOGDEF,DB.get('log',{}));PEDIT=DB.get('pedit',{});ROTAS=DB.get('rotas',{});SEEN=DB.get('seen',{});ADMIN=DB.get('adm',null);OFFSET=DB.get('offset',0);REV=DB.get('rev',0);ENTR=DB.get('entr',[]);ROTE=DB.get('rote',[]);RETIR=DB.get('ret',[]);
   migrate();applySite();applyProd();
 }
 function save(){
-  DB.set('cart',cart);DB.set('users',users);DB.set('me',me);DB.set('orders',orders);DB.set('seq',seqUser);DB.set('clock',clock);DB.set('amigo',AM);
+  DB.set('cart',cart);DB.set('users',users);DB.set('me',me);DB.set('orders',orders.filter(o=>!o.real));DB.set('seq',seqUser);DB.set('clock',clock);DB.set('amigo',AM);
   DB.set('site',SITE);DB.set('log',LOG);DB.set('pedit',PEDIT);DB.set('rotas',ROTAS);DB.set('seen',SEEN);DB.set('adm',ADMIN);DB.set('offset',OFFSET);DB.set('entr',ENTR);DB.set('rote',ROTE);DB.set('ret',RETIR);
   REV=uid()+Date.now();DB.set('rev',REV);
 }
@@ -397,7 +398,7 @@ function migrate(){
   });
   if(users['indicador@demo.com']&&users['indicador@demo.com'].code==='XPDEMO2026'){users['indicador@demo.com'].code='ZPDEMO2026';DB.set('users',users)}
   if(!users['indicador@demo.com']){users['indicador@demo.com']={nome:'Amigo',sobrenome:'Demonstração',fone:'(11) 90000-0000',senha:'demo123',end:{cep:'01000-000',uf:'SP',cidade:'São Paulo',bairro:'Sé',rua:'Rua Demonstração',num:'1',comp:'',ref:''},consent:Date.now(),code:'ZPDEMO2026',refBy:null,demo:true};DB.set('users',users)}
-  if(ch)DB.set('orders',orders);
+  if(ch)DB.set('orders',orders.filter(o=>!o.real));
 }
 load();
 
@@ -474,7 +475,7 @@ function validarEnd(a,pre){
 }
 
 /* ======================= TOTAIS, COMPRAS E DESCONTOS ======================= */
-const stockLeft=p=>p.st-orders.filter(o=>o.reduced).reduce((s,o)=>s+o.items.filter(i=>i.id===p.id).reduce((a,i)=>a+i.qty,0),0);
+const stockLeft=p=>window.__bancoProd?p.st:p.st-orders.filter(o=>o.reduced).reduce((s,o)=>s+o.items.filter(i=>i.id===p.id).reduce((a,i)=>a+i.qty,0),0);
 const cartQty=()=>cart.reduce((s,i)=>s+i.qty,0);
 const cartSub=()=>cart.reduce((s,i)=>s+unit(byId(i.id))*i.qty,0);
 const user=()=>me&&users[me];
@@ -497,7 +498,7 @@ function credits(owner){
   return {earned,used,avail:Math.max(0,earned.length-used),conf};
 }
 const sameAddr=(a,b)=>a&&b&&digits(a.cep)===digits(b.cep)&&String(a.num).trim()===String(b.num).trim();
-function validateRef(code){
+function validateRefLocal(code){
   code=String(code||'').trim().toUpperCase();
   if(!code)return {err:'Informe o código de indicação.'};
   if(!amOn())return {err:'A campanha Amigo Emagrece Amigo não está ativa no momento.'};
@@ -1646,7 +1647,7 @@ function msgManual(id){const o=orders.find(x=>x.id===id);if(!o)return;o.msgPag={
 
 /* ---------- o que o cliente vê sobre o pagamento ---------- */
 function payCliente(o){
-  const p=o.pagamento||{};const v=valorAcordado(o);const link=CFG.linkPag;const taxa=taxaEnt(o);
+  const p=o.pagamento||{};const v=valorAcordado(o);const link=o._link||CFG.linkPag;const taxa=taxaEnt(o);
   if(pago(o))return `<div class="paybox ok"><b>Pagamento recebido</b><div>${p.pagoEm?'Recebido em '+fmtD(p.pagoEm)+'. ':''}Obrigado!</div></div>`;
   if(o.status==='cancelado')return '';
   const valor=`<div style="margin:6px 0 0"><b>Valor combinado: ${brl(v)}</b>${taxa>0?' (produtos '+brl(total(o))+' + entrega '+brl(taxa)+')':''}</div>`;
@@ -2096,7 +2097,7 @@ function seedDemo(silent){
   save();
   if(!silent){toast(n+' pedidos, 3 entregadores e rotas de demonstração criados. Clientes: demo0@demo.com a demo12@demo.com, senha demo123.');route()}
 }
-if(!DB.get('seed3',false)&&(!orders.length||orders.every(o=>o.demo))){seedDemo(true);DB.set('seed3',true)}
+if(!DB.get('seed3',false)&&(/[?&]local=1/.test(location.search)||typeof supabase==='undefined')&&(!orders.length||orders.every(o=>o.demo))){seedDemo(true);DB.set('seed3',true)}
 
 /* ======================= ÁREA ADMINISTRATIVA ======================= */
 let A={tab:'dash',ord:null,ot:'resumo',ab:{cid:'',tur:'',sem:'',pag:'todos'},lg:{uf:'',cid:'',data:'',turno:''},lgAll:false,fo:{q:'',st:'',per:'',cid:'',tur:'',pag:''},fa:{cid:'',data:'',turno:'',st:'',min:''},verSeen:false,msg:''};
@@ -2442,6 +2443,257 @@ setInterval(sincronizar,2500);
 setInterval(()=>{if(/^#\/(operador|pedidos)/.test(location.hash)&&!emEdicao()&&!document.hidden){updHead();route()}},20000);   // alertas e atrasos dependem do relógio
 $('#tBell').onclick=bellClick;
 paintShell();updHead();route(true);
+
+/* ======================= LIGAÇÃO COM O BANCO (SUPABASE): CLIENTES, PRODUTOS E PEDIDOS =======================
+   Este bloco troca o cadastro/login/pedido "de mentira" (salvo no navegador) pelo banco de verdade.
+   Para ver o protótipo antigo, abra o site com ?local=1 no final do endereço.
+   Só funções e variáveis var aqui: este arquivo roda depois do restante e as funções substituem as de teste. */
+var SB_URL='https://nnajpgujipucpymhoinq.supabase.co';
+var SB_KEY='sb_publishable_vu1Dxk2lC2tkVrLtJgq2tA_V94HsJY0';
+var SB=null,MEUS=[],CRED={disponiveis:0,pct:0};
+window.__banco=false;window.__bancoProd=false;
+
+function traduzErro(err){
+  const m=String((err&&err.message)||err||'').toLowerCase();
+  if(m.includes('invalid login'))return 'E-mail ou senha incorretos.';
+  if(m.includes('already registered')||m.includes('already been registered'))return 'Já existe uma conta com este e-mail.';
+  if(m.includes('at least')&&m.includes('character'))return 'A senha precisa ter pelo menos 6 caracteres.';
+  if(m.includes('valid email')||m.includes('invalid email')||m.includes('email address'))return 'Informe um e-mail válido.';
+  if(m.includes('rate limit')||m.includes('too many'))return 'Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.';
+  if(m.includes('fetch')||m.includes('network')||m.includes('failed to'))return 'Não foi possível conectar ao servidor. Verifique a internet e tente de novo.';
+  if(m.includes('email not confirmed'))return 'Confirme o seu e-mail pelo link que enviamos e tente entrar de novo.';
+  return 'Não foi possível concluir agora. Tente de novo em instantes.';
+}
+function msgRpc(err){
+  if(err&&err.code==='P0001'&&err.message)return err.message;   // mensagens escritas pelo próprio sistema, já em português
+  return traduzErro(err);
+}
+const semConexao='Sem conexão com o servidor. Recarregue a página e tente de novo.';
+
+/* ---------- configurações públicas e produtos ---------- */
+async function bancoConfig(){
+  const r=await SB.from('configuracao').select('chave,valor');
+  if(r.error)throw r.error;
+  r.data.forEach(x=>{
+    const v=x.valor;
+    if(x.chave==='site')SITE.cfg=Object.assign({},v);
+    else if(x.chave==='primeira_compra')SITE.pct=+v.pct;
+    else if(x.chave==='amigo')AM=Object.assign({},AMDEF,v);
+    else if(x.chave==='logistica')LOG=Object.assign({},LOGDEF,v);
+  });
+  applySite();
+}
+async function bancoProdutos(){
+  const r=await SB.from('produtos').select('*').order('id');
+  if(r.error)throw r.error;
+  const arr=r.data.map(x=>{const p={id:x.id,sku:x.sku,n:x.nome,d:x.descricao,p:+x.preco,st:x.estoque,c:x.cor,ic:x.icone,cat:x.categoria,ativo:x.ativo};
+    if(x.preco_promo!=null)p.sale=+x.preco_promo;
+    if(x.opcoes&&x.opcoes.length){p.opts=x.opcoes;p.lab=x.rotulo_opcao||'Opção'}
+    return p});
+  PRODUCTS.length=0;arr.forEach(p=>PRODUCTS.push(p));
+  BASE.length=0;JSON.parse(JSON.stringify(PRODUCTS)).forEach(p=>BASE.push(p));
+  window.__bancoProd=true;
+  cart=cart.filter(i=>{const p=PRODUCTS.find(x=>x.id===+i.id);return p&&p.ativo!==false});
+}
+function applyProd(){
+  if(window.__bancoProd)return;
+  PRODUCTS.forEach((p,i)=>{Object.keys(p).forEach(k=>{if(!(k in BASE[i]))delete p[k]});Object.assign(p,BASE[i],PEDIT[p.id]||{});if(p.sale===''||p.sale==null||isNaN(p.sale))delete p.sale})
+}
+
+/* ---------- sessão, perfil e pedidos do cliente ---------- */
+const ehDemo=e=>!!(users[e]&&users[e].demo);
+async function bancoSessao(s){
+  if(!s){
+    if(me&&!ehDemo(me)){delete users[me]}
+    me=null;MEUS=[];orders=orders.filter(o=>!o.real);CRED={disponiveis:0,pct:0};save();return;
+  }
+  const r=await SB.from('perfis').select('*').eq('id',s.user.id).single();
+  if(r.error)throw r.error;const p=r.data;
+  const email=String(s.user.email||'').toLowerCase();
+  users[email]={nome:p.nome,sobrenome:p.sobrenome,fone:p.fone||'',sem9:!!p.sem9,end:p.endereco||null,code:p.codigo_indicacao,refBy:p.indicado_por,consent:p.consentimento_em?Date.parse(p.consentimento_em):null,senha:'',uid:p.id,papel:p.papel};
+  me=email;
+  await bancoPedidos();await bancoCreditos();
+  const ind=sessionStorage.getItem('xp_ind');
+  if(ind&&!rv.ref){await validarCodigo(ind,true)}
+  save();
+}
+function mapPedido(p,evs,avs){
+  return {id:p.id,user:me,real:true,seq:p.seq,status:p.status,items:p.itens,at:Date.parse(p.criado_em),
+    eventos:evs.map(e=>({id:e.id,t:Date.parse(e.t),tipo:e.tipo,de:e.de,para:e.para,publico:e.publico,texto:e.texto,motivo:e.motivo,por:e.por})),
+    avisos:avs.map(a=>({id:a.id,t:Date.parse(a.t),titulo:a.titulo,texto:a.texto,lido:a.lido,motivo:a.motivo,previsao:a.previsao,evId:a.evento_id})),
+    etiquetas:[],pagamento:p.pagamento||{modo:'link',status:'pendente',taxaEntrega:0},conf:p.conf_n||p.id,reduced:true,track:p.rastreio,
+    entrega:p.entrega,disc:p.desconto,ref:p.indicacao?{owner:p.indicacao.owner,code:p.indicacao.code}:null,token:p.token,rotaId:p.rota_id,entregadorId:p.entregador_id};
+}
+async function bancoPedidos(){
+  const r=await SB.from('pedidos_cliente').select('*').order('id');
+  if(r.error)throw r.error;
+  const ids=r.data.map(p=>p.id);let ev=[],av=[];
+  if(ids.length){
+    const a=await SB.from('pedido_eventos').select('*').in('pedido_id',ids).order('t');
+    const b=await SB.from('pedido_avisos').select('*').in('pedido_id',ids).order('t');
+    ev=a.data||[];av=b.data||[];
+  }
+  MEUS=r.data.map(p=>mapPedido(p,ev.filter(e=>e.pedido_id===p.id),av.filter(x=>x.pedido_id===p.id)));
+  for(const o of MEUS){
+    if(['em-rota','entregue','tentativa'].includes(o.status)&&!pago(o)){
+      const l=await SB.rpc('link_pagamento_pedido',{p_pedido:o.id});o._link=l.data||'';
+    }
+  }
+  orders=orders.filter(o=>!o.real).concat(MEUS);
+}
+async function bancoCreditos(){
+  const r=await SB.rpc('meus_creditos');
+  if(!r.error&&r.data)CRED={disponiveis:+r.data.disponiveis||0,pct:+r.data.pct||0};
+}
+function bancoLidos(id){if(SB&&MEUS.some(o=>o.id==id))SB.rpc('marcar_avisos_lidos',{p_pedido:+id})}
+
+/* ---------- cadastro, entrada e saída ---------- */
+async function doLogin(e){
+  e.preventDefault();
+  if(!SB){msg(semConexao);return false}
+  const em=$('#le').value.trim().toLowerCase(),pw=$('#lp').value;
+  const r=await SB.auth.signInWithPassword({email:em,password:pw});
+  if(r.error){msg(traduzErro(r.error));return false}
+  try{await bancoSessao(r.data.session)}catch(x){msg(traduzErro(x));return false}
+  updHead();toast('Bem-vindo(a), '+users[me].nome+'.');
+  const nx=sessionStorage.getItem('xp_next');sessionStorage.removeItem('xp_next');nav(nx||'/pedidos');return false;
+}
+async function doReg(e){
+  e.preventDefault();
+  if(!SB){msg(semConexao);return false}
+  const em=$('#re').value.trim().toLowerCase(),nome=tc($('#rn').value),sob=tc($('#rs').value),fone=$('#rf').value.trim(),sem9=$('#rfn9').checked,pw=$('#rp').value;
+  {const er=foneErro(fone,sem9);if(er){msg(er);return false}}
+  if(nome.length<2||sob.length<2){msg('Informe nome e sobrenome.');return false}
+  if(!$('#rc').checked){msg('Para criar a conta, é preciso aceitar a Política de Privacidade.');return false}
+  if(pw.length<6){msg('A senha precisa ter pelo menos 6 caracteres.');return false}
+  const r=await SB.auth.signUp({email:em,password:pw,options:{data:{nome,sobrenome:sob,fone,sem9,consentimento:true}}});
+  if(r.error){msg(traduzErro(r.error));return false}
+  if(!r.data.session){msg('Enviamos um link de confirmação para o seu e-mail. Confirme e depois entre na sua conta.','warn');return false}
+  try{await bancoSessao(r.data.session)}catch(x){msg(traduzErro(x));return false}
+  updHead();nav('/endereco');return false;
+}
+async function sair(){
+  closeModal();
+  if(SB){try{await SB.auth.signOut()}catch(x){}}
+  await bancoSessao(null);updHead();nav('/');
+}
+async function saveEnd(e){
+  e.preventDefault();
+  const a=normEnd({cep:fmtCep($('#eC').value),uf:$('#eU').value,cidade:$('#eCi').value,bairro:$('#eB').value,rua:$('#eR').value,num:$('#eN').value.trim(),comp:$('#eCo').value.trim(),ref:$('#eRf').value.trim()});
+  const er=validarEnd(a);if(er.length){msg(er.join(' '));return false}
+  if(SB&&user()&&user().uid){
+    const r=await SB.from('perfis').update({endereco:a}).eq('id',user().uid);
+    if(r.error){msg(traduzErro(r.error));return false}
+  }
+  user().end=a;save();toast('Endereço salvo.');nav(cart.length?'/revisar':'/pedidos');return false;
+}
+async function salvarPerfil(e){
+  e.preventDefault();const u=user();const sem9=$('#pfn9').checked;
+  const er=foneErro($('#pf').value,sem9);if(er){msg(er);return false}
+  const p1_=$('#pp1').value,p2_=$('#pp2').value;
+  if(p1_||p2_){if(p1_.length<6){msg('A nova senha precisa ter pelo menos 6 caracteres.');return false}if(p1_!==p2_){msg('As senhas não são iguais.');return false}}
+  const nome=tc($('#pn').value),sob=tc($('#ps').value);
+  if(SB&&u.uid){
+    const r=await SB.from('perfis').update({nome,sobrenome:sob,fone:$('#pf').value,sem9}).eq('id',u.uid);
+    if(r.error){msg(traduzErro(r.error));return false}
+    if(p1_){const s=await SB.auth.updateUser({password:p1_});if(s.error){msg(traduzErro(s.error));return false}}
+  }
+  u.nome=nome;u.sobrenome=sob;u.fone=$('#pf').value;u.sem9=sem9;save();updHead();toast('Perfil salvo.');nav('/');return false;
+}
+
+/* ---------- descontos: quem decide é o servidor; aqui só mostramos a prévia ---------- */
+async function validarCodigo(code,silencioso){
+  const r=await SB.rpc('validar_indicacao',{p_codigo:code});
+  if(r.error||!r.data||!r.data.ok){rv.msg=(r.data&&r.data.erro)||'Não foi possível conferir o código agora.';rv.code='';rv.ref=null;if(silencioso){rv.msg=''}return false}
+  rv.code=String(code).trim().toUpperCase();rv.msg='';rv.ref=r.data;return true;
+}
+async function applyCode(){
+  rv.use=false;
+  if(!SB){rv.msg=semConexao;route();return}
+  await validarCodigo($('#rvCode').value.trim().toUpperCase());route();
+}
+function validateRef(code){
+  code=String(code||'').trim().toUpperCase();
+  if(window.__banco){
+    if(rv.ref&&rv.ref.codigo===code)return {ok:true,owner:rv.ref.owner,pct:rv.ref.pct};
+    return {err:rv.msg||''};
+  }
+  return validateRefLocal(code);
+}
+function credits(owner){
+  if(window.__banco&&owner===me){
+    const n=CRED.disponiveis||0;
+    return {earned:Array.from({length:n},()=>({pct:CRED.pct})),used:0,avail:n,conf:[]};
+  }
+  const conf=orders.filter(o=>o.ref&&o.ref.owner===owner&&COUNT.includes(o.status)).sort((a,b)=>a.conf-b.conf);
+  const perMonth={},earned=[];
+  conf.forEach(o=>{const k=monthKey(o.at);perMonth[k]=(perMonth[k]||0)+1;o._cred=perMonth[k]<=AM.limite?'ok':'limite';if(o._cred==='ok')earned.push({order:o.id,pct:(o.disc&&o.disc.pct)||AM.pct})});
+  const used=orders.filter(o=>o.user===owner&&o.disc&&o.disc.tipo==='credito'&&o.status!=='cancelado').length;
+  return {earned,used,avail:Math.max(0,earned.length-used),conf};
+}
+function firstEligible(){
+  const u=user();if(!u||!PC.ativa)return false;
+  if(orders.some(o=>o.user===me&&o.status!=='cancelado'))return false;
+  if(window.__banco)return true;
+  for(const [e,x] of Object.entries(users)){
+    if(e===me)continue;
+    if(!orders.some(o=>o.user===e&&o.status!=='cancelado'))continue;
+    if(digits(x.fone)===digits(u.fone)||sameAddr(x.end,u.end))return false;
+  }
+  return true;
+}
+
+/* ---------- finalizar o pedido no banco ---------- */
+async function finish(){
+  if(busy2)return;
+  if(!SB){ent.erros=[semConexao];route();return}
+  const u=user(),er=[];
+  if(!endOk())er.push('Complete o endereço principal de entrega.');
+  if(ent.sec)validarEnd(ent.s,'Endereço secundário: ').forEach(x=>er.push(x));
+  const v=validarEntrega(ent.data,ent.turno);if(v)er.push(v);
+  const bad=cart.find(i=>i.qty>stockLeft(byId(i.id)));if(bad)er.push('Um item ficou sem estoque suficiente. Ajuste o carrinho.');
+  ent.erros=er;if(er.length){route();return}
+  busy2=true;const b=$('#fin');b.disabled=true;b.textContent='Registrando o pedido...';
+  const itens=cart.map(i=>({id:i.id,qty:i.qty,opt:i.opt||''}));
+  const entrega={data:ent.data,turno:ent.turno,obs:ent.obs.trim(),sec:ent.sec?Object.assign({},normEnd(ent.s),{cep:fmtCep(ent.s.cep)}):null};
+  const r=await SB.rpc('criar_pedido',{p_itens:itens,p_entrega:entrega,p_codigo:(rv.ref&&rv.code)?rv.code:null,p_usar_credito:!!rv.use});
+  busy2=false;
+  if(r.error){ent.erros=[msgRpc(r.error)];try{await bancoProdutos()}catch(x){}route();return}
+  cart=[];rv={code:'',use:false,msg:'',ref:null};
+  ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:'',turno:'',obs:'',erros:[]};
+  sessionStorage.removeItem('xp_ind');
+  try{await bancoPedidos();await bancoCreditos();await bancoProdutos()}catch(x){}
+  save();updHead();nav('/pedido/'+r.data.id);
+}
+
+/* ---------- avisos lidos no banco ---------- */
+function verAvisos(oid){
+  const o=orders.find(x=>x.id==oid);if(!o||o.user!==me)return;const n=(o.avisos||[]).filter(a=>!a.lido).slice().reverse();if(!n.length)return;
+  n.forEach(a=>{a.lido=true});save();updHead();bancoLidos(oid);
+  openModal(`<h3 style="margin-top:0">Pedido ${codigoPedido(o)}: ${n.length>1?'novas atualizações':esc(n[0].titulo)}</h3>${n.map(a=>`<div style="border-top:1px solid var(--line);padding:10px 0"><b>${esc(a.titulo)}</b><div style="color:var(--muted);font-size:.82rem">${fmtD(a.t)}</div><p style="margin:4px 0">${esc(a.texto)}</p>${a.motivo?`<p style="margin:4px 0"><b>Motivo:</b> ${esc(a.motivo)}</p>`:''}${a.previsao&&a.previsao.data?`<p style="margin:4px 0"><b>Nova previsão:</b> ${fmtDay(a.previsao.data)}${a.previsao.turno?', período '+turnoNome(a.previsao.turno):''}</p>`:''}</div>`).join('')}<p style="text-align:right"><button class="btn" onclick="closeModal();route()">Fechar</button></p>`);
+}
+function marcarLidas(){myOrders().forEach(o=>{(o.avisos||[]).forEach(a=>{a.lido=true});bancoLidos(o.id)});save();updHead();route()}
+function abrirNotificacao(oid,aid){const o=orders.find(x=>x.id===oid);const a=o&&(o.avisos||[]).find(x=>x.id===aid);if(a)a.lido=true;save();updHead();bancoLidos(oid);nav('/pedidos')}
+
+/* ---------- início ---------- */
+async function bancoInit(){
+  try{
+    await bancoConfig();await bancoProdutos();
+    const g=await SB.auth.getSession();await bancoSessao(g.data&&g.data.session);
+  }catch(x){
+    console.error('Falha ao ligar ao banco',x);
+    toast('Não foi possível carregar os dados do servidor. Recarregue a página.');
+  }
+  paintShell();updHead();route();
+}
+(function(){
+  const local=/[?&]local=1/.test(location.search);
+  if(local||typeof supabase==='undefined'||!supabase.createClient)return;
+  SB=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+  window.__banco=true;
+  bancoInit();
+  setInterval(()=>{if(SB&&me&&!document.hidden&&/^#\/(pedido|pedidos|notificacoes)/.test(location.hash)){bancoPedidos().then(()=>{if(!emEdicao())route()}).catch(()=>{})}},20000);
+})();
 
 </script>
 </body>

@@ -118,7 +118,16 @@ begin
   select count(*) into n from public.pedidos where usuario_id = a;
   rel := rel || E'10) B enxerga pedidos de A: ' || n || E' (esperado 0)\n';
   select count(*) into n from public.pedidos where usuario_id = b;
-  rel := rel || E'    B enxerga os próprios pedidos: ' || n || E' (esperado 1)\n';
+  rel := rel || E'    B lendo a tabela de pedidos direto: ' || n || E' (esperado 0 depois do script 04; 1 antes dele)\n';
+  begin
+    select count(*) into n from public.pedidos_cliente;
+    rel := rel || E'    B lendo a visão pedidos_cliente: ' || n || E' (esperado 1)\n';
+    select count(*) into n from public.pedido_eventos;
+    rel := rel || E'    B vendo eventos públicos dos próprios pedidos: ' || n || E' (esperado 1)\n';
+    rel := rel || E'    Link de pagamento antes de sair para entrega: ' || coalesce(public.link_pagamento_pedido((select id from public.pedidos_cliente limit 1)), 'nenhum') || E' (esperado nenhum)\n';
+  exception when others then
+    rel := rel || E'    (visão do cliente ainda não instalada, rode o 04) ' || sqlerrm || E'\n';
+  end;
 
   -- 11) sem login, ninguém cria pedido
   perform set_config('request.jwt.claims', '', true);
