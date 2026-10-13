@@ -1248,12 +1248,12 @@ function infoCorpo(s){
   const turnos=Object.keys(TURNOS).filter(t=>LOG.turnos[t]).map(t=>TURNOS[t]).join(', ');
   return ({
    'duvidas':faqHtml(),
-   'como-comprar':`<ol><li><b>Escolha os produtos</b> e adicione ao carrinho.</li><li><b>Revise o pedido:</b> confira o endereço, escolha a data e o turno da entrega e, se tiver, informe o código de um amigo.</li><li><b>Finalize.</b> Você não paga agora.</li><li><b>Quando o pedido entrar em rota</b>, enviamos um link de pagamento, no valor combinado com a taxa de entrega.</li><li>Acompanhe cada etapa em <a onclick="nav('/pedidos')">Rastrear pedido</a>.</li></ol><p>Ficou com dúvida? ${wa}.</p>`,
+   'como-comprar':`<ol><li><b>Escolha os produtos</b> e adicione ao carrinho.</li><li><b>Revise o pedido:</b> confira o endereço, escolha a data e o turno da entrega e, se tiver, informe o código de um amigo.</li><li><b>Escolha a forma de pagamento</b> (Pix, cartão de crédito ou débito) e envie o pedido pelo WhatsApp.</li><li><b>Nossa equipe confirma</b> e envia o link de pagamento pelo WhatsApp.</li><li>Acompanhe cada etapa em <a onclick="nav('/pedidos')">Rastrear pedido</a>.</li></ol><p>Ficou com dúvida? ${wa}.</p>`,
    'entregas':`<h3>Data e turno</h3><p>Você escolhe a data e o turno ao finalizar a compra, com pelo menos ${LOG.antecedencia} dia de antecedência e até ${LOG.janela} dias à frente. Entregamos de ${dias}, nos turnos: ${turnos}.</p><h3>Frete</h3><p>${esc(CFG.frete)}.</p><h3>Quando a entrega é programada</h3><p>A programação começa depois da confirmação do pagamento. A data é uma preferência: a loja confirma a programação e avisa pelo site se algo mudar.</p><h3>Acompanhamento</h3><p>Em <a onclick="nav('/pedidos')">Rastrear pedido</a> você vê cada etapa. O código de rastreio só aparece quando existir.</p><h3>Tentativa sem sucesso</h3><p>Se não for possível entregar, entraremos em contato para reprogramar.</p>`,
-   'pagamento':`<h3>Quando pagar</h3><p>O pagamento é feito depois, por um link de pagamento que enviamos pelo WhatsApp quando o seu pedido entrar em rota para entrega. Você não paga na hora de finalizar o pedido.</p><h3>Valor</h3><p>O valor é o combinado com a loja: produtos, menos descontos, mais a taxa de entrega informada antes do envio.</p><h3>Formas de pagamento</h3><p>Débito, Pix e cartão de crédito, conforme as opções do link.</p><h3>Como pagar</h3><p>Abra o link da mensagem ou entre em Rastrear pedido e toque em Pagar. Depois que a loja registrar o recebimento, o pedido mostra Pagamento recebido.</p>`,
+   'pagamento':`<h3>Quando pagar</h3><p>Você escolhe a forma de pagamento ao enviar o pedido. Nossa equipe confirma o pedido e envia o link de pagamento pelo WhatsApp.</p><h3>Valor</h3><p>O valor é o do pedido: produtos, menos descontos, mais a taxa de entrega, quando houver, informada pela loja.</p><h3>Formas de pagamento</h3><p>Pix, cartão de crédito e cartão de débito.</p><h3>Como pagar</h3><p>Abra o link enviado pela nossa equipe no WhatsApp. Depois que a loja registrar o recebimento, o pedido mostra Pagamento recebido.</p>`,
    'trocas':`<h3>Troca e devolução</h3><p>Se o produto chegar com avaria, divergência ou erro de envio, avise nosso atendimento em até 7 dias corridos após o recebimento, com o número do pedido e fotos.</p><h3>Medicamentos</h3><p>Por segurança sanitária, medicamentos não podem ser devolvidos depois de entregues, salvo em caso de erro da loja ou produto com defeito, conforme a legislação aplicável.</p><h3>Reembolso</h3><p>Aprovada a troca ou a devolução, o valor é estornado pelo mesmo meio de pagamento.</p><p>${wa}.</p>`,
    'privacidade':`<h3>Dados que coletamos</h3><p>Nome, telefone, e-mail, endereço de entrega e histórico de pedidos, para processar e entregar suas compras.</p><h3>Como usamos</h3><p>Para confirmar pagamento, programar a entrega, avisar você sobre o pedido e verificar a elegibilidade a descontos.</p><h3>Pagamento</h3><p>Os dados de cartão e de Pix são tratados pelos provedores de pagamento. A loja não armazena número de cartão nem código de segurança.</p><h3>Seus direitos</h3><p>Você pode pedir acesso, correção ou exclusão dos seus dados pelo atendimento, conforme a LGPD.</p><p>${wa}.</p>`,
-   'termos':`<h3>Uso do site</h3><p>Ao usar o site, você declara ter 18 anos ou mais e informar dados verdadeiros.</p><h3>Pedidos</h3><p>O valor combinado é pago por link de pagamento, enviado quando o pedido entra em rota. O pedido está sujeito à disponibilidade de estoque.</p><h3>Medicamentos</h3><p>Medicamentos devem ser usados com moderação. Leia a bula e siga as orientações da equipe.</p><h3>Descontos e campanhas</h3><p>Cada pedido recebe apenas um desconto, não cumulativo. Veja os regulamentos de <a onclick="nav('/reg/primeira-compra')">primeira compra</a> e do <a onclick="nav('/reg/amigo')">Amigo Emagrece Amigo</a>.</p>`
+   'termos':`<h3>Uso do site</h3><p>Ao usar o site, você declara ter 18 anos ou mais e informar dados verdadeiros.</p><h3>Pedidos</h3><p>O pagamento é feito por link enviado pela nossa equipe pelo WhatsApp. O pedido está sujeito à disponibilidade de estoque.</p><h3>Medicamentos</h3><p>Medicamentos devem ser usados com moderação. Leia a bula e siga as orientações da equipe.</p><h3>Descontos e campanhas</h3><p>Cada pedido recebe apenas um desconto, não cumulativo. Veja os regulamentos de <a onclick="nav('/reg/primeira-compra')">primeira compra</a> e do <a onclick="nav('/reg/amigo')">Amigo Emagrece Amigo</a>.</p>`
   })[s]||'';
 }
 function pageInfo(s){
@@ -1595,9 +1595,9 @@ function chartBars2(labels,vals,vals2,c1,c2){
 /* ---------- dúvidas frequentes ---------- */
 function faqHtml(){
   const Q=[
-   ['Como faço um pedido?','Adicione os produtos ao carrinho, revise o pedido, escolha a data e o turno da entrega e finalize. O pagamento é feito depois, por link, quando o pedido entrar em rota.'],
-   ['Quais são as formas de pagamento?','Débito, Pix e cartão de crédito, conforme as opções do link de pagamento que enviamos quando o pedido entra em rota.'],
-   ['Quando eu pago?','Você paga depois que o pedido entrar em rota. Enviamos uma mensagem no WhatsApp com o link e o valor combinado, que já inclui a taxa de entrega.'],
+   ['Como faço um pedido?','Adicione os produtos ao carrinho, revise o pedido, escolha data, horário e forma de pagamento e envie o pedido pelo WhatsApp. Nossa equipe confirma e envia o link de pagamento.'],
+   ['Quais são as formas de pagamento?','Pix, cartão de crédito e cartão de débito, pelo link de pagamento que nossa equipe envia no WhatsApp.'],
+   ['Quando eu pago?','Depois que você envia o pedido, nossa equipe confirma e manda o link de pagamento pelo WhatsApp, com o valor do pedido.'],
    ['O link de pagamento não funcionou. O que faço?','Fale com o atendimento pelo WhatsApp. Podemos reenviar o link.'],
    ['Como acompanho o meu pedido?','Em Rastrear pedido, no topo do site, você vê cada fase e o horário em que aconteceu. Se preferir, use a página Acompanhar pelo código, sem entrar na conta. Novidades também ficam guardadas no sino de notificações.'],
    ['Posso escolher a data e o turno da entrega?','Sim, ao finalizar a compra. É uma preferência: a loja confirma a programação. Se algo mudar, você é avisado no pedido.'],
@@ -1704,7 +1704,7 @@ function pageOrderBase(id){
   ${payCliente(o)}
   <h3>Resumo</h3><div class="tbl"><table><tbody>${o.items.map(i=>`<tr><td>${esc(i.name)}</td><td>${i.qty}</td><td class="r">${brl(i.unit*i.qty)}</td></tr>`).join('')}</tbody></table></div>${o.disc?`<p style="color:#1b5e20;font-weight:600">Desconto ${o.disc.pct}%: - ${brl(o.disc.valor)}</p>`:''}<p><b>Total dos produtos:</b> ${brl(total(o))}</p>
   <p style="font-size:.88rem">Entrega desejada: <b>${fmtDay(e.data)}, ${turnoNome(e.turno)}</b> · ${esc(e.dest.cidade)}/${esc(String(e.dest.uf).toUpperCase())}</p>
-  <p style="font-size:.88rem;color:var(--muted)">A taxa de entrega é informada pela loja antes do envio e somada ao valor do link de pagamento.</p>
+  <p style="font-size:.88rem;color:var(--muted)">A taxa de entrega, quando houver, é informada pela loja antes do envio.</p>
   <p><button class="btn acc" onclick="nav('/pedidos')">Acompanhar meu pedido</button> <button class="btn ghost" onclick="nav('/')">Continuar comprando</button></p></div></div>`;
 }
 
@@ -2784,7 +2784,6 @@ function syncAdmin(){
   const u=me&&users[me];
   ADMIN=u&&['admin','logistica','separador'].includes(u.papel)?{email:me,nome:u.nome||me,papel:u.papel}:null;
 }
-function admTab(t){A.tab=t;A9.ed=null;A9.msg='';route()}
 async function admLogin(e){
   e.preventDefault();const m=document.getElementById('amsg');
   if(!SB){m.innerHTML='<div class="note err">'+semConexao+'</div>';return false}
@@ -2798,10 +2797,6 @@ async function admCarregarProdutos(){
   const [a,b]=await Promise.all([SB.from('produtos').select('*').order('id'),SB.from('produto_variacoes').select('*').order('ordem')]);
   if(a.error||b.error){A9.msg='Não foi possível carregar os produtos. Confirme que o arquivo 07 já foi rodado no Supabase.';A9.prods=[];route();return}
   A9.prods=a.data.map(p=>Object.assign({},p,{vars:b.data.filter(v=>v.produto_id===p.id)}));route();
-}
-async function admCarregarPedidos(){
-  const r=await SB.from('pedidos').select('id,status,criado_em,itens,entrega,pagamento,desconto').order('id',{ascending:false}).limit(100);
-  A9.pedidos=r.error?[]:r.data;if(r.error)A9.msg='Não foi possível carregar os pedidos.';route();
 }
 var STLB={realizado:'Recebido',confirmado:'Confirmado',preparacao:'Em preparação',separacao:'Em separação','aguardando-programacao':'Aguardando programação',programada:'Entrega programada','em-rota':'Em rota',entregue:'Entregue',tentativa:'Tentativa de entrega',cancelado:'Cancelado'};
 function admFotoUrl(f){return f?(/^https?:/.test(f)?f:SB_URL+'/storage/v1/object/public/produtos/'+encodeURIComponent(f)):''}
@@ -2895,23 +2890,110 @@ async function admSalvar(){
     route();
   }
 }
-function tabPedidos(){
-  if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
-  const tot=o=>(o.itens||[]).reduce((s,i)=>s+i.unit*i.qty,0)-(o.desconto?+o.desconto.valor:0);
-  return `<div class="box"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><p style="margin:0;color:var(--muted)">Pedidos enviados pelos clientes (os 100 mais recentes).</p><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar</button></div>
-  <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Entrega desejada</th><th>Pagamento</th><th>Situação</th></tr></thead><tbody>${A9.pedidos.map(o=>{const en=o.entrega||{};const fone=String(en.fone||'').replace(/\D/g,'');return `<tr><td><b>ZP-${String(o.id).padStart(6,'0')}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div></td><td>${esc(en.nome||'')}<div style="font-size:.82rem">${fone?`<a href="https://wa.me/55${fone}" target="_blank" rel="noopener">${esc(en.fone)}</a>`:''}</div><div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' '+((en.dest||{}).cidade||''))}</div></td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td><td>${brl(tot(o))}</td><td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td>${esc(STLB[o.status]||o.status)}</td></tr>`}).join('')||'<tr><td colspan="7">Nenhum pedido ainda.</td></tr>'}</tbody></table></div></div>`;
+var STSEQ=['realizado','confirmado','preparacao','separacao','aguardando-programacao','programada','em-rota','entregue','tentativa','cancelado'];
+var pedTotal=o=>(o.itens||[]).reduce((s,i)=>s+i.unit*i.qty,0)-(o.desconto?+o.desconto.valor:0);
+var codPed=o=>'ZP-'+String(o.id).padStart(6,'0');
+var foneWa=f=>{const d=String(f||'').replace(/\D/g,'');return d?(d.length<=11?'55'+d:d):''};
+A9.po=null;A9.link='';A9.fs='';A9.erro=false;
+function msgBox(){return A9.msg?`<div class="note ${A9.erro?'err':''}">${esc(A9.msg)}</div>`:''}
+async function admCarregarLink(){
+  const r=await SB.from('configuracao').select('valor').eq('chave','pagamento').maybeSingle();
+  A9.link=(r.data&&r.data.valor&&r.data.valor.linkPag)||'';
 }
+async function admCarregarPedidos(){
+  const r=await SB.from('pedidos').select('*').order('id',{ascending:false}).limit(100);
+  A9.pedidos=r.error?[]:r.data;if(r.error){A9.msg='Não foi possível carregar os pedidos.';A9.erro=true}route();
+}
+async function admAbrirPedido(id){
+  const [r,ev]=await Promise.all([SB.from('pedidos').select('*').eq('id',id).single(),SB.from('pedido_eventos').select('*').eq('pedido_id',id).order('t')]);
+  if(r.error){A9.msg='Não foi possível abrir o pedido.';A9.erro=true;route();return}
+  await admCarregarLink();
+  A9.po=Object.assign({},r.data,{eventos:ev.data||[]});route();window.scrollTo(0,0);
+}
+function admFechaPedido(){A9.po=null;A9.msg='';A9.pedidos=null;route()}
+async function admRpc(nome,args,ok){
+  if(A9.busy)return;A9.busy=true;
+  const r=await SB.rpc(nome,args);A9.busy=false;
+  if(r.error){A9.msg=msgRpc(r.error);A9.erro=true;route();return}
+  A9.msg=ok;A9.erro=false;await admAbrirPedido(A9.po.id);
+}
+function admStatus(){const s=v_('stN');if(!s)return;admRpc('alterar_status_pedido',{p_pedido:A9.po.id,p_status:s,p_motivo:v_('stM').trim()||null},'Status atualizado. O cliente já foi avisado.')}
+function admCancelarPedido(){
+  const m=v_('stM').trim();if(!m){A9.msg='Informe o motivo do cancelamento no campo de motivo.';A9.erro=true;route();return}
+  if(!confirm('Cancelar este pedido e devolver os itens ao estoque?'))return;
+  admRpc('alterar_status_pedido',{p_pedido:A9.po.id,p_status:'cancelado',p_motivo:m},'Pedido cancelado e estoque devolvido.');
+}
+function admPago(v){admRpc('registrar_pagamento',{p_pedido:A9.po.id,p_pago:v},v?'Pagamento registrado como recebido.':'Pagamento voltou para pendente.')}
+function admSalvaEntrega(){
+  const d=v_('enD'),t=v_('enT');if(!d){A9.msg='Informe a data.';A9.erro=true;route();return}
+  admRpc('atualizar_pedido_admin',{p_pedido:A9.po.id,p_data:d,p_turno:t,p_obs_interna:v_('enO')},'Dados da entrega salvos.');
+}
+function admMsgPagamento(o){
+  const en=o.entrega||{};const nome=String(en.nome||'').split(' ')[0];
+  return nl('Olá, '+nome+'! Segue o link para pagamento do pedido '+codPed(o)+', no valor de '+brl(pedTotal(o))+':\n'+A9.link+'\n\nForma escolhida: '+(PAGNOME[(o.pagamento||{}).preferencia]||'a combinar')+'.\nSe houver campo de descrição, informe o código '+codPed(o)+'.');
+}
+function admDetalhe(){
+  const o=A9.po,en=o.entrega||{},d=en.dest||{},pg=o.pagamento||{},u=o.status==='entregue'||o.status==='cancelado';
+  const gestao=ADMIN.papel!=='separador';const fim=u;
+  const sub=(o.itens||[]).reduce((s,i)=>s+i.unit*i.qty,0);
+  const fone=foneWa(en.fone);
+  const linkOk=!!A9.link&&fone;
+  return `<div class="box"><p><a style="cursor:pointer" onclick="admFechaPedido()">← Voltar para os pedidos</a></p>${msgBox()}
+  <h2 style="margin:0 0 4px">Pedido ${codPed(o)}</h2><div style="color:var(--muted);margin-bottom:12px">Feito em ${fmtD(Date.parse(o.criado_em))} · <b>${esc(STLB[o.status]||o.status)}</b> · Pagamento: <b>${pg.status==='pago'?'recebido':'pendente'}</b></div>
+  <div class="two" style="gap:20px"><div>
+  <h3 style="margin-top:0">Cliente e entrega</h3>
+  <p style="margin:0"><b>${esc(en.nome||'')}</b><br>${fone?`<a href="https://wa.me/${fone}" target="_blank" rel="noopener">${esc(en.fone)}</a>`:esc(en.fone||'')}</p>
+  <p>${esc(d.rua||'')}, ${esc(d.num||'')}${d.comp?', '+esc(d.comp):''}<br>${esc(d.bairro||'')}<br>${esc(d.cidade||'')}/${esc(d.uf||'')}, CEP ${esc(d.cep||'')}${d.ref?'<br>Referência: '+esc(d.ref):''}${en.secundario?'<br><i>Endereço secundário informado pelo cliente</i>':''}</p>
+  <p style="margin:0">Entrega desejada: <b>${dataBr(en.data)} (${esc(TURNOS[en.turno]||'')})</b><br>Forma de pagamento escolhida: <b>${esc(PAGNOME[pg.preferencia]||'não informada')}</b>${en.obs?'<br>Observação do cliente: '+esc(en.obs):''}</p>
+  <h3>Itens</h3><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${(o.itens||[]).map(i=>`<tr><td>${esc(i.name)}<div style="color:var(--muted);font-size:.8rem">SKU ${esc(i.sku||'')}</div></td><td>${i.qty}</td><td class="r">${brl(i.unit*i.qty)}</td></tr>`).join('')}</tbody></table></div>
+  <div class="tot"><span>Subtotal</span><span>${brl(sub)}</span>${o.desconto?`<span class="dsc">Desconto (${o.desconto.pct}%)</span><span class="dsc">- ${brl(o.desconto.valor)}</span>`:''}<span class="big">Total</span><span class="big">${brl(pedTotal(o))}</span></div>
+  </div><div>
+  ${gestao?`<h3 style="margin-top:0">Status do pedido</h3>${fim?'<div class="note">Pedido encerrado. O status não muda mais.</div>':`<label for="stN">Novo status</label><select id="stN">${STSEQ.filter(s=>s!==o.status&&s!=='cancelado').map(s=>`<option value="${s}">${STLB[s]}</option>`).join('')}</select><label for="stM">Motivo ou observação para o cliente (obrigatório para cancelar)</label><input id="stM" maxlength="200"><p style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn acc" onclick="admStatus()">Atualizar status e avisar cliente</button><button class="btn ghost" onclick="admCancelarPedido()">Cancelar pedido</button></p>`}
+  <h3>Pagamento</h3>
+  ${A9.link?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre em Configurações.</div>'}
+  <p style="display:flex;gap:8px;flex-wrap:wrap">${linkOk?`<a class="btn wa" href="${waUrlPara(fone,admMsgPagamento(o))}" target="_blank" rel="noopener">Enviar link de pagamento no WhatsApp</a>`:''}${o.status==='cancelado'?'':pg.status==='pago'?'<button class="btn ghost" onclick="admPago(false)">Voltar para pendente</button>':'<button class="btn" onclick="admPago(true)">Marcar como pago</button>'}</p>
+  ${fim&&o.status==='cancelado'?'':`<h3>Ajustar entrega e anotações</h3><div class="fr"><div class="c3"><label for="enD">Data</label><input id="enD" type="date" value="${esc(en.data||'')}"></div><div class="c3"><label for="enT">Horário</label><select id="enT">${Object.keys(TURNOS).map(t=>`<option value="${t}" ${en.turno===t?'selected':''}>${TURNOS[t]}</option>`).join('')}</select></div></div><label for="enO">Observação interna (o cliente não vê)</label><textarea id="enO" rows="2" maxlength="500">${esc(o.obs_interna||'')}</textarea><p><button class="btn" onclick="admSalvaEntrega()">Salvar entrega e anotações</button></p>`}`:''}
+  </div></div>
+  <h3>Histórico</h3><div class="tbl"><table><thead><tr><th>Quando</th><th>O que aconteceu</th><th>Por</th><th>Cliente vê</th></tr></thead><tbody>${o.eventos.map(e=>`<tr><td>${fmtD(Date.parse(e.t))}</td><td>${esc(e.texto||'')}${e.motivo?'<div style="color:var(--muted);font-size:.82rem">Motivo: '+esc(e.motivo)+'</div>':''}</td><td>${esc(e.por||'')}</td><td>${e.publico?'Sim':'Não'}</td></tr>`).join('')||'<tr><td colspan="4">Sem registros.</td></tr>'}</tbody></table></div></div>`;
+}
+function waUrlPara(fone,msg){return 'https://wa.me/'+fone+'?text='+encodeURIComponent(msg)}
+function tabPedidos(){
+  if(A9.po)return admDetalhe();
+  if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
+  const lista=A9.pedidos.filter(o=>!A9.fs||o.status===A9.fs);
+  return `<div class="box"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><p style="margin:0;color:var(--muted)">Pedidos mais recentes (até 100).</p><div style="display:flex;gap:8px"><select onchange="A9.fs=this.value;route()" style="width:auto"><option value="">Todos os status</option>${STSEQ.map(s=>`<option value="${s}" ${A9.fs===s?'selected':''}>${STLB[s]}</option>`).join('')}</select><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar</button></div></div>${msgBox()}
+  <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Entrega desejada</th><th>Pagamento</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const pg=o.pagamento||{};return `<tr><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' '+((en.dest||{}).cidade||''))}</div></td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td><td>${brl(pedTotal(o))}</td><td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td><td>${esc(PAGNOME[pg.preferencia]||'')}<div style="font-size:.8rem;color:${pg.status==='pago'?'#1a7f37':'var(--muted)'}">${pg.status==='pago'?'Recebido':'Pendente'}</div></td><td>${esc(STLB[o.status]||o.status)}</td><td><button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||'<tr><td colspan="8">Nenhum pedido.</td></tr>'}</tbody></table></div></div>`;
+}
+async function admSalvaLink(){
+  const l=v_('cfLink').trim();
+  if(l&&!/^https:\/\//i.test(l)){A9.msg='O link precisa começar com https://';A9.erro=true;route();return}
+  const r=await SB.from('configuracao').upsert({chave:'pagamento',valor:{linkPag:l},publica:false,atualizado_em:new Date().toISOString()});
+  if(r.error){A9.msg='Não foi possível salvar. Confirme que está com a conta de administrador.';A9.erro=true}else{A9.link=l;A9.msg='Link de pagamento salvo.';A9.erro=false}
+  route();
+}
+function tabConfig(){
+  if(A9.cfgOk!==true){if(!A9.busy){A9.busy=true;admCarregarLink().finally(()=>{A9.busy=false;A9.cfgOk=true;route()})}return '<div class="box">Carregando...</div>'}
+  return `<div class="box" style="max-width:640px"><h3 style="margin-top:0">Link de pagamento</h3>${msgBox()}<p style="color:var(--muted);margin-top:0">Link fixo do Mercado Pago. Em cada pedido, o botão "Enviar link de pagamento no WhatsApp" manda este link ao cliente com o valor do pedido.</p><label for="cfLink">Link</label><input id="cfLink" value="${esc(A9.link)}" placeholder="https://link.mercadopago.com.br/..."><p><button class="btn acc" onclick="admSalvaLink()">Salvar</button></p></div>`;
+}
+function admTab(t){A.tab=t;A9.ed=null;A9.po=null;A9.msg='';A9.cfgOk=false;route()}
 function pageOp(){
   syncAdmin();
   if(!ADMIN){
     if(me)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div class="note err">Esta conta não tem acesso à área administrativa.</div><p><button class="btn" onclick="admSair()">Sair</button></p></div></div>`;
     return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username"><div style="height:10px"></div><label for="ap">Senha</label><input id="ap" type="password" required autocomplete="current-password"><p><button class="btn acc full" style="padding:1em">Entrar</button></p></form></div></div>`;
   }
-  const tabs=ADMIN.papel==='admin'?[['produtos','Produtos'],['pedidos','Pedidos']]:[['pedidos','Pedidos']];
+  const tabs=ADMIN.papel==='admin'?[['pedidos','Pedidos'],['produtos','Produtos'],['config','Configurações']]:[['pedidos','Pedidos']];
   if(!tabs.some(t=>t[0]===A.tab))A.tab=tabs[0][0];
-  const body=(A.tab==='produtos'?tabProdutos:tabPedidos)();
+  const body=({pedidos:tabPedidos,produtos:tabProdutos,config:tabConfig})[A.tab]();
   return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="font-size:.85rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]}) · <a style="cursor:pointer" onclick="admSair()">Sair</a></div></div>
   <div class="tabs adm">${tabs.map(t=>`<button class="${A.tab===t[0]?'on':''}" onclick="admTab('${t[0]}')">${t[1]}</button>`).join('')}</div>${body}</div>`;
+}
+/* ---------- pagamento visto pelo cliente: o vendedor envia o link pelo WhatsApp ---------- */
+function payCliente(o){
+  const p=o.pagamento||{};
+  if(pago(o))return `<div class="paybox ok"><b>Pagamento recebido</b><div>${p.pagoEm?'Recebido em '+fmtD(p.pagoEm)+'. ':''}Obrigado!</div></div>`;
+  if(o.status==='cancelado')return '';
+  return `<div class="paybox wait"><b>Como será o pagamento</b><p style="margin:6px 0 0">Forma escolhida: <b>${esc(PAGNOME[p.preferencia]||'a combinar')}</b>. Nossa equipe envia o link de pagamento pelo WhatsApp. Valor do pedido: <b>${brl(total(o))}</b>.</p></div>`;
 }
 
 </script>
