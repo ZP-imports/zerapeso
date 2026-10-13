@@ -2957,12 +2957,37 @@ function admDetalhe(){
   <h3>Histórico</h3><div class="tbl"><table><thead><tr><th>Quando</th><th>O que aconteceu</th><th>Por</th><th>Cliente vê</th></tr></thead><tbody>${o.eventos.map(e=>`<tr><td>${fmtD(Date.parse(e.t))}</td><td>${esc(e.texto||'')}${e.motivo?'<div style="color:var(--muted);font-size:.82rem">Motivo: '+esc(e.motivo)+'</div>':''}</td><td>${esc(e.por||'')}</td><td>${e.publico?'Sim':'Não'}</td></tr>`).join('')||'<tr><td colspan="4">Sem registros.</td></tr>'}</tbody></table></div></div>`;
 }
 function waUrlPara(fone,msg){return 'https://wa.me/'+fone+'?text='+encodeURIComponent(msg)}
-function tabPedidos(){
+function listaPed(filtro,intro){
   if(A9.po)return admDetalhe();
   if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
-  const lista=A9.pedidos.filter(o=>!A9.fs||o.status===A9.fs);
-  return `<div class="box"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><p style="margin:0;color:var(--muted)">Pedidos mais recentes (até 100).</p><div style="display:flex;gap:8px"><select onchange="A9.fs=this.value;route()" style="width:auto"><option value="">Todos os status</option>${STSEQ.map(s=>`<option value="${s}" ${A9.fs===s?'selected':''}>${STLB[s]}</option>`).join('')}</select><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar</button></div></div>${msgBox()}
+  const lista=A9.pedidos.filter(o=>(!filtro||filtro(o))&&(!A9.fs||o.status===A9.fs));
+  return `<div class="box"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><p style="margin:0;color:var(--muted)">${intro||'Pedidos mais recentes (até 100).'}</p><div style="display:flex;gap:8px"><select onchange="A9.fs=this.value;route()" style="width:auto"><option value="">Todos os status</option>${STSEQ.map(s=>`<option value="${s}" ${A9.fs===s?'selected':''}>${STLB[s]}</option>`).join('')}</select><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar</button></div></div>${msgBox()}
   <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Entrega desejada</th><th>Pagamento</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const pg=o.pagamento||{};return `<tr><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' '+((en.dest||{}).cidade||''))}</div></td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td><td>${brl(pedTotal(o))}</td><td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td><td>${esc(PAGNOME[pg.preferencia]||'')}<div style="font-size:.8rem;color:${pg.status==='pago'?'#1a7f37':'var(--muted)'}">${pg.status==='pago'?'Recebido':'Pendente'}</div></td><td>${esc(STLB[o.status]||o.status)}</td><td><button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||'<tr><td colspan="8">Nenhum pedido.</td></tr>'}</tbody></table></div></div>`;
+}
+var ENC=o=>['entregue','cancelado'].includes(o.status);
+var emAtraso=o=>!ENC(o)&&(o.entrega||{}).data&&(o.entrega||{}).data<hojeS();
+var aguardaPag=o=>o.status!=='cancelado'&&(o.pagamento||{}).status!=='pago';
+function tabPedidos(){return listaPed(null)}
+function tabAberto(){return listaPed(o=>!ENC(o),'Pedidos ainda não encerrados (não entregues e não cancelados).')}
+function tabPagamentos(){return listaPed(aguardaPag,'Pedidos que ainda não tiveram o pagamento registrado. Abra o pedido para enviar o link ou marcar como pago.')}
+function tabAtrasados(){return listaPed(emAtraso,'Pedidos não encerrados cuja data de entrega desejada já passou.')}
+function tabDash(){
+  if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
+  const L=A9.pedidos,hoje=hojeS();
+  const novos=L.filter(o=>String(o.criado_em).slice(0,10)===hoje).length;
+  const abertos=L.filter(o=>!ENC(o)).length;
+  const pend=L.filter(aguardaPag);
+  const atr=L.filter(emAtraso).length;
+  const pagos=L.filter(o=>(o.pagamento||{}).status==='pago');
+  const fat=pagos.reduce((s,o)=>s+pedTotal(o),0);
+  const card=(t,v,sub,tab)=>'<div class="box" style="cursor:pointer;margin:0" onclick="admTab(\''+tab+'\')"><div style="color:var(--muted);font-size:.82rem">'+t+'</div><div style="font-size:1.9rem;font-weight:700;color:var(--ink)">'+v+'</div><div style="color:var(--muted);font-size:.8rem">'+sub+'</div></div>';
+  return '<div class="box"><p style="margin-top:0;color:var(--muted)">Números dos últimos 100 pedidos.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">'
+   +card('Pedidos de hoje',novos,'feitos hoje','pedidos')
+   +card('Em aberto',abertos,'não entregues','aberto')
+   +card('Aguardando pagamento',pend.length,brl(pend.reduce((s,o)=>s+pedTotal(o),0))+' a receber','pagamentos')
+   +card('Atrasados',atr,'data desejada vencida','atrasados')
+   +card('Recebido',brl(fat),pagos.length+' pedido'+(pagos.length===1?'':'s')+' pagos','pagamentos')
+   +'</div><p><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar</button></p></div>';
 }
 async function admSalvaLink(){
   const l=v_('cfLink').trim();
@@ -2982,9 +3007,9 @@ function pageOp(){
     if(me)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div class="note err">Esta conta não tem acesso à área administrativa.</div><p><button class="btn" onclick="admSair()">Sair</button></p></div></div>`;
     return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username"><div style="height:10px"></div><label for="ap">Senha</label><input id="ap" type="password" required autocomplete="current-password"><p><button class="btn acc full" style="padding:1em">Entrar</button></p></form></div></div>`;
   }
-  const tabs=ADMIN.papel==='admin'?[['pedidos','Pedidos'],['produtos','Produtos'],['config','Configurações']]:[['pedidos','Pedidos']];
+  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['pagamentos','Pagamentos'],['atrasados','Atrasados'],['produtos','Produtos'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['atrasados','Atrasados']]:[['aberto','Em aberto'],['pedidos','Pedidos']];
   if(!tabs.some(t=>t[0]===A.tab))A.tab=tabs[0][0];
-  const body=({pedidos:tabPedidos,produtos:tabProdutos,config:tabConfig})[A.tab]();
+  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,pagamentos:tabPagamentos,atrasados:tabAtrasados,produtos:tabProdutos,config:tabConfig})[A.tab]();
   return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="font-size:.85rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]}) · <a style="cursor:pointer" onclick="admSair()">Sair</a></div></div>
   <div class="tabs adm">${tabs.map(t=>`<button class="${A.tab===t[0]?'on':''}" onclick="admTab('${t[0]}')">${t[1]}</button>`).join('')}</div>${body}</div>`;
 }
