@@ -452,6 +452,27 @@ body:not(.pronto) #menu,body:not(.pronto) #faixa{visibility:hidden}
 .entq-n b{display:block;font-size:1.25rem}.entq-n span{font-size:.7rem;color:var(--muted)}
 .entq-b{display:flex;gap:6px;flex-wrap:wrap}
 @media(max-width:760px){.msgcols{grid-template-columns:1fr}}
+
+/* ===== painel: visão geral colorida, selos, cores ===== */
+.kcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.kc{text-align:left;cursor:pointer;background:#fff;border:1px solid var(--line);border-left:6px solid var(--c);border-radius:var(--r);padding:12px 14px;box-shadow:0 4px 14px rgba(0,0,0,.05);transition:.15s;font:inherit;color:inherit}
+.kc:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.1)}.kc.sel{outline:3px solid var(--c)}
+.kc .n{font-size:1.9rem;font-weight:700;color:var(--c);line-height:1.1}.kc .t{font-size:.82rem;color:var(--muted)}.kc .t b{color:var(--ink)}
+.selo{display:inline-block;font-size:.7rem;font-weight:600;padding:.15em .6em;border-radius:999px;margin:3px 4px 0 0;color:#fff}
+.selo.red{background:#d92d20}.selo.purple{background:#7c3aed}.selo.green{background:#16a34a}.selo.blue{background:#2563eb}
+.stchip{display:inline-block;font-size:.78rem;font-weight:600;padding:.2em .7em;border-radius:999px;background:color-mix(in srgb,var(--c) 14%,#fff);color:var(--c);border:1px solid color-mix(in srgb,var(--c) 35%,#fff);margin:1px 0}
+tr.rowatr td{background:#fff3f2}
+tr[data-sc] td:first-child{box-shadow:inset 4px 0 0 var(--sc)}
+.fbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:10px 0}.fbar select{width:auto}
+.stackbar{display:flex;height:16px;border-radius:999px;overflow:hidden;background:#eee}.stackbar i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:.82rem}.legend b{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+.chipn{border:0;min-width:34px;padding:.25em .7em;border-radius:999px;background:var(--c);color:#fff;font-weight:700;cursor:pointer}
+.swatches{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.sw{width:28px;height:28px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}.sw.on{box-shadow:0 0 0 3px var(--ink)}
+.entdot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:4px}
+.stopts{display:grid;gap:8px;margin:6px 0 10px}.stopt{text-align:left;border:2px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;cursor:pointer;font:inherit;color:inherit}
+.stopt b{display:block}.stopt span{font-size:.82rem;color:var(--muted)}.stopt.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 10%,#fff)}.stopt:disabled{opacity:.55;cursor:default}
+.btn.danger{border-color:#d92d20;color:#d92d20}
+.tabs.adm.sec{margin-top:-8px}.maisb{background:#fff!important;border:1px dashed var(--line)!important}
 </style>
 </head>
 <body class="adm-mode">
@@ -515,32 +536,37 @@ const TREE={
  'Ofertas':{}
 };
 /* ===== MODELOS DE MENSAGEM (editáveis na aba Mensagens do painel) ===== */
+var FRETE={lista:[]};
 var MSGT={adm:{},site:{},ok:false,busy:false};
 var MSG_DEF={
  aviso:{g:'adm',t:'Aviso ao cliente: pedido a caminho',q:'Enviado ao cliente quando a rota sai (botão Avisar clientes, na Logística).',v:['nome','pedido','loja'],ex:{nome:'Sirlene',pedido:'ZP-000114',loja:'ZP Imports'},
-  p:'Olá, {nome}! 💚\nPassando para avisar que o seu pedido {pedido} da {loja} já saiu e está a caminho! 🛵💨\nEle chega aí em breve, então deixe alguém por perto para receber. 🏠\nQualquer novidade, a gente avisa por aqui. Obrigado pela confiança! ✨'},
+  p:'Olá, {nome}! 💚\n\nPassando para avisar que o seu pedido {pedido} da {loja} já saiu e está a caminho! 🛵💨\n\nEle chega aí em breve, então deixe alguém por perto para receber. 🏠\n\nQualquer novidade, a gente avisa por aqui. Obrigado pela confiança! ✨'},
  rota_topo:{g:'adm',t:'Rota do entregador: começo',q:'Primeira parte da mensagem que o entregador recebe.',v:['nome','rota','data'],ex:{nome:'Lincoln',rota:'7',data:'15/10/2026'},
-  p:'🛵 Rota {rota} · {data}\nOlá, {nome}! 😊\nSegue a sua rota:'},
+  p:'🛵 Rota {rota} · {data}\n\nOlá, {nome}! 😊\nSegue a sua rota:'},
  rota_parada:{g:'adm',t:'Rota do entregador: cada parada',q:'Repetida para cada cliente da rota. Só nome e endereço, sem itens, telefone ou valores.',v:['n','cliente','endereco','ref','maps'],ex:{n:'1',cliente:'Sirlene Souza',endereco:'Rua das Flores, 10, ap 2, Centro, São José dos Campos/SP, 12200-000',ref:'Portão azul',maps:'https://www.google.com/maps/dir/?api=1&destination=...'},
   p:'{n}) {cliente}\n🏠 {endereco}\n📌 Ref.: {ref}\n📍 {maps}'},
  rota_rodape:{g:'adm',t:'Rota do entregador: final',q:'Última parte da mensagem, com o link da rota completa e da página para marcar as entregas.',v:['maps_rota','link'],ex:{maps_rota:'https://www.google.com/maps/dir/?api=1&...',link:'https://zpimports.netlify.app/#/entrega/...'},
-  p:'🗺️ Rota completa no Maps: {maps_rota}\n✅ Marque cada entrega por aqui: {link}\nBoa entrega! 💪'},
+  p:'🗺️ Rota completa no Maps: {maps_rota}\n\n✅ Marque cada entrega por aqui: {link}\n\nBoa entrega! 💪'},
  rastreio:{g:'adm',t:'Link de rastreio ao cliente',q:'Botão "Enviar link de rastreio ao cliente" dentro do pedido.',v:['nome','pedido','link'],ex:{nome:'Sirlene',pedido:'ZP-000114',link:'https://zpimports.netlify.app/#/acompanhar/...'},
-  p:'Olá, {nome}! 😊\nAcompanhe o seu pedido {pedido} por aqui:\n{link}'},
- pagamento:{g:'adm',t:'Link de pagamento ao cliente',q:'Botão "Enviar link de pagamento no WhatsApp" dentro do pedido.',v:['nome','pedido','valor','forma','link'],ex:{nome:'Sirlene',pedido:'ZP-000114',valor:'R$ 350,00',forma:'Pix',link:'https://link.mercadopago.com.br/...'},
-  p:'Olá, {nome}! 😊\nSegue o link para pagamento do pedido {pedido}, no valor de {valor}:\n{link}\n\nForma escolhida: {forma}.\nSe houver campo de descrição, informe o código {pedido}. 🙏'},
+  p:'Olá, {nome}! 😊\n\nAcompanhe o seu pedido {pedido} por aqui:\n{link}'},
+ pagamento:{g:'adm',t:'Link de pagamento (antes da entrega)',q:'Botão "Enviar link de pagamento no WhatsApp" dentro do pedido, quando o pedido ainda não foi entregue.',v:['nome','pedido','valor','frete','total','forma','link'],ex:{nome:'Sirlene',pedido:'ZP-000114',valor:'R$ 350,00',frete:'R$ 15,00 (São José dos Campos)',total:'R$ 365,00',forma:'Pix',link:'https://link.mercadopago.com.br/...'},
+  p:'Olá, {nome}! 😊\n\nSegue o link para pagamento do pedido {pedido}:\n{link}\n\nValor dos produtos: {valor}\nFrete: {frete}\nTotal a pagar: {total}\n\nForma escolhida: {forma}.\nSe houver campo de descrição, informe o código {pedido}. 🙏'},
+ pagamento_entregue:{g:'adm',t:'Cobrança depois da entrega',q:'Botão "Enviar link de pagamento" na aba Pagamentos, para pedidos já entregues. Inclui o frete combinado.',v:['nome','pedido','valor','frete','total','forma','link'],ex:{nome:'Sirlene',pedido:'ZP-000114',valor:'R$ 350,00',frete:'R$ 15,00 (São José dos Campos)',total:'R$ 365,00',forma:'Pix',link:'https://link.mercadopago.com.br/...'},
+  p:'Olá, {nome}! 💚\n\nO seu pedido {pedido} chegou com segurança! 📦✅\nObrigado pela confiança! 🙏\n\nPara finalizar, é só pagar pelo link abaixo:\n{link}\n\nValor dos produtos: {valor}\nFrete combinado: {frete}\nTotal a pagar: {total}\n\nForma escolhida: {forma}.\nSe houver campo de descrição, informe o código {pedido}. 😊'},
  etiqueta:{g:'adm',t:'Etiqueta enviada ao cliente',q:'Mensagem que abre junto com o PDF da etiqueta (aba Etiquetas do pedido).',v:['nome','pedido','loja','data','turno'],ex:{nome:'Sirlene',pedido:'ZP-000114',loja:'ZP Imports',data:'17/10/2026',turno:'Tarde'},
-  p:'Olá, {nome}! 😊\nRecebemos o seu pedido {pedido} na {loja}.\nData e horário solicitados: {data}, {turno}.'},
- s_pedido:{g:'site',t:'Pedido enviado pelo cliente à loja',q:'Mensagem que abre no WhatsApp quando o cliente finaliza o pedido no site.',v:['pedido','itens','valores','data','turno','pagamento','endereco','cliente','obs','link'],ex:{pedido:'ZP-000114',itens:'1x TG Tirzepatida (Caixa) - A confirmar',valores:'',data:'17/10/2026',turno:'Tarde',pagamento:'Pix',endereco:'Rua A, 10, Centro, São José dos Campos/SP',cliente:'Sirlene Souza (12) 9 9999-8888',obs:'',link:'https://zpimports.netlify.app/#/acompanhar/...'},
-  p:'Olá! Acabei de fazer o pedido {pedido} pelo site. 🛒\n{itens}{valores}\n\n📅 Entrega desejada: {data}, {turno}\n💳 Forma de pagamento: {pagamento}\n🏠 Endereço: {endereco}\n👤 Cliente: {cliente}\n📝 Observações: {obs}\n\n🔎 Acompanhe o pedido: {link}'},
+  p:'Olá, {nome}! 😊\n\nRecebemos o seu pedido {pedido} na {loja}.\nData e horário solicitados: {data}, {turno}.'},
+ s_pedido:{g:'site',t:'Pedido enviado pelo cliente à loja',q:'Mensagem que abre no WhatsApp quando o cliente finaliza o pedido no site.',v:['pedido','itens','valores','data','turno','pagamento','frete','endereco','cliente','obs','link'],ex:{pedido:'ZP-000114',itens:'1x TG Tirzepatida (Caixa) - A confirmar',valores:'',data:'17/10/2026',turno:'Tarde',pagamento:'Pix',frete:'R$ 15,00 (São José dos Campos), pago junto, na entrega',endereco:'Rua A, 10, Centro, São José dos Campos/SP',cliente:'Sirlene Souza (12) 9 9999-8888',obs:'',link:'https://zpimports.netlify.app/#/acompanhar/...'},
+  p:'Olá! Acabei de fazer o pedido {pedido} pelo site.\n{itens}{valores}\n\nEntrega desejada: {data}, {turno}\nForma de pagamento: {pagamento}\nFrete: {frete}\nEndereço: {endereco}\nCliente: {cliente}\nObservações: {obs}\n\nAcompanhe o pedido: {link}'},
+ s_frete_obs:{g:'site',t:'Aviso do frete na finalização da compra',q:'Texto que aparece para o cliente, ao lado do valor do frete da cidade dele.',v:['valor','cidade'],ex:{valor:'R$ 15,00',cidade:'São José dos Campos'},
+  p:'Observação: este valor será pago juntamente no final do seu pedido, assim que ele for entregue.'},
  s_carrinho:{g:'site',t:'Carrinho enviado à loja',q:'Mensagem do botão de WhatsApp quando há itens no carrinho.',v:['itens','subtotal'],ex:{itens:'1x TG Tirzepatida (Caixa)',subtotal:'\nSubtotal: R$ 350,00'},
-  p:'Olá! Gostaria de mais informações sobre os produtos. 😊\nMeu carrinho:\n{itens}{subtotal}'},
+  p:'Olá! Gostaria de mais informações sobre os produtos.\nMeu carrinho:\n{itens}{subtotal}'},
  s_produto:{g:'site',t:'Interesse em um produto',q:'Botão de WhatsApp da página do produto.',v:['produto','sku'],ex:{produto:'TG Tirzepatida',sku:'TG-10'},
-  p:'Olá! Tenho interesse em {produto} (SKU {sku}). Pode me passar os valores e a disponibilidade? 😊'},
+  p:'Olá! Tenho interesse em {produto} (SKU {sku}). Pode me passar os valores e a disponibilidade?'},
  s_duvida:{g:'site',t:'Dúvida sobre um pedido',q:'Botão "Falar com o atendimento" nas páginas do pedido.',v:['pedido'],ex:{pedido:'ZP-000114'},
-  p:'Olá! Gostaria de falar sobre o pedido {pedido}. 😊'},
+  p:'Olá! Gostaria de falar sobre o pedido {pedido}.'},
  s_atend:{g:'site',t:'Atendimento (geral)',q:'Botão flutuante de WhatsApp e links de atendimento sem assunto.',v:['loja'],ex:{loja:'ZP Imports'},
-  p:'Olá, {loja}! 😊 Gostaria de atendimento.'}
+  p:'Olá, {loja}! Gostaria de atendimento.'}
 };
 function msgFill(t,vars){
   return String(t).split('\n').map(l=>{
@@ -549,7 +575,7 @@ function msgFill(t,vars){
     const conhecidas=ks.filter(k=>k in vars);
     if(conhecidas.length===ks.length&&ks.every(k=>!String(vars[k]==null?'':vars[k]).trim()))return null;
     return l.replace(/\{(\w+)\}/g,(m,k)=>(k in vars)?String(vars[k]==null?'':vars[k]):m);
-  }).filter(l=>l!==null).join('\n');
+  }).filter(l=>l!==null).join('\n').replace(/\n{3,}/g,'\n\n');
 }
 function msgModelo(k){
   const d=MSG_DEF[k];const raw=(d.g==='adm'?MSGT.adm:MSGT.site)[k];
@@ -1382,8 +1408,8 @@ function pageRev(){
    <label for="obs">Observações sobre o pedido ou a entrega (opcional)</label><textarea id="obs" rows="2" maxlength="500" oninput="ent.obs=this.value" placeholder="Ex.: portão azul, deixar com o porteiro">${esc(ent.obs)}</textarea>`;
   const pagInfo=`<h3 class="pref-h">Forma de pagamento</h3><div class="turnos3 pagos">${PAGS.map(x=>`<label class="turno3 ${ent.pag===x[0]?'on':''}"><input type="radio" name="pag" value="${x[0]}" ${ent.pag===x[0]?'checked':''} onchange="ent.pag=this.value;route()">${x[1]}</label>`).join('')}</div><p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">O pagamento é combinado com a nossa equipe pelo WhatsApp.</p>`;
   return `<div class="wrap pg"><h1 class="t">Finalizar compra</h1><div class="two"><div class="box"><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td>${esc(p.n)} (${esc(i.opt)})</td><td>${i.qty}</td><td class="r">${precoTxt(i)}</td></tr>`}).join('')}</tbody></table></div>
-  <div class="tot"><span>Subtotal dos produtos</span><span>${cartSP()?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span><span>Entrega</span><span>${esc(CFG.frete)}</span>${d?`<span class="dsc">${dLabel(d)} (${d.pct}%)</span><span class="dsc">- ${brl(d.valor)}</span>`:''}<span class="big">Total</span><span class="big">${cartSP()?(sub>0?brl(tot)+' + a confirmar':'A confirmar'):brl(tot)}</span></div>
-  ${nota}${amigo}
+  <div class="tot"><span>Subtotal dos produtos</span><span>${cartSP()?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span><span>Entrega</span><span>${freteLinha()}</span>${d?`<span class="dsc">${dLabel(d)} (${d.pct}%)</span><span class="dsc">- ${brl(d.valor)}</span>`:''}<span class="big">Total</span><span class="big">${cartSP()?(sub>0?brl(tot)+' + a confirmar':'A confirmar'):brl(tot)}</span></div>
+  ${freteNota()}${nota}${amigo}
   ${ckDados()}
   ${entrega}
   ${pagInfo}
@@ -2265,7 +2291,7 @@ const can=t=>!!ADMIN&&(ADMIN.papel==='admin'||(ADMIN.papel==='separador'?TABS_SE
 const enc=encodeURIComponent;
 const v_=id=>{const e=document.getElementById(id);return e?e.value:''};
 const c_=id=>{const e=document.getElementById(id);return !!(e&&e.checked)};
-function admTab(t){A.tab=t;A.ord=null;route()}
+function admTab(t){A.tab=t;A.ord=null;A9.fc='';A9.ft='';A9.fq='';A9.fs='';route()}
 function admAbrir(id,aba){A.ord=id;A.ot=aba||'resumo';A.tab=A.tab==='dash'?'pedidos':A.tab;if(location.hash!=='#/operador')location.hash='#/operador';else route();window.scrollTo(0,0)}
 function admLogin(e){e.preventDefault();const em=v_('ae').trim().toLowerCase(),pw=v_('ap');const a=ADMINS.find(x=>x.email===em&&x.senha===pw);
   if(!a){const m=document.getElementById('amsg');m.innerHTML='<div class="note err">E-mail ou senha incorretos.</div>';return false}
@@ -2621,6 +2647,7 @@ async function bancoConfig(){
     else if(x.chave==='primeira_compra')SITE.pct=+v.pct;
     else if(x.chave==='amigo')AM=Object.assign({},AMDEF,v);
     else if(x.chave==='logistica')LOG=Object.assign({},LOGDEF,v);
+    else if(x.chave==='frete')FRETE=Object.assign({lista:[]},v||{});
     else if(x.chave==='mensagens')MSGT.adm=v||{};
     else if(x.chave==='mensagens_site')MSGT.site=v||{};
   });
@@ -2999,7 +3026,7 @@ async function finish(){
   const d=r.data,e=u.end||{},dest=ent.sec?ent.s:e;
   const msg=nl(msgTxt('s_pedido',{pedido:d.codigo,itens:linhasCarrinho(),valores:valMsg(d),data:dataBr(ent.data),turno:TURNOS[ent.turno],pagamento:PAGNOME[ent.pag],
     endereco:dest.rua+', '+dest.num+(dest.comp?', '+dest.comp:'')+', '+dest.bairro+', '+dest.cidade+'/'+dest.uf,
-    cliente:u.nome+' '+u.sobrenome+(u.fone?' ('+u.fone+')':''),obs:ent.obs.trim(),link:trackUrl(d.codigo,d.token)}));
+    cliente:u.nome+' '+u.sobrenome+(u.fone?' ('+u.fone+')':''),obs:ent.obs.trim(),link:trackUrl(d.codigo,d.token),frete:(function(){const f=freteTxtCli();return f.v!=null?brl(f.v)+' ('+f.c+'), pago junto, na entrega':''})()}));
   const url=waUrl(msg);WA_P={id:d.id,url};
   cart=[];rv={code:'',use:false,msg:'',ref:null};
   ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:'',turno:'',pag:'',obs:'',erros:[]};
@@ -3145,7 +3172,7 @@ async function admCarregarLink(){
   A9.link=(r.data&&r.data.valor&&r.data.valor.linkPag)||'';
 }
 async function admCarregarPedidos(){
-  const r=await SB.from('pedidos').select('*').order('id',{ascending:false}).limit(100);
+  const r=await SB.from('pedidos').select('*').order('id',{ascending:false}).limit(300);
   A9.pedidos=r.error?[]:r.data;if(r.error){A9.msg='Não foi possível carregar os pedidos.';A9.erro=true}route();
 }
 async function admAbrirPedido(id){
@@ -3162,7 +3189,6 @@ async function admRpc(nome,args,ok){
   if(r.error){A9.msg=msgRpc(r.error);A9.erro=true;route();return}
   A9.msg=ok;A9.erro=false;await admAbrirPedido(A9.po.id);
 }
-function admStatus(){const s=v_('stN');if(!s)return;admRpc('alterar_status_pedido',{p_pedido:A9.po.id,p_status:s,p_motivo:v_('stM').trim()||null},'Status atualizado. O cliente já foi avisado.')}
 function admCancelarPedido(){
   const m=v_('stM').trim();if(!m){A9.msg='Informe o motivo do cancelamento no campo de motivo.';A9.erro=true;route();return}
   if(!confirm('Cancelar este pedido e devolver os itens ao estoque?'))return;
@@ -3172,10 +3198,6 @@ function admPago(v){admRpc('registrar_pagamento',{p_pedido:A9.po.id,p_pago:v},v?
 function admSalvaEntrega(){
   const d=v_('enD'),t=v_('enT');if(!d){A9.msg='Informe a data.';A9.erro=true;route();return}
   admRpc('atualizar_pedido_admin',{p_pedido:A9.po.id,p_data:d,p_turno:t,p_obs_interna:v_('enO')},'Dados da entrega salvos.');
-}
-function admMsgPagamento(o){
-  const en=o.entrega||{};const nome=String(en.nome||'').split(' ')[0];
-  return nl(msgTxt('pagamento',{nome:nome||'cliente',pedido:codPed(o),valor:brl(pedTotal(o)),link:A9.link,forma:(PAGNOME[(o.pagamento||{}).preferencia]||'a combinar')}));
 }
 function admDetalhe(){
   const o=A9.po,en=o.entrega||{},d=en.dest||{},pg=o.pagamento||{},u=o.status==='entregue'||o.status==='cancelado';
@@ -3191,9 +3213,9 @@ function admDetalhe(){
   <p>${esc(d.rua||'')}, ${esc(d.num||'')}${d.comp?', '+esc(d.comp):''}<br>${esc(d.bairro||'')}<br>${esc(d.cidade||'')}/${esc(d.uf||'')}, CEP ${esc(d.cep||'')}${d.ref?'<br>Referência: '+esc(d.ref):''}${en.secundario?'<br><i>Endereço secundário informado pelo cliente</i>':''}</p>
   <p style="margin:0">Entrega desejada: <b>${dataBr(en.data)} (${esc(TURNOS[en.turno]||'')})</b>${o.entregadorNome?'<br>Entregador: <b>'+esc(o.entregadorNome)+'</b>':''}<br>Forma de pagamento escolhida: <b>${esc(PAGNOME[pg.preferencia]||'não informada')}</b>${en.obs?'<br>Observação do cliente: '+esc(en.obs):''}</p>
   <h3>Itens</h3><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${(o.itens||[]).map(i=>`<tr><td>${esc(i.name)}<div style="color:var(--muted);font-size:.8rem">SKU ${esc(i.sku||'')}</div></td><td>${i.qty}</td><td class="r">${i.semPreco?'a confirmar':brl(i.unit*i.qty)}</td></tr>`).join('')}</tbody></table></div>
-  <div class="tot"><span>Subtotal</span><span>${temSP(o)?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span>${o.desconto?`<span class="dsc">Desconto (${o.desconto.pct}%)</span><span class="dsc">- ${brl(o.desconto.valor)}</span>`:''}<span class="big">Total</span><span class="big">${totAdm(o)}</span></div>
+  <div class="tot"><span>Subtotal</span><span>${temSP(o)?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span>${o.desconto?`<span class="dsc">Desconto (${o.desconto.pct}%)</span><span class="dsc">- ${brl(o.desconto.valor)}</span>`:''}<span class="big">Total</span><span class="big">${totAdm(o)}</span></div>${freteHtmlAdm(o)}
   </div><div>
-  ${gestao?`<h3 style="margin-top:0">Status do pedido</h3>${fim?'<div class="note">Pedido encerrado. O status não muda mais.</div>':`<label for="stN">Novo status</label><select id="stN">${STSEQ.filter(s=>s!==o.status&&s!=='cancelado').map(s=>`<option value="${s}">${STLB[s]}</option>`).join('')}</select><label for="stM">Motivo ou observação para o cliente (obrigatório para cancelar)</label><input id="stM" maxlength="200"><p style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn acc" onclick="admStatus()">Atualizar status e avisar cliente</button><button class="btn ghost" onclick="admCancelarPedido()">Cancelar pedido</button></p>`}
+  ${gestao?`<h3 style="margin-top:0">Status do pedido</h3>${fim?'<div class="note">Pedido encerrado. O status não muda mais.</div>':`<label>Novo status (passe o mouse para ver o que cada um significa)</label>${statusOpcoes(o)}<label for="stM">Motivo ou observação para o cliente (obrigatório para cancelar)</label><input id="stM" maxlength="200"><p style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn acc" onclick="admStatus()">Atualizar status e avisar cliente</button><button class="btn ghost" onclick="admCancelarPedido()">Cancelar pedido</button></p>`}
   <h3>Rastreio</h3>
   <p>${fone?`<a class="btn ghost sm" href="${waUrlPara(fone,msgRastreio(o))}" target="_blank" rel="noopener">Enviar link de rastreio ao cliente</a>`:'<span style="color:var(--muted)">Sem telefone do cliente.</span>'}</p>
   <h3>Pagamento</h3>
@@ -3207,40 +3229,12 @@ function admDetalhe(){
   <h3>Histórico</h3><div class="tbl"><table><thead><tr><th>Quando</th><th>O que aconteceu</th><th>Por</th><th>Cliente vê</th></tr></thead><tbody>${o.eventos.map(e=>`<tr><td>${fmtD(Date.parse(e.t))}</td><td>${esc(e.texto||'')}${e.motivo?'<div style="color:var(--muted);font-size:.82rem">Motivo: '+esc(e.motivo)+'</div>':''}</td><td>${esc(e.por||'')}</td><td>${e.publico?'Sim':'Não'}</td></tr>`).join('')||'<tr><td colspan="4">Sem registros.</td></tr>'}</tbody></table></div></div>`;
 }
 function waUrlPara(fone,msg){return 'https://wa.me/'+fone+'?text='+encodeURIComponent(msg)}
-function listaPed(filtro,intro){
-  if(A9.po)return admDetalhe();
-  if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
-  const lista=A9.pedidos.filter(o=>(!filtro||filtro(o))&&(!A9.fs||o.status===A9.fs));
-  A9.lastLista=lista.map(o=>o.id);const nSel=lista.filter(o=>A9.selP[o.id]).length;
-  return `<div class="box"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><p style="margin:0;color:var(--muted)">${intro||'Pedidos mais recentes (até 100).'}</p><div style="display:flex;gap:8px"><select onchange="A9.fs=this.value;route()" style="width:auto"><option value="">Todos os status</option>${STSEQ.map(s=>`<option value="${s}" ${A9.fs===s?'selected':''}>${STLB[s]}</option>`).join('')}</select><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar</button></div></div>${msgBox()}
-  <div class="selbar"><button class="btn ghost sm" onclick="selTodosPed(true)">Selecionar todos</button><button class="btn ghost sm" onclick="selTodosPed(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><select id="etqTipo" style="width:auto" aria-label="Tipo de etiqueta"><option value="ambas">As duas etiquetas</option><option value="externa">Só externa</option><option value="interna">Só interna</option></select><button class="btn acc sm" onclick="etqLote()" ${nSel?'':'disabled'}>Baixar etiquetas${nSel?' ('+nSel+')':''}</button></div>
-  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${lista.length&&nSel===lista.length?'checked':''} onchange="selTodosPed(this.checked)"></th><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Entrega desejada</th><th>Pagamento</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const pg=o.pagamento||{};return `<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${codPed(o)}" ${A9.selP[o.id]?'checked':''} onchange="selPed(${o.id},this.checked)"></td><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' '+((en.dest||{}).cidade||''))}</div></td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td><td>${totAdm(o)}</td><td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td><td>${esc(PAGNOME[pg.preferencia]||'')}<div style="font-size:.8rem;color:${pg.status==='pago'?'#1a7f37':'var(--muted)'}">${pg.status==='pago'?'Recebido':'Pendente'}</div></td><td>${esc(STLB[o.status]||o.status)}</td><td style="white-space:nowrap"><button class="btn ghost sm etqbtn" title="Gerar etiquetas e abrir o PDF" aria-label="Gerar etiquetas do pedido ${codPed(o)}" onclick="etqRapida(${o.id})">${ICO_DOC}</button> <button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||'<tr><td colspan="9">Nenhum pedido.</td></tr>'}</tbody></table></div></div>`;
-}
 var ENC=o=>['entregue','cancelado'].includes(o.status);
 var emAtraso=o=>!ENC(o)&&(o.entrega||{}).data&&(o.entrega||{}).data<hojeS();
 var aguardaPag=o=>o.status!=='cancelado'&&(o.pagamento||{}).status!=='pago';
 function tabPedidos(){return listaPed(null)}
 function tabAberto(){return listaPed(o=>!ENC(o),'Pedidos ainda não encerrados (não entregues e não cancelados).')}
-function tabPagamentos(){return listaPed(aguardaPag,'Pedidos que ainda não tiveram o pagamento registrado. Abra o pedido para enviar o link ou marcar como pago.')}
 function tabAtrasados(){return listaPed(emAtraso,'Pedidos não encerrados cuja data de entrega desejada já passou.')}
-function tabDash(){
-  if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
-  const L=A9.pedidos,hoje=hojeS();
-  const novos=L.filter(o=>String(o.criado_em).slice(0,10)===hoje).length;
-  const abertos=L.filter(o=>!ENC(o)).length;
-  const pend=L.filter(aguardaPag);
-  const atr=L.filter(emAtraso).length;
-  const pagos=L.filter(o=>(o.pagamento||{}).status==='pago');
-  const fat=pagos.reduce((s,o)=>s+pedTotal(o),0);
-  const card=(t,v,sub,tab)=>'<div class="box" style="cursor:pointer;margin:0" onclick="admTab(\''+tab+'\')"><div style="color:var(--muted);font-size:.82rem">'+t+'</div><div style="font-size:1.9rem;font-weight:700;color:var(--ink)">'+v+'</div><div style="color:var(--muted);font-size:.8rem">'+sub+'</div></div>';
-  return '<div class="box"><p style="margin-top:0;color:var(--muted)">Números dos últimos 100 pedidos.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">'
-   +card('Pedidos de hoje',novos,'feitos hoje','pedidos')
-   +card('Em aberto',abertos,'não entregues','aberto')
-   +card('Aguardando pagamento',pend.length,brl(pend.reduce((s,o)=>s+pedTotal(o),0))+' a receber','pagamentos')
-   +card('Atrasados',atr,'data desejada vencida','atrasados')
-   +card('Recebido',brl(fat),pagos.length+' pedido'+(pagos.length===1?'':'s')+' pagos','pagamentos')
-   +'</div><p><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar</button></p></div>';
-}
 async function admSalvaLink(){
   const l=v_('cfLink').trim();
   if(l&&!/^https:\/\//i.test(l)){A9.msg='O link precisa começar com https://';A9.erro=true;route();return}
@@ -3259,12 +3253,13 @@ function pageOp(){
     if(me)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div class="note err">Esta conta não tem acesso à área administrativa.</div><p><button class="btn" onclick="admSair()">Sair</button></p></div></div>`;
     return '<div class="adlogin"><div class="adcard"><div class="adico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><h1>Acesso da equipe</h1><p class="adsub">Entre com o seu e-mail e senha para acessar o painel da loja.</p><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username" placeholder="voce@empresa.com"><label for="ap">Senha</label><div class="adsenha"><input id="ap" type="password" required autocomplete="current-password" placeholder="Sua senha"><button type="button" class="adver" onclick="admVerSenha(this)">Mostrar</button></div><button class="adbtn">Entrar</button></form><p class="adnota">Acesso restrito. Se você é cliente, <a href="./">volte para a loja</a>.</p></div></div>';
   }
-  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Etiquetas'],['mensagens','Mensagens'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['aberto','Em aberto'],['pedidos','Pedidos']];
+  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['etiquetas','Etiquetas'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['campanhas','Campanhas'],['produtos','Produtos'],['mensagens','Mensagens'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['aberto','Em aberto'],['pedidos','Pedidos']];
+  const EXTRA_T=['cartao','atrasados','campanhas','produtos','mensagens','config'];
   if(!tabs.some(t=>t[0]===A.tab))A.tab=tabs[0][0];
   msgGarante();
   const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,pagamentos:tabPagamentos,cartao:tabCartao,campanhas:tabCampanhas,logistica:tabLogistica,entregadores:tabEntregadores,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,mensagens:tabMensagens,config:tabConfig})[A.tab]();
   return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="font-size:.85rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]}) · <a style="cursor:pointer" onclick="admSair()">Sair</a></div></div>
-  <div class="tabs adm">${tabs.map(t=>`<button class="${A.tab===t[0]?'on':''}" onclick="admTab('${t[0]}')">${t[1]}</button>`).join('')}</div>${body}</div>`;
+  ${abasHtml(tabs,EXTRA_T)}${body}</div>`;
 }
 /* ---------- pagamento visto pelo cliente: o vendedor envia o link pelo WhatsApp ---------- */
 function payCliente(o){
@@ -3287,6 +3282,7 @@ async function admCarregarLog(){
   const peds={};ab.data.forEach(p=>{peds[p.id]=p});
   const falta=[...new Set(ro.data.flatMap(r=>r.pedidos))].filter(id=>!peds[id]);
   if(falta.length){const x=await SB.from('pedidos').select('*').in('id',falta);(x.data||[]).forEach(p=>{peds[p.id]=p})}
+  try{await corCarregar()}catch(x){}
   A9.lg={ent:en.data,rotas:ro.data,peds,abertos:ab.data};route();
 }
 function admLgRecarrega(){A9.lg=null;A9.pedidos=null;route()}
@@ -3300,21 +3296,12 @@ function tabEntregadores(){
   if(!A9.lg){if(!A9.busy){A9.busy=true;admCarregarLog().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
   const e=A9.edE;
   const quadro=x=>{const s=entStats(x);const ini=esc((x.nome||'?').trim().charAt(0).toUpperCase());
-    return `<div class="entq${x.ativo?'':' off'}"><div class="entq-h"><span class="entq-av">${ini}</span><div style="min-width:0"><b style="display:block;font-size:1.05rem">${esc(x.nome)}</b><span style="color:var(--muted);font-size:.85rem">${esc(x.whats)}</span></div><span class="entq-st ${x.ativo?'on':''}">${x.ativo?'Ativo':'Inativo'}</span></div>
+    return `<div class="entq${x.ativo?'':' off'}" style="border-top:6px solid ${corEnt(x.id)}"><div class="entq-h"><span class="entq-av" style="background:${corEnt(x.id)}">${ini}</span><div style="min-width:0"><b style="display:block;font-size:1.05rem">${esc(x.nome)}</b><span style="color:var(--muted);font-size:.85rem">${esc(x.whats)}</span></div><span class="entq-st ${x.ativo?'on':''}">${x.ativo?'Ativo':'Inativo'}</span></div>
     <div class="entq-n"><div><b>${s.rotas}</b><span>rotas</span></div><div><b>${s.and}</b><span>em andamento</span></div><div><b>${s.pend}</b><span>paradas abertas</span></div><div><b>${s.ok}</b><span>entregues</span></div></div>
-    <div class="entq-b"><button class="btn ghost sm" onclick="A9.edE=A9.lg.ent.find(y=>y.id==='${x.id}');route();window.scrollTo(0,0)">Editar</button><button class="btn ghost sm" onclick="admTab('logistica')">Ver rotas</button><a class="btn wa sm" target="_blank" rel="noopener" href="https://wa.me/${foneWa(x.whats)}">WhatsApp</a><button class="btn ghost sm" onclick="admAtivaEntregador('${x.id}',${!x.ativo})">${x.ativo?'Desativar':'Ativar'}</button></div></div>`};
+    <div class="entq-b"><button class="btn ghost sm" onclick="A9.edE=Object.assign({},A9.lg.ent.find(y=>y.id==='${x.id}'),{cor:corEnt('${x.id}')});route();window.scrollTo(0,0)">Editar</button><button class="btn ghost sm" onclick="admTab('logistica')">Ver rotas</button><a class="btn wa sm" target="_blank" rel="noopener" href="https://wa.me/${foneWa(x.whats)}">WhatsApp</a><button class="btn ghost sm" onclick="admAtivaEntregador('${x.id}',${!x.ativo})">${x.ativo?'Desativar':'Ativar'}</button></div></div>`};
   return `<div class="box">${msgBox()}<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><p style="margin:0;color:var(--muted)">Quem faz as entregas. O WhatsApp do entregador recebe a rota.</p><button class="btn acc" onclick="A9.edE={id:null,nome:'',whats:''};route()">Novo entregador</button></div>
-  ${e?`<div class="box" style="box-shadow:none;background:#fafafa;margin-top:12px"><h3 style="margin-top:0">${e.id?'Editar entregador':'Novo entregador'}</h3><div class="fr"><div class="c3"><label for="enNome">Nome</label><input id="enNome" value="${esc(e.nome)}" maxlength="80"></div><div class="c3"><label for="enWh">WhatsApp (com DDD)</label><input id="enWh" value="${esc(e.whats)}" inputmode="tel" placeholder="(12) 9 9999-9999"></div></div><p style="display:flex;gap:8px"><button class="btn acc" onclick="admSalvaEntregador()">Salvar</button><button class="btn ghost" onclick="A9.edE=null;A9.msg='';route()">Cancelar</button></p></div>`:''}
+  ${e?`<div class="box" style="box-shadow:none;background:#fafafa;margin-top:12px"><h3 style="margin-top:0">${e.id?'Editar entregador':'Novo entregador'}</h3><div class="fr"><div class="c3"><label for="enNome">Nome</label><input id="enNome" value="${esc(e.nome)}" maxlength="80"></div><div class="c3"><label for="enWh">WhatsApp (com DDD)</label><input id="enWh" value="${esc(e.whats)}" inputmode="tel" placeholder="(12) 9 9999-9999"></div>${corCampo(e)}</div><p style="display:flex;gap:8px"><button class="btn acc" onclick="admSalvaEntregador()">Salvar</button><button class="btn ghost" onclick="A9.edE=null;A9.msg='';route()">Cancelar</button></p></div>`:''}
   <div class="entgrid">${A9.lg.ent.map(quadro).join('')||'<p>Nenhum entregador cadastrado.</p>'}</div></div>`;
-}
-async function admSalvaEntregador(){
-  const nome=v_('enNome').trim(),whats=v_('enWh').trim(),d=whats.replace(/\D/g,'');
-  if(!nome){A9.msg='Informe o nome.';A9.erro=true;route();return}
-  if(d.length<10||d.length>13){A9.msg='Informe o WhatsApp com DDD.';A9.erro=true;route();return}
-  const e=A9.edE;
-  const r=e.id?await SB.from('entregadores').update({nome,whats}).eq('id',e.id):await SB.from('entregadores').insert({nome,whats});
-  if(r.error){A9.msg=r.error.code==='23505'?'Já existe um entregador com este WhatsApp.':'Não foi possível salvar o entregador.';A9.erro=true;route();return}
-  A9.edE=null;A9.msg='Entregador salvo.';A9.erro=false;A9.lg=null;route();
 }
 async function admAtivaEntregador(id,ativo){
   const r=await SB.from('entregadores').update({ativo}).eq('id',id);
@@ -3362,9 +3349,9 @@ function tabLogistica(){
   const rotas=L.rotas;
   const rotaHtml=r=>{const en=L.ent.find(x=>x.id===r.entregador_id)||{nome:'?',whats:''};const ps=r.pedidos.map(id=>L.peds[id]).filter(Boolean);
     const fim=ps.length&&ps.every(o=>ENC(o));const fw=foneWa(en.whats);
-    return `<div class="box" style="box-shadow:none;background:#fafafa;margin-top:12px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div><b>Rota ${r.n}</b> · ${dataBr(r.data)} · ${esc(en.nome)}<div style="color:var(--muted);font-size:.82rem">${r.saiu_em?'Saiu em '+fmtD(Date.parse(r.saiu_em)):'Ainda não saiu'}${fim?' · Concluída':''}</div></div>
+    const cr=corEnt(r.entregador_id);return `<div class="box" style="box-shadow:none;background:#fafafa;margin-top:12px;border-left:8px solid ${cr}"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div><b>Rota ${r.n}</b> · ${dataBr(r.data)} · <span class="entdot" style="background:${cr}"></span><b style="color:${cr}">${esc(en.nome)}</b><div style="color:var(--muted);font-size:.82rem">${r.saiu_em?'Saiu em '+fmtD(Date.parse(r.saiu_em)):'Ainda não saiu'}${fim?' · Concluída':''}</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">${fw&&!fim?`<a class="btn wa sm" href="${waUrlPara(fw,msgRota(r))}" target="_blank" rel="noopener" onclick="admEnviouRota('${r.id}')">Enviar rota ao entregador</a>`:''}${!fim?`<button class="btn ghost sm" onclick="entCopiarLink('${r.id}')">Copiar link do entregador</button><button class="btn ghost sm" onclick="rotaCopiar('${r.id}')">Copiar mensagem da rota</button><button class="btn wa sm" onclick="avAbrir('${r.id}')">Avisar clientes</button>`:''}${!r.saiu_em?`<button class="btn acc sm" onclick="admSaiuRota('${r.id}')">Saiu para entrega</button><button class="btn ghost sm" onclick="admDesfazRota('${r.id}')">Desfazer rota</button>`:''}</div></div>
-    <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Endereço</th><th>Horário</th><th>Situação</th><th></th></tr></thead><tbody>${ps.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td><b>${codPed(o)}</b></td><td>${esc(e.nome||'')}</td><td>${esc((d.rua||'')+', '+(d.num||'')+' - '+(d.bairro||'')+', '+(d.cidade||''))}</td><td>${esc(TURNOS[e.turno]||'')}</td><td>${esc(STLB[o.status]||o.status)}${o.chegou_em?'<div style="color:var(--muted);font-size:.78rem">Chegou às '+horaBr(o.chegou_em)+'</div>':''}</td><td style="white-space:nowrap">${['em-rota','tentativa'].includes(o.status)?`<button class="btn sm" onclick="admResultado(${o.id},'entregue')">Entregue</button> `:''}${o.status==='em-rota'?`<button class="btn ghost sm" onclick="admResultado(${o.id},'tentativa')">Tentativa</button> `:''}<button class="btn ghost sm" onclick="A9.po=null;A.tab='pedidos';admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div>${A9.av&&A9.av.rota===r.id?avPanel(r,ps):''}</div>`};
+    <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Endereço</th><th>Horário</th><th>Situação</th><th></th></tr></thead><tbody>${ps.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td style="box-shadow:inset 5px 0 0 ${cr}"><b>${codPed(o)}</b></td><td>${esc(e.nome||'')}</td><td>${esc((d.rua||'')+', '+(d.num||'')+' - '+(d.bairro||'')+', '+(d.cidade||''))}</td><td>${esc(TURNOS[e.turno]||'')}</td><td>${esc(STLB[o.status]||o.status)}${o.chegou_em?'<div style="color:var(--muted);font-size:.78rem">Chegou às '+horaBr(o.chegou_em)+'</div>':''}</td><td style="white-space:nowrap">${['em-rota','tentativa'].includes(o.status)?`<button class="btn sm" onclick="admResultado(${o.id},'entregue')">Entregue</button> `:''}${o.status==='em-rota'?`<button class="btn ghost sm" onclick="admResultado(${o.id},'tentativa')">Tentativa</button> `:''}<button class="btn ghost sm" onclick="A9.po=null;A.tab='pedidos';admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div>${A9.av&&A9.av.rota===r.id?avPanel(r,ps):''}</div>`};
   const andamento=rotas.filter(r=>!r.pedidos.map(id=>L.peds[id]).filter(Boolean).every(ENC));
   const concluidas=rotas.filter(r=>!andamento.includes(r));
   return `<div class="box">${msgBox()}<h3 style="margin-top:0">Pedidos para programar</h3>
@@ -3425,7 +3412,7 @@ function etqWhats(v){
   const nome='etiqueta-externa-'+rec.snap.codigo+'.pdf';const bytes=etqBytes(rec,'externa');
   const a=document.createElement('a');a.href=blobUrl(bytes);a.download=nome;document.body.appendChild(a);a.click();a.remove();
   const txt=nl(msgTxt('etiqueta',{nome:String((o.entrega||{}).nome||'').split(' ')[0]||'cliente',pedido:codPed(o),loja:CFG.brand,data:dataBr((o.entrega||{}).data),turno:(TURNOS[(o.entrega||{}).turno]||'')}));
-  if(fw)window.open(waUrlPara(fw,txt),'_blank');
+  if(fw)waAbrir(fw,txt);
   etqLog(o.id,'WhatsApp aberto e PDF baixado para anexar (envio não confirmado) (versão '+rec.v+')');
   toast('O PDF foi baixado. Anexe-o na conversa do WhatsApp que abriu. O sistema não confirma o envio.');
 }
@@ -3792,7 +3779,7 @@ function avEnviar(pid){
   const o=A9.lg.peds[pid];if(!o||!A9.av)return;
   const fw=foneWa((o.entrega||{}).fone);
   if(!fw){toast('Este pedido está sem telefone válido.');return}
-  window.open(waUrlPara(fw,avTxt(o)),'_blank');
+  waAbrir(fw,avTxt(o));
   A9.av.sent[pid]=true;
   SB.from('pedido_eventos').insert({pedido_id:pid,tipo:'whatsapp',publico:false,texto:'Aviso "a caminho" aberto no WhatsApp (envio não confirmado pelo sistema)',por:ADMIN.nome}).then(()=>{},()=>{});
   route();
@@ -3808,7 +3795,7 @@ function avPanel(r,ps){
   if(!ab.length)return '<div class="note">Todos os pedidos desta rota já foram encerrados.</div>';
   const marc=ab.filter(o=>av.sel[o.id]);const feitos=marc.filter(o=>av.sent[o.id]).length;
   return `<div class="box" style="margin-top:12px;border:2px solid var(--wa)"><h3 style="margin-top:0">Avisar os clientes: pedido a caminho 🛵</h3>
-  <p style="margin:0 0 8px;color:var(--muted);font-size:.88rem">Marque os clientes e toque em <b>Abrir o próximo</b>. O WhatsApp abre com a mensagem pronta e você só toca em enviar. O WhatsApp não permite que o site envie sozinho.</p>
+  <p style="margin:0 0 8px;color:var(--muted);font-size:.88rem">Marque os clientes e toque em <b>Abrir o próximo</b>. ${waModo()==='colar'?'A mensagem é copiada e a conversa do cliente abre: é só colar (Ctrl+V) e enviar.':'O WhatsApp abre com a mensagem pronta e você só toca em enviar.'} O WhatsApp não permite que o site envie sozinho.</p>
   <div class="tbl"><table><tbody>${ab.map(o=>{const e=o.entrega||{};return `<tr><td style="width:34px"><input type="checkbox" style="width:auto" ${av.sel[o.id]?'checked':''} onchange="avTog(${o.id},this.checked)" aria-label="Avisar ${esc(e.nome||'')}"></td><td><b>${esc(e.nome||'')}</b><div style="color:var(--muted);font-size:.8rem">${codPed(o)}</div></td><td>${av.sent[o.id]?'✅ aberto':''}</td><td class="r"><button class="btn ghost sm" onclick="avEnviar(${o.id})">Só este</button> <button class="btn ghost sm" onclick="avCopiar(${o.id})">Copiar</button></td></tr>`}).join('')}</tbody></table></div>
   <details style="margin-top:8px"><summary style="cursor:pointer;font-weight:600;color:var(--pd)">Ver a mensagem</summary><pre style="white-space:pre-wrap;font:inherit;background:#f6f6f6;border-radius:12px;padding:12px;margin:8px 0 0">${esc(avTxt(ab[0]))}</pre></details>
   <div class="btns" style="margin-top:10px"><button class="btn wa" onclick="avProximo()" ${marc.length>feitos?'':'disabled'}>Abrir o próximo (${feitos} de ${marc.length})</button><button class="btn ghost sm" onclick="avTodos(true)">Marcar todos</button><button class="btn ghost sm" onclick="avTodos(false)">Desmarcar todos</button></div></div>`;
@@ -3997,7 +3984,10 @@ function tabMensagens(){
       <p style="margin:8px 0 0"><button type="button" class="btn ghost sm" onclick="msgRest('${k}')">Voltar ao texto original</button></p></div>
     <div><label>Como fica no WhatsApp</label><div class="msgpv" id="pv_${k}">${esc(msgFill(atual,d.ex))}</div></div></div></div>`};
   const lista=(g)=>Object.keys(MSG_DEF).filter(k=>MSG_DEF[k].g===g).map(bloco).join('');
-  return `<div class="box">${msgBox()}<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div><h2 style="margin:0">Mensagens</h2><p style="margin:4px 0 0;color:var(--muted)">Edite o texto de todas as mensagens do sistema. Os termos entre chaves, como {nome}, são trocados pelos dados reais. Se um dado não existir (por exemplo, sem ponto de referência), a linha dele some sozinha.</p></div><button class="btn acc" onclick="msgSalvar()">Salvar mensagens</button></div>
+  return `<div class="box">${msgBox()}<div class="note" style="margin-bottom:12px"><b>Como abrir o WhatsApp (neste computador/celular):</b>
+  <label style="font-weight:400;display:block;margin-top:6px"><input type="radio" name="wam" style="width:auto" ${waModo()==='web'?'checked':''} onchange="waSetModo('web')"> <b>Direto no WhatsApp Web</b> (recomendado): abre a conversa do cliente com o texto pronto e também copia a mensagem</label>
+  <label style="font-weight:400;display:block"><input type="radio" name="wam" style="width:auto" ${waModo()==='colar'?'checked':''} onchange="waSetModo('colar')"> Copiar e colar: abre a conversa e você cola com Ctrl+V</label>
+  <label style="font-weight:400;display:block"><input type="radio" name="wam" style="width:auto" ${waModo()==='link'?'checked':''} onchange="waSetModo('link')"> Link comum (o aplicativo do computador pode trocar os emojis por �)</label></div><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div><h2 style="margin:0">Mensagens</h2><p style="margin:4px 0 0;color:var(--muted)">Edite o texto de todas as mensagens do sistema. Os termos entre chaves, como {nome}, são trocados pelos dados reais. Se um dado não existir (por exemplo, sem ponto de referência), a linha dele some sozinha.</p></div><button class="btn acc" onclick="msgSalvar()">Salvar mensagens</button></div>
   <h3>Mensagens que a loja envia</h3>${lista('adm')}
   <h3 style="margin-top:22px">Mensagens que abrem no WhatsApp da loja (feitas pelo cliente no site)</h3>${lista('site')}
   <p style="margin-top:16px"><button class="btn acc" onclick="msgSalvar()">Salvar mensagens</button></p></div>`;
@@ -4014,6 +4004,229 @@ function rotaCopiar(rid){const r=A9.lg.rotas.find(x=>x.id===rid);if(!r)return;co
 function copiaTexto(t,ok){
   const f=()=>{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');toast(ok)}catch(x){toast('Não foi possível copiar.')}a.remove()};
   try{navigator.clipboard.writeText(t).then(()=>toast(ok),f)}catch(x){f()}
+}
+
+/* ===== abrir o WhatsApp: direto no WhatsApp Web (emojis certos) ou copiar e colar ===== */
+function waModo(){try{return localStorage.getItem('zp_wa_modo')||'web'}catch(x){return 'web'}}
+function waSetModo(m){try{localStorage.setItem('zp_wa_modo',m)}catch(x){}toast('Modo de envio alterado.');route()}
+function waMovel(){return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'')}
+function waAbrir(fone,txt){
+  const m=waModo();
+  if(m==='link'){window.open(waUrlPara(fone,txt),'_blank');return}
+  if(m==='colar'){copiaTexto(txt,'Mensagem copiada. Na conversa que abriu, cole com Ctrl+V (ou segure e toque em Colar) e envie.');window.open('https://wa.me/'+fone,'_blank');return}
+  if(waMovel()){window.open(waUrlPara(fone,txt),'_blank');return}
+  copiaTexto(txt,'Conversa do cliente aberta. Se algum emoji vier quebrado, apague o texto e cole com Ctrl+V: a mensagem já está copiada.');
+  window.open('https://web.whatsapp.com/send?phone='+fone+'&text='+encodeURIComponent(txt),'_blank');
+}
+if(window.__ADMIN_APP)document.addEventListener('click',function(ev){
+  if(waModo()==='link')return;
+  const a=ev.target.closest&&ev.target.closest('a[href^="https://wa.me/"]');if(!a)return;
+  const m=a.getAttribute('href').match(/^https:\/\/wa\.me\/(\d+)\?text=(.*)$/);if(!m)return;
+  ev.preventDefault();
+  let t='';try{t=decodeURIComponent(m[2])}catch(x){return}
+  waAbrir(m[1],t);
+},true);
+
+/* ======================= PAINEL: VISÃO GERAL, SELOS, FRETE, PAGAMENTOS E CORES ======================= */
+function cidNorm(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
+function freteCidade(c){const k=cidNorm(c);if(!k)return null;const x=(FRETE.lista||[]).find(f=>cidNorm(f.cidade)===k);return(x&&x.valor!==''&&x.valor!=null&&!isNaN(+x.valor))?+x.valor:null}
+function freteNome(c){const k=cidNorm(c);const x=(FRETE.lista||[]).find(f=>cidNorm(f.cidade)===k);return x?x.cidade:String(c||'').trim()}
+function cidadeDe(o){return String((((o.entrega||{}).dest)||{}).cidade||'').trim()}
+function freteDoPedido(o){return freteCidade(cidadeDe(o))}
+function feitoHoje(o){return ymd(new Date(Date.parse(o.criado_em)))===hojeS()}
+/* frete no checkout do cliente */
+function freteTxtCli(){const u=user();const c=ent.sec?ent.s.cidade:((u&&u.end)||{}).cidade;return {c:freteNome(c),v:freteCidade(c)}}
+function freteLinha(){const f=freteTxtCli();return f.v!=null?brl(f.v)+' ('+esc(f.c)+')':esc(CFG.frete)}
+function freteNota(){const f=freteTxtCli();if(f.v==null)return '';return `<div class="note"><b>Frete para ${esc(f.c)}: ${brl(f.v)}.</b> ${esc(msgTxt('s_frete_obs',{valor:brl(f.v),cidade:f.c}))}</div>`}
+
+/* cores e selos */
+var STCOR={realizado:'#6b7280',confirmado:'#2563eb',preparacao:'#7c3aed',separacao:'#d97706','aguardando-programacao':'#0891b2',programada:'#0891b2','em-rota':'#ea580c',entregue:'#16a34a',tentativa:'#dc2626',cancelado:'#9ca3af'};
+function stChip(s){return `<span class="stchip" style="--c:${STCOR[s]||'#6b7280'}">${esc(STLB[s]||s)}</span>`}
+function selos(o){
+  let h='';const n=+o.seq||1;
+  if(emAtraso(o))h+='<span class="selo red" title="A data de entrega desejada já passou">Atrasado</span>';
+  if(n>=2)h+=`<span class="selo purple" title="Este cliente já fez ${n-1} pedido${n-1>1?'s':''} antes">Cliente recorrente · ${n}º pedido</span>`;
+  else h+='<span class="selo green" title="Primeiro pedido deste cliente">1º pedido</span>';
+  if(feitoHoje(o))h+='<span class="selo blue" title="Pedido feito hoje">Hoje</span>';
+  return h;
+}
+function pagChipP(o){const p=o.pagamento||{};return p.status==='pago'?'<span class="stchip" style="--c:#16a34a">Pago</span>':'<span class="stchip" style="--c:#d97706">Pendente</span>'}
+
+/* filtros (cidade, turno, quando) */
+A9.fc='';A9.ft='';A9.fq='';A9.mais=false;A9.pagEnv={};A9.pf='cobrar';A9.cores=A9.cores||{};
+function filtroExtra(o,f){
+  f=f||{fc:A9.fc,ft:A9.ft,fq:A9.fq};const e=o.entrega||{};
+  if(f.fc&&cidNorm(cidadeDe(o))!==cidNorm(f.fc))return false;
+  if(f.ft&&e.turno!==f.ft)return false;
+  if(f.fq==='feitos-hoje'&&!feitoHoje(o))return false;
+  if(f.fq==='entrega-hoje'&&e.data!==hojeS())return false;
+  if(f.fq==='atrasados'&&!emAtraso(o))return false;
+  if(f.fq==='recorrentes'&&!(+o.seq>=2))return false;
+  return true;
+}
+function admIr(tab,f){f=f||{};A9.fc=f.fc||'';A9.ft=f.ft||'';A9.fq=f.fq||'';A9.fs=f.fs||'';A9.po=null;A9.msg='';A.tab=tab;route();window.scrollTo(0,0)}
+function cidadesPed(){const m={};(A9.pedidos||[]).forEach(o=>{const c=cidadeDe(o);if(c&&!m[cidNorm(c)])m[cidNorm(c)]=c});return Object.values(m).sort((a,b)=>a.localeCompare(b))}
+var QUANDO=[['','Todos'],['feitos-hoje','Feitos hoje'],['entrega-hoje','Entrega hoje'],['atrasados','Atrasados'],['recorrentes','Clientes recorrentes']];
+function barraFiltros(){
+  const sel=(v,arr,fn)=>arr.map(x=>`<option value="${esc(x[0])}" ${v===x[0]?'selected':''}>${esc(x[1])}</option>`).join('');
+  const temF=A9.fc||A9.ft||A9.fq;
+  return `<div class="fbar"><div><label for="fC">Cidade</label><select id="fC" onchange="A9.fc=this.value;route()"><option value="">Todas</option>${cidadesPed().map(c=>`<option ${cidNorm(A9.fc)===cidNorm(c)?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
+  <div><label for="fT">Horário</label><select id="fT" onchange="A9.ft=this.value;route()"><option value="">Todos</option>${Object.keys(TURNOS).map(t=>`<option value="${t}" ${A9.ft===t?'selected':''}>${esc(TURNOS[t])}</option>`).join('')}</select></div>
+  <div><label for="fQ">Quando</label><select id="fQ" onchange="A9.fq=this.value;route()">${sel(A9.fq,QUANDO)}</select></div>
+  ${temF?'<button class="btn ghost sm" onclick="admIr(A.tab,{})">Limpar filtros</button>':''}</div>`;
+}
+
+/* lista de pedidos (Pedidos e Em aberto) */
+function listaPed(filtro,intro){
+  if(A9.po)return admDetalhe();
+  if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
+  const lista=A9.pedidos.filter(o=>(!filtro||filtro(o))&&(!A9.fs||o.status===A9.fs)&&filtroExtra(o));
+  A9.lastLista=lista.map(o=>o.id);const nSel=lista.filter(o=>A9.selP[o.id]).length;
+  const admin=ADMIN.papel==='admin';
+  return `<div class="box"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><p style="margin:0;color:var(--muted)">${intro||'Pedidos mais recentes.'} <b>${lista.length}</b> na lista.</p><div style="display:flex;gap:8px"><select onchange="A9.fs=this.value;route()" style="width:auto"><option value="">Todos os status</option>${STSEQ.map(s=>`<option value="${s}" ${A9.fs===s?'selected':''}>${STLB[s]}</option>`).join('')}</select><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar</button></div></div>${msgBox()}
+  ${barraFiltros()}
+  <div class="selbar"><button class="btn ghost sm" onclick="selTodosPed(true)">Selecionar todos</button><button class="btn ghost sm" onclick="selTodosPed(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><select id="etqTipo" style="width:auto" aria-label="Tipo de etiqueta"><option value="ambas">As duas etiquetas</option><option value="externa">Só externa</option><option value="interna">Só interna</option></select><button class="btn acc sm" onclick="etqLote()" ${nSel?'':'disabled'}>Baixar etiquetas${nSel?' ('+nSel+')':''}</button>${admin?`<button class="btn ghost sm danger" onclick="pedExcluir()" ${nSel?'':'disabled'}>Excluir selecionados${nSel?' ('+nSel+')':''}</button>`:''}</div>
+  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${lista.length&&nSel===lista.length?'checked':''} onchange="selTodosPed(this.checked)"></th><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Entrega desejada</th><th>Pagamento</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const pg=o.pagamento||{};return `<tr class="${emAtraso(o)?'rowatr':''}" data-sc style="--sc:${STCOR[o.status]||'#999'}"><td><input type="checkbox" class="selck" aria-label="Selecionar ${codPed(o)}" ${A9.selP[o.id]?'checked':''} onchange="selPed(${o.id},this.checked)"></td><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' · '+((en.dest||{}).cidade||''))}</div></td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td><td>${totAdm(o)}</td><td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td><td>${esc(PAGNOME[pg.preferencia]||'')}<div>${pagChipP(o)}</div></td><td>${stChip(o.status)}</td><td style="white-space:nowrap"><button class="btn ghost sm etqbtn" title="Gerar etiquetas e abrir o PDF" aria-label="Gerar etiquetas do pedido ${codPed(o)}" onclick="etqRapida(${o.id})">${ICO_DOC}</button> <button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||'<tr><td colspan="9">Nenhum pedido.</td></tr>'}</tbody></table></div></div>`;
+}
+async function pedExcluir(){
+  const ids=(A9.lastLista||[]).filter(id=>A9.selP[id]);if(!ids.length)return;
+  if(!confirm('Excluir '+ids.length+' pedido'+(ids.length>1?'s':'')+' de vez?\n\nIsso apaga o pedido e o histórico dele, e devolve os itens ao estoque. Não dá para desfazer.'))return;
+  const r=await SB.rpc('excluir_pedidos',{p_ids:ids});
+  if(r.error){A9.msg=/excluir_pedidos|function|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 17 no Supabase para liberar a exclusão de pedidos.':msgRpc(r.error);A9.erro=true;route();return}
+  A9.selP={};A9.pedidos=null;A9.msg=(r.data||ids.length)+' pedido(s) excluído(s).';A9.erro=false;route();
+}
+
+/* status do pedido: só as etapas da equipe, com explicação ao passar o mouse */
+var ST_OPC=[['confirmado','Confirmado','Pedido confirmado com o cliente. A equipe vê que está tudo certo para seguir.'],['separacao','Em separação','Pedido sendo separado e embalado.'],['preparacao','Em preparação','Pedido pronto, aguardando a verificação do motoboy.']];
+function statusOpcoes(o){
+  return `<input type="hidden" id="stN" value=""><div class="stopts">${ST_OPC.map(x=>{const at=o.status===x[0];return `<button type="button" class="stopt" ${at?'disabled':''} style="--c:${STCOR[x[0]]}" data-s="${x[0]}" title="${esc(x[2])}" onclick="stEscolhe('${x[0]}')"><b>${x[1]}${at?' (atual)':''}</b><span>${esc(x[2])}</span></button>`}).join('')}</div>`;
+}
+function stEscolhe(s){const i=document.getElementById('stN');if(i)i.value=s;document.querySelectorAll('.stopt').forEach(b=>b.classList.toggle('on',b.dataset.s===s))}
+function admStatus(){const s=v_('stN');if(!s){A9.msg='Escolha o novo status.';A9.erro=true;route();return}admRpc('alterar_status_pedido',{p_pedido:A9.po.id,p_status:s,p_motivo:v_('stM').trim()||null},'Status atualizado. O cliente já foi avisado.')}
+function freteHtmlAdm(o){const f=freteDoPedido(o);if(f==null)return '';return `<p style="margin:8px 0 0;font-size:.9rem"><b>Frete (${esc(freteNome(cidadeDe(o)))}):</b> ${brl(f)} <span style="color:var(--muted)">· pago junto, na entrega</span></p>`}
+
+/* mensagem de pagamento (antes e depois da entrega), já com o frete */
+function pagVars(o){
+  const en=o.entrega||{};const nome=String(en.nome||'').split(' ')[0];const fr=freteDoPedido(o);const base=pedTotal(o);
+  return {nome:nome||'cliente',pedido:codPed(o),valor:brl(base),frete:fr!=null?brl(fr)+' ('+freteNome(cidadeDe(o))+')':'',total:brl(base+(fr||0)),link:A9.link,forma:(PAGNOME[(o.pagamento||{}).preferencia]||'a combinar')};
+}
+function admMsgPagamento(o){return nl(msgTxt(o.status==='entregue'?'pagamento_entregue':'pagamento',pagVars(o)))}
+
+/* aba Pagamentos: cobrar depois da entrega */
+function tabPagamentos(){
+  if(A9.po)return admDetalhe();
+  if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
+  if(!A9.linkCarregado){if(!A9.busyL){A9.busyL=true;admCarregarLink().finally(()=>{A9.busyL=false;A9.linkCarregado=true;route()})}return '<div class="box">Carregando...</div>'}
+  const L=A9.pedidos,total=o=>pedTotal(o)+(freteDoPedido(o)||0);
+  const cobrar=L.filter(o=>o.status==='entregue'&&aguardaPag(o)),andam=L.filter(o=>!ENC(o)&&aguardaPag(o)),pagos=L.filter(o=>(o.pagamento||{}).status==='pago');
+  const f=A9.pf||'cobrar';const lista=(f==='cobrar'?cobrar:f==='andamento'?andam:pagos).filter(o=>filtroExtra(o));
+  const soma=a=>brl(a.reduce((s,o)=>s+total(o),0));
+  const aba=(k,t,a,c)=>`<button class="kc ${f===k?'sel':''}" style="--c:${c}" onclick="A9.pf='${k}';route()"><div class="n">${a.length}</div><div class="t">${t}</div><div class="t">${soma(a)}</div></button>`;
+  return `<div class="box">${msgBox()}${A9.link?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre em Mais opções > Configurações.</div>'}
+  <p style="margin:0 0 10px;color:var(--muted)">Assim que o pedido é entregue, ele aparece aqui para cobrança. Envie o link ao cliente e, quando ele pagar, toque em <b>Marcar como pago</b>.</p>
+  <div class="kcards" style="margin-bottom:12px">${aba('cobrar','A cobrar (já entregues)',cobrar,'#d92d20')}${aba('andamento','Pendentes (ainda em andamento)',andam,'#d97706')}${aba('pagos','Pagos',pagos,'#16a34a')}</div>
+  ${barraFiltros()}
+  <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Produtos</th><th>Frete</th><th>Total</th><th>Forma</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const fr=freteDoPedido(o);const sp=temSP(o);const pago=(o.pagamento||{}).status==='pago';
+   return `<tr data-sc style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${totAdm(o)}</td><td>${fr!=null?brl(fr):'<span style="color:var(--muted)">a combinar</span>'}</td><td><b>${sp?'A confirmar':brl(total(o))}</b></td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td>${stChip(o.status)} ${pagChipP(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">Link aberto no WhatsApp</div>':''}</td>
+   <td style="white-space:nowrap">${pago?`<button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link&&!sp)?'':'disabled'} title="${sp?'Pedido com item sob consulta: confirme o valor antes':A9.link?'Abre a conversa do cliente com a mensagem de cobrança':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})">Enviar link de pagamento</button> <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar como pago</button>`} <button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||'<tr><td colspan="8">Nenhum pedido nesta lista.</td></tr>'}</tbody></table></div></div>`;
+}
+function pagEnviar(id){
+  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
+  if(!A9.link){toast('Cadastre o link de pagamento em Configurações.');return}
+  const fw=foneWa((o.entrega||{}).fone);if(!fw){toast('Este pedido está sem telefone válido.');return}
+  waAbrir(fw,admMsgPagamento(o));A9.pagEnv[id]=true;
+  SB.from('pedido_eventos').insert({pedido_id:id,tipo:'whatsapp',publico:false,texto:'Link de pagamento aberto no WhatsApp (envio não confirmado pelo sistema)',por:ADMIN.nome}).then(()=>{},()=>{});
+  route();
+}
+async function pagMarcar(id,v){
+  const r=await SB.rpc('registrar_pagamento',{p_pedido:id,p_pago:v});
+  if(r.error){A9.msg=msgRpc(r.error);A9.erro=true}else{A9.msg=v?'Pagamento registrado como recebido.':'Pagamento voltou para pendente.';A9.erro=false;A9.pedidos=null}
+  route();
+}
+
+/* visão geral */
+function dashCont(){
+  const f={fc:v_('dC'),ft:v_('dT'),fq:v_('dQ')};
+  const n=(A9.pedidos||[]).filter(o=>!ENC(o)&&filtroExtra(o,f)).length;
+  const e=document.getElementById('dN');if(e)e.textContent=n+' pedido'+(n===1?'':'s')+' em aberto'
+}
+function dashVer(){admIr('aberto',{fc:v_('dC'),ft:v_('dT'),fq:v_('dQ')})}
+function admIrCid(i,t){const c=(A9.dcid||[])[i];if(!c)return;admIr('aberto',{fc:c.nome,ft:t||''})}
+function freteSalvar(){
+  const lista=[];
+  document.querySelectorAll('input[data-fc]').forEach(i=>{const v=i.value.trim().replace(',','.');if(v!==''&&!isNaN(+v)&&+v>=0)lista.push({cidade:i.dataset.fc,valor:+(+v).toFixed(2)})});
+  const nc=v_('frNova').trim(),nv=v_('frNovaV').trim().replace(',','.');
+  if(nc&&nv!==''&&!isNaN(+nv)&&+nv>=0&&!lista.some(x=>cidNorm(x.cidade)===cidNorm(nc)))lista.push({cidade:nc,valor:+(+nv).toFixed(2)});
+  SB.from('configuracao').upsert({chave:'frete',valor:{lista},publica:true,atualizado_em:new Date().toISOString()}).then(r=>{
+    if(r.error){A9.msg='Não foi possível salvar o frete. Só o administrador pode alterar.';A9.erro=true}else{FRETE={lista};A9.msg='Frete salvo. Já aparece para os clientes na finalização da compra.';A9.erro=false}
+    route();
+  });
+}
+function tabDash(){
+  if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
+  const L=A9.pedidos,hoje=hojeS(),ab=L.filter(o=>!ENC(o));
+  const hojeN=L.filter(feitoHoje),entH=ab.filter(o=>(o.entrega||{}).data===hoje),atr=L.filter(emAtraso),rec=ab.filter(o=>+o.seq>=2);
+  const pend=L.filter(aguardaPag),cobrar=L.filter(o=>o.status==='entregue'&&aguardaPag(o)),pagos=L.filter(o=>(o.pagamento||{}).status==='pago'),entregues=L.filter(o=>o.status==='entregue');
+  const tot=o=>pedTotal(o)+(freteDoPedido(o)||0);
+  const k=(c,t,n,sub,go)=>`<button class="kc" style="--c:${c}" onclick="${go}"><div class="n">${n}</div><div class="t"><b>${t}</b></div><div class="t">${sub}</div></button>`;
+  const cid={};ab.forEach(o=>{const c=cidadeDe(o)||'Sem cidade';const key=cidNorm(c)||'sem';const x=cid[key]=cid[key]||{nome:c,t:0};x.t++;const tn=(o.entrega||{}).turno;x[tn]=(x[tn]||0)+1});
+  A9.dcid=Object.values(cid).sort((a,b)=>b.t-a.t);
+  const dias=[0,1,2,3,4,5,6].map(i=>addDias(hoje,i-6));const vals=dias.map(d=>L.filter(o=>ymd(new Date(Date.parse(o.criado_em)))===d).length);
+  const st={};L.forEach(o=>{st[o.status]=(st[o.status]||0)+1});const stk=Object.keys(st).sort((a,b)=>STSEQ.indexOf(a)-STSEQ.indexOf(b));
+  const admin=ADMIN.papel==='admin';
+  const todasCid={};cidadesPed().forEach(c=>{todasCid[cidNorm(c)]=c});(FRETE.lista||[]).forEach(x=>{if(!todasCid[cidNorm(x.cidade)])todasCid[cidNorm(x.cidade)]=x.cidade});
+  const cidFrete=Object.values(todasCid).sort((a,b)=>a.localeCompare(b));
+  return `<div class="box">${msgBox()}<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="margin:0">Visão geral</h2><div><span style="color:var(--muted);font-size:.82rem">Atualiza sozinha a cada minuto. </span><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar agora</button></div></div>
+  <div class="kcards" style="margin-top:14px">
+   ${k('#2563eb','Pedidos de hoje',hojeN.length,'feitos hoje',"admIr('pedidos',{fq:'feitos-hoje'})")}
+   ${k('#ea580c','Em aberto',ab.length,'não entregues',"admIr('aberto',{})")}
+   ${k('#0891b2','Entrega hoje',entH.length,'data desejada é hoje',"admIr('aberto',{fq:'entrega-hoje'})")}
+   ${k('#d92d20','Atrasados',atr.length,'data desejada vencida',"admIr('aberto',{fq:'atrasados'})")}
+   ${k('#7c3aed','Clientes recorrentes',rec.length,'em aberto, 2º pedido ou mais',"admIr('aberto',{fq:'recorrentes'})")}
+   ${k('#d97706','Aguardando pagamento',pend.length,brl(pend.reduce((s,o)=>s+tot(o),0))+' a receber',"A9.pf='andamento';admTab('pagamentos')")}
+   ${k('#be123c','A cobrar (entregues)',cobrar.length,brl(cobrar.reduce((s,o)=>s+tot(o),0)),"A9.pf='cobrar';admTab('pagamentos')")}
+   ${k('#16a34a','Recebido',brl(pagos.reduce((s,o)=>s+tot(o),0)),pagos.length+' pago'+(pagos.length===1?'':'s')+' · '+entregues.length+' entregue'+(entregues.length===1?'':'s'),"A9.pf='pagos';admTab('pagamentos')")}
+  </div>
+  <h3>Filtro rápido</h3><p style="margin:0;color:var(--muted);font-size:.88rem">Ex.: todos os pedidos de São José da manhã que são para hoje.</p>
+  <div class="fbar"><div><label for="dC">Cidade</label><select id="dC" onchange="dashCont()"><option value="">Todas</option>${cidadesPed().map(c=>`<option>${esc(c)}</option>`).join('')}</select></div><div><label for="dT">Horário</label><select id="dT" onchange="dashCont()"><option value="">Todos</option>${Object.keys(TURNOS).map(t=>`<option value="${t}">${esc(TURNOS[t])}</option>`).join('')}</select></div><div><label for="dQ">Quando</label><select id="dQ" onchange="dashCont()">${QUANDO.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select></div><button class="btn acc" onclick="dashVer()">Ver estes pedidos</button><b id="dN" style="padding-bottom:10px">${ab.length} pedido${ab.length===1?'':'s'} em aberto</b></div>
+  <div class="two" style="gap:18px;align-items:start"><div><h3 style="margin-top:0">Pedidos em aberto por cidade</h3>
+   <div class="tbl"><table><thead><tr><th>Cidade</th><th>Total</th>${Object.keys(TURNOS).map(t=>`<th>${esc(TURNOS[t])}</th>`).join('')}</tr></thead><tbody>${A9.dcid.map((c,i)=>`<tr><td><b>${esc(c.nome)}</b></td><td><button class="chipn" style="--c:#ea580c" onclick="admIrCid(${i},'')">${c.t}</button></td>${Object.keys(TURNOS).map((t,j)=>`<td>${c[t]?`<button class="chipn" style="--c:${['#f59e0b','#2563eb','#7c3aed'][j%3]}" onclick="admIrCid(${i},'${t}')">${c[t]}</button>`:'<span style="color:#bbb">0</span>'}</td>`).join('')}</tr>`).join('')||'<tr><td colspan="5">Nenhum pedido em aberto.</td></tr>'}</tbody></table></div></div>
+  <div><h3 style="margin-top:0">Pedidos nos últimos 7 dias</h3>${chartBars(dias.map(d=>d.slice(8)+'/'+d.slice(5,7)),vals,'#2563eb')}
+   <h3>Situação dos pedidos</h3><div class="stackbar">${stk.map(s=>`<i style="width:${(st[s]/L.length*100).toFixed(1)}%;background:${STCOR[s]||'#999'}" title="${esc(STLB[s]||s)}: ${st[s]}"></i>`).join('')}</div><div class="legend">${stk.map(s=>`<span><b style="background:${STCOR[s]||'#999'}"></b>${esc(STLB[s]||s)} (${st[s]})</span>`).join('')}</div></div></div>
+  ${admin?`<h3>Valor de frete por cidade</h3><p style="margin:0 0 8px;color:var(--muted);font-size:.88rem">O valor aparece para o cliente na finalização da compra, quando ele escolhe o endereço, e entra na cobrança depois da entrega.</p>
+  <div class="tbl"><table><thead><tr><th>Cidade</th><th>Frete (R$)</th></tr></thead><tbody>${cidFrete.map(c=>{const v=freteCidade(c);return `<tr><td>${esc(c)}</td><td><input type="text" inputmode="decimal" data-fc="${esc(c)}" value="${v==null?'':String(v).replace('.',',')}" placeholder="0,00" style="max-width:120px"></td></tr>`}).join('')}<tr><td><input id="frNova" placeholder="Adicionar outra cidade (ex.: Caçapava)"></td><td><input id="frNovaV" inputmode="decimal" placeholder="0,00" style="max-width:120px"></td></tr></tbody></table></div>
+  <p><button class="btn acc" onclick="freteSalvar()">Salvar frete</button></p>`:''}</div>`;
+}
+setInterval(()=>{
+  if(window.__ADMIN_APP&&typeof A!=='undefined'&&A.tab==='dash'&&!A9.po&&!A9.busy&&!document.hidden&&!emEdicao()&&A9.pedidos){A9.pedidos=null;route()}
+},60000);
+
+/* cor de cada entregador */
+var COR_PAL=['#e63946','#1d7ad9','#2a9d8f','#f4a261','#6a4c93','#e76f51','#43aa8b','#b5179e','#8d6e00','#3a86ff'];
+function corEnt(id){if(A9.cores&&A9.cores[id])return A9.cores[id];const i=Math.max(0,((A9.lg&&A9.lg.ent)||[]).findIndex(x=>x.id===id));return COR_PAL[i%COR_PAL.length]}
+async function corCarregar(){const r=await SB.from('configuracao').select('valor').eq('chave','cores_entregadores').maybeSingle();A9.cores=(r.data&&r.data.valor)||{}}
+function entCor(c){const i=document.getElementById('enCor');if(i)i.value=c;document.querySelectorAll('.sw').forEach(b=>b.classList.toggle('on',b.dataset.c===c))}
+async function admSalvaEntregador(){
+  const nome=v_('enNome').trim(),whats=v_('enWh').trim(),d=whats.replace(/\D/g,''),cor=v_('enCor')||COR_PAL[0];
+  if(!nome){A9.msg='Informe o nome.';A9.erro=true;route();return}
+  if(d.length<10||d.length>13){A9.msg='Informe o WhatsApp com DDD.';A9.erro=true;route();return}
+  const e=A9.edE;let id=e.id,r;
+  if(id)r=await SB.from('entregadores').update({nome,whats}).eq('id',id);
+  else{r=await SB.from('entregadores').insert({nome,whats}).select('id').single();if(!r.error)id=r.data.id}
+  if(r.error){A9.msg=r.error.code==='23505'?'Já existe um entregador com este WhatsApp.':'Não foi possível salvar o entregador.';A9.erro=true;route();return}
+  A9.cores=Object.assign({},A9.cores,{[id]:cor});
+  try{await SB.from('configuracao').upsert({chave:'cores_entregadores',valor:A9.cores,publica:false,atualizado_em:new Date().toISOString()})}catch(x){}
+  A9.edE=null;A9.msg='Entregador salvo.';A9.erro=false;A9.lg=null;route();
+}
+function corCampo(e){
+  const cor=e.cor||COR_PAL[((A9.lg&&A9.lg.ent)||[]).length%COR_PAL.length];
+  return `<div class="c3"><label for="enCor">Cor do entregador</label><div class="swatches">${COR_PAL.map(c=>`<button type="button" class="sw ${cor===c?'on':''}" data-c="${c}" style="background:${c}" onclick="entCor('${c}')" aria-label="Cor ${c}"></button>`).join('')}<input type="color" id="enCor" value="${cor}" oninput="entCor(this.value)" style="width:42px;height:32px;padding:0"></div></div>`;
+}
+function abasHtml(tabs,extra){
+  const btn=t=>`<button class="${A.tab===t[0]?'on':''}" onclick="admTab('${t[0]}')">${t[1]}</button>`;
+  const main=tabs.filter(t=>!extra.includes(t[0])),ex=tabs.filter(t=>extra.includes(t[0]));
+  const aberto=A9.mais||ex.some(t=>t[0]===A.tab);
+  return `<div class="tabs adm">${main.map(btn).join('')}${ex.length?`<button class="maisb" onclick="A9.mais=${!aberto};route()">${aberto?'Menos ▴':'Mais opções ▾'}</button>`:''}</div>${ex.length&&aberto?`<div class="tabs adm sec">${ex.map(btn).join('')}</div>`:''}`;
 }
 
 </script>
