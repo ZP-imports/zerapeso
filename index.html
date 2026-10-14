@@ -1294,7 +1294,7 @@ function chartH(items,cor){
 
 function pageRev(){
   if(!cart.length)return pageCart();
-  if(!me){needLogin('/revisar');return ''}
+  if(!me)return pageRevConta();
   const u=user(),e=u.end||{};const sub=cartSub();
   const guardado=sessionStorage.getItem('xp_ind');
   if(!rv.code&&!rv.use&&guardado&&amOn()){const v=validateRef(guardado);if(v.ok)rv.code=guardado;else rv.msg=v.err}
@@ -1309,11 +1309,11 @@ function pageRev(){
     <p style="font-size:.8rem;color:var(--muted);margin:10px 0 0">Um desconto por pedido, não cumulativo. <a style="cursor:pointer" onclick="nav('/reg/amigo')">Ver regulamento</a></p></div>`}
   const min=addDias(hojeS(),LOG.antecedencia),max=addDias(hojeS(),LOG.janela);
   const verr=ent.data?validarEntrega(ent.data,ent.turno||'manha'):'';
-  const pronto=!!(endOk()&&ent.data&&!verr&&ent.turno&&ent.pag);
+  const pronto=!!(perfilOk()&&endOk()&&ent.data&&!verr&&ent.turno&&ent.pag);
   const turnos=Object.keys(TURNOS).filter(t=>LOG.turnos[t]);
   const sv=k=>esc(ent.s[k]||'');
   const entrega=`<h3>Dados de entrega</h3>
-   ${endOk()?`<address><b>${esc(u.nome)} ${esc(u.sobrenome)}</b><br>Telefone: ${esc(u.fone)}<br>${esc(e.rua)}, ${esc(e.num)}${e.comp?', '+esc(e.comp):''}<br>${esc(e.bairro)}<br>${esc(e.cidade)}/${esc(e.uf)}, CEP ${esc(e.cep)}${e.ref?'<br>Referência: '+esc(e.ref):''}</address><p><a style="cursor:pointer" onclick="nav('/endereco')">Alterar endereço principal</a></p>`:`<div class="note err">Falta completar seu endereço de entrega. <button class="btn sm" onclick="nav('/endereco')">Completar endereço</button></div>`}
+   ${endOk()?`<address><b>${esc(u.nome)} ${esc(u.sobrenome)}</b><br>Telefone: ${esc(u.fone)}<br>${esc(e.rua)}, ${esc(e.num)}${e.comp?', '+esc(e.comp):''}<br>${esc(e.bairro)}<br>${esc(e.cidade)}/${esc(e.uf)}, CEP ${esc(e.cep)}${e.ref?'<br>Referência: '+esc(e.ref):''}</address><p><a style="cursor:pointer" onclick="nav('/endereco')">Alterar endereço principal</a></p>`:`<div class="note">O endereço de entrega aparece aqui depois que você salvar os dados no quadro acima.</div>`}
    <p><label style="font-weight:500"><input type="checkbox" style="width:auto" ${ent.sec?'checked':''} onchange="ent.sec=this.checked;route()"> Entregar em outro endereço (endereço secundário)</label></p>
    ${ent.sec?`<div class="box" style="box-shadow:none"><div class="fr"><div class="c2"><label>CEP</label><input value="${sv('cep')}" oninput="entCep(this)" placeholder="00000-000" inputmode="numeric"></div><div class="c2"><label>Estado (UF)</label><select onchange="entS('uf',this.value)" ${ent.slock?'style="pointer-events:none;background:#eee"':''}><option value="">UF</option>${UFS.map(x=>`<option ${x===ent.s.uf?'selected':''}>${x}</option>`).join('')}</select></div><div class="c2"><label>Cidade</label><input value="${sv('cidade')}" oninput="entS('cidade',this.value)" ${ent.slock?'readonly':''}></div><div class="c3"><label>Bairro</label><input value="${sv('bairro')}" oninput="entS('bairro',this.value)"></div><div class="c4"><label>Rua</label><input value="${sv('rua')}" oninput="entS('rua',this.value)"></div><div class="c2"><label>Número do imóvel</label><input id="sNum" value="${sv('num')}" oninput="entS('num',this.value)"></div><div class="c4"><label>Complemento</label><input value="${sv('comp')}" oninput="entS('comp',this.value)"></div><div><label>Ponto de referência</label><input value="${sv('ref')}" oninput="entS('ref',this.value)"></div></div></div>`:''}
    ${prefHtml(turnos)}
@@ -1324,10 +1324,11 @@ function pageRev(){
   return `<div class="wrap pg"><h1 class="t">Finalizar compra</h1><div class="two"><div class="box"><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td>${esc(p.n)} (${esc(i.opt)})</td><td>${i.qty}</td><td class="r">${precoTxt(i)}</td></tr>`}).join('')}</tbody></table></div>
   <div class="tot"><span>Subtotal dos produtos</span><span>${cartSP()?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span><span>Entrega</span><span>${esc(CFG.frete)}</span>${d?`<span class="dsc">${dLabel(d)} (${d.pct}%)</span><span class="dsc">- ${brl(d.valor)}</span>`:''}<span class="big">Total</span><span class="big">${cartSP()?(sub>0?brl(tot)+' + a confirmar':'A confirmar'):brl(tot)}</span></div>
   ${nota}${amigo}
+  ${ckDados()}
   ${entrega}
   ${pagInfo}
   ${ent.erros.length?`<div class="note err"><b>Confira antes de finalizar:</b><ul style="margin:6px 0 0;padding-left:18px">${ent.erros.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
-  <p><button class="btn acc full" id="fin" style="padding:1em" onclick="finish()" ${pronto?'':'disabled'}>Enviar pedido no WhatsApp</button></p>${pronto?'':'<p style="color:var(--muted);font-size:.82rem;margin:0">Preencha a preferência de entrega, o melhor horário e a forma de pagamento para liberar o envio.</p>'}${LEGAL}</div>
+  <p><button class="btn acc full" id="fin" style="padding:1em" onclick="finish()" ${pronto?'':'disabled'}>Enviar pedido no WhatsApp</button></p>${pronto?'':'<p style="color:var(--muted);font-size:.82rem;margin:0">Preencha seus dados, a preferência de entrega, o melhor horário e a forma de pagamento para liberar o envio.</p>'}${LEGAL}</div>
   <div class="box"><h3 style="margin-top:0">Como funciona</h3><ol style="padding-left:18px;margin:0"><li>Você escolhe a entrega e o pagamento.</li><li>Ao tocar em Enviar pedido no WhatsApp, o pedido é registrado e a conversa abre já com os dados.</li><li>Nossa equipe confirma tudo com você pelo WhatsApp.</li><li>Acompanhe cada etapa em Rastrear pedido.</li></ol></div></div></div>`;
 }
 const STEPDESC={realizado:'Recebemos o seu pedido.',confirmado:'A loja confere o pedido e libera para preparação.',preparacao:'A equipe prepara os itens do seu pedido.',separacao:'Os itens são separados e conferidos com a etiqueta do pedido.','aguardando-programacao':'A loja organiza a rota e define a programação da entrega.',programada:'A entrega está programada para a data e o turno do pedido.','em-rota':'O pedido saiu para entrega. Fique atento ao telefone informado.',entregue:'Pedido entregue.'};
@@ -1823,6 +1824,7 @@ let busy2=false;
 function finish(){
   if(busy2)return;
   const u=user(),er=[];
+  if(!perfilOk())er.push('Complete seu nome e telefone no quadro Complete seus dados.');
   if(!endOk())er.push('Complete o endereço principal de entrega.');
   if(ent.sec)validarEnd(ent.s,'Endereço secundário: ').forEach(x=>er.push(x));
   const v=validarEntrega(ent.data,ent.turno);if(v)er.push(v);
@@ -2739,6 +2741,7 @@ async function finish(){
   if(busy2)return;
   if(!SB){ent.erros=[semConexao];route();return}
   const u=user(),er=[];
+  if(!perfilOk())er.push('Complete seu nome e telefone no quadro Complete seus dados.');
   if(!endOk())er.push('Complete o endereço principal de entrega.');
   if(ent.sec)validarEnd(ent.s,'Endereço secundário: ').forEach(x=>er.push(x));
   const v=validarEntrega(ent.data,ent.turno);if(v)er.push(v);
@@ -2916,6 +2919,7 @@ async function finish(){
   if(busy2)return;
   if(!SB){ent.erros=[semConexao];route();return}
   const u=user(),er=[];
+  if(!perfilOk())er.push('Complete seu nome e telefone no quadro Complete seus dados.');
   if(!endOk())er.push('Complete o endereço principal de entrega.');
   if(ent.sec)validarEnd(ent.s,'Endereço secundário: ').forEach(x=>er.push(x));
   const v=validarEntrega(ent.data,ent.turno);if(v)er.push(v);
@@ -3792,6 +3796,94 @@ async function entAcao(rid,tk,pid,acao){
   if(r.error){toast(msgRpc(r.error));return}
   toast(acao==='entregue'?'Entrega registrada. ✅':acao==='cheguei'?'Chegada registrada. 📍':'Tentativa registrada.');
   entRecarrega(rid,tk);
+}
+
+/* ======================= FINALIZAR COMPRA COM CADASTRO NA PRÓPRIA TELA =======================
+   Quem não tem conta cria (ou entra) aqui mesmo; quem tem conta mas falta nome, telefone ou
+   endereço completa aqui mesmo. Nada manda a pessoa de volta para o início.
+   Só funções e var aqui: as funções substituem as anteriores de mesmo nome. */
+
+var ckTab='cad';
+var perfilOk=()=>{const u=user();return !!(u&&String(u.nome||'').trim()&&String(u.fone||'').trim())};
+
+function ckEndCampos(e){
+  e=e||{};const v=k=>esc(e[k]||'');
+  return `<div class="fr">
+   <div class="c2"><label for="ckC">CEP</label><input id="ckC" required placeholder="00000-000" inputmode="numeric" autocomplete="postal-code" value="${v('cep')}" oninput="cepAuto(this,{uf:'ckU',cidade:'ckCi',bairro:'ckB',rua:'ckR',num:'ckN'})"></div><div class="c2"><label for="ckU">Estado (UF)</label>${ufSelect('ckU',e.uf)}</div><div class="c2"><label for="ckCi">Cidade</label><input id="ckCi" required value="${v('cidade')}"></div>
+   <div class="c3"><label for="ckB">Bairro</label><input id="ckB" required value="${v('bairro')}"></div><div class="c4"><label for="ckR">Rua</label><input id="ckR" required value="${v('rua')}"></div><div class="c2"><label for="ckN">Número do imóvel</label><input id="ckN" required value="${v('num')}"></div><div class="c4"><label for="ckCo">Complemento</label><input id="ckCo" value="${v('comp')}"></div>
+   <div><label for="ckRef">Ponto de referência</label><input id="ckRef" value="${v('ref')}"></div></div>`;
+}
+function ckEndLer(){
+  return normEnd({cep:fmtCep($('#ckC').value),uf:$('#ckU').value,cidade:$('#ckCi').value,bairro:$('#ckB').value,rua:$('#ckR').value,num:$('#ckN').value.trim(),comp:$('#ckCo').value.trim(),ref:$('#ckRef').value.trim()});
+}
+
+/* sem conta: resumo do pedido + criar conta ou entrar, tudo na mesma tela */
+function pageRevConta(){
+  const aba=ckTab==='entrar'?'entrar':'cad';
+  const resumo=`<div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td>${esc(p.n)} (${esc(i.opt)})</td><td>${i.qty}</td><td class="r">${precoTxt(i)}</td></tr>`}).join('')}</tbody></table></div>
+  <div class="tot"><span class="big">Total</span><span class="big">${totTxt()}</span></div>`;
+  const entrar=`<form onsubmit="return ckLogin(event)"><label for="ckLe">E-mail</label><input id="ckLe" type="email" required autocomplete="email"><div style="height:10px"></div><label for="ckLp">Senha</label><input id="ckLp" type="password" required autocomplete="current-password"><p><button class="btn acc full" style="padding:1em">Entrar e continuar</button></p></form>`;
+  const criar=`<form onsubmit="return ckCadastro(event)"><div class="fr"><div class="c2"><label for="ckRn">Nome</label><input id="ckRn" required autocomplete="given-name"></div><div class="c2"><label for="ckRs">Sobrenome</label><input id="ckRs" required autocomplete="family-name"></div><div><label for="ckF">Telefone com WhatsApp</label>${foneCampo('ckF','',false)}</div><div><label for="ckRe">E-mail</label><input id="ckRe" type="email" required autocomplete="email"></div><div><label for="ckRp">Senha (mínimo 6 caracteres)</label><input id="ckRp" type="password" required minlength="6" autocomplete="new-password"></div></div>
+  <h3>Endereço de entrega</h3><p style="margin:0 0 6px;color:var(--muted);font-size:.9rem">Digite o CEP e preenchemos estado, cidade, bairro e rua. Falta só o número.</p>${ckEndCampos({})}
+  <p style="font-size:.85rem;color:var(--muted)"><label style="font-weight:400"><input type="checkbox" id="ckRc" style="width:auto"> Li e concordo com a Política de Privacidade e autorizo o uso dos meus dados para processar e entregar meus pedidos.</label></p><p><button class="btn acc full" style="padding:1em">Criar conta e continuar</button></p></form>`;
+  return `<div class="wrap pg"><h1 class="t">Finalizar compra</h1><div class="two"><div class="box">${resumo}
+  <h3>Seus dados</h3><p style="margin:0 0 10px;color:var(--muted);font-size:.9rem">Crie a sua conta aqui mesmo, ou entre se já tem uma, e continue o pedido sem sair desta tela.</p>
+  <div class="tabs"><button class="${aba==='cad'?'on':''}" onclick="ckTab='cad';route()">Criar conta</button><button class="${aba==='entrar'?'on':''}" onclick="ckTab='entrar';route()">Já tenho conta</button></div><div id="fmsg"></div>
+  ${aba==='entrar'?entrar:criar}${LEGAL}</div>
+  <div class="box"><h3 style="margin-top:0">Como funciona</h3><ol style="padding-left:18px;margin:0"><li>Você cria a conta ou entra.</li><li>Escolhe a entrega e o pagamento.</li><li>Ao tocar em Enviar pedido no WhatsApp, o pedido é registrado e a conversa abre já com os dados.</li><li>Nossa equipe confirma tudo com você pelo WhatsApp.</li></ol></div></div></div>`;
+}
+async function ckLogin(e){
+  e.preventDefault();
+  if(!SB){msg(semConexao);return false}
+  const em=$('#ckLe').value.trim().toLowerCase(),pw=$('#ckLp').value;
+  const r=await SB.auth.signInWithPassword({email:em,password:pw});
+  if(r.error){msg(traduzErro(r.error));return false}
+  try{await bancoSessao(r.data.session)}catch(x){msg(traduzErro(x));return false}
+  updHead();toast('Bem-vindo(a), '+((users[me]||{}).nome||'')+'.');route();return false;
+}
+async function ckCadastro(e){
+  e.preventDefault();
+  if(!SB){msg(semConexao);return false}
+  const em=$('#ckRe').value.trim().toLowerCase(),nome=tc($('#ckRn').value),sob=tc($('#ckRs').value),fone=$('#ckF').value.trim(),sem9=$('#ckFn9').checked,pw=$('#ckRp').value;
+  {const er=foneErro(fone,sem9);if(er){msg(er);return false}}
+  if(nome.length<2||sob.length<2){msg('Informe nome e sobrenome.');return false}
+  const end=ckEndLer();{const er=validarEnd(end);if(er.length){msg(er.join(' '));return false}}
+  if(!$('#ckRc').checked){msg('Para criar a conta, é preciso aceitar a Política de Privacidade.');return false}
+  if(pw.length<6){msg('A senha precisa ter pelo menos 6 caracteres.');return false}
+  const r=await SB.auth.signUp({email:em,password:pw,options:{data:{nome,sobrenome:sob,fone,sem9,consentimento:true}}});
+  if(r.error){msg(traduzErro(r.error));return false}
+  if(!r.data.session){ckTab='entrar';route();msg('Enviamos um link de confirmação para o seu e-mail. Confirme, depois entre aqui na aba "Já tenho conta" e continue o pedido.','warn');return false}
+  try{await bancoSessao(r.data.session)}catch(x){msg(traduzErro(x));return false}
+  const u=user();
+  if(u&&u.uid){const s=await SB.from('perfis').update({endereco:end}).eq('id',u.uid);if(s.error){msg(traduzErro(s.error));return false}u.end=end;save()}
+  updHead();toast('Conta criada. Agora é só escolher a entrega e o pagamento.');route();return false;
+}
+
+/* com conta, mas faltando nome, telefone ou endereço: completa na própria tela */
+function ckDados(){
+  const u=user();if(!u||(perfilOk()&&endOk()))return '';
+  const falta=[];if(!perfilOk())falta.push('nome e telefone');if(!endOk())falta.push('endereço de entrega');
+  return `<h3>Complete seus dados</h3><div class="box" style="box-shadow:none;background:#fffdf5;border-color:#f1e0a8"><div id="fmsg"></div>
+  <p style="margin:0 0 10px;color:var(--muted);font-size:.9rem">Falta preencher: <b>${falta.join(' e ')}</b>. Salve aqui e continue o pedido sem sair desta tela.</p>
+  <form onsubmit="return ckSalvar(event)">
+  ${perfilOk()?'':`<div class="fr"><div class="c2"><label for="ckPn">Nome</label><input id="ckPn" required autocomplete="given-name" value="${esc(u.nome||'')}"></div><div class="c2"><label for="ckPs">Sobrenome</label><input id="ckPs" required autocomplete="family-name" value="${esc(u.sobrenome||'')}"></div><div><label for="ckPf">Telefone com WhatsApp</label>${foneCampo('ckPf',u.fone,!!u.sem9)}</div></div>`}
+  ${endOk()?'':`<p style="margin:10px 0 6px;color:var(--muted);font-size:.9rem">Digite o CEP e preenchemos estado, cidade, bairro e rua. Falta só o número.</p>${ckEndCampos(u.end)}`}
+  <p><button class="btn acc full" style="padding:1em">Salvar e continuar</button></p></form></div>`;
+}
+async function ckSalvar(e){
+  e.preventDefault();const u=user();if(!u)return false;
+  const upd={};let end=null;
+  if(!perfilOk()){
+    const sem9=$('#ckPfn9').checked,fone=$('#ckPf').value,nome=tc($('#ckPn').value),sob=tc($('#ckPs').value);
+    const er=foneErro(fone,sem9);if(er){msg(er);return false}
+    if(nome.length<2||sob.length<2){msg('Informe nome e sobrenome.');return false}
+    Object.assign(upd,{nome,sobrenome:sob,fone,sem9});
+  }
+  if(!endOk()){end=ckEndLer();const er=validarEnd(end);if(er.length){msg(er.join(' '));return false}upd.endereco=end}
+  if(SB&&u.uid){const r=await SB.from('perfis').update(upd).eq('id',u.uid);if(r.error){msg(traduzErro(r.error));return false}}
+  if(upd.nome){u.nome=upd.nome;u.sobrenome=upd.sobrenome;u.fone=upd.fone;u.sem9=upd.sem9}
+  if(end)u.end=end;
+  save();updHead();toast('Dados salvos. Agora é só escolher a entrega e o pagamento.');route();return false;
 }
 
 </script>
