@@ -387,6 +387,11 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 .faixa{background:#06344a;display:flex;align-items:center;justify-content:center;gap:10px;font-size:.9rem;padding:10px 14px;line-height:1.3}
 .faixa .fxi{display:inline-grid;place-items:center;flex:none;color:#fff}
 .faixa b{font-weight:700}
+
+/* evita o "piscar" do conteúdo de exemplo antes dos dados chegarem */
+body:not(.pronto) #menu,body:not(.pronto) #faixa{visibility:hidden}
+.sl.wantimg:not(.hasimg):not(.noimg){background:#e6eef1!important}
+.sl.wantimg:not(.hasimg):not(.noimg) .wrap{visibility:hidden}
 .adm-mode #sf,.adm-mode #tCart,.adm-mode #tBell,.adm-mode #tAcc,.adm-mode .tool,.adm-mode nav.main,.adm-mode #mainnav,.adm-mode #faixa,.adm-mode #foot,.adm-mode #wafloat,.adm-mode .burger{display:none!important}.adm-mode #brand::after{content:" · Administração";font-weight:500;color:var(--muted);font-size:.85em}</style>
 </head>
 <body class="adm-mode">
@@ -419,6 +424,7 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 <script>window.__ADMIN_APP=true;</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
+window.__banco=typeof supabase!=='undefined';
 /* ======================= CONFIGURAÇÃO ======================= */
 const PC={ativa:true,pct:10};   // desconto de primeira compra (editável no painel)
 const CFG0={brand:'ZP Imports',faixa:'Medicamentos para emagrecimento: {pct}%OFF na sua primeira compra',wa:'551231973615',frete:'Informada pela loja',linkPag:'',
@@ -763,7 +769,7 @@ function pageHome(){
   const ben=[['Entrega rápida','Consulte prazo e regiões atendidas*','M2 6h11v10H2zM13 9h4l3 3v4h-7','caminhao'],['Pague na entrega','Link de pagamento enviado quando o pedido sai para entrega','M3 6h18v12H3zM3 10h18M7 15h4','cartao'],['Equipe de saúde','Atendimento por profissionais','M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z','coracao']];
   const D0=Object.keys(TREE)[0];const deps=Object.keys(TREE).filter(d=>d!=='Ofertas');const dIc={'Medicamentos':'inj','Produtos injetáveis':'inj','Acessórios de aplicação':'needle','Caixas':'inj','Ampolas':'inj','Acompanhamento':'scale'};
   const slides=SL();
-  return `<section class="hero" id="hero">${slides.map((s,i)=>`<div class="sl ${i?'':'on'}" style="background:${s.c}" onclick="nav('${s.l}')">${s.img?`<picture class="slpic"><source media="(max-width:760px)" srcset="${BANURL(s.img,'mobile')}"><img src="${BANURL(s.img,'desktop')}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.parentNode.remove()"></picture>`:''}<div class="wrap"><span class="tag">${s.s}</span><strong>${s.t}</strong><u>${s.b}</u></div></div>`).join('')}
+  return `<section class="hero" id="hero">${slides.map((s,i)=>`<div class="sl ${i?'':'on'}${s.img?' wantimg':''}" style="background:${s.c}" onclick="nav('${s.l}')">${s.img?`<picture class="slpic"><source media="(max-width:760px)" srcset="${BANURL(s.img,'mobile')}"><img src="${BANURL(s.img,'desktop')}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:''}<div class="wrap"><span class="tag">${s.s}</span><strong>${s.t}</strong><u>${s.b}</u></div></div>`).join('')}
    <button class="arr l" onclick="slide(-1)" aria-label="Anterior"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m15 5-7 7 7 7"/></svg></button><button class="arr r" onclick="slide(1)" aria-label="Próximo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 5 7 7-7 7"/></svg></button>
    <div class="dots">${slides.map((s,i)=>`<button class="${i?'':'on'}" onclick="slide(${i}-sl)" aria-label="Banner ${i+1}"></button>`).join('')}</div></section>
   <section class="ben"><div class="wrap g">${ben.map(b=>`<div class="bi"><span class="ic">${icoImg(b[3],'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+b[2]+'"/></svg>')}</span><div><b>${b[0]}</b><small>${b[1]}</small></div></div>`).join('')}</div></section>
@@ -2720,12 +2726,13 @@ async function bancoInit(){
     const g=await SB.auth.getSession();await bancoSessao(g.data&&g.data.session);
   }catch(x){
     console.error('Falha ao ligar ao banco',x);
-    toast('Não foi possível carregar os dados do servidor. Recarregue a página.');
+    toast('Não foi possível carregar os dados do servidor. Recarregue a página.');window.__bancoProd=true;
   }
   paintShell();updHead();route();
+  document.body.classList.add('pronto');
 }
 (function(){
-  if(typeof supabase==='undefined'||!supabase.createClient){$('#app').innerHTML='<div class="wrap pg"><p style="text-align:center;padding:60px 0">Não foi possível carregar a loja. Verifique a internet e recarregue a página.</p></div>';return}
+  if(typeof supabase==='undefined'||!supabase.createClient){document.body.classList.add('pronto');$('#app').innerHTML='<div class="wrap pg"><p style="text-align:center;padding:60px 0">Não foi possível carregar a loja. Verifique a internet e recarregue a página.</p></div>';return}
   SB=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
   window.__banco=true;
   bancoInit();
