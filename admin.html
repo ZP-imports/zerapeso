@@ -361,6 +361,22 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 .selbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
 .selcnt{color:var(--muted);font-size:.85rem;margin:0 6px}
 .selck{width:18px;height:18px;cursor:pointer;accent-color:var(--p)}
+
+/* login do painel */
+.adlogin{display:flex;justify-content:center;padding:34px 16px 60px}
+.adcard{width:100%;max-width:420px;background:#fff;border:1px solid var(--line);border-radius:22px;padding:30px 28px;box-shadow:0 18px 50px rgba(7,77,64,.12);text-align:center}
+.adico{width:64px;height:64px;border-radius:50%;background:var(--pl);color:var(--pd);display:grid;place-items:center;margin:0 auto 14px}
+.adcard h1{font-size:1.5rem;margin:0 0 6px;color:var(--ink)}
+.adsub{color:var(--muted);margin:0 0 18px;font-size:.92rem}
+.adcard form{text-align:left}
+.adcard label{display:block;font-size:.85rem;font-weight:600;color:var(--ink2);margin:14px 0 6px}
+.adcard input{width:100%;padding:.85em 1em;border:1.5px solid var(--line);border-radius:12px;font-size:1rem;background:#fff}
+.adcard input:focus{outline:0;border-color:var(--p);box-shadow:0 0 0 3px rgba(10,110,92,.15)}
+.adsenha{position:relative}.adsenha input{padding-right:5.2em}
+.adver{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--p);font-weight:600;font-size:.85rem;cursor:pointer;padding:6px 8px}
+.adbtn{width:100%;margin-top:22px;padding:1em;border:0;border-radius:12px;background:linear-gradient(90deg,var(--pd),var(--p));color:#fff;font-weight:700;font-size:1rem;cursor:pointer;box-shadow:0 6px 16px rgba(7,77,64,.28)}
+.adbtn:disabled{opacity:.65;cursor:wait}
+.adnota{color:var(--muted);font-size:.82rem;margin:18px 0 0}
 .adm-mode #sf,.adm-mode #tCart,.adm-mode #tBell,.adm-mode #tAcc,.adm-mode .tool,.adm-mode nav.main,.adm-mode #mainnav,.adm-mode #faixa,.adm-mode #foot,.adm-mode #wafloat,.adm-mode .burger{display:none!important}.adm-mode #brand::after{content:" · Administração";font-weight:500;color:var(--muted);font-size:.85em}</style>
 </head>
 <body class="adm-mode">
@@ -634,8 +650,13 @@ function paintShell(){
   document.title=window.__ADMIN_APP?CFG.brand+' | Administração':CFG.brand;buildMenu();buildFoot();
 }
 function buildMenu(){
-  let h='';
+  let h='';const GRP=['Ampolas','Caixas'];let grpFeito=false;
   for(const [dep,gs] of Object.entries(TREE)){
+    if(GRP.includes(dep)){
+      if(!grpFeito){grpFeito=true;const gd=GRP.filter(d=>TREE[d]);
+        h+=`<li class="m"><a onclick="nav('/cat/${encodeURIComponent('Produtos disponíveis')}')">Produtos disponíveis <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg></a><div class="mega"><div class="mega-g">${gd.map(d=>`<div><b onclick="nav('/cat/${encodeURIComponent(d)}')">${d}</b>${Object.keys(TREE[d]).map(g=>`<i onclick="nav('/cat/${encodeURIComponent(d+'/'+g)}')">${g}</i>`).join('')}</div>`).join('')}</div></div></li>`}
+      continue;
+    }
     const has=Object.keys(gs).length;
     h+=`<li class="${has||SOON.includes(dep)?'m':''}"><a onclick="nav('/cat/${encodeURIComponent(dep)}')">${dep}${has||SOON.includes(dep)?' <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>':''}</a>`;
     if(has){h+='<div class="mega"><div class="mega-g">';
@@ -739,7 +760,7 @@ function pageHome(){
   <section class="sec"><div class="wrap"><div class="sh"><h2>Compre por departamento</h2></div><div class="deps">${deps.map(d=>`<div class="dep" onclick="nav('/cat/${encodeURIComponent(d)}')"><span>${DIMG[d]?icoImg(DIMG[d],svg(dIc[d]||'cross',46)):svg(dIc[d]||'cross',46)}</span>${d}</div>`).join('')}</div></div></section>
   <section class="amigoban"><div class="wrap g"><div><h2>Amigo Emagrece Amigo${amOn()?': '+AM.pct+'% de desconto':''}</h2><p>Indique a ${esc(CFG.brand)} para um amigo. Ele ganha desconto na primeira compra e você ganha desconto a cada amigo que comprar.</p></div><button class="btn" style="padding:1em 2em" onclick="nav('/amigo')">Quero indicar</button></div></section>`;
 }
-function matchCat(p,path){const parts=path.split('/').filter(Boolean);if(parts[0]==='Ofertas')return OFERTA(p);if(parts[0]==='Caixas')return !!(p.vars&&p.vars.some(v=>/^caixa/i.test(v.n)));return parts.every((x,i)=>p.cat[i]===x)}
+function matchCat(p,path){const parts=path.split('/').filter(Boolean);if(parts[0]==='Ofertas')return OFERTA(p);if(parts[0]==='Produtos disponíveis')return true;if(parts[0]==='Caixas')return !!(p.vars&&p.vars.some(v=>/^caixa/i.test(v.n)));return parts.every((x,i)=>p.cat[i]===x)}
 function pageCat(path){
   path=decodeURIComponent(path);const parts=path.split('/');const sort=DB.get('sort','rel');
   let list=LIVE().filter(p=>matchCat(p,path));
@@ -2873,13 +2894,16 @@ function syncAdmin(){
   ADMIN=u&&['admin','logistica','separador'].includes(u.papel)?{email:me,nome:u.nome||me,papel:u.papel}:null;
 }
 async function admLogin(e){
-  e.preventDefault();const m=document.getElementById('amsg');
-  if(!SB){m.innerHTML='<div class="note err">'+semConexao+'</div>';return false}
+  e.preventDefault();const m=document.getElementById('amsg');const b=e.target.querySelector('.adbtn');
+  const fim=msg=>{m.innerHTML=msg?'<div class="note err">'+esc(msg)+'</div>':'';if(b){b.disabled=false;b.textContent='Entrar'}return false};
+  if(b){b.disabled=true;b.textContent='Entrando...'}
+  if(!SB)return fim('Sem conexão com o servidor. Recarregue a página e tente de novo.');
   const r=await SB.auth.signInWithPassword({email:v_('ae').trim().toLowerCase(),password:v_('ap')});
-  if(r.error){m.innerHTML='<div class="note err">'+esc(traduzErro(r.error))+'</div>';return false}
-  try{await bancoSessao(r.data.session)}catch(x){m.innerHTML='<div class="note err">'+esc(traduzErro(x))+'</div>';return false}
+  if(r.error)return fim(traduzErro(r.error));
+  try{await bancoSessao(r.data.session)}catch(x){return fim(traduzErro(x))}
   updHead();A9.prods=null;A9.pedidos=null;route();return false;
 }
+function admVerSenha(btn){const i=document.getElementById('ap');const ver=i.type==='password';i.type=ver?'text':'password';btn.textContent=ver?'Ocultar':'Mostrar'}
 function admSair(){sair()}
 async function admCarregarProdutos(){
   const [a,b]=await Promise.all([SB.from('produtos').select('*').order('id'),SB.from('produto_variacoes').select('*').order('ordem')]);
@@ -3101,7 +3125,7 @@ function pageOp(){
   syncAdmin();
   if(!ADMIN){
     if(me)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div class="note err">Esta conta não tem acesso à área administrativa.</div><p><button class="btn" onclick="admSair()">Sair</button></p></div></div>`;
-    return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username"><div style="height:10px"></div><label for="ap">Senha</label><input id="ap" type="password" required autocomplete="current-password"><p><button class="btn acc full" style="padding:1em">Entrar</button></p></form></div></div>`;
+    return '<div class="adlogin"><div class="adcard"><div class="adico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><h1>Acesso da equipe</h1><p class="adsub">Entre com o seu e-mail e senha para acessar o painel da loja.</p><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username" placeholder="voce@empresa.com"><label for="ap">Senha</label><div class="adsenha"><input id="ap" type="password" required autocomplete="current-password" placeholder="Sua senha"><button type="button" class="adver" onclick="admVerSenha(this)">Mostrar</button></div><button class="adbtn">Entrar</button></form><p class="adnota">Acesso restrito. Se você é cliente, <a href="./">volte para a loja</a>.</p></div></div>';
   }
   const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['atrasados','Atrasados'],['produtos','Produtos'],['etiquetas','Etiquetas'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['aberto','Em aberto'],['pedidos','Pedidos']];
   if(!tabs.some(t=>t[0]===A.tab))A.tab=tabs[0][0];
