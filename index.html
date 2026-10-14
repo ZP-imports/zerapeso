@@ -315,6 +315,12 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 /* miniatura da foto no carrinho lateral */
 .mi .th{position:relative;overflow:hidden;flex:none}
 .mi .th img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
+
+/* ícones da home vindos do Storage */
+.icoimg{width:100%;height:100%;object-fit:contain;display:block}
+.bi .ic:has(.icoimg){background:transparent;width:70px;height:70px}
+.dep span:has(.icoimg){background:transparent;border-color:transparent;padding:6px}
+@media(max-width:900px){.bi .ic:has(.icoimg){width:56px;height:56px}}
 </style>
 </head>
 <body>
@@ -677,16 +683,19 @@ const SL=()=>[{t:'Medicamentos para emagrecimento, você paga quando o pedido sa
  {t:'Ofertas em itens de aplicação',s:'Agulhas, álcool e mais',b:'Ver ofertas',l:'/cat/Ofertas',c:'#074d40'}];
 let sl=0,slT;
 function slide(d){const s=document.querySelectorAll('.sl'),dt=document.querySelectorAll('.dots button');if(!s.length)return;sl=(sl+d+s.length)%s.length;s.forEach((e,i)=>e.classList.toggle('on',i===sl));dt.forEach((e,i)=>e.classList.toggle('on',i===sl))}
+const ICOURL=n=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/public/produtos/icone-'+n+'.png';
+const icoImg=(n,fb)=>`<img class="icoimg" src="${ICOURL(n)}" alt="" data-fb="${encodeURIComponent(fb)}" onerror="this.outerHTML=decodeURIComponent(this.dataset.fb)">`;
+const DIMG={'Ampolas':'ampola','Caixas':'caixa','Acompanhamento':'prancheta'};
 function pageHome(){
-  const ben=[['Entrega rápida','Consulte prazo e regiões atendidas*','M2 6h11v10H2zM13 9h4l3 3v4h-7'],['Pague na entrega','Link de pagamento enviado quando o pedido sai para entrega','M3 6h18v12H3zM3 10h18M7 15h4'],['Equipe de saúde','Atendimento por profissionais','M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z']];
+  const ben=[['Entrega rápida','Consulte prazo e regiões atendidas*','M2 6h11v10H2zM13 9h4l3 3v4h-7','caminhao'],['Pague na entrega','Link de pagamento enviado quando o pedido sai para entrega','M3 6h18v12H3zM3 10h18M7 15h4','cartao'],['Equipe de saúde','Atendimento por profissionais','M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z','coracao']];
   const D0=Object.keys(TREE)[0];const deps=Object.keys(TREE).filter(d=>d!=='Ofertas');const dIc={'Medicamentos':'inj','Produtos injetáveis':'inj','Acessórios de aplicação':'needle','Caixas':'inj','Ampolas':'inj','Acompanhamento':'scale'};
   const slides=SL();
   return `<section class="hero" id="hero">${slides.map((s,i)=>`<div class="sl ${i?'':'on'}" style="background:${s.c}" onclick="nav('${s.l}')"><div class="wrap"><span class="tag">${s.s}</span><strong>${s.t}</strong><u>${s.b}</u></div></div>`).join('')}
    <button class="arr l" onclick="slide(-1)" aria-label="Anterior"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m15 5-7 7 7 7"/></svg></button><button class="arr r" onclick="slide(1)" aria-label="Próximo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 5 7 7-7 7"/></svg></button>
    <div class="dots">${slides.map((s,i)=>`<button class="${i?'':'on'}" onclick="slide(${i}-sl)" aria-label="Banner ${i+1}"></button>`).join('')}</div></section>
-  <section class="ben"><div class="wrap g">${ben.map(b=>`<div class="bi"><span class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${b[2]}"/></svg></span><div><b>${b[0]}</b><small>${b[1]}</small></div></div>`).join('')}</div></section>
+  <section class="ben"><div class="wrap g">${ben.map(b=>`<div class="bi"><span class="ic">${icoImg(b[3],'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+b[2]+'"/></svg>')}</span><div><b>${b[0]}</b><small>${b[1]}</small></div></div>`).join('')}</div></section>
   ${shelf(D0+' em destaque',LIVE().filter(p=>p.cat[0]===D0&&p.cat[1]!=='Acessórios de Aplicação'),'/cat/'+encodeURIComponent(D0))}
-  <section class="sec"><div class="wrap"><div class="sh"><h2>Compre por departamento</h2></div><div class="deps">${deps.map(d=>`<div class="dep" onclick="nav('/cat/${encodeURIComponent(d)}')"><span>${svg(dIc[d]||'cross',46)}</span>${d}</div>`).join('')}</div></div></section>
+  <section class="sec"><div class="wrap"><div class="sh"><h2>Compre por departamento</h2></div><div class="deps">${deps.map(d=>`<div class="dep" onclick="nav('/cat/${encodeURIComponent(d)}')"><span>${DIMG[d]?icoImg(DIMG[d],svg(dIc[d]||'cross',46)):svg(dIc[d]||'cross',46)}</span>${d}</div>`).join('')}</div></div></section>
   <section class="amigoban"><div class="wrap g"><div><h2>Amigo Emagrece Amigo${amOn()?': '+AM.pct+'% de desconto':''}</h2><p>Indique a ${esc(CFG.brand)} para um amigo. Ele ganha desconto na primeira compra e você ganha desconto a cada amigo que comprar.</p></div><button class="btn" style="padding:1em 2em" onclick="nav('/amigo')">Quero indicar</button></div></section>`;
 }
 function matchCat(p,path){const parts=path.split('/').filter(Boolean);if(parts[0]==='Ofertas')return OFERTA(p);if(parts[0]==='Caixas')return !!(p.vars&&p.vars.some(v=>/^caixa/i.test(v.n)));return parts.every((x,i)=>p.cat[i]===x)}
