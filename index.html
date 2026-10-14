@@ -629,7 +629,7 @@ function friendRows(owner){
 function paintShell(){
   $('#brand').textContent=CFG.brand;$('#faixa').textContent=CFG.faixa;$('#faixa').style.cursor='pointer';$('#faixa').onclick=()=>nav('/reg/primeira-compra');
   $('#wafloat').href=waUrl();
-  document.title=CFG.brand;buildMenu();buildFoot();
+  document.title=window.__ADMIN_APP?CFG.brand+' | Administração':CFG.brand;buildMenu();buildFoot();
 }
 function buildMenu(){
   let h='';
@@ -660,7 +660,7 @@ function buildFoot(){
   $('#foot').innerHTML=`<div class="fg"><div><h3>Informações</h3><a ${wa}>Central de Atendimento</a><a onclick="nav('/info/duvidas')">Dúvidas Frequentes</a><a onclick="nav('/info/como-comprar')">Como comprar</a><a onclick="nav('/amigo')">Amigo Emagrece Amigo</a><a onclick="nav('/reg/amigo')">Regulamento: Amigo Emagrece Amigo</a><a onclick="nav('/reg/primeira-compra')">Regulamento: Desconto na Primeira Compra</a></div>
   <div><h3>Acesso rápido</h3><a onclick="nav('/conta')">Minha Conta</a><a onclick="nav('/pedidos')">Meus Pedidos e Rastreio</a><a onclick="nav('/acompanhar')">Acompanhar pelo código</a><a onclick="tab='cad';nav('/conta')">Cadastre-se</a></div>
   <div><h3>Políticas</h3><a onclick="nav('/info/entregas')">Entregas</a><a onclick="nav('/info/trocas')">Troca e Devolução</a><a onclick="nav('/info/pagamento')">Formas de Pagamento</a><a onclick="nav('/info/privacidade')">Política de Privacidade</a><a onclick="nav('/info/termos')">Termos de uso</a></div>
-  <div><h3>Formas de pagamento</h3><span>Débito, Pix e Cartão de Crédito.</span><span style="font-size:.85rem;color:var(--muted)">O pagamento é combinado com a nossa equipe pelo WhatsApp.</span>${payLogos()}<a onclick="nav('/operador')" style="color:var(--muted);font-size:.8rem;margin-top:14px">Área administrativa</a></div></div>
+  <div><h3>Formas de pagamento</h3><span>Débito, Pix e Cartão de Crédito.</span><span style="font-size:.85rem;color:var(--muted)">O pagamento é combinado com a nossa equipe pelo WhatsApp.</span>${payLogos()}</div></div>
   <div class="fb"><div class="wrap"><p>${esc(CFG.aviso)}</p></div></div>`;
 }
 $('#burger').onclick=()=>{const n=$('#mainnav');const o=n.classList.toggle('open');$('#burger').setAttribute('aria-expanded',o)};
@@ -2391,6 +2391,7 @@ function admLogoRem(){LBL.logo=null;LBL.logoKey='';saveLbl();toast('Logomarca re
 
 /* ======================= ROTAS, SINCRONIZAÇÃO E INÍCIO ======================= */
 function route(fromHash){
+  if(window.__ADMIN_APP&&location.hash.indexOf('#/operador')!==0){location.replace(location.href.split('#')[0]+'#/operador');return}
   if(window.__banco&&!window.__bancoProd){$('#app').innerHTML='<div class="wrap pg"><p style="text-align:center;padding:60px 0;color:var(--muted)">Carregando a loja...</p></div>';return}
   const h=location.hash.replace(/^#/,'')||'/';const [_,a,b,c]=h.split('/');let html='';
   clearInterval(slT);
@@ -2407,7 +2408,7 @@ function route(fromHash){
    case 'pedidos':html=pagePedidos();break;
    case 'amigo':html=pageAmigo();break;
    case 'ind':pageIndRoute(b);return;
-   case 'operador':html=pageOp();break;
+   case 'operador':html=window.__ADMIN_APP?pageOp():pageNF();break;
    case 'ajuda':html=pageInfo('como-comprar');break;
    case 'perfil':html=pagePerfil();break;
    case 'acompanhar':html=pageAcompanhar(b,c);break;
