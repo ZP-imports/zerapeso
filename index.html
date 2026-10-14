@@ -376,6 +376,12 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 .adbtn{width:100%;margin-top:22px;padding:1em;border:0;border-radius:12px;background:linear-gradient(90deg,var(--pd),var(--p));color:#fff;font-weight:700;font-size:1rem;cursor:pointer;box-shadow:0 6px 16px rgba(7,77,64,.28)}
 .adbtn:disabled{opacity:.65;cursor:wait}
 .adnota{color:var(--muted);font-size:.82rem;margin:18px 0 0}
+/* banner da home: arte 3:1 no desktop e 5:4 no celular */
+.hero{height:auto!important;aspect-ratio:3/1}
+.slpic{position:absolute;inset:0;display:block}
+.slpic img{width:100%;height:100%;object-fit:cover;display:block}
+.sl.hasimg .wrap{display:none}
+@media(max-width:760px){.hero{aspect-ratio:5/4}}
 </style>
 </head>
 <body>
@@ -738,7 +744,8 @@ function card(p){
   ${p.consulta?`<a class="btn wa" href="${waProd(p)}" target="_blank" rel="noopener">Consultar no WhatsApp</a>`:left<=0?'<button class="btn" disabled>Indisponível</button>':p.opts?`<button class="btn" onclick="nav('/produto/${p.id}')">Escolher opção</button>`:`<button class="btn" onclick="addCart(${p.id},1,'',this)">Adicionar ao carrinho</button>`}</div>`;
 }
 function shelf(t,list,link){return list.length?`<section class="sec"><div class="wrap"><div class="sh"><h2>${t}</h2>${link?`<a onclick="nav('${link}')">Ver todos</a>`:''}</div><div class="grid">${list.map(card).join('')}</div></div></section>`:''}
-const SL=()=>[{t:'Medicamentos para emagrecimento, você paga quando o pedido sair para entrega',s:CFG.brand,b:'Ver medicamentos',l:'/cat/'+encodeURIComponent(Object.keys(TREE)[0]),c:'#0a6e5c'},
+const BANURL=(n,v)=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/public/produtos/'+n+'-'+v+'.webp';
+const SL=()=>[{t:'Medicamentos para emagrecimento com praticidade e entrega rápida',s:CFG.brand,b:'Ver medicamentos',l:'/cat/'+encodeURIComponent('Produtos disponíveis'),c:'#0a6e5c',img:'banner-01'},
  {t:amOn()?`Amigo Emagrece Amigo: ${AM.pct}% de desconto`:'Amigo Emagrece Amigo',s:'Indique e ganhe',b:'Saiba como',l:'/amigo',c:'#b97a00'},
  {t:'Ofertas em itens de aplicação',s:'Agulhas, álcool e mais',b:'Ver ofertas',l:'/cat/Ofertas',c:'#074d40'}];
 let sl=0,slT;
@@ -750,7 +757,7 @@ function pageHome(){
   const ben=[['Entrega rápida','Consulte prazo e regiões atendidas*','M2 6h11v10H2zM13 9h4l3 3v4h-7','caminhao'],['Pague na entrega','Link de pagamento enviado quando o pedido sai para entrega','M3 6h18v12H3zM3 10h18M7 15h4','cartao'],['Equipe de saúde','Atendimento por profissionais','M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z','coracao']];
   const D0=Object.keys(TREE)[0];const deps=Object.keys(TREE).filter(d=>d!=='Ofertas');const dIc={'Medicamentos':'inj','Produtos injetáveis':'inj','Acessórios de aplicação':'needle','Caixas':'inj','Ampolas':'inj','Acompanhamento':'scale'};
   const slides=SL();
-  return `<section class="hero" id="hero">${slides.map((s,i)=>`<div class="sl ${i?'':'on'}" style="background:${s.c}" onclick="nav('${s.l}')"><div class="wrap"><span class="tag">${s.s}</span><strong>${s.t}</strong><u>${s.b}</u></div></div>`).join('')}
+  return `<section class="hero" id="hero">${slides.map((s,i)=>`<div class="sl ${i?'':'on'}" style="background:${s.c}" onclick="nav('${s.l}')">${s.img?`<picture class="slpic"><source media="(max-width:760px)" srcset="${BANURL(s.img,'mobile')}"><img src="${BANURL(s.img,'desktop')}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.parentNode.remove()"></picture>`:''}<div class="wrap"><span class="tag">${s.s}</span><strong>${s.t}</strong><u>${s.b}</u></div></div>`).join('')}
    <button class="arr l" onclick="slide(-1)" aria-label="Anterior"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m15 5-7 7 7 7"/></svg></button><button class="arr r" onclick="slide(1)" aria-label="Próximo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 5 7 7-7 7"/></svg></button>
    <div class="dots">${slides.map((s,i)=>`<button class="${i?'':'on'}" onclick="slide(${i}-sl)" aria-label="Banner ${i+1}"></button>`).join('')}</div></section>
   <section class="ben"><div class="wrap g">${ben.map(b=>`<div class="bi"><span class="ic">${icoImg(b[3],'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+b[2]+'"/></svg>')}</span><div><b>${b[0]}</b><small>${b[1]}</small></div></div>`).join('')}</div></section>
