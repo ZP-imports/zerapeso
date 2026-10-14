@@ -350,6 +350,11 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 @media(prefers-reduced-motion:reduce){#tCart::before,#tCart svg{animation:none!important}}
 /* botão do WhatsApp acima do selo "Powered by Netlify" */
 .wafloat{bottom:84px}
+/* forma de pagamento em uma linha só */
+.pagos .turno3{white-space:nowrap;padding:16px 4px;font-size:.95rem}
+@media(max-width:480px){.pagos .turno3{font-size:.78rem;padding:14px 2px}}
+@media(max-width:480px){.turnos3.pagos{grid-template-columns:minmax(0,.75fr) minmax(0,1.15fr) minmax(0,1.1fr);gap:6px}.pagos .turno3{font-size:.72rem;padding:14px 0;overflow:hidden}}
+.turno3 input{left:0;top:0;width:1px;height:1px}
 </style>
 </head>
 <body>
@@ -1225,7 +1230,7 @@ function pageRev(){
    ${verr&&ent.data?`<div class="note err">${verr}</div>`:''}
    <p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">Datas de ${fmtDay(min)} a ${fmtDay(max)}. Entregamos de ${LOG.dias.map(i=>['dom','seg','ter','qua','qui','sex','sáb'][i]).join(', ')}. A data é uma preferência: a loja confirma a programação e você acompanha tudo em Rastrear pedido.</p>
    <label for="obs">Observações sobre o pedido ou a entrega (opcional)</label><textarea id="obs" rows="2" maxlength="500" oninput="ent.obs=this.value" placeholder="Ex.: portão azul, deixar com o porteiro">${esc(ent.obs)}</textarea>`;
-  const pagInfo=`<h3>Forma de pagamento</h3><div class="turnos">${PAGS.map(x=>`<label class="turno ${ent.pag===x[0]?'on':''}"><input type="radio" name="pag" value="${x[0]}" ${ent.pag===x[0]?'checked':''} onchange="ent.pag=this.value;route()"> ${x[1]}</label>`).join('')}</div><p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">O pagamento é combinado com a nossa equipe pelo WhatsApp.</p>`;
+  const pagInfo=`<h3 class="pref-h">Forma de pagamento</h3><div class="turnos3 pagos">${PAGS.map(x=>`<label class="turno3 ${ent.pag===x[0]?'on':''}"><input type="radio" name="pag" value="${x[0]}" ${ent.pag===x[0]?'checked':''} onchange="ent.pag=this.value;route()">${x[1]}</label>`).join('')}</div><p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">O pagamento é combinado com a nossa equipe pelo WhatsApp.</p>`;
   return `<div class="wrap pg"><h1 class="t">Finalizar compra</h1><div class="two"><div class="box"><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td>${esc(p.n)} (${esc(i.opt)})</td><td>${i.qty}</td><td class="r">${precoTxt(i)}</td></tr>`}).join('')}</tbody></table></div>
   <div class="tot"><span>Subtotal dos produtos</span><span>${cartSP()?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span><span>Entrega</span><span>${esc(CFG.frete)}</span>${d?`<span class="dsc">${dLabel(d)} (${d.pct}%)</span><span class="dsc">- ${brl(d.valor)}</span>`:''}<span class="big">Total</span><span class="big">${cartSP()?(sub>0?brl(tot)+' + a confirmar':'A confirmar'):brl(tot)}</span></div>
   ${nota}${amigo}
