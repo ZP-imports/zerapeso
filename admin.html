@@ -748,8 +748,7 @@ function card(p){
 function shelf(t,list,link){return list.length?`<section class="sec"><div class="wrap"><div class="sh"><h2>${t}</h2>${link?`<a onclick="nav('${link}')">Ver todos</a>`:''}</div><div class="grid">${list.map(card).join('')}</div></div></section>`:''}
 const BANURL=(n,v)=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/public/produtos/'+n+'-'+v+'.webp';
 const SL=()=>[{t:'Medicamentos para emagrecimento com praticidade e entrega rápida',s:CFG.brand,b:'Ver medicamentos',l:'/cat/'+encodeURIComponent('Produtos disponíveis'),c:'#0a6e5c',img:'banner-01'},
- {t:amOn()?`Amigo Emagrece Amigo: ${AM.pct}% de desconto`:'Amigo Emagrece Amigo',s:'Indique e ganhe',b:'Saiba como',l:'/amigo',c:'#b97a00',img:'banner-02'},
- {t:'Ofertas em itens de aplicação',s:'Agulhas, álcool e mais',b:'Ver ofertas',l:'/cat/Ofertas',c:'#074d40'}];
+ {t:amOn()?`Amigo Emagrece Amigo: ${AM.pct}% de desconto`:'Amigo Emagrece Amigo',s:'Indique e ganhe',b:'Saiba como',l:'/amigo',c:'#b97a00',img:'banner-02'}];
 let sl=0,slT;
 function slide(d){const s=document.querySelectorAll('.sl'),dt=document.querySelectorAll('.dots button');if(!s.length)return;sl=(sl+d+s.length)%s.length;s.forEach((e,i)=>e.classList.toggle('on',i===sl));dt.forEach((e,i)=>e.classList.toggle('on',i===sl))}
 const ICOURL=n=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/public/produtos/icone-'+n+'.png';
