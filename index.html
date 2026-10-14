@@ -321,6 +321,25 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 .bi .ic:has(.icoimg){background:transparent;width:70px;height:70px}
 .dep span:has(.icoimg){background:transparent;border-color:transparent;padding:6px}
 @media(max-width:900px){.bi .ic:has(.icoimg){width:56px;height:56px}}
+
+/* preferência de entrega */
+.pref-h{font-size:.85rem;letter-spacing:.14em;text-transform:uppercase;color:#5b6477;margin:20px 0 10px}
+.pf-l{font-size:.88rem;color:#5b6477;margin:6px 0}
+.datepick{border:1px solid var(--line);border-radius:18px;padding:16px;background:#fff}
+.dp-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.dp-col{display:flex;flex-direction:column;gap:10px;text-align:center}
+.dp-t{font-size:.72rem;letter-spacing:.1em;color:#5b6477;font-weight:600}
+.dp-up,.dp-dn{height:46px;border-radius:12px;font-size:1.25rem;font-weight:700;cursor:pointer;border:1px solid var(--line)}
+.dp-up{background:var(--pd);color:#fff;border-color:var(--pd)}
+.dp-dn{background:#f1f0eb;color:#444}
+.dp-up:hover{background:var(--p)}.dp-dn:hover{background:#e7e5de}
+.dp-v{font-size:1.1rem;color:var(--ink);padding:4px 0}
+.dp-sum{margin-top:14px;background:#f1f0eb;border-radius:12px;padding:14px;text-align:center;font-weight:600;color:var(--ink)}
+.turnos3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.turno3{position:relative;border:1px solid var(--line);border-radius:14px;padding:16px 8px;text-align:center;font-weight:600;cursor:pointer;background:#fff;margin:0;color:var(--ink)}
+.turno3 input{position:absolute;opacity:0;pointer-events:none}
+.turno3.on{border-color:var(--p);background:var(--pl);color:var(--pd);box-shadow:inset 0 0 0 1px var(--p)}
+@media(max-width:480px){.dp-cols{gap:8px}.turnos3{gap:8px}}
 </style>
 </head>
 <body>
@@ -1192,9 +1211,7 @@ function pageRev(){
    ${endOk()?`<address><b>${esc(u.nome)} ${esc(u.sobrenome)}</b><br>Telefone: ${esc(u.fone)}<br>${esc(e.rua)}, ${esc(e.num)}${e.comp?', '+esc(e.comp):''}<br>${esc(e.bairro)}<br>${esc(e.cidade)}/${esc(e.uf)}, CEP ${esc(e.cep)}${e.ref?'<br>Referência: '+esc(e.ref):''}</address><p><a style="cursor:pointer" onclick="nav('/endereco')">Alterar endereço principal</a></p>`:`<div class="note err">Falta completar seu endereço de entrega. <button class="btn sm" onclick="nav('/endereco')">Completar endereço</button></div>`}
    <p><label style="font-weight:500"><input type="checkbox" style="width:auto" ${ent.sec?'checked':''} onchange="ent.sec=this.checked;route()"> Entregar em outro endereço (endereço secundário)</label></p>
    ${ent.sec?`<div class="box" style="box-shadow:none"><div class="fr"><div class="c2"><label>CEP</label><input value="${sv('cep')}" oninput="entCep(this)" placeholder="00000-000" inputmode="numeric"></div><div class="c2"><label>Estado (UF)</label><select onchange="entS('uf',this.value)" ${ent.slock?'style="pointer-events:none;background:#eee"':''}><option value="">UF</option>${UFS.map(x=>`<option ${x===ent.s.uf?'selected':''}>${x}</option>`).join('')}</select></div><div class="c2"><label>Cidade</label><input value="${sv('cidade')}" oninput="entS('cidade',this.value)" ${ent.slock?'readonly':''}></div><div class="c3"><label>Bairro</label><input value="${sv('bairro')}" oninput="entS('bairro',this.value)"></div><div class="c4"><label>Rua</label><input value="${sv('rua')}" oninput="entS('rua',this.value)"></div><div class="c2"><label>Número do imóvel</label><input id="sNum" value="${sv('num')}" oninput="entS('num',this.value)"></div><div class="c4"><label>Complemento</label><input value="${sv('comp')}" oninput="entS('comp',this.value)"></div><div><label>Ponto de referência</label><input value="${sv('ref')}" oninput="entS('ref',this.value)"></div></div></div>`:''}
-   <h3>Preferência de entrega</h3>
-   <div class="fr"><div class="c3"><label for="entData">Data desejada</label><input id="entData" type="date" min="${min}" max="${max}" value="${esc(ent.data)}" onchange="ent.data=this.value;route()"></div>
-   <div class="c4"><label>Melhor horário para a entrega</label><div class="turnos">${turnos.map(t=>`<label class="turno ${ent.turno===t?'on':''}"><input type="radio" name="turno" value="${t}" ${ent.turno===t?'checked':''} onchange="ent.turno=this.value;route()"> ${TURNOS[t]}</label>`).join('')||'<span class="note err">Nenhum turno disponível no momento.</span>'}</div></div></div>
+   ${prefHtml(turnos)}
    ${verr&&ent.data?`<div class="note err">${verr}</div>`:''}
    <p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">Datas de ${fmtDay(min)} a ${fmtDay(max)}. Entregamos de ${LOG.dias.map(i=>['dom','seg','ter','qua','qui','sex','sáb'][i]).join(', ')}. A data é uma preferência: a loja confirma a programação e você acompanha tudo em Rastrear pedido.</p>
    <label for="obs">Observações sobre o pedido ou a entrega (opcional)</label><textarea id="obs" rows="2" maxlength="500" oninput="ent.obs=this.value" placeholder="Ex.: portão azul, deixar com o porteiro">${esc(ent.obs)}</textarea>`;
@@ -3227,6 +3244,31 @@ function etqHtml(o){
   const acoes=u?`<p style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="etqVer(${u.v},'externa')">Ver externa</button><button class="btn sm" onclick="etqVer(${u.v},'interna')">Ver interna</button><button class="btn acc sm" onclick="etqImp(${u.v},'ambas')">Imprimir as duas</button><button class="btn ghost sm" onclick="etqBaixa(${u.v},'ambas')">Baixar PDF</button><button class="btn ghost sm" onclick="etqWhats(${u.v})">Enviar externa ao cliente (WhatsApp)</button></p>`:'';
   const hist=(o.etiquetas||[]).length>1?`<div class="tbl"><table><thead><tr><th>Versão</th><th>Gerada em</th><th>Motivo</th><th>Por</th><th>Situação</th><th></th></tr></thead><tbody>${o.etiquetas.slice().reverse().map(r=>`<tr><td>v${r.v}</td><td>${fmtD(Date.parse(r.criado_em))}</td><td>${esc(r.motivo||'')}</td><td>${esc(r.por||'')}</td><td>${r.status==='atual'?'Atual':'Substituída'}</td><td><button class="btn ghost sm" onclick="etqVer(${r.v},'ambas')">Abrir</button></td></tr>`).join('')}</tbody></table></div>`:'';
   return `<h3>Etiquetas de envio</h3>${topo}${acoes}${hist}`;
+}
+
+/* ---------- preferência de entrega: seletor de dia, mês e ano + horário ---------- */
+var MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+var DSEMN=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+function entDV(){
+  if(!ent.data)return {d:'—',m:'—',y:'—',txt:'Escolha a data de entrega'};
+  const [y,m,d]=ent.data.split('-').map(Number);const dt=new Date(y,m-1,d);
+  return {d:d,m:MESES[m-1],y:y,txt:DSEMN[dt.getDay()]+', '+d+' de '+MESES[m-1].toLowerCase()+' de '+y};
+}
+function entDt(part,delta){
+  const base=addDias(hojeS(),LOG.antecedencia);
+  if(!ent.data){ent.data=base;route();return}
+  let [y,m,d]=ent.data.split('-').map(Number);
+  const dim=(yy,mm)=>new Date(yy,mm,0).getDate();
+  if(part==='d'){d+=delta;if(d>dim(y,m))d=1;if(d<1)d=dim(y,m)}
+  if(part==='m'){m+=delta;if(m>12)m=1;if(m<1)m=12;d=Math.min(d,dim(y,m))}
+  if(part==='y'){y+=delta;d=Math.min(d,dim(y,m))}
+  ent.data=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');route();
+}
+function prefHtml(turnos){
+  const v=entDV();
+  const col=(k,t,val)=>`<div class="dp-col"><span class="dp-t">${t}</span><button type="button" class="dp-up" onclick="entDt('${k}',1)" aria-label="Aumentar ${t.toLowerCase()}">+</button><b class="dp-v">${val}</b><button type="button" class="dp-dn" onclick="entDt('${k}',-1)" aria-label="Diminuir ${t.toLowerCase()}">−</button></div>`;
+  return '<h3 class="pref-h">Preferência de entrega</h3><div class="pf-l">Data de entrega</div><div class="datepick"><div class="dp-cols">'+col('d','DIA',v.d)+col('m','MÊS',v.m)+col('y','ANO',v.y)+'</div><div class="dp-sum">'+v.txt+'</div></div>'
+   +'<div class="pf-l" style="margin-top:16px">Melhor horário para a entrega</div><div class="turnos3">'+(turnos.map(t=>'<label class="turno3 '+(ent.turno===t?'on':'')+'"><input type="radio" name="turno" value="'+t+'" '+(ent.turno===t?'checked':'')+' onchange="ent.turno=this.value;route()">'+TURNOS[t]+'</label>').join('')||'<span class="note err">Nenhum turno disponível no momento.</span>')+'</div>';
 }
 
 </script>
