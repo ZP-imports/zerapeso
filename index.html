@@ -479,7 +479,7 @@ const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(
 /* ======================= ESTADO (banco local, compartilhado entre abas) ======================= */
 const DB={get(k,d){try{const v=localStorage.getItem('xp_'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('xp_'+k,JSON.stringify(v))}catch(e){}}};
 let cart,users,me,orders,seqUser,clock,AM,SITE,LOG,PEDIT,ROTAS,SEEN,ADMIN,OFFSET,REV,ENTR,ROTE,RETIR;
-function load(){
+buildMenu load(){
   cart=DB.get('cart',[]).filter(i=>{const p=PRODUCTS.find(x=>x.id===+i.id);return p&&p.ativo!==false});users=DB.get('users',{});me=DB.get('me',null);orders=DB.get('orders',[]).filter(o=>!o.real).concat((typeof MEUS!=='undefined'&&MEUS)||[]);seqUser=DB.get('seq',{});clock=DB.get('clock',100);
   AM=Object.assign({},AMDEF,DB.get('amigo',{}));AM.nome=String(AM.nome).replace('Amigo Indica Amigo','Amigo Emagrece Amigo');
   SITE=DB.get('site',{});LOG=Object.assign({},LOGDEF,DB.get('log',{}));PEDIT=DB.get('pedit',{});ROTAS=DB.get('rotas',{});SEEN=DB.get('seen',{});ADMIN=DB.get('adm',null);OFFSET=DB.get('offset',0);REV=DB.get('rev',0);ENTR=DB.get('entr',[]);ROTE=DB.get('rote',[]);RETIR=DB.get('ret',[]);
@@ -672,7 +672,8 @@ function paintShell(){
 }
 function buildMenu(){
   let h='';const GRP=['Ampolas','Caixas'];let grpFeito=false;
-  for(const [dep,gs] of Object.entries(TREE)){
+  for(const [dep,gs] of Object.entries(TREE)){   
+    if(GRP.includes(dep)||dep==='Produtos injetáveis')continue;
     if(GRP.includes(dep)){
       if(!grpFeito){grpFeito=true;const gd=GRP.filter(d=>TREE[d]);
         h+=`<li class="m"><a onclick="nav('/cat/${encodeURIComponent('Produtos disponíveis')}')">Produtos disponíveis <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg></a><div class="mega"><div class="mega-g">${gd.map(d=>`<div><b onclick="nav('/cat/${encodeURIComponent(d)}')">${d}</b>${Object.keys(TREE[d]).map(g=>`<i onclick="nav('/cat/${encodeURIComponent(d+'/'+g)}')">${g}</i>`).join('')}</div>`).join('')}</div></div></li>`}
