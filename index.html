@@ -472,6 +472,18 @@ tr[data-sc] td:first-child{box-shadow:inset 4px 0 0 var(--sc)}
 .stopt b{display:block}.stopt span{font-size:.82rem;color:var(--muted)}.stopt.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 10%,#fff)}.stopt:disabled{opacity:.55;cursor:default}
 .btn.danger{border-color:#d92d20;color:#d92d20}
 .tabs.adm.sec{margin-top:-8px}.maisb{background:#fff!important;border:1px dashed var(--line)!important}
+
+/* ===== barra de etapas do pedido e quadros de entregador selecionáveis ===== */
+.stepper{display:flex;gap:8px;margin:8px 0 12px;flex-wrap:wrap}
+.stp{flex:1 1 130px}
+.stp button{width:100%;height:100%;text-align:left;border:2px solid var(--line);border-radius:12px;background:#fff;padding:10px;cursor:pointer;font:inherit;color:inherit;display:grid;gap:3px;justify-items:start}
+.stp .dot{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#e5e7eb;color:#555;font-weight:700;font-size:.85rem}
+.stp.next button{border-color:#2563eb;background:#eff6ff}.stp.next .dot{background:#2563eb;color:#fff}
+.stp.done button{background:#f3f4f6;color:#8b8f97;border-color:#e5e7eb;cursor:default}.stp.done .dot{background:#9ca3af;color:#fff}
+.stp.lock button{opacity:.55;cursor:not-allowed}
+.stp small{font-size:.75rem;color:var(--muted)}
+.entq{cursor:pointer}.entq.sel{outline:3px solid var(--ink);box-shadow:0 10px 26px rgba(0,0,0,.14)}
+.entblk{margin-top:16px;padding:14px 14px 14px 16px;border:1px solid var(--line);border-radius:var(--r);background:#fff}
 </style>
 </head>
 <body>
@@ -3204,7 +3216,7 @@ function admDetalhe(){
   const fone=foneWa(en.fone);
   const linkOk=!!A9.link&&fone&&!temSP(o);
   return `<div class="box"><p><a style="cursor:pointer" onclick="admFechaPedido()">← Voltar para os pedidos</a></p>${msgBox()}
-  <h2 style="margin:0 0 4px">Pedido ${codPed(o)}</h2><div style="color:var(--muted);margin-bottom:12px">Feito em ${fmtD(Date.parse(o.criado_em))} · <b>${esc(STLB[o.status]||o.status)}</b> · Pagamento: <b>${pg.status==='pago'?'recebido':'pendente'}</b></div>
+  <h2 style="margin:0 0 4px">Pedido ${codPed(o)}</h2><div style="color:var(--muted);margin-bottom:12px">Feito em ${fmtD(Date.parse(o.criado_em))} · <b>${esc(ADM_LB[o.status]||STLB[o.status]||o.status)}</b> · Pagamento: <b>${pg.status==='pago'?'recebido':'pendente'}</b></div>
   <div class="two" style="gap:20px"><div>
   <h3 style="margin-top:0">Cliente e entrega</h3>
   <p style="margin:0"><b>${esc(en.nome||'')}</b><br>${fone?`<a href="https://wa.me/${fone}" target="_blank" rel="noopener">${esc(en.fone)}</a>`:esc(en.fone||'')}</p>
@@ -3213,7 +3225,7 @@ function admDetalhe(){
   <h3>Itens</h3><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${(o.itens||[]).map(i=>`<tr><td>${esc(i.name)}<div style="color:var(--muted);font-size:.8rem">SKU ${esc(i.sku||'')}</div></td><td>${i.qty}</td><td class="r">${i.semPreco?'a confirmar':brl(i.unit*i.qty)}</td></tr>`).join('')}</tbody></table></div>
   <div class="tot"><span>Subtotal</span><span>${temSP(o)?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span>${o.desconto?`<span class="dsc">Desconto (${o.desconto.pct}%)</span><span class="dsc">- ${brl(o.desconto.valor)}</span>`:''}<span class="big">Total</span><span class="big">${totAdm(o)}</span></div>${freteHtmlAdm(o)}
   </div><div>
-  ${gestao?`<h3 style="margin-top:0">Status do pedido</h3>${fim?'<div class="note">Pedido encerrado. O status não muda mais.</div>':`<label>Novo status (passe o mouse para ver o que cada um significa)</label>${statusOpcoes(o)}<label for="stM">Motivo ou observação para o cliente (obrigatório para cancelar)</label><input id="stM" maxlength="200"><p style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn acc" onclick="admStatus()">Atualizar status e avisar cliente</button><button class="btn ghost" onclick="admCancelarPedido()">Cancelar pedido</button></p>`}
+  ${gestao?`<h3 style="margin-top:0">Status do pedido</h3>${fim?'<div class="note">Pedido encerrado. O status não muda mais.</div>':`<label>Andamento do pedido (clique na próxima etapa; depois de marcada, não volta)</label>${statusOpcoes(o)}<label for="stM">Motivo (obrigatório para cancelar)</label><input id="stM" maxlength="200"><p style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost danger" onclick="admCancelarPedido()">Cancelar pedido</button></p>`}
   <h3>Rastreio</h3>
   <p>${fone?`<a class="btn ghost sm" href="${waUrlPara(fone,msgRastreio(o))}" target="_blank" rel="noopener">Enviar link de rastreio ao cliente</a>`:'<span style="color:var(--muted)">Sem telefone do cliente.</span>'}</p>
   <h3>Pagamento</h3>
@@ -3273,7 +3285,7 @@ A9.lg=null;A9.sel={};A9.edE=null;
 async function admCarregarLog(){
   const [en,ro,ab]=await Promise.all([
     SB.from('entregadores').select('*').order('nome'),
-    SB.from('rotas').select('*').order('n',{ascending:false}).limit(40),
+    SB.from('rotas').select('*').order('n',{ascending:false}).limit(200),
     SB.from('pedidos').select('*').not('status','in','(entregue,cancelado)').order('id')
   ]);
   if(en.error||ro.error||ab.error){A9.lg={ent:[],rotas:[],peds:{},abertos:[]};A9.msg='Não foi possível carregar a logística. Confirme que os arquivos 08 e 09 foram rodados no Supabase.';A9.erro=true;route();return}
@@ -3294,12 +3306,12 @@ function tabEntregadores(){
   if(!A9.lg){if(!A9.busy){A9.busy=true;admCarregarLog().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
   const e=A9.edE;
   const quadro=x=>{const s=entStats(x);const ini=esc((x.nome||'?').trim().charAt(0).toUpperCase());
-    return `<div class="entq${x.ativo?'':' off'}" style="border-top:6px solid ${corEnt(x.id)}"><div class="entq-h"><span class="entq-av" style="background:${corEnt(x.id)}">${ini}</span><div style="min-width:0"><b style="display:block;font-size:1.05rem">${esc(x.nome)}</b><span style="color:var(--muted);font-size:.85rem">${esc(x.whats)}</span></div><span class="entq-st ${x.ativo?'on':''}">${x.ativo?'Ativo':'Inativo'}</span></div>
+    return `<div class="entq${x.ativo?'':' off'}${A9.entSel[x.id]?' sel':''}" style="border-top:6px solid ${corEnt(x.id)}" onclick="entSelTog('${x.id}')" title="Clique para ver as rotas deste entregador"><div class="entq-h"><span class="entq-av" style="background:${corEnt(x.id)}">${ini}</span><div style="min-width:0"><b style="display:block;font-size:1.05rem">${esc(x.nome)}</b><span style="color:var(--muted);font-size:.85rem">${esc(x.whats)}</span></div><span class="entq-st ${x.ativo?'on':''}">${x.ativo?'Ativo':'Inativo'}</span></div>
     <div class="entq-n"><div><b>${s.rotas}</b><span>rotas</span></div><div><b>${s.and}</b><span>em andamento</span></div><div><b>${s.pend}</b><span>paradas abertas</span></div><div><b>${s.ok}</b><span>entregues</span></div></div>
-    <div class="entq-b"><button class="btn ghost sm" onclick="A9.edE=Object.assign({},A9.lg.ent.find(y=>y.id==='${x.id}'),{cor:corEnt('${x.id}')});route();window.scrollTo(0,0)">Editar</button><button class="btn ghost sm" onclick="admTab('logistica')">Ver rotas</button><a class="btn wa sm" target="_blank" rel="noopener" href="https://wa.me/${foneWa(x.whats)}">WhatsApp</a><button class="btn ghost sm" onclick="admAtivaEntregador('${x.id}',${!x.ativo})">${x.ativo?'Desativar':'Ativar'}</button></div></div>`};
+    <div class="entq-b" onclick="event.stopPropagation()"><button class="btn ghost sm" onclick="A9.edE=Object.assign({},A9.lg.ent.find(y=>y.id==='${x.id}'),{cor:corEnt('${x.id}')});route();window.scrollTo(0,0)">Editar</button><button class="btn ghost sm" onclick="admTab('logistica')">Ver rotas</button><a class="btn wa sm" target="_blank" rel="noopener" href="https://wa.me/${foneWa(x.whats)}">WhatsApp</a><button class="btn ghost sm" onclick="admAtivaEntregador('${x.id}',${!x.ativo})">${x.ativo?'Desativar':'Ativar'}</button></div></div>`};
   return `<div class="box">${msgBox()}<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><p style="margin:0;color:var(--muted)">Quem faz as entregas. O WhatsApp do entregador recebe a rota.</p><button class="btn acc" onclick="A9.edE={id:null,nome:'',whats:''};route()">Novo entregador</button></div>
   ${e?`<div class="box" style="box-shadow:none;background:#fafafa;margin-top:12px"><h3 style="margin-top:0">${e.id?'Editar entregador':'Novo entregador'}</h3><div class="fr"><div class="c3"><label for="enNome">Nome</label><input id="enNome" value="${esc(e.nome)}" maxlength="80"></div><div class="c3"><label for="enWh">WhatsApp (com DDD)</label><input id="enWh" value="${esc(e.whats)}" inputmode="tel" placeholder="(12) 9 9999-9999"></div>${corCampo(e)}</div><p style="display:flex;gap:8px"><button class="btn acc" onclick="admSalvaEntregador()">Salvar</button><button class="btn ghost" onclick="A9.edE=null;A9.msg='';route()">Cancelar</button></p></div>`:''}
-  <div class="entgrid">${A9.lg.ent.map(quadro).join('')||'<p>Nenhum entregador cadastrado.</p>'}</div></div>`;
+  <div class="entgrid">${A9.lg.ent.map(quadro).join('')||'<p>Nenhum entregador cadastrado.</p>'}</div>${entRotas()}</div>`;
 }
 async function admAtivaEntregador(id,ativo){
   const r=await SB.from('entregadores').update({ativo}).eq('id',id);
@@ -3307,7 +3319,7 @@ async function admAtivaEntregador(id,ativo){
   A9.lg=null;route();
 }
 /* logística */
-var PODE_ROTA=o=>['realizado','confirmado','preparacao','separacao','aguardando-programacao'].includes(o.status)&&!o.rota_id;
+var PODE_ROTA=o=>o.status==='aguardando-programacao'&&!o.rota_id;
 function admSel(id,on){if(on)A9.sel[id]=true;else delete A9.sel[id];route()}
 function admCriaRota(){
   const ids=Object.keys(A9.sel).map(Number);
@@ -3345,16 +3357,12 @@ function tabLogistica(){
   const nSel=Object.keys(A9.sel).length;
   const ativos=L.ent.filter(x=>x.ativo);
   const rotas=L.rotas;
-  const rotaHtml=r=>{const en=L.ent.find(x=>x.id===r.entregador_id)||{nome:'?',whats:''};const ps=r.pedidos.map(id=>L.peds[id]).filter(Boolean);
-    const fim=ps.length&&ps.every(o=>ENC(o));const fw=foneWa(en.whats);
-    const cr=corEnt(r.entregador_id);return `<div class="box" style="box-shadow:none;background:#fafafa;margin-top:12px;border-left:8px solid ${cr}"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div><b>Rota ${r.n}</b> · ${dataBr(r.data)} · <span class="entdot" style="background:${cr}"></span><b style="color:${cr}">${esc(en.nome)}</b><div style="color:var(--muted);font-size:.82rem">${r.saiu_em?'Saiu em '+fmtD(Date.parse(r.saiu_em)):'Ainda não saiu'}${fim?' · Concluída':''}</div></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">${fw&&!fim?`<a class="btn wa sm" href="${waUrlPara(fw,msgRota(r))}" target="_blank" rel="noopener" onclick="admEnviouRota('${r.id}')">Enviar rota ao entregador</a>`:''}${!fim?`<button class="btn ghost sm" onclick="entCopiarLink('${r.id}')">Copiar link do entregador</button><button class="btn ghost sm" onclick="rotaCopiar('${r.id}')">Copiar mensagem da rota</button><button class="btn wa sm" onclick="avAbrir('${r.id}')">Avisar clientes</button>`:''}${!r.saiu_em?`<button class="btn acc sm" onclick="admSaiuRota('${r.id}')">Saiu para entrega</button><button class="btn ghost sm" onclick="admDesfazRota('${r.id}')">Desfazer rota</button>`:''}</div></div>
-    <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Endereço</th><th>Horário</th><th>Situação</th><th></th></tr></thead><tbody>${ps.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td style="box-shadow:inset 5px 0 0 ${cr}"><b>${codPed(o)}</b></td><td>${esc(e.nome||'')}</td><td>${esc((d.rua||'')+', '+(d.num||'')+' - '+(d.bairro||'')+', '+(d.cidade||''))}</td><td>${esc(TURNOS[e.turno]||'')}</td><td>${esc(STLB[o.status]||o.status)}${o.chegou_em?'<div style="color:var(--muted);font-size:.78rem">Chegou às '+horaBr(o.chegou_em)+'</div>':''}</td><td style="white-space:nowrap">${['em-rota','tentativa'].includes(o.status)?`<button class="btn sm" onclick="admResultado(${o.id},'entregue')">Entregue</button> `:''}${o.status==='em-rota'?`<button class="btn ghost sm" onclick="admResultado(${o.id},'tentativa')">Tentativa</button> `:''}<button class="btn ghost sm" onclick="A9.po=null;A.tab='pedidos';admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div>${A9.av&&A9.av.rota===r.id?avPanel(r,ps):''}</div>`};
+  const rotaHtml=rotaHtmlG;
   const andamento=rotas.filter(r=>!r.pedidos.map(id=>L.peds[id]).filter(Boolean).every(ENC));
   const concluidas=rotas.filter(r=>!andamento.includes(r));
-  return `<div class="box">${msgBox()}<h3 style="margin-top:0">Pedidos para programar</h3>
+  return `<div class="box">${msgBox()}<h3 style="margin-top:0">Selecione os pedidos e envie para o motoboy</h3>
   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><div><label for="lgF">Filtrar pela data desejada</label><input id="lgF" type="date" value="${esc(fl)}" onchange="A9.lgF=this.value;route()" style="width:auto"></div>${fl?'<button class="btn ghost sm" onclick="A9.lgF=\'\';route()">Limpar filtro</button>':''}<button class="btn ghost sm" onclick="admLgRecarrega()">Atualizar</button></div>
-  <div class="tbl"><table><thead><tr><th></th><th>Pedido</th><th>Cliente</th><th>Bairro / cidade</th><th>Data desejada</th><th>Itens</th></tr></thead><tbody>${elegiveis.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td><input type="checkbox" style="width:auto" ${A9.sel[o.id]?'checked':''} onchange="admSel(${o.id},this.checked)"></td><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${esc(STLB[o.status]||o.status)}</div></td><td>${esc(e.nome||'')}</td><td>${esc((d.bairro||'')+' / '+(d.cidade||''))}</td><td>${dataBr(e.data)} ${esc(TURNOS[e.turno]||'')}${e.data&&e.data<hoje?' <b style="color:#b3261e">atrasado</b>':''}</td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td></tr>`}).join('')||'<tr><td colspan="6">Nenhum pedido esperando rota.</td></tr>'}</tbody></table></div>
+  <div class="tbl"><table><thead><tr><th></th><th>Pedido</th><th>Cliente</th><th>Bairro / cidade</th><th>Data desejada</th><th>Itens</th></tr></thead><tbody>${elegiveis.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td><input type="checkbox" style="width:auto" ${A9.sel[o.id]?'checked':''} onchange="admSel(${o.id},this.checked)"></td><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${esc(STLB[o.status]||o.status)}</div></td><td>${esc(e.nome||'')}</td><td>${esc((d.bairro||'')+' / '+(d.cidade||''))}</td><td>${dataBr(e.data)} ${esc(TURNOS[e.turno]||'')}${e.data&&e.data<hoje?' <b style="color:#b3261e">atrasado</b>':''}</td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td></tr>`}).join('')||'<tr><td colspan="6">Nenhum pedido encaminhado pela loja ainda. Na aba Pedidos, abra o pedido e clique em Encaminhar para entregador.</td></tr>'}</tbody></table></div>
   ${ativos.length?`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:12px"><div><label for="lgE">Entregador</label><select id="lgE" style="width:auto"><option value="">Escolha</option>${ativos.map(x=>`<option value="${x.id}" ${A9.lgE===x.id?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></div><div><label for="lgD">Data da rota</label><input id="lgD" type="date" value="${esc(A9.lgD||fl||hoje)}" style="width:auto"></div><button class="btn acc" onclick="admCriaRota()">Criar rota com ${nSel} pedido${nSel===1?'':'s'}</button></div>`:'<div class="note warn">Cadastre um entregador na aba Entregadores para criar rotas.</div>'}
   <h3>Rotas em andamento</h3>${andamento.map(rotaHtml).join('')||'<p style="color:var(--muted)">Nenhuma rota em andamento.</p>'}
   ${concluidas.length?`<h3>Rotas concluídas</h3>${concluidas.slice(0,10).map(rotaHtml).join('')}`:''}</div>`;
@@ -4039,7 +4047,7 @@ function freteNota(){const f=freteTxtCli();if(f.v==null)return '';return `<div c
 
 /* cores e selos */
 var STCOR={realizado:'#6b7280',confirmado:'#2563eb',preparacao:'#7c3aed',separacao:'#d97706','aguardando-programacao':'#0891b2',programada:'#0891b2','em-rota':'#ea580c',entregue:'#16a34a',tentativa:'#dc2626',cancelado:'#9ca3af'};
-function stChip(s){return `<span class="stchip" style="--c:${STCOR[s]||'#6b7280'}">${esc(STLB[s]||s)}</span>`}
+function stChip(s){return `<span class="stchip" style="--c:${STCOR[s]||'#6b7280'}">${esc(ADM_LB[s]||STLB[s]||s)}</span>`}
 function selos(o){
   let h='';const n=+o.seq||1;
   if(emAtraso(o))h+='<span class="selo red" title="A data de entrega desejada já passou">Atrasado</span>';
@@ -4095,12 +4103,6 @@ async function pedExcluir(){
 }
 
 /* status do pedido: só as etapas da equipe, com explicação ao passar o mouse */
-var ST_OPC=[['confirmado','Confirmado','Pedido confirmado com o cliente. A equipe vê que está tudo certo para seguir.'],['separacao','Em separação','Pedido sendo separado e embalado.'],['preparacao','Em preparação','Pedido pronto, aguardando a verificação do motoboy.']];
-function statusOpcoes(o){
-  return `<input type="hidden" id="stN" value=""><div class="stopts">${ST_OPC.map(x=>{const at=o.status===x[0];return `<button type="button" class="stopt" ${at?'disabled':''} style="--c:${STCOR[x[0]]}" data-s="${x[0]}" title="${esc(x[2])}" onclick="stEscolhe('${x[0]}')"><b>${x[1]}${at?' (atual)':''}</b><span>${esc(x[2])}</span></button>`}).join('')}</div>`;
-}
-function stEscolhe(s){const i=document.getElementById('stN');if(i)i.value=s;document.querySelectorAll('.stopt').forEach(b=>b.classList.toggle('on',b.dataset.s===s))}
-function admStatus(){const s=v_('stN');if(!s){A9.msg='Escolha o novo status.';A9.erro=true;route();return}admRpc('alterar_status_pedido',{p_pedido:A9.po.id,p_status:s,p_motivo:v_('stM').trim()||null},'Status atualizado. O cliente já foi avisado.')}
 function freteHtmlAdm(o){const f=freteDoPedido(o);if(f==null)return '';return `<p style="margin:8px 0 0;font-size:.9rem"><b>Frete (${esc(freteNome(cidadeDe(o)))}):</b> ${brl(f)} <span style="color:var(--muted)">· pago junto, na entrega</span></p>`}
 
 /* mensagem de pagamento (antes e depois da entrega), já com o frete */
@@ -4225,6 +4227,52 @@ function abasHtml(tabs,extra){
   const main=tabs.filter(t=>!extra.includes(t[0])),ex=tabs.filter(t=>extra.includes(t[0]));
   const aberto=A9.mais||ex.some(t=>t[0]===A.tab);
   return `<div class="tabs adm">${main.map(btn).join('')}${ex.length?`<button class="maisb" onclick="A9.mais=${!aberto};route()">${aberto?'Menos ▴':'Mais opções ▾'}</button>`:''}</div>${ex.length&&aberto?`<div class="tabs adm sec">${ex.map(btn).join('')}</div>`:''}`;
+}
+
+/* ======================= ANDAMENTO DO PEDIDO (BARRA DE ETAPAS) E ROTAS POR ENTREGADOR ======================= */
+var ADM_LB={'aguardando-programacao':'Em programação de rota',programada:'Enviado ao entregador'};
+var PASSOS=[['confirmado','Confirmado','Pedido confirmado com o cliente. A equipe vê que está tudo certo para seguir.'],['separacao','Em separação','Pedido sendo separado e embalado.'],['preparacao','Em preparação','Pedido pronto, aguardando a verificação do motoboy.'],['aguardando-programacao','Encaminhar para entregador','Libera o pedido na aba Logística para entrar em uma rota.']];
+var ORD_ST={realizado:0,confirmado:1,separacao:2,preparacao:3,'aguardando-programacao':4,programada:5,'em-rota':5,tentativa:5,entregue:5};
+function statusOpcoes(o){
+  const idx=ORD_ST[o.status]==null?0:ORD_ST[o.status];
+  const passos=PASSOS.map((p,i)=>{
+    const feito=idx>i,prox=idx===i;
+    const nome=(feito&&p[0]==='aguardando-programacao')?'Em programação de rota':p[1];
+    return `<div class="stp ${feito?'done':prox?'next':'lock'}"><button type="button" ${prox?'':'disabled'} title="${esc(p[2])}" onclick="stAvanca('${p[0]}')"><span class="dot">${feito?'✓':i+1}</span><b>${esc(nome)}</b><small>${feito?'Concluído':prox?'Clique para marcar':'Aguarde a etapa anterior'}</small></button></div>`;
+  }).join('');
+  const env=idx>=5?`<div class="stp done"><button type="button" disabled title="O pedido já foi entregue à logística"><span class="dot">✓</span><b>Enviado ao entregador</b><small>${esc(o.entregadorNome||'')}${o.status==='programada'?' · aguardando sair':o.status==='em-rota'?' · saiu para entrega':''}</small></button></div>`:'';
+  return `<div class="stepper">${passos}${env}</div>`;
+}
+function stAvanca(s){
+  const o=A9.po;if(!o||A9.busy)return;const p=PASSOS.find(x=>x[0]===s);if(!p)return;
+  if(!confirm('Marcar como "'+p[1]+'"?\n\nDepois de marcado não dá para voltar. O cliente é avisado.'))return;
+  admRpc('alterar_status_pedido',{p_pedido:o.id,p_status:s,p_motivo:v_('stM').trim()||null},'Etapa marcada: '+p[1]+'.');
+}
+/* rota (cartão reaproveitado na Logística e nos Entregadores) */
+function rotaHtmlG(r){const L=A9.lg;
+const en=L.ent.find(x=>x.id===r.entregador_id)||{nome:'?',whats:''};const ps=r.pedidos.map(id=>L.peds[id]).filter(Boolean);
+    const fim=ps.length&&ps.every(o=>ENC(o));const fw=foneWa(en.whats);
+    const cr=corEnt(r.entregador_id);return `<div class="box" style="box-shadow:none;background:#fafafa;margin-top:12px;border-left:8px solid ${cr}"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div><b>Rota ${r.n}</b> · ${dataBr(r.data)} · <span class="entdot" style="background:${cr}"></span><b style="color:${cr}">${esc(en.nome)}</b><div style="color:var(--muted);font-size:.82rem">${r.saiu_em?'Saiu em '+fmtD(Date.parse(r.saiu_em)):'Ainda não saiu'}${fim?' · Concluída':''}</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${ADMIN.papel==='admin'?`<button class="btn ghost sm danger" onclick="rotaExcluir('${r.id}')">Excluir rota</button>`:''}${fw&&!fim?`<a class="btn wa sm" href="${waUrlPara(fw,msgRota(r))}" target="_blank" rel="noopener" onclick="admEnviouRota('${r.id}')">Enviar rota ao entregador</a>`:''}${!fim?`<button class="btn ghost sm" onclick="entCopiarLink('${r.id}')">Copiar link do entregador</button><button class="btn ghost sm" onclick="rotaCopiar('${r.id}')">Copiar mensagem da rota</button><button class="btn wa sm" onclick="avAbrir('${r.id}')">Avisar clientes</button>`:''}${!r.saiu_em?`<button class="btn acc sm" onclick="admSaiuRota('${r.id}')">Saiu para entrega</button><button class="btn ghost sm" onclick="admDesfazRota('${r.id}')">Desfazer rota</button>`:''}</div></div>
+    <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Endereço</th><th>Horário</th><th>Situação</th><th></th></tr></thead><tbody>${ps.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td style="box-shadow:inset 5px 0 0 ${cr}"><b>${codPed(o)}</b></td><td>${esc(e.nome||'')}</td><td>${esc((d.rua||'')+', '+(d.num||'')+' - '+(d.bairro||'')+', '+(d.cidade||''))}</td><td>${esc(TURNOS[e.turno]||'')}</td><td>${esc(ADM_LB[o.status]||STLB[o.status]||o.status)}${o.chegou_em?'<div style="color:var(--muted);font-size:.78rem">Chegou às '+horaBr(o.chegou_em)+'</div>':''}</td><td style="white-space:nowrap">${['em-rota','tentativa'].includes(o.status)?`<button class="btn sm" onclick="admResultado(${o.id},'entregue')">Entregue</button> `:''}${o.status==='em-rota'?`<button class="btn ghost sm" onclick="admResultado(${o.id},'tentativa')">Tentativa</button> `:''}<button class="btn ghost sm" onclick="A9.po=null;A.tab='pedidos';admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div>${A9.av&&A9.av.rota===r.id?avPanel(r,ps):''}</div>`
+}
+async function rotaExcluir(rid){
+  if(!confirm('Excluir esta rota?\n\nOs pedidos que ainda não foram entregues voltam para a fila da Logística. Pedidos já entregues continuam entregues.'))return;
+  const r=await SB.rpc('excluir_rota',{p_rota:rid});
+  if(r.error){A9.msg=/excluir_rota|function|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 18 no Supabase para liberar a exclusão de rotas.':msgRpc(r.error);A9.erro=true;route();return}
+  A9.lg=null;A9.pedidos=null;A9.msg='Rota excluída.';A9.erro=false;route();
+}
+A9.entSel={};
+function entSelTog(id){if(A9.entSel[id])delete A9.entSel[id];else A9.entSel[id]=true;route()}
+function entRotas(){
+  const L=A9.lg,sel=L.ent.filter(x=>A9.entSel[x.id]);
+  if(!sel.length)return '<p style="color:var(--muted);margin-top:16px">Clique em um ou mais entregadores para ver as rotas deles aqui embaixo.</p>';
+  const psDe=r=>r.pedidos.map(id=>L.peds[id]).filter(Boolean);
+  return sel.map(x=>{const cor=corEnt(x.id);const rs=L.rotas.filter(r=>r.entregador_id===x.id);
+    const and=rs.filter(r=>!psDe(r).every(ENC)),conc=rs.filter(r=>!and.includes(r));
+    return `<div class="entblk" style="border-left:8px solid ${cor}"><h3 style="margin:0;color:${cor}">${esc(x.nome)}</h3>
+    <h4 style="margin:12px 0 0">Rotas em andamento (${and.length})</h4>${and.map(rotaHtmlG).join('')||'<p style="color:var(--muted);margin:6px 0">Nenhuma rota em andamento.</p>'}
+    <h4 style="margin:14px 0 0">Rotas concluídas (${conc.length})</h4>${conc.map(rotaHtmlG).join('')||'<p style="color:var(--muted);margin:6px 0">Nenhuma rota concluída.</p>'}</div>`}).join('');
 }
 
 </script>
