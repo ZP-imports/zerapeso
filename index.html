@@ -295,6 +295,23 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 .apart{font-size:.72rem;color:var(--muted);font-weight:500}
 .pimg img{max-width:100%}
 @media(max-width:760px){.prod{grid-template-columns:1fr}.pbig{max-width:260px}}
+
+/* layout de referência das variações */
+.vars{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.vcard{text-align:center;padding:16px 12px;border-radius:16px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.vh{flex-direction:column;gap:6px}.vh b{font-size:.95rem;color:var(--ink)}
+.vp{justify-content:center;margin:10px 0}.vp del{color:#c0392b;font-size:.95rem}.vp b{font-size:1.25rem;color:var(--pd)}
+.vq{justify-content:center;flex-direction:column;gap:8px}
+.vq .qty{background:#eef3f1;border:1px solid var(--line);padding:3px;gap:2px}
+.vq .qty button{width:42px;height:38px;border-radius:999px;font-size:1.25rem;color:var(--muted)}
+.vq .qty button:last-child{background:var(--pd);color:#fff}
+.vq .qty span{min-width:40px;font-weight:700;color:var(--ink)}
+.vl{font-size:.82rem}
+#padd{display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(90deg,var(--pd),var(--p));color:#fff;border:0;border-radius:14px;padding:1.05em;box-shadow:0 6px 16px rgba(7,77,64,.3)}
+#padd:disabled{opacity:.55;box-shadow:none}
+.legal{background:#f4f7f6;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.legal .lh{display:flex;align-items:center;gap:8px;color:var(--pd);margin-bottom:4px}.legal .lh b{display:inline;margin:0;color:var(--ink)}
+.legal span{color:var(--muted)}
 </style>
 </head>
 <body>
@@ -2638,7 +2655,9 @@ async function bancoInit(){
 
 var PAGS=[['pix','Pix'],['credito','Cartão de crédito'],['debito','Cartão de débito']];
 var PAGNOME={pix:'Pix',credito:'Cartão de crédito',debito:'Cartão de débito'};
-var LEGAL='<div class="legal"><b>Seus dados estão protegidos</b><span>As informações são usadas exclusivamente para o atendimento e a entrega do seu pedido.</span></div>';
+var ICO_CART='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.6 12.2a1 1 0 0 0 1 .8h8.8a1 1 0 0 0 1-.8L20 8H6"/></svg>';
+var ICO_SHIELD='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>';
+var LEGAL='<div class="legal"><div class="lh">'+ICO_SHIELD+'<b>Seus dados estão protegidos</b></div><span>As informações são usadas exclusivamente para o atendimento e a entrega do seu pedido.</span></div>';
 var vPreco=v=>v.sale!=null?v.sale:v.p;
 var SP='sp';
 var vOf=i=>{if(i.v===SP)return {id:SP,n:'Unidade',un:1,p:0,sp:true};const p=byId(i.id);return p&&p.vars?p.vars.find(v=>v.id===i.v):null};
@@ -2720,15 +2739,15 @@ function pageProd(id){
     compra=`<div class="vars"><div class="vcard"><div class="vh"><b>Unidade</b><span class="vst ok">Disponível</span></div>
       <div class="vp"><span>O valor é informado pelo nosso atendimento no WhatsApp.</span></div>
       <div class="vq"><div class="qty"><button onclick="pvq(0,-1)" aria-label="Diminuir">−</button><span id="pq0">${q}</span><button onclick="pvq(0,1)" aria-label="Aumentar">+</button></div></div></div></div>
-    <button class="btn acc full" id="padd" style="padding:1em;font-weight:700;letter-spacing:.03em" onclick="pvAdd()" ${q>0?'':'disabled'}>ADICIONAR AO CARRINHO</button>
+    <button class="btn acc full" id="padd" style="padding:1em;font-weight:700;letter-spacing:.03em" onclick="pvAdd()" ${q>0?'':'disabled'}>${ICO_CART}<span>ADICIONAR AO CARRINHO</span></button>
     ${LEGAL}`;
   }else{
     compra=`<div class="vars">${p.vars.map((v,k)=>{const m=maxVar(p,v);const q=PV.q[k]||0;
       return `<div class="vcard"><div class="vh"><b>${esc(v.n)}</b><span class="vst ${m>0?'ok':'no'}">${m>0?'Disponível':'Sem estoque'}</span></div>
-      <div class="vp">${v.sale!=null?`<span>de <del>${brl(v.p)}</del></span> <span>por <b>${brl(v.sale)}</b></span>`:`<b>${brl(v.p)}</b>`}</div>
+      <div class="vp">${v.sale!=null?`<del>${brl(v.p)}</del> <b>${brl(v.sale)}</b>`:`<b>${brl(v.p)}</b>`}</div>
       <div class="vq"><div class="qty"><button onclick="pvq(${k},-1)" aria-label="Diminuir" ${m>0?'':'disabled'}>−</button><span id="pq${k}">${q}</span><button onclick="pvq(${k},1)" aria-label="Aumentar" ${m>0?'':'disabled'}>+</button></div><span class="vl" id="vl${k}">${q>0?q+' × '+brl(vPreco(v))+' = '+brl(vPreco(v)*q):''}</span></div></div>`}).join('')}</div>
     <div class="ptot"><span>TOTAL DO PRODUTO</span><b id="ptot">${brl(pvTotal(p))}</b></div>
-    <button class="btn acc full" id="padd" style="padding:1em;font-weight:700;letter-spacing:.03em" onclick="pvAdd()" ${pvTotal(p)>0?'':'disabled'}>ADICIONAR AO CARRINHO</button>
+    <button class="btn acc full" id="padd" style="padding:1em;font-weight:700;letter-spacing:.03em" onclick="pvAdd()" ${pvTotal(p)>0?'':'disabled'}>${ICO_CART}<span>ADICIONAR AO CARRINHO</span></button>
     ${LEGAL}`;
   }
   const cat=p.cat.length?`<a onclick="nav('/cat/${encodeURIComponent(p.cat.join('/'))}')">${esc(p.cat[p.cat.length-1])}</a> / `:'';
