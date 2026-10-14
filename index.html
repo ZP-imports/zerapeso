@@ -1146,7 +1146,7 @@ function pageRev(){
   const u=user(),e=u.end||{};const sub=cartSub();
   const guardado=sessionStorage.getItem('xp_ind');
   if(!rv.code&&!rv.use&&guardado&&amOn()){const v=validateRef(guardado);if(v.ok)rv.code=guardado;else rv.msg=v.err}
-  const d=calcDisc(sub);const tot=sub-(d?d.valor:0);const cr=credits(me);
+  const d=sub>0?calcDisc(sub):null;const tot=sub-(d?d.valor:0);const cr=credits(me);
   let nota='';
   if(d&&d.tipo==='primeira'){nota=`<div class="note">Desconto de primeira compra (${d.pct}%) aplicado automaticamente. <a style="cursor:pointer;font-weight:600" onclick="nav('/reg/primeira-compra')">Ver regulamento</a></div>`;if(rv.code&&validateRef(rv.code).ok)nota+=`<div class="note warn">O código ${esc(rv.code)} é válido, mas neste pedido vale o maior desconto, o de primeira compra. Os descontos não se acumulam e o código não foi usado.</div>`}
   let amigo='';
@@ -1171,8 +1171,8 @@ function pageRev(){
    <p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">Datas de ${fmtDay(min)} a ${fmtDay(max)}. Entregamos de ${LOG.dias.map(i=>['dom','seg','ter','qua','qui','sex','sáb'][i]).join(', ')}. A data é uma preferência: a loja confirma a programação e você acompanha tudo em Rastrear pedido.</p>
    <label for="obs">Observações sobre o pedido ou a entrega (opcional)</label><textarea id="obs" rows="2" maxlength="500" oninput="ent.obs=this.value" placeholder="Ex.: portão azul, deixar com o porteiro">${esc(ent.obs)}</textarea>`;
   const pagInfo=`<h3>Forma de pagamento</h3><div class="turnos">${PAGS.map(x=>`<label class="turno ${ent.pag===x[0]?'on':''}"><input type="radio" name="pag" value="${x[0]}" ${ent.pag===x[0]?'checked':''} onchange="ent.pag=this.value;route()"> ${x[1]}</label>`).join('')}</div><p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">O pagamento é combinado com a nossa equipe pelo WhatsApp.</p>`;
-  return `<div class="wrap pg"><h1 class="t">Finalizar compra</h1><div class="two"><div class="box"><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td>${esc(p.n)} (${esc(i.opt)})</td><td>${i.qty}</td><td class="r">${brl(ipreco(i)*i.qty)}</td></tr>`}).join('')}</tbody></table></div>
-  <div class="tot"><span>Subtotal dos produtos</span><span>${brl(sub)}</span><span>Entrega</span><span>${esc(CFG.frete)}</span>${d?`<span class="dsc">${dLabel(d)} (${d.pct}%)</span><span class="dsc">- ${brl(d.valor)}</span>`:''}<span class="big">Total</span><span class="big">${brl(tot)}</span></div>
+  return `<div class="wrap pg"><h1 class="t">Finalizar compra</h1><div class="two"><div class="box"><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td>${esc(p.n)} (${esc(i.opt)})</td><td>${i.qty}</td><td class="r">${precoTxt(i)}</td></tr>`}).join('')}</tbody></table></div>
+  <div class="tot"><span>Subtotal dos produtos</span><span>${cartSP()?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span><span>Entrega</span><span>${esc(CFG.frete)}</span>${d?`<span class="dsc">${dLabel(d)} (${d.pct}%)</span><span class="dsc">- ${brl(d.valor)}</span>`:''}<span class="big">Total</span><span class="big">${cartSP()?(sub>0?brl(tot)+' + a confirmar':'A confirmar'):brl(tot)}</span></div>
   ${nota}${amigo}
   ${entrega}
   ${pagInfo}
@@ -1191,8 +1191,8 @@ function resumoCliente(o){
   </div>`;
 }
 function itensCliente(o){
-  return `<details class="itens-c"><summary>Itens do pedido (${o.items.reduce((s,i)=>s+i.qty,0)})</summary><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Unitário</th><th class="r">Subtotal</th></tr></thead><tbody>${o.items.map(i=>`<tr><td>${esc(i.name)}</td><td>${i.qty}</td><td class="r">${brl(i.unit)}</td><td class="r">${brl(i.unit*i.qty)}</td></tr>`).join('')}</tbody></table></div>
-  <div class="tot" style="margin:6px 0 0"><span>Subtotal</span><span>${brl(subtotal(o))}</span><span>Entrega</span><span>${taxaEnt(o)>0?brl(taxaEnt(o)):esc(CFG.frete)}</span>${o.disc?`<span class="dsc">Desconto (${o.disc.pct}%)</span><span class="dsc">- ${brl(o.disc.valor)}</span>`:''}<span class="big">Valor combinado</span><span class="big">${brl(valorAcordado(o))}</span></div></details>`;
+  return `<details class="itens-c"><summary>Itens do pedido (${o.items.reduce((s,i)=>s+i.qty,0)})</summary><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Unitário</th><th class="r">Subtotal</th></tr></thead><tbody>${o.items.map(i=>`<tr><td>${esc(i.name)}</td><td>${i.qty}</td><td class="r">${i.semPreco?'-':brl(i.unit)}</td><td class="r">${brlI(i)}</td></tr>`).join('')}</tbody></table></div>
+  <div class="tot" style="margin:6px 0 0"><span>Subtotal</span><span>${totO(o)}</span><span>Entrega</span><span>${taxaEnt(o)>0?brl(taxaEnt(o)):esc(CFG.frete)}</span>${o.disc?`<span class="dsc">Desconto (${o.disc.pct}%)</span><span class="dsc">- ${brl(o.disc.valor)}</span>`:''}<span class="big">Valor combinado</span><span class="big">${temSPo(o)?'A confirmar':brl(valorAcordado(o))}</span></div></details>`;
 }
 const FASES=[
  {n:'Pedido realizado',s:['realizado'],d:'Recebemos o seu pedido.'},
@@ -1702,7 +1702,7 @@ function pageOrderBase(id){
   const e=o.entrega;
   return `<div class="wrap pg"><div class="box" style="max-width:820px"><h2 style="margin-top:0">Pedido ${codigoPedido(o)} realizado</h2><div style="margin-bottom:10px"><span class="st ${CLS[o.status]}">${LAB[o.status]}</span></div>
   ${payCliente(o)}
-  <h3>Resumo</h3><div class="tbl"><table><tbody>${o.items.map(i=>`<tr><td>${esc(i.name)}</td><td>${i.qty}</td><td class="r">${brl(i.unit*i.qty)}</td></tr>`).join('')}</tbody></table></div>${o.disc?`<p style="color:#1b5e20;font-weight:600">Desconto ${o.disc.pct}%: - ${brl(o.disc.valor)}</p>`:''}<p><b>Total dos produtos:</b> ${brl(total(o))}</p>
+  <h3>Resumo</h3><div class="tbl"><table><tbody>${o.items.map(i=>`<tr><td>${esc(i.name)}</td><td>${i.qty}</td><td class="r">${brlI(i)}</td></tr>`).join('')}</tbody></table></div>${o.disc?`<p style="color:#1b5e20;font-weight:600">Desconto ${o.disc.pct}%: - ${brl(o.disc.valor)}</p>`:''}<p><b>Total dos produtos:</b> ${totO(o)}</p>
   <p style="font-size:.88rem">Entrega desejada: <b>${fmtDay(e.data)}, ${turnoNome(e.turno)}</b> · ${esc(e.dest.cidade)}/${esc(String(e.dest.uf).toUpperCase())}</p>
   <p style="font-size:.88rem;color:var(--muted)">A taxa de entrega, quando houver, é informada pela loja antes do envio.</p>
   <p><button class="btn acc" onclick="nav('/pedidos')">Acompanhar meu pedido</button> <button class="btn ghost" onclick="nav('/')">Continuar comprando</button></p></div></div>`;
@@ -2432,7 +2432,7 @@ async function bancoProdutos(){
   BASE.length=0;JSON.parse(JSON.stringify(PRODUCTS)).forEach(p=>BASE.push(p));
   bancoTree();
   window.__bancoProd=true;
-  cart=cart.filter(i=>{const p=PRODUCTS.find(x=>x.id===+i.id);return p&&p.ativo!==false&&i.v&&(p.vars||[]).some(v=>v.id===i.v)});
+  cart=cart.filter(i=>{const p=PRODUCTS.find(x=>x.id===+i.id);return p&&p.ativo!==false&&i.v&&(i.v==='sp'?!(p.vars||[]).length:(p.vars||[]).some(v=>v.id===i.v))});
 }
 function applyProd(){
   if(window.__bancoProd)return;
@@ -2640,19 +2640,27 @@ var PAGS=[['pix','Pix'],['credito','Cartão de crédito'],['debito','Cartão de 
 var PAGNOME={pix:'Pix',credito:'Cartão de crédito',debito:'Cartão de débito'};
 var LEGAL='<div class="legal"><b>Seus dados estão protegidos</b><span>As informações são usadas exclusivamente para o atendimento e a entrega do seu pedido.</span></div>';
 var vPreco=v=>v.sale!=null?v.sale:v.p;
-var vOf=i=>{const p=byId(i.id);return p&&p.vars?p.vars.find(v=>v.id===i.v):null};
-var ipreco=i=>{const v=vOf(i);return v?vPreco(v):0};
+var SP='sp';
+var vOf=i=>{if(i.v===SP)return {id:SP,n:'Unidade',un:1,p:0,sp:true};const p=byId(i.id);return p&&p.vars?p.vars.find(v=>v.id===i.v):null};
+var ipreco=i=>{const v=vOf(i);return v&&!v.sp?vPreco(v):0};
+var cartSP=()=>cart.some(i=>i.v===SP);
+var precoTxt=i=>i.v===SP?'a confirmar':brl(ipreco(i)*i.qty);
+var totTxt=()=>cartSP()?(cartSub()>0?brl(cartSub())+' + itens a confirmar':'A confirmar'):brl(cartSub());
+var temSPo=o=>(o.items||[]).some(i=>i.semPreco);
+var brlI=i=>i.semPreco?'a confirmar':brl(i.unit*i.qty);
+var totO=o=>temSPo(o)?(total(o)>0?brl(total(o))+' + itens a confirmar':'A confirmar'):brl(total(o));
 var cartUn=(p,exceto)=>cart.reduce((s,i)=>{if(i.id!==p.id||i===exceto)return s;const v=vOf(i);return s+(v?v.un*i.qty:0)},0);
-var maxVar=(p,v,exceto)=>Math.max(0,Math.floor((stockLeft(p)-cartUn(p,exceto))/v.un));
+var maxVar=(p,v,exceto)=>v&&v.sp?99:Math.max(0,Math.floor((stockLeft(p)-cartUn(p,exceto))/v.un));
 var nl=s=>String(s).replace(/ /g,' ');
 
 /* ---------- mensagem do WhatsApp com o carrinho ---------- */
 function linhasCarrinho(){
-  return cart.map(i=>{const p=byId(i.id);return '• '+p.n+' ('+i.qty+' '+i.opt+') = '+brl(ipreco(i)*i.qty)}).join('\n');
+  return cart.map(i=>{const p=byId(i.id);return '• '+p.n+' ('+i.qty+' '+i.opt+') = '+(i.v===SP?'valor a confirmar':brl(ipreco(i)*i.qty))}).join('\n');
 }
 function msgCarrinho(){
   if(!cart.length)return '';
-  return nl('Olá! Gostaria de mais informações sobre os produtos.\nMeu carrinho:\n'+linhasCarrinho()+'\nSubtotal: '+brl(cartSub()));
+  const sub=cartSP()?(cartSub()>0?'\nSubtotal (itens com preço): '+brl(cartSub()):''):'\nSubtotal: '+brl(cartSub());
+  return nl('Olá! Gostaria de mais informações sobre os produtos.\nMeu carrinho:\n'+linhasCarrinho()+sub);
 }
 function updHead(){
   $('#cnt').textContent=cartQty();const u=user();$('#accLb').textContent=u?('Olá, '+u.nome):'Entre ou cadastre-se';
@@ -2662,7 +2670,7 @@ function updHead(){
 
 /* ---------- carrinho (cada linha é uma variação) ---------- */
 function cartAdd(id,vid,qty){
-  const p=byId(id);if(!p||p.ativo===false)return false;const v=(p.vars||[]).find(x=>x.id===vid);if(!v)return false;
+  const p=byId(id);if(!p||p.ativo===false)return false;const v=vid===SP?{id:SP,n:'Unidade',un:1,sp:true}:(p.vars||[]).find(x=>x.id===vid);if(!v)return false;
   const ex=cart.find(i=>i.id===id&&i.v===vid);const lim=maxVar(p,v,ex);
   const novo=(ex?ex.qty:0)+qty;
   if(novo>lim){toast(lim>0?'Só há '+lim+' disponível'+(lim>1?'is':'')+' desta opção.':'Esta opção está sem estoque.');return false}
@@ -2683,13 +2691,13 @@ function linhaCart(i,tabela){
 function drawDrawer(){
   const b=$('#dwb'),f=$('#dwf');
   if(!cart.length){b.innerHTML='<p style="text-align:center;color:var(--muted);padding:40px 0">Seu carrinho está vazio.</p>';f.innerHTML='<button class="btn full" onclick="closeCart();nav(\'/\')">Continuar comprando</button>';return}
-  b.innerHTML=cart.map(i=>{const {p,q}=linhaCart(i);return `<div class="mi"><div class="th" style="background:${p.c}">${svg(p.ic,30)}${fotoHtml(p)}</div><div><div style="font-size:.88rem;color:var(--ink);font-weight:500">${esc(p.n)} (${esc(i.opt)})</div><div style="display:flex;align-items:center;gap:10px;margin-top:4px;flex-wrap:wrap">${q}<b>${brl(ipreco(i)*i.qty)}</b><button class="btn ghost sm" onclick="rmItem(${i.id},'${i.v}')">Remover</button></div></div></div>`}).join('');
-  f.innerHTML=`<div class="tot" style="margin:0 0 12px"><span>Total</span><b>${brl(cartSub())}</b></div><button class="btn acc full" onclick="closeCart();nav('/carrinho')">Ver carrinho e finalizar</button>`;
+  b.innerHTML=cart.map(i=>{const {p,q}=linhaCart(i);return `<div class="mi"><div class="th" style="background:${p.c}">${svg(p.ic,30)}${fotoHtml(p)}</div><div><div style="font-size:.88rem;color:var(--ink);font-weight:500">${esc(p.n)} (${esc(i.opt)})</div><div style="display:flex;align-items:center;gap:10px;margin-top:4px;flex-wrap:wrap">${q}<b>${precoTxt(i)}</b><button class="btn ghost sm" onclick="rmItem(${i.id},'${i.v}')">Remover</button></div></div></div>`}).join('');
+  f.innerHTML=`<div class="tot" style="margin:0 0 12px"><span>Total</span><b>${totTxt()}</b></div><button class="btn acc full" onclick="closeCart();nav('/carrinho')">Ver carrinho e finalizar</button>`;
 }
 function pageCart(){
   if(!cart.length)return `<div class="wrap pg"><h1 class="t">Carrinho</h1><div class="box" style="text-align:center;padding:50px 10px"><p>Seu carrinho está vazio.</p><button class="btn" onclick="nav('/')">Continuar comprando</button></div></div>`;
-  return `<div class="wrap pg"><h1 class="t">Carrinho</h1><div class="two"><div class="box tbl"><table><thead><tr><th>Produto</th><th>Preço</th><th>Qtd.</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>${cart.map(i=>{const {p,q}=linhaCart(i);return `<tr><td><b style="color:var(--ink)">${esc(p.n)}</b><div style="color:var(--muted);font-size:.82rem">${esc(i.opt)}</div></td><td>${brl(ipreco(i))}</td><td>${q}</td><td class="r">${brl(ipreco(i)*i.qty)}</td><td class="r"><button class="btn ghost sm" onclick="rmItem(${i.id},'${i.v}')">Remover</button></td></tr>`}).join('')}</tbody></table></div>
-  <div class="box"><h3 style="margin-top:0">Resumo</h3><div class="tot"><span>Subtotal</span><span>${brl(cartSub())}</span><span class="big">Total</span><span class="big">${brl(cartSub())}</span></div><button class="btn acc full" style="padding:1em" onclick="nav('/revisar')">Continuar</button><p style="text-align:center;margin:12px 0 0"><a onclick="nav('/')" style="cursor:pointer">Continuar comprando</a></p></div></div></div>`;
+  return `<div class="wrap pg"><h1 class="t">Carrinho</h1><div class="two"><div class="box tbl"><table><thead><tr><th>Produto</th><th>Preço</th><th>Qtd.</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>${cart.map(i=>{const {p,q}=linhaCart(i);return `<tr><td><b style="color:var(--ink)">${esc(p.n)}</b><div style="color:var(--muted);font-size:.82rem">${esc(i.opt)}</div></td><td>${i.v===SP?'a confirmar':brl(ipreco(i))}</td><td>${q}</td><td class="r">${precoTxt(i)}</td><td class="r"><button class="btn ghost sm" onclick="rmItem(${i.id},'${i.v}')">Remover</button></td></tr>`}).join('')}</tbody></table></div>
+  <div class="box"><h3 style="margin-top:0">Resumo</h3><div class="tot"><span class="big">Total</span><span class="big">${totTxt()}</span></div><button class="btn acc full" style="padding:1em" onclick="nav('/revisar')">Continuar</button><p style="text-align:center;margin:12px 0 0"><a onclick="nav('/')" style="cursor:pointer">Continuar comprando</a></p></div></div></div>`;
 }
 
 /* ---------- vitrine e página do produto ---------- */
@@ -2698,8 +2706,8 @@ function card(p){
   return `<div class="card">${ok?'':'<span class="out">Sem estoque</span>'}
   <div class="pimg" style="background:${p.c}" onclick="nav('/produto/${p.id}')">${svg(p.ic,64)}${fotoHtml(p)}</div>
   <div class="pn" onclick="nav('/produto/${p.id}')">${esc(p.n)}</div>
-  <div class="price">${p.consulta?'<span class="consulte">Consulte o preço</span>':'<small class="apart">A partir de</small> '+brl(unit(p))}</div>
-  ${p.consulta?`<a class="btn wa" href="${waProd(p)}" target="_blank" rel="noopener">Consultar no WhatsApp</a>`:`<button class="btn acc" onclick="nav('/produto/${p.id}')">Ver produto</button>`}</div>`;
+  <div class="price">${p.consulta?'<span class="consulte">Valor sob consulta</span>':'<small class="apart">A partir de</small> '+brl(unit(p))}</div>
+  <button class="btn acc" onclick="nav('/produto/${p.id}')">Ver produto</button></div>`;
 }
 var PV={id:0,q:{}};
 function pageProd(id){
@@ -2708,7 +2716,12 @@ function pageProd(id){
   const desc=(p.d&&!/^Produto sob consulta/i.test(p.d))?`<p>${esc(p.d)}</p>`:'';
   let compra;
   if(p.consulta){
-    compra=`<div style="margin:14px 0"><a class="btn wa" style="padding:1em 1.6em" href="${waProd(p)}" target="_blank" rel="noopener">Consultar no WhatsApp</a></div><div class="note">Produto sob consulta. Fale com a nossa equipe pelo WhatsApp para saber valores, disponibilidade e condições.</div>`;
+    const q=PV.q[0]||0;
+    compra=`<div class="vars"><div class="vcard"><div class="vh"><b>Unidade</b><span class="vst ok">Disponível</span></div>
+      <div class="vp"><span>O valor é informado pelo nosso atendimento no WhatsApp.</span></div>
+      <div class="vq"><div class="qty"><button onclick="pvq(0,-1)" aria-label="Diminuir">−</button><span id="pq0">${q}</span><button onclick="pvq(0,1)" aria-label="Aumentar">+</button></div></div></div></div>
+    <button class="btn acc full" id="padd" style="padding:1em;font-weight:700;letter-spacing:.03em" onclick="pvAdd()" ${q>0?'':'disabled'}>ADICIONAR AO CARRINHO</button>
+    ${LEGAL}`;
   }else{
     compra=`<div class="vars">${p.vars.map((v,k)=>{const m=maxVar(p,v);const q=PV.q[k]||0;
       return `<div class="vcard"><div class="vh"><b>${esc(v.n)}</b><span class="vst ${m>0?'ok':'no'}">${m>0?'Disponível':'Sem estoque'}</span></div>
@@ -2724,19 +2737,23 @@ function pageProd(id){
 }
 function pvTotal(p){return (p.vars||[]).reduce((s,v,k)=>s+vPreco(v)*(PV.q[k]||0),0)}
 function pvq(k,d){
-  const p=byId(PV.id);if(!p)return;const v=p.vars[k];const m=maxVar(p,v);const q=Math.min(m,Math.max(0,(PV.q[k]||0)+d));
+  const p=byId(PV.id);if(!p)return;
+  if(p.consulta){const q=Math.min(99,Math.max(0,(PV.q[0]||0)+d));PV.q[0]=q;$('#pq0').textContent=q;$('#padd').disabled=!(q>0);return}
+  const v=p.vars[k];const m=maxVar(p,v);const q=Math.min(m,Math.max(0,(PV.q[k]||0)+d));
   if((PV.q[k]||0)+d>m)toast('Só há '+m+' disponível'+(m>1?'is':'')+' desta opção.');
   PV.q[k]=q;$('#pq'+k).textContent=q;$('#vl'+k).textContent=q>0?q+' × '+brl(vPreco(v))+' = '+brl(vPreco(v)*q):'';
   const t=pvTotal(p);$('#ptot').textContent=brl(t);$('#padd').disabled=!(t>0);
 }
 function pvAdd(){
   const p=byId(PV.id);if(!p)return;let n=0;
-  (p.vars||[]).forEach((v,k)=>{const q=PV.q[k]||0;if(q>0&&cartAdd(p.id,v.id,q))n++});
+  if(p.consulta){const q=PV.q[0]||0;if(q>0&&cartAdd(p.id,SP,q))n++}
+  else(p.vars||[]).forEach((v,k)=>{const q=PV.q[k]||0;if(q>0&&cartAdd(p.id,v.id,q))n++});
   if(!n)return;PV={id:p.id,q:{}};save();updHead();bump();route();openCart();
 }
 
 /* ---------- envio do pedido pelo WhatsApp ---------- */
 var WA_P=null;
+var valMsg=d=>cartSP()?(d.subtotal>0?'\nSubtotal (itens com preço): '+brl(d.subtotal)+'\nItens sem preço: valor a confirmar':'\nValor: a confirmar pelo atendente'):'\nSubtotal: '+brl(d.subtotal)+(d.desconto>0?'\nDesconto: - '+brl(d.desconto):'')+'\nTotal: '+brl(d.total);
 function dataBr(s){return s?s.split('-').reverse().join('/'):''}
 async function finish(){
   if(busy2)return;
@@ -2751,13 +2768,13 @@ async function finish(){
   ent.erros=er;if(er.length){route();return}
   busy2=true;const b=$('#fin');b.disabled=true;b.textContent='Registrando o pedido...';
   const w=window.open('about:blank','_blank');
-  const itens=cart.map(i=>({var:i.v,qty:i.qty}));
+  const itens=cart.map(i=>i.v===SP?{id:i.id,qty:i.qty}:{var:i.v,qty:i.qty});
   const entrega={data:ent.data,turno:ent.turno,pagamento:ent.pag,obs:ent.obs.trim(),sec:ent.sec?Object.assign({},normEnd(ent.s),{cep:fmtCep(ent.s.cep)}):null};
   const r=await SB.rpc('criar_pedido',{p_itens:itens,p_entrega:entrega,p_codigo:(rv.ref&&rv.code)?rv.code:null,p_usar_credito:!!rv.use});
   busy2=false;
   if(r.error){if(w)w.close();ent.erros=[msgRpc(r.error)];try{await bancoProdutos()}catch(x){}route();return}
   const d=r.data,e=u.end||{},dest=ent.sec?ent.s:e;
-  const msg=nl('Olá! Acabei de fazer o pedido '+d.codigo+' pelo site.\n'+linhasCarrinho()+'\nSubtotal: '+brl(d.subtotal)+(d.desconto>0?'\nDesconto: - '+brl(d.desconto):'')+'\nTotal: '+brl(d.total)
+  const msg=nl('Olá! Acabei de fazer o pedido '+d.codigo+' pelo site.\n'+linhasCarrinho()+valMsg(d)
     +'\n\nEntrega desejada: '+dataBr(ent.data)+', '+TURNOS[ent.turno]+'\nForma de pagamento: '+PAGNOME[ent.pag]
     +'\nEndereço: '+dest.rua+', '+dest.num+(dest.comp?', '+dest.comp:'')+', '+dest.bairro+', '+dest.cidade+'/'+dest.uf
     +'\nCliente: '+u.nome+' '+u.sobrenome+(u.fone?' ('+u.fone+')':'')+(ent.obs.trim()?'\nObservações: '+ent.obs.trim():''));
@@ -2891,6 +2908,8 @@ async function admSalvar(){
   }
 }
 var STSEQ=['realizado','confirmado','preparacao','separacao','aguardando-programacao','programada','em-rota','entregue','tentativa','cancelado'];
+var temSP=o=>(o.itens||[]).some(i=>i.semPreco);
+var totAdm=o=>temSP(o)?(pedTotal(o)>0?brl(pedTotal(o))+' + a confirmar':'A confirmar'):brl(pedTotal(o));
 var pedTotal=o=>(o.itens||[]).reduce((s,i)=>s+i.unit*i.qty,0)-(o.desconto?+o.desconto.valor:0);
 var codPed=o=>'ZP-'+String(o.id).padStart(6,'0');
 var foneWa=f=>{const d=String(f||'').replace(/\D/g,'');return d?(d.length<=11?'55'+d:d):''};
@@ -2937,7 +2956,7 @@ function admDetalhe(){
   const gestao=ADMIN.papel!=='separador';const fim=u;
   const sub=(o.itens||[]).reduce((s,i)=>s+i.unit*i.qty,0);
   const fone=foneWa(en.fone);
-  const linkOk=!!A9.link&&fone;
+  const linkOk=!!A9.link&&fone&&!temSP(o);
   return `<div class="box"><p><a style="cursor:pointer" onclick="admFechaPedido()">← Voltar para os pedidos</a></p>${msgBox()}
   <h2 style="margin:0 0 4px">Pedido ${codPed(o)}</h2><div style="color:var(--muted);margin-bottom:12px">Feito em ${fmtD(Date.parse(o.criado_em))} · <b>${esc(STLB[o.status]||o.status)}</b> · Pagamento: <b>${pg.status==='pago'?'recebido':'pendente'}</b></div>
   <div class="two" style="gap:20px"><div>
@@ -2945,8 +2964,8 @@ function admDetalhe(){
   <p style="margin:0"><b>${esc(en.nome||'')}</b><br>${fone?`<a href="https://wa.me/${fone}" target="_blank" rel="noopener">${esc(en.fone)}</a>`:esc(en.fone||'')}</p>
   <p>${esc(d.rua||'')}, ${esc(d.num||'')}${d.comp?', '+esc(d.comp):''}<br>${esc(d.bairro||'')}<br>${esc(d.cidade||'')}/${esc(d.uf||'')}, CEP ${esc(d.cep||'')}${d.ref?'<br>Referência: '+esc(d.ref):''}${en.secundario?'<br><i>Endereço secundário informado pelo cliente</i>':''}</p>
   <p style="margin:0">Entrega desejada: <b>${dataBr(en.data)} (${esc(TURNOS[en.turno]||'')})</b><br>Forma de pagamento escolhida: <b>${esc(PAGNOME[pg.preferencia]||'não informada')}</b>${en.obs?'<br>Observação do cliente: '+esc(en.obs):''}</p>
-  <h3>Itens</h3><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${(o.itens||[]).map(i=>`<tr><td>${esc(i.name)}<div style="color:var(--muted);font-size:.8rem">SKU ${esc(i.sku||'')}</div></td><td>${i.qty}</td><td class="r">${brl(i.unit*i.qty)}</td></tr>`).join('')}</tbody></table></div>
-  <div class="tot"><span>Subtotal</span><span>${brl(sub)}</span>${o.desconto?`<span class="dsc">Desconto (${o.desconto.pct}%)</span><span class="dsc">- ${brl(o.desconto.valor)}</span>`:''}<span class="big">Total</span><span class="big">${brl(pedTotal(o))}</span></div>
+  <h3>Itens</h3><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${(o.itens||[]).map(i=>`<tr><td>${esc(i.name)}<div style="color:var(--muted);font-size:.8rem">SKU ${esc(i.sku||'')}</div></td><td>${i.qty}</td><td class="r">${i.semPreco?'a confirmar':brl(i.unit*i.qty)}</td></tr>`).join('')}</tbody></table></div>
+  <div class="tot"><span>Subtotal</span><span>${temSP(o)?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span>${o.desconto?`<span class="dsc">Desconto (${o.desconto.pct}%)</span><span class="dsc">- ${brl(o.desconto.valor)}</span>`:''}<span class="big">Total</span><span class="big">${totAdm(o)}</span></div>
   </div><div>
   ${gestao?`<h3 style="margin-top:0">Status do pedido</h3>${fim?'<div class="note">Pedido encerrado. O status não muda mais.</div>':`<label for="stN">Novo status</label><select id="stN">${STSEQ.filter(s=>s!==o.status&&s!=='cancelado').map(s=>`<option value="${s}">${STLB[s]}</option>`).join('')}</select><label for="stM">Motivo ou observação para o cliente (obrigatório para cancelar)</label><input id="stM" maxlength="200"><p style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn acc" onclick="admStatus()">Atualizar status e avisar cliente</button><button class="btn ghost" onclick="admCancelarPedido()">Cancelar pedido</button></p>`}
   <h3>Pagamento</h3>
@@ -2963,7 +2982,7 @@ function listaPed(filtro,intro){
   if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
   const lista=A9.pedidos.filter(o=>(!filtro||filtro(o))&&(!A9.fs||o.status===A9.fs));
   return `<div class="box"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><p style="margin:0;color:var(--muted)">${intro||'Pedidos mais recentes (até 100).'}</p><div style="display:flex;gap:8px"><select onchange="A9.fs=this.value;route()" style="width:auto"><option value="">Todos os status</option>${STSEQ.map(s=>`<option value="${s}" ${A9.fs===s?'selected':''}>${STLB[s]}</option>`).join('')}</select><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar</button></div></div>${msgBox()}
-  <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Entrega desejada</th><th>Pagamento</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const pg=o.pagamento||{};return `<tr><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' '+((en.dest||{}).cidade||''))}</div></td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td><td>${brl(pedTotal(o))}</td><td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td><td>${esc(PAGNOME[pg.preferencia]||'')}<div style="font-size:.8rem;color:${pg.status==='pago'?'#1a7f37':'var(--muted)'}">${pg.status==='pago'?'Recebido':'Pendente'}</div></td><td>${esc(STLB[o.status]||o.status)}</td><td><button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||'<tr><td colspan="8">Nenhum pedido.</td></tr>'}</tbody></table></div></div>`;
+  <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Entrega desejada</th><th>Pagamento</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const pg=o.pagamento||{};return `<tr><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' '+((en.dest||{}).cidade||''))}</div></td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td><td>${totAdm(o)}</td><td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td><td>${esc(PAGNOME[pg.preferencia]||'')}<div style="font-size:.8rem;color:${pg.status==='pago'?'#1a7f37':'var(--muted)'}">${pg.status==='pago'?'Recebido':'Pendente'}</div></td><td>${esc(STLB[o.status]||o.status)}</td><td><button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||'<tr><td colspan="8">Nenhum pedido.</td></tr>'}</tbody></table></div></div>`;
 }
 var ENC=o=>['entregue','cancelado'].includes(o.status);
 var emAtraso=o=>!ENC(o)&&(o.entrega||{}).data&&(o.entrega||{}).data<hojeS();
@@ -3019,7 +3038,7 @@ function payCliente(o){
   const p=o.pagamento||{};
   if(pago(o))return `<div class="paybox ok"><b>Pagamento recebido</b><div>${p.pagoEm?'Recebido em '+fmtD(p.pagoEm)+'. ':''}Obrigado!</div></div>`;
   if(o.status==='cancelado')return '';
-  return `<div class="paybox wait"><b>Como será o pagamento</b><p style="margin:6px 0 0">Forma escolhida: <b>${esc(PAGNOME[p.preferencia]||'a combinar')}</b>. Nossa equipe envia o link de pagamento pelo WhatsApp. Valor do pedido: <b>${brl(total(o))}</b>.</p></div>`;
+  return `<div class="paybox wait"><b>Como será o pagamento</b><p style="margin:6px 0 0">Forma escolhida: <b>${esc(PAGNOME[p.preferencia]||'a combinar')}</b>. ${temSPo(o)?'Nossa equipe confirma o valor com você pelo WhatsApp e envia o link de pagamento.':'Nossa equipe envia o link de pagamento pelo WhatsApp. Valor do pedido: <b>'+brl(total(o))+'</b>.'}</p></div>`;
 }
 
 
