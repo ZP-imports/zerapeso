@@ -679,7 +679,7 @@ let sl=0,slT;
 function slide(d){const s=document.querySelectorAll('.sl'),dt=document.querySelectorAll('.dots button');if(!s.length)return;sl=(sl+d+s.length)%s.length;s.forEach((e,i)=>e.classList.toggle('on',i===sl));dt.forEach((e,i)=>e.classList.toggle('on',i===sl))}
 function pageHome(){
   const ben=[['Entrega rápida','Consulte prazo e regiões atendidas*','M2 6h11v10H2zM13 9h4l3 3v4h-7'],['Pague na entrega','Link de pagamento enviado quando o pedido sai para entrega','M3 6h18v12H3zM3 10h18M7 15h4'],['Equipe de saúde','Atendimento por profissionais','M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z']];
-  const D0=Object.keys(TREE)[0];const deps=Object.keys(TREE).filter(d=>d!=='Ofertas');const dIc={'Medicamentos':'inj','Produtos injetáveis':'inj','Acessórios de aplicação':'needle','Acompanhamento':'scale'};
+  const D0=Object.keys(TREE)[0];const deps=Object.keys(TREE).filter(d=>d!=='Ofertas');const dIc={'Medicamentos':'inj','Produtos injetáveis':'inj','Acessórios de aplicação':'needle','Caixas':'inj','Ampolas':'inj','Acompanhamento':'scale'};
   const slides=SL();
   return `<section class="hero" id="hero">${slides.map((s,i)=>`<div class="sl ${i?'':'on'}" style="background:${s.c}" onclick="nav('${s.l}')"><div class="wrap"><span class="tag">${s.s}</span><strong>${s.t}</strong><u>${s.b}</u></div></div>`).join('')}
    <button class="arr l" onclick="slide(-1)" aria-label="Anterior"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m15 5-7 7 7 7"/></svg></button><button class="arr r" onclick="slide(1)" aria-label="Próximo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 5 7 7-7 7"/></svg></button>
@@ -687,10 +687,9 @@ function pageHome(){
   <section class="ben"><div class="wrap g">${ben.map(b=>`<div class="bi"><span class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${b[2]}"/></svg></span><div><b>${b[0]}</b><small>${b[1]}</small></div></div>`).join('')}</div></section>
   ${shelf(D0+' em destaque',LIVE().filter(p=>p.cat[0]===D0&&p.cat[1]!=='Acessórios de Aplicação'),'/cat/'+encodeURIComponent(D0))}
   <section class="sec"><div class="wrap"><div class="sh"><h2>Compre por departamento</h2></div><div class="deps">${deps.map(d=>`<div class="dep" onclick="nav('/cat/${encodeURIComponent(d)}')"><span>${svg(dIc[d]||'cross',46)}</span>${d}</div>`).join('')}</div></div></section>
-  <section class="sec"><div class="wrap"><div class="sh"><h2>Destaques</h2><a onclick="nav('/cat/${encodeURIComponent(D0)}')">Ver tudo</a></div><div class="tiles">${Object.keys(TREE).filter(d=>d!=='Ofertas'&&d!=='Acompanhamento').flatMap(d=>Object.keys(TREE[d]).map(g=>[d,g])).map(([d,g])=>`<div class="tile" onclick="nav('/cat/${encodeURIComponent(d+'/'+g)}')"><b>${g}</b><em>Ver produtos</em></div>`).join('')}<div class="tile" onclick="nav('/cat/Ofertas')"><b>Ofertas</b><em>Ver produtos</em></div></div></div></section>
   <section class="amigoban"><div class="wrap g"><div><h2>Amigo Emagrece Amigo${amOn()?': '+AM.pct+'% de desconto':''}</h2><p>Indique a ${esc(CFG.brand)} para um amigo. Ele ganha desconto na primeira compra e você ganha desconto a cada amigo que comprar.</p></div><button class="btn" style="padding:1em 2em" onclick="nav('/amigo')">Quero indicar</button></div></section>`;
 }
-function matchCat(p,path){const parts=path.split('/').filter(Boolean);if(parts[0]==='Ofertas')return OFERTA(p);return parts.every((x,i)=>p.cat[i]===x)}
+function matchCat(p,path){const parts=path.split('/').filter(Boolean);if(parts[0]==='Ofertas')return OFERTA(p);if(parts[0]==='Caixas')return !!(p.vars&&p.vars.some(v=>/^caixa/i.test(v.n)));return parts.every((x,i)=>p.cat[i]===x)}
 function pageCat(path){
   path=decodeURIComponent(path);const parts=path.split('/');const sort=DB.get('sort','rel');
   let list=LIVE().filter(p=>matchCat(p,path));
@@ -2432,12 +2431,12 @@ async function bancoConfig(){
 }
 /* o menu e a página inicial seguem as categorias que vêm dos produtos */
 function bancoTree(){
-  const ordem=['Produtos injetáveis','Acessórios de aplicação'];const t={};
+  const ordem=['Ampolas','Produtos injetáveis'];const t={};
   PRODUCTS.filter(p=>p.ativo!==false&&p.cat&&p.cat.length).forEach(p=>{const d=p.cat[0],g=p.cat[1],s=p.cat[2];t[d]=t[d]||{};if(g){t[d][g]=t[d][g]||[];if(s&&!t[d][g].includes(s))t[d][g].push(s)}});
   const chaves=Object.keys(t).sort((a,b)=>{const ia=ordem.indexOf(a),ib=ordem.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)});
   Object.keys(TREE).forEach(k=>delete TREE[k]);
   chaves.forEach(k=>{TREE[k]=t[k]});
-  TREE['Acompanhamento']={};TREE['Ofertas']={};
+  TREE['Caixas']=TREE['Caixas']||{};TREE['Acompanhamento']={};TREE['Ofertas']={};
 }
 async function bancoProdutos(){
   const r=await SB.from('produtos').select('*').order('id');
