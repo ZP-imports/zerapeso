@@ -1247,7 +1247,8 @@ function resumoCliente(o){
   return `<div class="pgrid">
    <div class="pbox"><small>Previsão de entrega</small><b>${fmtDay(e.data)}</b><div>${turnoNome(e.turno)}${e.janela?', '+esc(e.janela):''}</div>${rea?'<span class="st s-prog" style="margin-top:6px">Reagendado '+rea+'x</span>':''}</div>
    <div class="pbox"><small>Endereço de entrega</small><div style="margin-top:2px">${enderecoHtml(e.dest)}</div>${e.secundario?'<small style="display:block;margin-top:4px">Entrega no endereço secundário.</small>':''}</div>
-   <div class="pbox"><small>Pagamento</small><b>${pago(o)?'Pago':(['em-rota','entregue','tentativa'].includes(o.status)?'Pagar pelo link':'Link na rota')}</b><div>Valor combinado ${brl(valorAcordado(o))}${taxaEnt(o)>0?'<br>com entrega de '+brl(taxaEnt(o)):''}</div>${p.pagoEm?'<small style="display:block;margin-top:4px">Recebido em '+fmtD(p.pagoEm)+'</small>':''}</div>
+   ${o.entregadorNome?`<div class="pbox"><small>Entregador</small><b>${esc(o.entregadorNome)}</b><div>Responsável pela sua entrega</div></div>`:''}
+   <div class="pbox"><small>Pagamento</small><b>${pago(o)?'Pago':'A combinar pelo WhatsApp'}</b><div>${temSPo(o)?'Valor a confirmar':'Valor '+brl(valorAcordado(o))}${taxaEnt(o)>0?'<br>com entrega de '+brl(taxaEnt(o)):''}</div>${p.pagoEm?'<small style="display:block;margin-top:4px">Recebido em '+fmtD(p.pagoEm)+'</small>':''}</div>
   </div>`;
 }
 function itensCliente(o){
@@ -1297,7 +1298,6 @@ function timelineCliente(o){
 }
 /* ---------- endereço público e textos ---------- */
 
-setInterval(()=>{if(gwVerificarExpiracao()&&/^#\/(pedido|pedidos|operador)/.test(location.hash)&&!emEdicao())route()},30000);
 
 /* ---------- páginas institucionais (texto modelo, a revisar antes de publicar) ---------- */
 const INFO=[['duvidas','Dúvidas frequentes'],['como-comprar','Como comprar'],['entregas','Entregas'],['pagamento','Formas de pagamento'],['trocas','Troca e devolução'],['privacidade','Política de privacidade'],['termos','Termos de uso']];
@@ -1781,7 +1781,7 @@ function pageAcompanhar(code,token){
   const o=code?pedidoPorCodigo(decodeURIComponent(code)):null;
   if(!o||!token||o.token!==token)return pageAcompanharForm(code?'Este link não é válido. Informe o código e o final do telefone.':'');
   const wa=waUrl('Olá! Gostaria de falar sobre o pedido '+codigoPedido(o)+'.');
-  return `<div class="wrap pg"><h1 class="t">Acompanhe o seu pedido</h1><div class="box pcard"><div class="pc-head"><div><b class="pc-cod">Pedido ${codigoPedido(o)}</b> <span class="st ${CLS[o.status]}">${LAB[o.status]}</span> ${pagChip(o)}<div class="pc-sub">Feito em ${fmtD(o.at)} · Valor combinado ${brl(valorAcordado(o))}</div></div><div class="btns"><a class="btn ghost sm" href="${wa}" target="_blank" rel="noopener">Falar sobre este pedido</a></div></div>
+  return `<div class="wrap pg"><h1 class="t">Acompanhe o seu pedido</h1><div class="box pcard"><div class="pc-head"><div><b class="pc-cod">Pedido ${codigoPedido(o)}</b> <span class="st ${CLS[o.status]}">${LAB[o.status]}</span> ${pagChip(o)}<div class="pc-sub">Feito em ${fmtD(o.at)} · ${temSPo(o)?'Valor a confirmar':'Valor '+brl(valorAcordado(o))}</div></div><div class="btns"><a class="btn ghost sm" href="${wa}" target="_blank" rel="noopener">Falar sobre este pedido</a></div></div>
   ${payCliente(o)}${resumoCliente(o)}${itensCliente(o)}${timelineCliente(o)}</div></div>`;
 }
 
@@ -1791,7 +1791,7 @@ function pagePedidos(){
   const list=myOrders().slice().reverse();
   const wa=o=>waUrl('Olá! Gostaria de falar sobre o pedido '+codigoPedido(o)+'.');
   return `<div class="wrap pg"><h1 class="t">Meus pedidos e rastreio</h1>${list.length?list.map(o=>{
-   const cab=`<div class="pc-head"><div><b class="pc-cod">Pedido ${codigoPedido(o)}</b> <span class="st ${CLS[o.status]}">${LAB[o.status]}</span> ${pagChip(o)}${reagendados(o)?' <span class="st s-falha">Reagendado</span>':''}<div class="pc-sub">Feito em ${fmtD(o.at)} · Valor combinado ${brl(valorAcordado(o))}</div></div><div class="btns"><a class="btn ghost sm" href="${wa(o)}" target="_blank" rel="noopener">Falar sobre este pedido</a></div></div>`;
+   const cab=`<div class="pc-head"><div><b class="pc-cod">Pedido ${codigoPedido(o)}</b> <span class="st ${CLS[o.status]}">${LAB[o.status]}</span> ${pagChip(o)}${reagendados(o)?' <span class="st s-falha">Reagendado</span>':''}<div class="pc-sub">Feito em ${fmtD(o.at)} · ${temSPo(o)?'Valor a confirmar':'Valor '+brl(valorAcordado(o))}</div></div><div class="btns"><a class="btn ghost sm" href="${wa(o)}" target="_blank" rel="noopener">Falar sobre este pedido</a></div></div>`;
    return `<div class="box pcard">${cab}${avisosHtml(o)}${payCliente(o)}${resumoCliente(o)}${itensCliente(o)}${timelineCliente(o)}</div>`;
   }).join(''):'<div class="box" style="text-align:center;padding:40px"><p>Você ainda não fez pedidos.</p><button class="btn" onclick="nav(\'/\')">Ver produtos</button></div>'}</div>`;
 }
@@ -1841,7 +1841,7 @@ function pagAdminHtml(o){
     :`<button class="btn acc" onclick="pgAbrir(${o.id})">Registrar pagamento recebido</button>`;
   const msg=o.msgPag?`<h4 style="margin:16px 0 6px">Mensagem com o link de pagamento</h4><p style="margin:0 0 6px;font-size:.82rem;color:var(--muted)">${p.linkEnviadoEm?'WhatsApp aberto em '+fmtD(p.linkEnviadoEm)+'. O sistema não confirma o envio.':'Pronta para enviar ao cliente. O envio só acontece quando você enviar no WhatsApp.'}</p><textarea id="msgPagT${o.id}" rows="9">${esc(o.msgPag.texto)}</textarea><p style="margin:8px 0 0"><button class="btn wa" onclick="enviarLinkCliente(${o.id})">Abrir WhatsApp com a mensagem</button></p>${CFG.linkPag?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre na aba Site antes de enviar.</div>'}`
     :(['em-rota','entregue','tentativa'].includes(o.status)?`<p><button class="btn sm" onclick="msgManual(${o.id})">Preparar a mensagem com o link</button></p>`:'<div class="note">A mensagem com o link de pagamento é preparada quando o pedido entrar em rota.</div>');
-  return `<h3 style="margin-top:0">Pagamento por link, na rota</h3><div class="paybox ${pago(o)?'ok':'wait'}" style="margin:0 0 10px"><b>${s[0]}</b> · Valor combinado ${brl(valorAcordado(o))}<div style="font-size:.8rem;color:var(--muted)">Produtos ${brl(total(o))} + taxa de entrega ${brl(taxaEnt(o))}</div></div>
+  return `<h3 style="margin-top:0">Pagamento por link, na rota</h3><div class="paybox ${pago(o)?'ok':'wait'}" style="margin:0 0 10px"><b>${s[0]}</b> · ${temSPo(o)?'Valor a confirmar':'Valor '+brl(valorAcordado(o))}<div style="font-size:.8rem;color:var(--muted)">Produtos ${brl(total(o))} + taxa de entrega ${brl(taxaEnt(o))}</div></div>
   <div class="fr"><div class="c2"><label for="ptx">Taxa de entrega (R$)</label><input id="ptx" type="number" min="0" step="0.01" value="${taxaEnt(o)}" ${pago(o)?'disabled':''}></div><div class="c2" style="align-self:end"><button class="btn sm" onclick="admTaxa(${o.id})" ${pago(o)?'disabled':''}>Salvar taxa</button></div></div>
   <h4 style="margin:16px 0 6px">Recebimento</h4>${rec}${msg}`;
 }
@@ -2521,7 +2521,7 @@ function mapPedido(p,evs,avs){
     eventos:evs.map(e=>({id:e.id,t:Date.parse(e.t),tipo:e.tipo,de:e.de,para:e.para,publico:e.publico,texto:e.texto,motivo:e.motivo,por:e.por})),
     avisos:avs.map(a=>({id:a.id,t:Date.parse(a.t),titulo:a.titulo,texto:a.texto,lido:a.lido,motivo:a.motivo,previsao:a.previsao,evId:a.evento_id})),
     etiquetas:[],pagamento:p.pagamento||{modo:'link',status:'pendente',taxaEntrega:0},conf:p.conf_n||p.id,reduced:true,track:p.rastreio,
-    entrega:p.entrega,disc:p.desconto,ref:p.indicacao?{owner:p.indicacao.owner,code:p.indicacao.code}:null,token:p.token,rotaId:p.rota_id,entregadorId:p.entregador_id};
+    entrega:p.entrega,disc:p.desconto,ref:p.indicacao?{owner:p.indicacao.owner,code:p.indicacao.code}:null,token:p.token,rotaId:p.rota_id,entregadorId:p.entregador_id,entregadorNome:p.entregador_nome||''};
 }
 async function bancoPedidos(){
   const r=await SB.from('pedidos_cliente').select('*').order('id');
@@ -2841,7 +2841,7 @@ async function finish(){
   const msg=nl('Olá! Acabei de fazer o pedido '+d.codigo+' pelo site.\n'+linhasCarrinho()+valMsg(d)
     +'\n\nEntrega desejada: '+dataBr(ent.data)+', '+TURNOS[ent.turno]+'\nForma de pagamento: '+PAGNOME[ent.pag]
     +'\nEndereço: '+dest.rua+', '+dest.num+(dest.comp?', '+dest.comp:'')+', '+dest.bairro+', '+dest.cidade+'/'+dest.uf
-    +'\nCliente: '+u.nome+' '+u.sobrenome+(u.fone?' ('+u.fone+')':'')+(ent.obs.trim()?'\nObservações: '+ent.obs.trim():''));
+    +'\nCliente: '+u.nome+' '+u.sobrenome+(u.fone?' ('+u.fone+')':'')+(ent.obs.trim()?'\nObservações: '+ent.obs.trim():'')+'\n\nAcompanhe o pedido: '+trackUrl(d.codigo,d.token));
   const url=waUrl(msg);WA_P={id:d.id,url};
   cart=[];rv={code:'',use:false,msg:'',ref:null};
   ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:'',turno:'',pag:'',obs:'',erros:[]};
@@ -2991,7 +2991,8 @@ async function admAbrirPedido(id){
   const [r,ev,et]=await Promise.all([SB.from('pedidos').select('*').eq('id',id).single(),SB.from('pedido_eventos').select('*').eq('pedido_id',id).order('t'),SB.from('etiquetas').select('*').eq('pedido_id',id).order('v')]);
   if(r.error){A9.msg='Não foi possível abrir o pedido.';A9.erro=true;route();return}
   await admCarregarLink();
-  A9.po=Object.assign({},r.data,{eventos:ev.data||[],etiquetas:et.data||[]});route();window.scrollTo(0,0);
+  A9.po=Object.assign({},r.data,{eventos:ev.data||[],etiquetas:et.data||[]});
+  if(r.data.entregador_id){const en2=await SB.from('entregadores').select('nome').eq('id',r.data.entregador_id).maybeSingle();A9.po.entregadorNome=en2.data&&en2.data.nome||''}route();window.scrollTo(0,0);
 }
 function admFechaPedido(){A9.po=null;A9.msg='';A9.pedidos=null;route()}
 async function admRpc(nome,args,ok){
@@ -3027,11 +3028,13 @@ function admDetalhe(){
   <h3 style="margin-top:0">Cliente e entrega</h3>
   <p style="margin:0"><b>${esc(en.nome||'')}</b><br>${fone?`<a href="https://wa.me/${fone}" target="_blank" rel="noopener">${esc(en.fone)}</a>`:esc(en.fone||'')}</p>
   <p>${esc(d.rua||'')}, ${esc(d.num||'')}${d.comp?', '+esc(d.comp):''}<br>${esc(d.bairro||'')}<br>${esc(d.cidade||'')}/${esc(d.uf||'')}, CEP ${esc(d.cep||'')}${d.ref?'<br>Referência: '+esc(d.ref):''}${en.secundario?'<br><i>Endereço secundário informado pelo cliente</i>':''}</p>
-  <p style="margin:0">Entrega desejada: <b>${dataBr(en.data)} (${esc(TURNOS[en.turno]||'')})</b><br>Forma de pagamento escolhida: <b>${esc(PAGNOME[pg.preferencia]||'não informada')}</b>${en.obs?'<br>Observação do cliente: '+esc(en.obs):''}</p>
+  <p style="margin:0">Entrega desejada: <b>${dataBr(en.data)} (${esc(TURNOS[en.turno]||'')})</b>${o.entregadorNome?'<br>Entregador: <b>'+esc(o.entregadorNome)+'</b>':''}<br>Forma de pagamento escolhida: <b>${esc(PAGNOME[pg.preferencia]||'não informada')}</b>${en.obs?'<br>Observação do cliente: '+esc(en.obs):''}</p>
   <h3>Itens</h3><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${(o.itens||[]).map(i=>`<tr><td>${esc(i.name)}<div style="color:var(--muted);font-size:.8rem">SKU ${esc(i.sku||'')}</div></td><td>${i.qty}</td><td class="r">${i.semPreco?'a confirmar':brl(i.unit*i.qty)}</td></tr>`).join('')}</tbody></table></div>
   <div class="tot"><span>Subtotal</span><span>${temSP(o)?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span>${o.desconto?`<span class="dsc">Desconto (${o.desconto.pct}%)</span><span class="dsc">- ${brl(o.desconto.valor)}</span>`:''}<span class="big">Total</span><span class="big">${totAdm(o)}</span></div>
   </div><div>
   ${gestao?`<h3 style="margin-top:0">Status do pedido</h3>${fim?'<div class="note">Pedido encerrado. O status não muda mais.</div>':`<label for="stN">Novo status</label><select id="stN">${STSEQ.filter(s=>s!==o.status&&s!=='cancelado').map(s=>`<option value="${s}">${STLB[s]}</option>`).join('')}</select><label for="stM">Motivo ou observação para o cliente (obrigatório para cancelar)</label><input id="stM" maxlength="200"><p style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn acc" onclick="admStatus()">Atualizar status e avisar cliente</button><button class="btn ghost" onclick="admCancelarPedido()">Cancelar pedido</button></p>`}
+  <h3>Rastreio</h3>
+  <p>${fone?`<a class="btn ghost sm" href="${waUrlPara(fone,msgRastreio(o))}" target="_blank" rel="noopener">Enviar link de rastreio ao cliente</a>`:'<span style="color:var(--muted)">Sem telefone do cliente.</span>'}</p>
   <h3>Pagamento</h3>
   ${A9.link?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre em Configurações.</div>'}
   <p style="display:flex;gap:8px;flex-wrap:wrap">${linkOk?`<a class="btn wa" href="${waUrlPara(fone,admMsgPagamento(o))}" target="_blank" rel="noopener">Enviar link de pagamento no WhatsApp</a>`:''}${o.status==='cancelado'?'':pg.status==='pago'?'<button class="btn ghost" onclick="admPago(false)">Voltar para pendente</button>':'<button class="btn" onclick="admPago(true)">Marcar como pago</button>'}</p>
@@ -3284,6 +3287,36 @@ function prefHtml(turnos){
   const col=(k,t,val)=>`<div class="dp-col"><span class="dp-t">${t}</span><button type="button" class="dp-up" onclick="entDt('${k}',1)" aria-label="Aumentar ${t.toLowerCase()}">+</button><b class="dp-v">${val}</b><button type="button" class="dp-dn" onclick="entDt('${k}',-1)" aria-label="Diminuir ${t.toLowerCase()}">−</button></div>`;
   return '<h3 class="pref-h">Preferência de entrega</h3><div class="pf-l">Data de entrega</div><div class="datepick"><div class="dp-cols">'+col('d','DIA',v.d)+col('m','MÊS',v.m)+col('y','ANO',v.y)+'</div><div class="dp-sum">'+v.txt+'</div></div>'
    +'<div class="pf-l" style="margin-top:16px">Melhor horário para a entrega</div><div class="turnos3">'+(turnos.map(t=>'<label class="turno3 '+(ent.turno===t?'on':'')+'"><input type="radio" name="turno" value="'+t+'" '+(ent.turno===t?'checked':'')+' onchange="ent.turno=this.value;route()">'+TURNOS[t]+'</label>').join('')||'<span class="note err">Nenhum turno disponível no momento.</span>')+'</div>';
+}
+
+/* ---------- rastreio por link (sem login) ---------- */
+var TRK=window.TRK||{};
+function trackUrl(codigo,token){return location.href.split('#')[0]+'#/acompanhar/'+codigo+'/'+token}
+function msgRastreio(o){const nome=String((o.entrega||{}).nome||'').split(' ')[0];return nl('Olá, '+nome+'! Acompanhe o seu pedido '+codPed(o)+' por aqui: '+trackUrl(codPed(o),o.token))}
+function pageAcompanhar(code,token){
+  if(!window.TRK)window.TRK={};
+  const caixa=t=>'<div class="wrap pg"><h1 class="t">Acompanhe o seu pedido</h1><div class="box" style="max-width:560px">'+t+'</div></div>';
+  if(!code||!token)return caixa('<p style="margin-top:0">Para acompanhar um pedido, abra o link de acompanhamento que enviamos pelo WhatsApp ou entre na sua conta e veja em Meus pedidos.</p><p><button class="btn acc" onclick="nav(\'/pedidos\')">Ver meus pedidos</button></p>');
+  if(!window.__banco)return caixa('<p style="margin:0;color:var(--muted)">Carregando...</p>');
+  const key=code+'/'+token;
+  if(TRK[key]===undefined){
+    TRK[key]=null;
+    if(!SB)return caixa('<p>Sem conexão com o servidor. Recarregue a página e tente de novo.</p>');
+    SB.rpc('rastrear_pedido',{p_codigo:decodeURIComponent(code),p_token:token}).then(r=>{TRK[key]=(r.error||!r.data)?false:r.data;if(/^#\/acompanhar/.test(location.hash))route()});
+  }
+  const r=TRK[key];
+  if(r===null)return caixa('<p style="margin:0;color:var(--muted)">Buscando o seu pedido...</p>');
+  if(r===false)return caixa('<div class="note err">Este link não é válido. Confira o link que enviamos pelo WhatsApp.</div><p><button class="btn" onclick="nav(\'/\')">Ir para a loja</button></p>');
+  const wa=waUrl('Olá! Gostaria de falar sobre o pedido '+r.codigo+'.');
+  const evs=(r.eventos||[]).slice().reverse();
+  return '<div class="wrap pg"><h1 class="t">Acompanhe o seu pedido</h1><div class="box pcard"><div class="pc-head"><div><b class="pc-cod">Pedido '+esc(r.codigo)+'</b> <span class="st '+(CLS[r.status]||'')+'">'+esc(LAB[r.status]||r.status)+'</span><div class="pc-sub">Feito em '+fmtD(Date.parse(r.criado_em))+'</div></div><div class="btns"><a class="btn ghost sm" href="'+wa+'" target="_blank" rel="noopener">Falar sobre este pedido</a></div></div>'
+   +'<div class="pgrid"><div class="pbox"><small>Previsão de entrega</small><b>'+fmtDay(r.data)+'</b><div>'+esc(TURNOS[r.turno]||'')+'</div></div>'
+   +'<div class="pbox"><small>Entrega em</small><b>'+esc(r.cidade||'')+(r.uf?'/'+esc(r.uf):'')+'</b></div>'
+   +(r.entregador?'<div class="pbox"><small>Entregador</small><b>'+esc(r.entregador)+'</b><div>Responsável pela sua entrega</div></div>':'')
+   +'<div class="pbox"><small>Pagamento</small><b>'+(r.pago?'Pago':'A combinar pelo WhatsApp')+'</b></div></div>'
+   +'<h3>Itens do pedido</h3><div class="tbl"><table><tbody>'+r.itens.map(i=>'<tr><td>'+esc(i.name)+'</td><td>'+i.qty+'</td></tr>').join('')+'</tbody></table></div>'
+   +'<h3>Andamento</h3>'+(evs.length?'<div class="tbl"><table><tbody>'+evs.map(e=>'<tr><td style="white-space:nowrap">'+fmtD(Date.parse(e.t))+'</td><td>'+esc(e.texto||'')+(e.motivo?'<div style="color:var(--muted);font-size:.82rem">Motivo: '+esc(e.motivo)+'</div>':'')+'</td></tr>').join('')+'</tbody></table></div>':'<p style="color:var(--muted)">Ainda sem atualizações.</p>')
+   +'</div></div>';
 }
 
 </script>
