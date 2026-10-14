@@ -750,7 +750,8 @@ function card(p){
   ${p.consulta?`<a class="btn wa" href="${waProd(p)}" target="_blank" rel="noopener">Consultar no WhatsApp</a>`:left<=0?'<button class="btn" disabled>Indisponível</button>':p.opts?`<button class="btn" onclick="nav('/produto/${p.id}')">Escolher opção</button>`:`<button class="btn" onclick="addCart(${p.id},1,'',this)">Adicionar ao carrinho</button>`}</div>`;
 }
 function shelf(t,list,link){return list.length?`<section class="sec"><div class="wrap"><div class="sh"><h2>${t}</h2>${link?`<a onclick="nav('${link}')">Ver todos</a>`:''}</div><div class="grid">${list.map(card).join('')}</div></div></section>`:''}
-const BANURL=(n,v)=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/public/produtos/'+n+'-'+v+'.webp';
+const BANVER='2';/* troque este número quando substituir as imagens dos banners no Storage */
+const BANURL=(n,v)=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/public/produtos/'+n+'-'+v+'.webp?v='+BANVER;
 const SL=()=>[{t:'Medicamentos para emagrecimento com praticidade e entrega rápida',s:CFG.brand,b:'Ver medicamentos',l:'/cat/'+encodeURIComponent('Produtos disponíveis'),c:'#0a6e5c',img:'banner-01'},
  {t:amOn()?`Amigo Emagrece Amigo: ${AM.pct}% de desconto`:'Amigo Emagrece Amigo',s:'Indique e ganhe',b:'Saiba como',l:'/amigo',c:'#b97a00',img:'banner-02'}];
 let sl=0,slT;
