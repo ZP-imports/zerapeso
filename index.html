@@ -3000,16 +3000,16 @@ function tabConfig(){
   if(A9.cfgOk!==true){if(!A9.busy){A9.busy=true;admCarregarLink().finally(()=>{A9.busy=false;A9.cfgOk=true;route()})}return '<div class="box">Carregando...</div>'}
   return `<div class="box" style="max-width:640px"><h3 style="margin-top:0">Link de pagamento</h3>${msgBox()}<p style="color:var(--muted);margin-top:0">Link fixo do Mercado Pago. Em cada pedido, o botão "Enviar link de pagamento no WhatsApp" manda este link ao cliente com o valor do pedido.</p><label for="cfLink">Link</label><input id="cfLink" value="${esc(A9.link)}" placeholder="https://link.mercadopago.com.br/..."><p><button class="btn acc" onclick="admSalvaLink()">Salvar</button></p></div>`;
 }
-function admTab(t){A.tab=t;A9.ed=null;A9.po=null;A9.msg='';A9.cfgOk=false;route()}
+function admTab(t){A.tab=t;A9.ed=null;A9.po=null;A9.edE=null;A9.msg='';A9.cfgOk=false;A9.lg=null;route()}
 function pageOp(){
   syncAdmin();
   if(!ADMIN){
     if(me)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div class="note err">Esta conta não tem acesso à área administrativa.</div><p><button class="btn" onclick="admSair()">Sair</button></p></div></div>`;
     return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username"><div style="height:10px"></div><label for="ap">Senha</label><input id="ap" type="password" required autocomplete="current-password"><p><button class="btn acc full" style="padding:1em">Entrar</button></p></form></div></div>`;
   }
-  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['pagamentos','Pagamentos'],['atrasados','Atrasados'],['produtos','Produtos'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['atrasados','Atrasados']]:[['aberto','Em aberto'],['pedidos','Pedidos']];
+  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['atrasados','Atrasados'],['produtos','Produtos'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['aberto','Em aberto'],['pedidos','Pedidos']];
   if(!tabs.some(t=>t[0]===A.tab))A.tab=tabs[0][0];
-  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,pagamentos:tabPagamentos,atrasados:tabAtrasados,produtos:tabProdutos,config:tabConfig})[A.tab]();
+  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,pagamentos:tabPagamentos,logistica:tabLogistica,entregadores:tabEntregadores,atrasados:tabAtrasados,produtos:tabProdutos,config:tabConfig})[A.tab]();
   return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="font-size:.85rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]}) · <a style="cursor:pointer" onclick="admSair()">Sair</a></div></div>
   <div class="tabs adm">${tabs.map(t=>`<button class="${A.tab===t[0]?'on':''}" onclick="admTab('${t[0]}')">${t[1]}</button>`).join('')}</div>${body}</div>`;
 }
@@ -3019,6 +3019,98 @@ function payCliente(o){
   if(pago(o))return `<div class="paybox ok"><b>Pagamento recebido</b><div>${p.pagoEm?'Recebido em '+fmtD(p.pagoEm)+'. ':''}Obrigado!</div></div>`;
   if(o.status==='cancelado')return '';
   return `<div class="paybox wait"><b>Como será o pagamento</b><p style="margin:6px 0 0">Forma escolhida: <b>${esc(PAGNOME[p.preferencia]||'a combinar')}</b>. Nossa equipe envia o link de pagamento pelo WhatsApp. Valor do pedido: <b>${brl(total(o))}</b>.</p></div>`;
+}
+
+
+/* ---------- entregadores e logística (rotas) no banco ---------- */
+A9.lg=null;A9.sel={};A9.edE=null;
+async function admCarregarLog(){
+  const [en,ro,ab]=await Promise.all([
+    SB.from('entregadores').select('*').order('nome'),
+    SB.from('rotas').select('*').order('n',{ascending:false}).limit(40),
+    SB.from('pedidos').select('*').not('status','in','(entregue,cancelado)').order('id')
+  ]);
+  if(en.error||ro.error||ab.error){A9.lg={ent:[],rotas:[],peds:{},abertos:[]};A9.msg='Não foi possível carregar a logística. Confirme que os arquivos 08 e 09 foram rodados no Supabase.';A9.erro=true;route();return}
+  const peds={};ab.data.forEach(p=>{peds[p.id]=p});
+  const falta=[...new Set(ro.data.flatMap(r=>r.pedidos))].filter(id=>!peds[id]);
+  if(falta.length){const x=await SB.from('pedidos').select('*').in('id',falta);(x.data||[]).forEach(p=>{peds[p.id]=p})}
+  A9.lg={ent:en.data,rotas:ro.data,peds,abertos:ab.data};route();
+}
+function admLgRecarrega(){A9.lg=null;A9.pedidos=null;route()}
+async function admLgRpc(nome,args,ok){
+  if(A9.busy)return;A9.busy=true;const r=await SB.rpc(nome,args);A9.busy=false;
+  if(r.error){A9.msg=msgRpc(r.error);A9.erro=true;route();return}
+  A9.msg=ok;A9.erro=false;A9.sel={};admLgRecarrega();
+}
+/* entregadores */
+function tabEntregadores(){
+  if(!A9.lg){if(!A9.busy){A9.busy=true;admCarregarLog().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
+  const e=A9.edE;
+  return `<div class="box">${msgBox()}<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><p style="margin:0;color:var(--muted)">Quem faz as entregas. O WhatsApp do entregador recebe a rota.</p><button class="btn acc" onclick="A9.edE={id:null,nome:'',whats:''};route()">Novo entregador</button></div>
+  ${e?`<div class="box" style="box-shadow:none;background:#fafafa;margin-top:12px"><h3 style="margin-top:0">${e.id?'Editar entregador':'Novo entregador'}</h3><div class="fr"><div class="c3"><label for="enNome">Nome</label><input id="enNome" value="${esc(e.nome)}" maxlength="80"></div><div class="c3"><label for="enWh">WhatsApp (com DDD)</label><input id="enWh" value="${esc(e.whats)}" inputmode="tel" placeholder="(12) 9 9999-9999"></div></div><p style="display:flex;gap:8px"><button class="btn acc" onclick="admSalvaEntregador()">Salvar</button><button class="btn ghost" onclick="A9.edE=null;A9.msg='';route()">Cancelar</button></p></div>`:''}
+  <div class="tbl"><table><thead><tr><th>Nome</th><th>WhatsApp</th><th>Situação</th><th>Rotas</th><th></th></tr></thead><tbody>${A9.lg.ent.map(x=>`<tr><td><b>${esc(x.nome)}</b></td><td>${esc(x.whats)}</td><td>${x.ativo?'Ativo':'Inativo'}</td><td>${A9.lg.rotas.filter(r=>r.entregador_id===x.id).length}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="A9.edE=A9.lg.ent.find(y=>y.id==='${x.id}');route()">Editar</button> <button class="btn ghost sm" onclick="admAtivaEntregador('${x.id}',${!x.ativo})">${x.ativo?'Desativar':'Ativar'}</button></td></tr>`).join('')||'<tr><td colspan="5">Nenhum entregador cadastrado.</td></tr>'}</tbody></table></div></div>`;
+}
+async function admSalvaEntregador(){
+  const nome=v_('enNome').trim(),whats=v_('enWh').trim(),d=whats.replace(/\D/g,'');
+  if(!nome){A9.msg='Informe o nome.';A9.erro=true;route();return}
+  if(d.length<10||d.length>13){A9.msg='Informe o WhatsApp com DDD.';A9.erro=true;route();return}
+  const e=A9.edE;
+  const r=e.id?await SB.from('entregadores').update({nome,whats}).eq('id',e.id):await SB.from('entregadores').insert({nome,whats});
+  if(r.error){A9.msg=r.error.code==='23505'?'Já existe um entregador com este WhatsApp.':'Não foi possível salvar o entregador.';A9.erro=true;route();return}
+  A9.edE=null;A9.msg='Entregador salvo.';A9.erro=false;A9.lg=null;route();
+}
+async function admAtivaEntregador(id,ativo){
+  const r=await SB.from('entregadores').update({ativo}).eq('id',id);
+  if(r.error){A9.msg='Não foi possível alterar.';A9.erro=true}else{A9.msg=ativo?'Entregador ativado.':'Entregador desativado.';A9.erro=false}
+  A9.lg=null;route();
+}
+/* logística */
+var PODE_ROTA=o=>['realizado','confirmado','preparacao','separacao','aguardando-programacao'].includes(o.status)&&!o.rota_id;
+function admSel(id,on){if(on)A9.sel[id]=true;else delete A9.sel[id];route()}
+function admCriaRota(){
+  const ids=Object.keys(A9.sel).map(Number);
+  if(!ids.length){A9.msg='Marque os pedidos que vão na rota.';A9.erro=true;route();return}
+  const en=v_('lgE'),d=v_('lgD');
+  if(!en){A9.msg='Escolha o entregador.';A9.erro=true;route();return}
+  if(!d){A9.msg='Informe a data da rota.';A9.erro=true;route();return}
+  A9.lgD=d;A9.lgE=en;
+  admLgRpc('criar_rota',{p_data:d,p_entregador:en,p_pedidos:ids},'Rota criada. Os clientes foram avisados de que a entrega está programada.');
+}
+function admSaiuRota(id){if(confirm('Marcar que a rota saiu? Os pedidos passam para "Em rota" e os clientes são avisados.'))admLgRpc('saiu_rota',{p_rota:id},'Rota em andamento. Clientes avisados.')}
+function admDesfazRota(id){if(confirm('Desfazer esta rota? Os pedidos voltam para "Aguardando programação".'))admLgRpc('desfazer_rota',{p_rota:id},'Rota desfeita.')}
+function admResultado(pid,st){
+  const t=st==='entregue'?'Marcar o pedido como entregue?':'Registrar tentativa de entrega sem sucesso?';
+  if(!confirm(t))return;
+  admLgRpc('alterar_status_pedido',{p_pedido:pid,p_status:st,p_motivo:null},st==='entregue'?'Pedido entregue.':'Tentativa registrada. O cliente foi avisado.');
+}
+async function admEnviouRota(id){await SB.from('rotas').update({enviada_em:new Date().toISOString()}).eq('id',id)}
+function msgRota(r){
+  const en=A9.lg.ent.find(x=>x.id===r.entregador_id)||{nome:''};
+  const linhas=r.pedidos.map((id,k)=>{const o=A9.lg.peds[id];if(!o)return (k+1)+') '+'ZP-'+String(id).padStart(6,'0');const e=o.entrega||{},d=e.dest||{};
+    return (k+1)+') '+codPed(o)+' · '+(TURNOS[e.turno]||'')+'\nCliente: '+(e.nome||'')+' '+(e.fone||'')+'\n'+(d.rua||'')+', '+(d.num||'')+(d.comp?', '+d.comp:'')+' - '+(d.bairro||'')+', '+(d.cidade||'')+'/'+(d.uf||'')+(d.ref?'\nRef.: '+d.ref:'')+(e.obs?'\nObs.: '+e.obs:'')+'\nItens: '+(o.itens||[]).map(i=>i.qty+'x '+i.name).join('; ')}).join('\n\n');
+  return nl('Rota '+r.n+' de '+dataBr(r.data)+'\nEntregador: '+en.nome+'\n\n'+linhas);
+}
+function tabLogistica(){
+  if(!A9.lg){if(!A9.busy){A9.busy=true;admCarregarLog().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
+  const L=A9.lg;const hoje=hojeS();
+  const fl=A9.lgF||'';
+  const elegiveis=L.abertos.filter(PODE_ROTA).filter(o=>!fl||(o.entrega||{}).data===fl).sort((a,b)=>((a.entrega||{}).data||'').localeCompare((b.entrega||{}).data||'')||String((a.entrega||{}).turno).localeCompare(String((b.entrega||{}).turno))||String(((a.entrega||{}).dest||{}).bairro).localeCompare(String(((b.entrega||{}).dest||{}).bairro)));
+  const nSel=Object.keys(A9.sel).length;
+  const ativos=L.ent.filter(x=>x.ativo);
+  const rotas=L.rotas;
+  const rotaHtml=r=>{const en=L.ent.find(x=>x.id===r.entregador_id)||{nome:'?',whats:''};const ps=r.pedidos.map(id=>L.peds[id]).filter(Boolean);
+    const fim=ps.length&&ps.every(o=>ENC(o));const fw=foneWa(en.whats);
+    return `<div class="box" style="box-shadow:none;background:#fafafa;margin-top:12px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div><b>Rota ${r.n}</b> · ${dataBr(r.data)} · ${esc(en.nome)}<div style="color:var(--muted);font-size:.82rem">${r.saiu_em?'Saiu em '+fmtD(Date.parse(r.saiu_em)):'Ainda não saiu'}${fim?' · Concluída':''}</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${fw&&!fim?`<a class="btn wa sm" href="${waUrlPara(fw,msgRota(r))}" target="_blank" rel="noopener" onclick="admEnviouRota('${r.id}')">Enviar rota ao entregador</a>`:''}${!r.saiu_em?`<button class="btn acc sm" onclick="admSaiuRota('${r.id}')">Saiu para entrega</button><button class="btn ghost sm" onclick="admDesfazRota('${r.id}')">Desfazer rota</button>`:''}</div></div>
+    <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Endereço</th><th>Horário</th><th>Situação</th><th></th></tr></thead><tbody>${ps.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td><b>${codPed(o)}</b></td><td>${esc(e.nome||'')}</td><td>${esc((d.rua||'')+', '+(d.num||'')+' - '+(d.bairro||'')+', '+(d.cidade||''))}</td><td>${esc(TURNOS[e.turno]||'')}</td><td>${esc(STLB[o.status]||o.status)}</td><td style="white-space:nowrap">${['em-rota','tentativa'].includes(o.status)?`<button class="btn sm" onclick="admResultado(${o.id},'entregue')">Entregue</button> `:''}${o.status==='em-rota'?`<button class="btn ghost sm" onclick="admResultado(${o.id},'tentativa')">Tentativa</button> `:''}<button class="btn ghost sm" onclick="A9.po=null;A.tab='pedidos';admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div></div>`};
+  const andamento=rotas.filter(r=>!r.pedidos.map(id=>L.peds[id]).filter(Boolean).every(ENC));
+  const concluidas=rotas.filter(r=>!andamento.includes(r));
+  return `<div class="box">${msgBox()}<h3 style="margin-top:0">Pedidos para programar</h3>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><div><label for="lgF">Filtrar pela data desejada</label><input id="lgF" type="date" value="${esc(fl)}" onchange="A9.lgF=this.value;route()" style="width:auto"></div>${fl?'<button class="btn ghost sm" onclick="A9.lgF=\'\';route()">Limpar filtro</button>':''}<button class="btn ghost sm" onclick="admLgRecarrega()">Atualizar</button></div>
+  <div class="tbl"><table><thead><tr><th></th><th>Pedido</th><th>Cliente</th><th>Bairro / cidade</th><th>Data desejada</th><th>Itens</th></tr></thead><tbody>${elegiveis.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td><input type="checkbox" style="width:auto" ${A9.sel[o.id]?'checked':''} onchange="admSel(${o.id},this.checked)"></td><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${esc(STLB[o.status]||o.status)}</div></td><td>${esc(e.nome||'')}</td><td>${esc((d.bairro||'')+' / '+(d.cidade||''))}</td><td>${dataBr(e.data)} ${esc(TURNOS[e.turno]||'')}${e.data&&e.data<hoje?' <b style="color:#b3261e">atrasado</b>':''}</td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td></tr>`}).join('')||'<tr><td colspan="6">Nenhum pedido esperando rota.</td></tr>'}</tbody></table></div>
+  ${ativos.length?`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:12px"><div><label for="lgE">Entregador</label><select id="lgE" style="width:auto"><option value="">Escolha</option>${ativos.map(x=>`<option value="${x.id}" ${A9.lgE===x.id?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></div><div><label for="lgD">Data da rota</label><input id="lgD" type="date" value="${esc(A9.lgD||fl||hoje)}" style="width:auto"></div><button class="btn acc" onclick="admCriaRota()">Criar rota com ${nSel} pedido${nSel===1?'':'s'}</button></div>`:'<div class="note warn">Cadastre um entregador na aba Entregadores para criar rotas.</div>'}
+  <h3>Rotas em andamento</h3>${andamento.map(rotaHtml).join('')||'<p style="color:var(--muted)">Nenhuma rota em andamento.</p>'}
+  ${concluidas.length?`<h3>Rotas concluídas</h3>${concluidas.slice(0,10).map(rotaHtml).join('')}`:''}</div>`;
 }
 
 </script>
