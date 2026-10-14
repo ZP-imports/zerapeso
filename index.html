@@ -2905,10 +2905,10 @@ async function admCarregarPedidos(){
   A9.pedidos=r.error?[]:r.data;if(r.error){A9.msg='Não foi possível carregar os pedidos.';A9.erro=true}route();
 }
 async function admAbrirPedido(id){
-  const [r,ev]=await Promise.all([SB.from('pedidos').select('*').eq('id',id).single(),SB.from('pedido_eventos').select('*').eq('pedido_id',id).order('t')]);
+  const [r,ev,et]=await Promise.all([SB.from('pedidos').select('*').eq('id',id).single(),SB.from('pedido_eventos').select('*').eq('pedido_id',id).order('t'),SB.from('etiquetas').select('*').eq('pedido_id',id).order('v')]);
   if(r.error){A9.msg='Não foi possível abrir o pedido.';A9.erro=true;route();return}
   await admCarregarLink();
-  A9.po=Object.assign({},r.data,{eventos:ev.data||[]});route();window.scrollTo(0,0);
+  A9.po=Object.assign({},r.data,{eventos:ev.data||[],etiquetas:et.data||[]});route();window.scrollTo(0,0);
 }
 function admFechaPedido(){A9.po=null;A9.msg='';A9.pedidos=null;route()}
 async function admRpc(nome,args,ok){
@@ -2954,6 +2954,7 @@ function admDetalhe(){
   <p style="display:flex;gap:8px;flex-wrap:wrap">${linkOk?`<a class="btn wa" href="${waUrlPara(fone,admMsgPagamento(o))}" target="_blank" rel="noopener">Enviar link de pagamento no WhatsApp</a>`:''}${o.status==='cancelado'?'':pg.status==='pago'?'<button class="btn ghost" onclick="admPago(false)">Voltar para pendente</button>':'<button class="btn" onclick="admPago(true)">Marcar como pago</button>'}</p>
   ${fim&&o.status==='cancelado'?'':`<h3>Ajustar entrega e anotações</h3><div class="fr"><div class="c3"><label for="enD">Data</label><input id="enD" type="date" value="${esc(en.data||'')}"></div><div class="c3"><label for="enT">Horário</label><select id="enT">${Object.keys(TURNOS).map(t=>`<option value="${t}" ${en.turno===t?'selected':''}>${TURNOS[t]}</option>`).join('')}</select></div></div><label for="enO">Observação interna (o cliente não vê)</label><textarea id="enO" rows="2" maxlength="500">${esc(o.obs_interna||'')}</textarea><p><button class="btn" onclick="admSalvaEntrega()">Salvar entrega e anotações</button></p>`}`:''}
   </div></div>
+  ${etqHtml(o)}
   <h3>Histórico</h3><div class="tbl"><table><thead><tr><th>Quando</th><th>O que aconteceu</th><th>Por</th><th>Cliente vê</th></tr></thead><tbody>${o.eventos.map(e=>`<tr><td>${fmtD(Date.parse(e.t))}</td><td>${esc(e.texto||'')}${e.motivo?'<div style="color:var(--muted);font-size:.82rem">Motivo: '+esc(e.motivo)+'</div>':''}</td><td>${esc(e.por||'')}</td><td>${e.publico?'Sim':'Não'}</td></tr>`).join('')||'<tr><td colspan="4">Sem registros.</td></tr>'}</tbody></table></div></div>`;
 }
 function waUrlPara(fone,msg){return 'https://wa.me/'+fone+'?text='+encodeURIComponent(msg)}
@@ -3007,9 +3008,9 @@ function pageOp(){
     if(me)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div class="note err">Esta conta não tem acesso à área administrativa.</div><p><button class="btn" onclick="admSair()">Sair</button></p></div></div>`;
     return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username"><div style="height:10px"></div><label for="ap">Senha</label><input id="ap" type="password" required autocomplete="current-password"><p><button class="btn acc full" style="padding:1em">Entrar</button></p></form></div></div>`;
   }
-  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['atrasados','Atrasados'],['produtos','Produtos'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['aberto','Em aberto'],['pedidos','Pedidos']];
+  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['atrasados','Atrasados'],['produtos','Produtos'],['etiquetas','Etiquetas'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['aberto','Em aberto'],['pedidos','Pedidos']];
   if(!tabs.some(t=>t[0]===A.tab))A.tab=tabs[0][0];
-  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,pagamentos:tabPagamentos,logistica:tabLogistica,entregadores:tabEntregadores,atrasados:tabAtrasados,produtos:tabProdutos,config:tabConfig})[A.tab]();
+  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,pagamentos:tabPagamentos,logistica:tabLogistica,entregadores:tabEntregadores,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,config:tabConfig})[A.tab]();
   return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="font-size:.85rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]}) · <a style="cursor:pointer" onclick="admSair()">Sair</a></div></div>
   <div class="tabs adm">${tabs.map(t=>`<button class="${A.tab===t[0]?'on':''}" onclick="admTab('${t[0]}')">${t[1]}</button>`).join('')}</div>${body}</div>`;
 }
@@ -3111,6 +3112,70 @@ function tabLogistica(){
   ${ativos.length?`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:12px"><div><label for="lgE">Entregador</label><select id="lgE" style="width:auto"><option value="">Escolha</option>${ativos.map(x=>`<option value="${x.id}" ${A9.lgE===x.id?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></div><div><label for="lgD">Data da rota</label><input id="lgD" type="date" value="${esc(A9.lgD||fl||hoje)}" style="width:auto"></div><button class="btn acc" onclick="admCriaRota()">Criar rota com ${nSel} pedido${nSel===1?'':'s'}</button></div>`:'<div class="note warn">Cadastre um entregador na aba Entregadores para criar rotas.</div>'}
   <h3>Rotas em andamento</h3>${andamento.map(rotaHtml).join('')||'<p style="color:var(--muted)">Nenhuma rota em andamento.</p>'}
   ${concluidas.length?`<h3>Rotas concluídas</h3>${concluidas.slice(0,10).map(rotaHtml).join('')}`:''}</div>`;
+}
+
+
+/* ---------- etiquetas de envio (versões gravadas no banco, PDF gerado no navegador) ---------- */
+var ordAdm=o=>({id:o.id,items:o.itens||[],entrega:o.entrega||{},obsInt:o.obs_interna||'',obsSep:o.obs_separacao||''});
+var etqUlt=o=>(o.etiquetas||[]).slice(-1)[0]||null;
+function etqDesat(o){const u=etqUlt(o);if(!u)return true;return u.hash!==snapHash(snapOrder(ordAdm(o)),cfgSnap())}
+function etqDiffAdm(u,S){
+  const a=u.snap,ch=[];const cmp=(n,x,y)=>{if(JSON.stringify(x)!==JSON.stringify(y))ch.push(n)};
+  cmp('endereço',a.dest,S.dest);cmp('telefone',a.fone,S.fone);cmp('data',a.data,S.data);cmp('turno',a.turno,S.turno);cmp('janela',a.janela,S.janela);
+  cmp('produtos ou quantidades',a.itens,S.itens);cmp('observações',[a.obs,a.obsEntregador,a.obsInt,a.obsSep],[S.obs,S.obsEntregador,S.obsInt,S.obsSep]);cmp('nome',a.nome,S.nome);
+  if(u.cfg&&JSON.stringify(u.cfg)!==JSON.stringify(cfgSnap()))ch.push('configuração da etiqueta');
+  return ch.length?'Alteração em: '+ch.join(', '):'Nova versão';
+}
+async function etqLog(pid,texto,motivo){await SB.from('pedido_eventos').insert({pedido_id:pid,tipo:'etiqueta',publico:false,texto,motivo:motivo||null,por:ADMIN.nome})}
+async function etqGerar(){
+  const o=A9.po;if(!o||A9.busy)return;
+  const S=snapOrder(ordAdm(o)),cfg=cfgSnap(),hash=snapHash(S,cfg),u=etqUlt(o);
+  if(u&&u.hash===hash){toast('A etiqueta já está atualizada.');return}
+  A9.busy=true;const v=(u?u.v:0)+1;const motivo=u?etqDiffAdm(u,S):'Primeira geração';
+  if(u)await SB.from('etiquetas').update({status:'substituida'}).eq('pedido_id',o.id).eq('status','atual');
+  const r=await SB.from('etiquetas').insert({pedido_id:o.id,v,hash,snap:S,cfg,status:'atual',motivo,por:ADMIN.nome});
+  A9.busy=false;
+  if(r.error){A9.msg='Não foi possível gerar a etiqueta.';A9.erro=true;route();return}
+  await etqLog(o.id,'Etiquetas geradas (versão '+v+')',motivo);
+  A9.msg='Etiquetas geradas (versão '+v+').';A9.erro=false;await admAbrirPedido(o.id);
+}
+function etqBytes(rec,tipo){const logo=(rec.cfg&&rec.cfg.logoKey&&rec.cfg.logoKey===LBL.logoKey)?currentLogo():null;return gerarPdfBytes(rec.snap,rec.cfg,logo,tipo)}
+function etqPronta(v,acao){
+  const o=A9.po,rec=(o.etiquetas||[]).find(x=>x.v===v);if(!rec)return null;
+  if(rec===etqUlt(o)&&etqDesat(o)){
+    if(confirm('A etiqueta (versão '+rec.v+') está desatualizada em relação ao pedido.\n\nOK: gerar uma etiqueta atualizada agora (depois clique de novo).\nCancelar: continuar com a versão desatualizada.')){etqGerar();return null}
+    if(!confirm('Confirma '+acao+' a versão desatualizada?'))return null;
+  }else if(rec!==etqUlt(o)&&!confirm('A versão '+rec.v+' foi substituída por uma mais nova. Confirma '+acao+' esta versão antiga?'))return null;
+  return rec;
+}
+var ETQ_TIPO={externa:'etiqueta externa',interna:'etiqueta interna',ambas:'as duas etiquetas'};
+function etqVer(v,tipo){const rec=etqPronta(v,'visualizar');if(!rec)return;etqLog(A9.po.id,'Visualização ('+ETQ_TIPO[tipo]+', versão '+rec.v+')');window.open(blobUrl(etqBytes(rec,tipo)),'_blank')}
+function etqImp(v,tipo){
+  const rec=etqPronta(v,'imprimir');if(!rec)return;etqLog(A9.po.id,'Impressão solicitada ('+ETQ_TIPO[tipo]+', versão '+rec.v+')');
+  const w=window.open(blobUrl(etqBytes(rec,tipo)),'_blank');setTimeout(()=>{try{w&&w.print()}catch(e){}},1200);
+  toast('O PDF abriu em outra aba. Escolha a impressora térmica e o papel '+LBL.w+' x '+LBL.h+' mm.');
+}
+function etqBaixa(v,tipo){
+  const rec=etqPronta(v,'baixar');if(!rec)return;etqLog(A9.po.id,'Download ('+ETQ_TIPO[tipo]+', versão '+rec.v+')');
+  const a=document.createElement('a');a.href=blobUrl(etqBytes(rec,tipo));a.download='etiquetas-'+rec.snap.codigo+'-v'+rec.v+(tipo==='ambas'?'':'-'+tipo)+'.pdf';document.body.appendChild(a);a.click();a.remove();
+}
+function etqWhats(v){
+  const rec=etqPronta(v,'enviar');if(!rec)return;const o=A9.po;const fw=foneWa((o.entrega||{}).fone);
+  const nome='etiqueta-externa-'+rec.snap.codigo+'.pdf';const bytes=etqBytes(rec,'externa');
+  const a=document.createElement('a');a.href=blobUrl(bytes);a.download=nome;document.body.appendChild(a);a.click();a.remove();
+  const txt='Olá, '+String((o.entrega||{}).nome||'').split(' ')[0]+'! Recebemos o seu pedido '+codPed(o)+' na '+CFG.brand+'. Data e horário solicitados: '+dataBr((o.entrega||{}).data)+', '+(TURNOS[(o.entrega||{}).turno]||'')+'.';
+  if(fw)window.open(waUrlPara(fw,txt),'_blank');
+  etqLog(o.id,'WhatsApp aberto e PDF baixado para anexar (envio não confirmado) (versão '+rec.v+')');
+  toast('O PDF foi baixado. Anexe-o na conversa do WhatsApp que abriu. O sistema não confirma o envio.');
+}
+function etqHtml(o){
+  const u=etqUlt(o),des=u&&etqDesat(o);
+  const topo=!u?`<div class="note">Este pedido ainda não tem etiqueta. Gere para imprimir a etiqueta externa (destinatário) e a interna (separação e conferência).</div><p><button class="btn acc" onclick="etqGerar()">Gerar etiquetas</button></p>`
+   :des?`<div class="note warn">A etiqueta (versão ${u.v}) está desatualizada em relação ao pedido. <button class="btn sm" onclick="etqGerar()">Gerar versão atualizada</button></div>`
+   :`<div class="note">Etiqueta atualizada (versão ${u.v}), gerada em ${fmtD(Date.parse(u.criado_em))}.</div>`;
+  const acoes=u?`<p style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="etqVer(${u.v},'externa')">Ver externa</button><button class="btn sm" onclick="etqVer(${u.v},'interna')">Ver interna</button><button class="btn acc sm" onclick="etqImp(${u.v},'ambas')">Imprimir as duas</button><button class="btn ghost sm" onclick="etqBaixa(${u.v},'ambas')">Baixar PDF</button><button class="btn ghost sm" onclick="etqWhats(${u.v})">Enviar externa ao cliente (WhatsApp)</button></p>`:'';
+  const hist=(o.etiquetas||[]).length>1?`<div class="tbl"><table><thead><tr><th>Versão</th><th>Gerada em</th><th>Motivo</th><th>Por</th><th>Situação</th><th></th></tr></thead><tbody>${o.etiquetas.slice().reverse().map(r=>`<tr><td>v${r.v}</td><td>${fmtD(Date.parse(r.criado_em))}</td><td>${esc(r.motivo||'')}</td><td>${esc(r.por||'')}</td><td>${r.status==='atual'?'Atual':'Substituída'}</td><td><button class="btn ghost sm" onclick="etqVer(${r.v},'ambas')">Abrir</button></td></tr>`).join('')}</tbody></table></div>`:'';
+  return `<h3>Etiquetas de envio</h3>${topo}${acoes}${hist}`;
 }
 
 </script>
