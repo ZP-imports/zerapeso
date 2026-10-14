@@ -392,6 +392,13 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 body:not(.pronto) #menu,body:not(.pronto) #faixa{visibility:hidden}
 .sl.wantimg:not(.hasimg):not(.noimg){background:#e6eef1!important}
 .sl.wantimg:not(.hasimg):not(.noimg) .wrap{visibility:hidden}
+
+.editbox{border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin:14px 0;background:#fff}
+.editbox summary{cursor:pointer;font-weight:600;color:var(--pd)}
+.editbox h4{margin:14px 0 6px}
+/* troca de slide sem "fantasma": o slide que sai fica opaco até o novo cobrir */
+.sl{transition:opacity .6s}
+.sl:not(.on){transition:opacity 0s linear .6s}
 .adm-mode #sf,.adm-mode #tCart,.adm-mode #tBell,.adm-mode #tAcc,.adm-mode .tool,.adm-mode nav.main,.adm-mode #mainnav,.adm-mode #faixa,.adm-mode #foot,.adm-mode #wafloat,.adm-mode .burger{display:none!important}.adm-mode #brand::after{content:" · Administração";font-weight:500;color:var(--muted);font-size:.85em}</style>
 </head>
 <body class="adm-mode">
@@ -764,7 +771,7 @@ let sl=0,slT;
 function slide(d){const s=document.querySelectorAll('.sl'),dt=document.querySelectorAll('.dots button');if(!s.length)return;sl=(sl+d+s.length)%s.length;s.forEach((e,i)=>e.classList.toggle('on',i===sl));dt.forEach((e,i)=>e.classList.toggle('on',i===sl))}
 const ICOURL=n=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/public/produtos/icone-'+n+'.png';
 const icoImg=(n,fb)=>`<img class="icoimg" src="${ICOURL(n)}" alt="" data-fb="${encodeURIComponent(fb)}" onerror="this.outerHTML=decodeURIComponent(this.dataset.fb)">`;
-const DIMG={'Ampolas':'ampola','Caixas':'caixa','Acompanhamento':'prancheta'};
+const DIMG={'Ampolas':'ampola','Caixas':'caixa','Acompanhamento':'prancheta','Produtos injetáveis':'injecao'};
 function pageHome(){
   const ben=[['Entrega rápida','Consulte prazo e regiões atendidas*','M2 6h11v10H2zM13 9h4l3 3v4h-7','caminhao'],['Pague na entrega','Link de pagamento enviado quando o pedido sai para entrega','M3 6h18v12H3zM3 10h18M7 15h4','cartao'],['Equipe de saúde','Atendimento por profissionais','M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z','coracao']];
   const D0=Object.keys(TREE)[0];const deps=Object.keys(TREE).filter(d=>d!=='Ofertas');const dIc={'Medicamentos':'inj','Produtos injetáveis':'inj','Acessórios de aplicação':'needle','Caixas':'inj','Ampolas':'inj','Acompanhamento':'scale'};
@@ -3039,7 +3046,7 @@ async function admCarregarPedidos(){
 async function admAbrirPedido(id){
   const [r,ev,et]=await Promise.all([SB.from('pedidos').select('*').eq('id',id).single(),SB.from('pedido_eventos').select('*').eq('pedido_id',id).order('t'),SB.from('etiquetas').select('*').eq('pedido_id',id).order('v')]);
   if(r.error){A9.msg='Não foi possível abrir o pedido.';A9.erro=true;route();return}
-  await admCarregarLink();
+  await admCarregarLink();if(!A9.cartaoCfg){try{await admCarregarCartaoCfg()}catch(x){}}A9.pagF=null;
   A9.po=Object.assign({},r.data,{eventos:ev.data||[],etiquetas:et.data||[]});
   if(r.data.entregador_id){const en2=await SB.from('entregadores').select('nome').eq('id',r.data.entregador_id).maybeSingle();A9.po.entregadorNome=en2.data&&en2.data.nome||''}route();window.scrollTo(0,0);
 }
@@ -3087,8 +3094,10 @@ function admDetalhe(){
   <h3>Pagamento</h3>
   ${A9.link?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre em Configurações.</div>'}
   <p style="display:flex;gap:8px;flex-wrap:wrap">${linkOk?`<a class="btn wa" href="${waUrlPara(fone,admMsgPagamento(o))}" target="_blank" rel="noopener">Enviar link de pagamento no WhatsApp</a>`:''}${o.status==='cancelado'?'':pg.status==='pago'?'<button class="btn ghost" onclick="admPago(false)">Voltar para pendente</button>':'<button class="btn" onclick="admPago(true)">Marcar como pago</button>'}</p>
+  ${pagResumoHtml(o)}${A9.pagF?pagFormHtml(o):''}
   ${fim&&o.status==='cancelado'?'':`<h3>Ajustar entrega e anotações</h3><div class="fr"><div class="c3"><label for="enD">Data</label><input id="enD" type="date" value="${esc(en.data||'')}"></div><div class="c3"><label for="enT">Horário</label><select id="enT">${Object.keys(TURNOS).map(t=>`<option value="${t}" ${en.turno===t?'selected':''}>${TURNOS[t]}</option>`).join('')}</select></div></div><label for="enO">Observação interna (o cliente não vê)</label><textarea id="enO" rows="2" maxlength="500">${esc(o.obs_interna||'')}</textarea><p><button class="btn" onclick="admSalvaEntrega()">Salvar entrega e anotações</button></p>`}`:''}
   </div></div>
+  ${ADMIN.papel!=='separador'?editHtml(o):''}
   ${etqHtml(o)}
   <h3>Histórico</h3><div class="tbl"><table><thead><tr><th>Quando</th><th>O que aconteceu</th><th>Por</th><th>Cliente vê</th></tr></thead><tbody>${o.eventos.map(e=>`<tr><td>${fmtD(Date.parse(e.t))}</td><td>${esc(e.texto||'')}${e.motivo?'<div style="color:var(--muted);font-size:.82rem">Motivo: '+esc(e.motivo)+'</div>':''}</td><td>${esc(e.por||'')}</td><td>${e.publico?'Sim':'Não'}</td></tr>`).join('')||'<tr><td colspan="4">Sem registros.</td></tr>'}</tbody></table></div></div>`;
 }
@@ -3138,16 +3147,16 @@ function tabConfig(){
   if(A9.cfgOk!==true){if(!A9.busy){A9.busy=true;admCarregarLink().finally(()=>{A9.busy=false;A9.cfgOk=true;route()})}return '<div class="box">Carregando...</div>'}
   return `<div class="box" style="max-width:640px"><h3 style="margin-top:0">Link de pagamento</h3>${msgBox()}<p style="color:var(--muted);margin-top:0">Link fixo do Mercado Pago. Em cada pedido, o botão "Enviar link de pagamento no WhatsApp" manda este link ao cliente com o valor do pedido.</p><label for="cfLink">Link</label><input id="cfLink" value="${esc(A9.link)}" placeholder="https://link.mercadopago.com.br/..."><p><button class="btn acc" onclick="admSalvaLink()">Salvar</button></p></div>`;
 }
-function admTab(t){A.tab=t;A9.ed=null;A9.po=null;A9.edE=null;A9.msg='';A9.cfgOk=false;A9.lg=null;route()}
+function admTab(t){A.tab=t;A9.ed=null;A9.po=null;A9.edE=null;A9.msg='';A9.cfgOk=false;A9.lg=null;A9.cx=null;A9.camp=null;A9.pagF=null;route()}
 function pageOp(){
   syncAdmin();
   if(!ADMIN){
     if(me)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div class="note err">Esta conta não tem acesso à área administrativa.</div><p><button class="btn" onclick="admSair()">Sair</button></p></div></div>`;
     return '<div class="adlogin"><div class="adcard"><div class="adico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><h1>Acesso da equipe</h1><p class="adsub">Entre com o seu e-mail e senha para acessar o painel da loja.</p><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username" placeholder="voce@empresa.com"><label for="ap">Senha</label><div class="adsenha"><input id="ap" type="password" required autocomplete="current-password" placeholder="Sua senha"><button type="button" class="adver" onclick="admVerSenha(this)">Mostrar</button></div><button class="adbtn">Entrar</button></form><p class="adnota">Acesso restrito. Se você é cliente, <a href="./">volte para a loja</a>.</p></div></div>';
   }
-  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['atrasados','Atrasados'],['produtos','Produtos'],['etiquetas','Etiquetas'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['aberto','Em aberto'],['pedidos','Pedidos']];
+  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Etiquetas'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['aberto','Em aberto'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['aberto','Em aberto'],['pedidos','Pedidos']];
   if(!tabs.some(t=>t[0]===A.tab))A.tab=tabs[0][0];
-  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,pagamentos:tabPagamentos,logistica:tabLogistica,entregadores:tabEntregadores,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,config:tabConfig})[A.tab]();
+  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,pagamentos:tabPagamentos,cartao:tabCartao,campanhas:tabCampanhas,logistica:tabLogistica,entregadores:tabEntregadores,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,config:tabConfig})[A.tab]();
   return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="font-size:.85rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]}) · <a style="cursor:pointer" onclick="admSair()">Sair</a></div></div>
   <div class="tabs adm">${tabs.map(t=>`<button class="${A.tab===t[0]?'on':''}" onclick="admTab('${t[0]}')">${t[1]}</button>`).join('')}</div>${body}</div>`;
 }
@@ -3440,6 +3449,180 @@ async function etqLote(){
     A9.selP={};
   }catch(x){A9.msg='Não foi possível gerar as etiquetas em lote agora.';A9.erro=true}
   A9.busy=false;route();
+}
+
+
+/* ======================= CAMPANHAS ======================= */
+A9.camp=null;
+async function admCarregarCamp(){
+  const [c,ind]=await Promise.all([
+    SB.from('configuracao').select('chave,valor').in('chave',['amigo','primeira_compra']),
+    SB.from('pedidos').select('id,status,criado_em,entrega,indicacao').not('indicacao','is',null).order('id',{ascending:false}).limit(100)]);
+  const am=(c.data||[]).find(x=>x.chave==='amigo'),pc=(c.data||[]).find(x=>x.chave==='primeira_compra');
+  const donos={};const ids=[...new Set((ind.data||[]).map(o=>o.indicacao&&o.indicacao.owner).filter(Boolean))];
+  if(ids.length){const pf=await SB.from('perfis').select('id,nome,sobrenome').in('id',ids);(pf.data||[]).forEach(x=>{donos[x.id]=((x.nome||'')+' '+(x.sobrenome||'')).trim()})}
+  A9.camp={am:Object.assign({ativa:false,nome:'Amigo Emagrece Amigo',pct:10,inicio:'',fim:'',limite:10},am&&am.valor),pc:Object.assign({pct:10},pc&&pc.valor),ind:ind.data||[],donos};
+  route();
+}
+function tabCampanhas(){
+  if(!A9.camp){if(!A9.busy){A9.busy=true;admCarregarCamp().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
+  const a=A9.camp.am,p=A9.camp.pc;const hoje=hojeS();
+  const ativaHoje=a.ativa&&a.inicio&&a.fim&&hoje>=a.inicio&&hoje<=a.fim;
+  return `<div class="two" style="grid-template-columns:1fr 1fr"><div class="box"><h3 style="margin-top:0">Amigo Emagrece Amigo</h3>${msgBox()}
+  <div class="fr"><div><label for="aN">Nome da campanha</label><input id="aN" value="${esc(a.nome)}" maxlength="80"></div><div class="c2"><label for="aP">Desconto (%)</label><input id="aP" type="number" min="1" max="90" value="${a.pct}"></div><div class="c2"><label for="aL">Limite de amigos que compram por mês, por indicador</label><input id="aL" type="number" min="1" max="500" value="${a.limite}"></div><div class="c2"><label for="aI">Início</label><input id="aI" type="date" value="${esc(a.inicio)}"></div><div class="c2"><label for="aF">Fim</label><input id="aF" type="date" value="${esc(a.fim)}"></div><div><label style="font-weight:500"><input type="checkbox" id="aA" style="width:auto" ${a.ativa?'checked':''}> Campanha ligada</label></div></div>
+  <p><button class="btn acc" onclick="admSalvaAmigo()">Salvar campanha</button></p><div class="note ${ativaHoje?'':'warn'}">${ativaHoje?'Campanha ativa hoje.':'Campanha desligada ou fora do período: o código de indicação não é aceito agora.'}</div></div>
+  <div class="box"><h3 style="margin-top:0">Primeira compra</h3><div class="fr"><div class="c3"><label for="pcP">Desconto (%)</label><input id="pcP" type="number" min="1" max="90" value="${p.pct}"></div></div><p><button class="btn acc" onclick="admSalvaPC()">Salvar</button></p>
+  <h3>Indicações</h3>${A9.camp.ind.length?`<div class="tbl"><table><thead><tr><th>Quem comprou</th><th>Indicado por</th><th>Pedido</th><th>Situação</th></tr></thead><tbody>${A9.camp.ind.map(o=>`<tr><td>${esc((o.entrega||{}).nome||'')}</td><td>${esc(A9.camp.donos[o.indicacao.owner]||'')} <small>(${esc(o.indicacao.code||'')})</small></td><td>${codPed(o)}</td><td>${esc(STLB[o.status]||o.status)}</td></tr>`).join('')}</tbody></table></div>`:'<p style="color:var(--muted)">Nenhuma indicação ainda.</p>'}</div></div>`;
+}
+async function admSalvaAmigo(){
+  const pct=+v_('aP'),lim=+v_('aL'),ini=v_('aI'),fim=v_('aF');
+  if(!(pct>=1&&pct<=90)||!(lim>=1)||!ini||!fim||fim<ini){A9.msg='Confira os campos: desconto de 1 a 90%, limite maior que zero e datas válidas (o fim não pode ser antes do início).';A9.erro=true;route();return}
+  const valor={ativa:c_('aA'),nome:v_('aN').trim()||'Amigo Emagrece Amigo',pct,inicio:ini,fim,limite:lim};
+  const r=await SB.from('configuracao').upsert({chave:'amigo',valor,publica:true,atualizado_em:new Date().toISOString()});
+  if(r.error){A9.msg='Não foi possível salvar. Confirme que está com a conta de administrador.';A9.erro=true;route();return}
+  A9.camp.am=valor;A9.msg='Campanha salva. A loja já usa os novos valores.';A9.erro=false;try{await bancoConfig()}catch(x){}route();
+}
+async function admSalvaPC(){
+  const pct=+v_('pcP');
+  if(!(pct>=1&&pct<=90)){A9.msg='Informe um desconto de 1 a 90%.';A9.erro=true;route();return}
+  const r=await SB.from('configuracao').upsert({chave:'primeira_compra',valor:{pct},publica:true,atualizado_em:new Date().toISOString()});
+  if(r.error){A9.msg='Não foi possível salvar. Confirme que está com a conta de administrador.';A9.erro=true;route();return}
+  A9.camp.pc={pct};A9.msg='Desconto de primeira compra salvo.';A9.erro=false;try{await bancoConfig()}catch(x){}route();
+}
+
+/* ======================= RECEBIMENTO NO PEDIDO ======================= */
+var PGFORMAS={pix:'Pix',credito:'Cartão de crédito',debito:'Cartão de débito',outro:'Outro'};
+var CXDEF={taxaCredito:3.5,taxaDebito:1.5,taxaPix:0,prazoCredito:30,prazoDebito:1,prazoPix:0};
+A9.pagF=null;A9.cartaoCfg=null;
+async function admCarregarCartaoCfg(){const r=await SB.from('configuracao').select('valor').eq('chave','cartao').maybeSingle();A9.cartaoCfg=Object.assign({},CXDEF,r.data&&r.data.valor)}
+function admPago(v){
+  if(!v){admRpc('desfazer_recebimento',{p_pedido:A9.po.id},'Registro de pagamento desfeito.');return}
+  const o=A9.po,c=A9.cartaoCfg||CXDEF;const f=(o.pagamento||{}).preferencia||'pix';
+  A9.pagF={forma:f,parc:1,bruto:temSP(o)?'':pedTotal(o)};
+  route();
+}
+function pagDef(f){const c=A9.cartaoCfg||CXDEF;const m={credito:[c.taxaCredito,c.prazoCredito],debito:[c.taxaDebito,c.prazoDebito],pix:[c.taxaPix,c.prazoPix],outro:[0,0]}[f]||[0,0];return {taxa:m[0],prev:addDias(hojeS(),m[1])}}
+function admPagForma(){
+  const f=v_('pgF'),d=pagDef(f);document.getElementById('pgT').value=d.taxa;document.getElementById('pgD').value=d.prev;document.getElementById('pgPw').style.display=f==='credito'?'':'none';
+}
+function pagFormHtml(o){
+  const F=A9.pagF,d=pagDef(F.forma);
+  return `<div class="box" style="box-shadow:none;background:#fafafa;margin-top:8px"><h4 style="margin:0 0 8px">Registrar pagamento recebido</h4>
+  <div class="fr"><div class="c2"><label for="pgF">Forma</label><select id="pgF" style="width:100%" onchange="admPagForma()">${Object.keys(PGFORMAS).map(k=>`<option value="${k}" ${F.forma===k?'selected':''}>${PGFORMAS[k]}</option>`).join('')}</select></div>
+  <div class="c2" id="pgPw" style="${F.forma==='credito'?'':'display:none'}"><label for="pgP">Parcelas</label><input id="pgP" type="number" min="1" max="12" value="${F.parc}"></div>
+  <div class="c2"><label for="pgB">Valor recebido (R$)</label><input id="pgB" inputmode="decimal" value="${esc(F.bruto)}"></div>
+  <div class="c2"><label for="pgT">Taxa do provedor (%)</label><input id="pgT" inputmode="decimal" value="${d.taxa}"></div>
+  <div class="c2"><label for="pgD">Previsão de repasse</label><input id="pgD" type="date" value="${d.prev}"></div></div>
+  ${temSP(o)?'<p style="font-size:.8rem;color:var(--muted);margin:6px 0">O pedido tem itens sem preço: informe o valor combinado com o cliente.</p>':''}
+  <p style="display:flex;gap:8px;margin:10px 0 0"><button class="btn acc sm" onclick="admPagSalvar()">Registrar</button><button class="btn ghost sm" onclick="A9.pagF=null;route()">Cancelar</button></p></div>`;
+}
+function admPagSalvar(){
+  const n=k=>+String(v_(k)).replace(',','.');const f=v_('pgF');
+  const bruto=n('pgB'),tx=n('pgT'),prev=v_('pgD'),parc=Math.max(1,Math.min(12,parseInt(v_('pgP'),10)||1));
+  if(!(bruto>0)){A9.msg='Informe o valor recebido.';A9.erro=true;route();return}
+  if(!(tx>=0&&tx<=30)){A9.msg='A taxa deve ficar entre 0% e 30%.';A9.erro=true;route();return}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(prev)){A9.msg='Informe a previsão de repasse.';A9.erro=true;route();return}
+  A9.pagF=null;
+  admRpc('registrar_recebimento',{p_pedido:A9.po.id,p_forma:f,p_parcelas:parc,p_bruto:bruto,p_taxa_pct:tx,p_prev:prev},'Pagamento registrado. O cliente foi avisado.');
+}
+function pagResumoHtml(o){
+  const p=o.pagamento||{};if(p.status!=='pago')return '';
+  return `<div class="note" style="margin:8px 0">Recebido em ${fmtD(Date.parse(p.pagoEm))}${p.forma?' por '+esc(PGFORMAS[p.forma]||p.forma)+(p.parcelas>1?' em '+p.parcelas+'x':''):''}${p.bruto!=null?'. Valor '+brl(p.bruto)+', taxa '+brl(p.taxaValor)+' ('+p.taxaPct+'%), líquido '+brl(p.liquido):''}${p.prevRepasse?'. Repasse previsto para '+dataBr(p.prevRepasse):''}.${p.repassado?' <b>Já retirado.</b>':''}</div>`;
+}
+
+/* ======================= EDIÇÃO DE ITENS E ENDEREÇO ======================= */
+function editHtml(o){
+  if(['entregue','cancelado'].includes(o.status))return '';
+  const en=o.entrega||{},d=en.dest||{};const itensOk=!['em-rota','tentativa'].includes(o.status);
+  const pago=(o.pagamento||{}).status==='pago';
+  return `<details class="editbox"><summary>Editar pedido (itens e endereço)</summary>
+  <h4>Itens</h4>${itensOk?`<div class="tbl"><table><thead><tr><th>Produto</th><th>Quantidade</th></tr></thead><tbody>${(o.itens||[]).map((i,k)=>`<tr><td>${esc(i.name)}</td><td><input id="eq${k}" type="number" min="0" max="99" value="${i.qty}" style="width:90px"></td></tr>`).join('')}</tbody></table></div>
+  <p style="font-size:.82rem;color:var(--muted);margin:4px 0">Quantidade 0 remove o item. O estoque é ajustado e o desconto recalculado.${pago?' <b>Pedido já pago: se o total mudar, acerte a diferença com o cliente.</b>':''}</p>
+  <label for="eqM">Motivo (o cliente vê este texto)</label><input id="eqM" maxlength="200" placeholder="Ex.: cliente pediu para trocar a quantidade"><p><button class="btn sm" onclick="admSalvaItens()">Salvar itens</button></p>`:'<div class="note warn">Os itens não podem mais ser alterados depois que o pedido saiu para entrega.</div>'}
+  <h4>Endereço de entrega</h4><div class="fr"><div class="c2"><label for="edCep">CEP</label><input id="edCep" value="${esc(d.cep||'')}"></div><div class="c2"><label for="edUf">UF</label><input id="edUf" maxlength="2" value="${esc(d.uf||'')}"></div><div class="c2"><label for="edCid">Cidade</label><input id="edCid" value="${esc(d.cidade||'')}"></div><div class="c3"><label for="edBai">Bairro</label><input id="edBai" value="${esc(d.bairro||'')}"></div><div class="c4"><label for="edRua">Rua</label><input id="edRua" value="${esc(d.rua||'')}"></div><div class="c2"><label for="edNum">Número</label><input id="edNum" value="${esc(d.num||'')}"></div><div class="c2"><label for="edCom">Complemento</label><input id="edCom" value="${esc(d.comp||'')}"></div><div class="c3"><label for="edRef">Referência</label><input id="edRef" value="${esc(d.ref||'')}"></div></div>
+  <label for="edObs">Observação para o entregador</label><input id="edObs" maxlength="300" value="${esc(en.obsEntregador||'')}">
+  <label for="edM">Motivo (o cliente vê este texto)</label><input id="edM" maxlength="200" placeholder="Ex.: cliente corrigiu o número da casa"><p><button class="btn sm" onclick="admSalvaEndereco()">Salvar endereço</button></p>
+  <p style="font-size:.82rem;color:var(--muted)">Depois de salvar, a etiqueta fica marcada como desatualizada: gere a versão nova.</p></details>`;
+}
+function admSalvaItens(){
+  const o=A9.po;const q=(o.itens||[]).map((i,k)=>parseInt(v_('eq'+k),10));
+  if(q.some(x=>isNaN(x)||x<0||x>99)){A9.msg='Informe quantidades de 0 a 99.';A9.erro=true;route();return}
+  if(q.every((x,k)=>x===o.itens[k].qty)){A9.msg='Nenhuma quantidade foi alterada.';A9.erro=true;route();return}
+  if(!v_('eqM').trim()){A9.msg='Informe o motivo da alteração.';A9.erro=true;route();return}
+  admRpc('editar_itens_pedido',{p_pedido:o.id,p_qtds:q,p_motivo:v_('eqM').trim()},'Itens atualizados. O cliente foi avisado e a etiqueta ficou desatualizada.');
+}
+function admSalvaEndereco(){
+  const dest={cep:v_('edCep').trim(),uf:v_('edUf').trim(),cidade:v_('edCid').trim(),bairro:v_('edBai').trim(),rua:v_('edRua').trim(),num:v_('edNum').trim(),comp:v_('edCom').trim(),ref:v_('edRef').trim()};
+  if(!v_('edM').trim()){A9.msg='Informe o motivo da alteração.';A9.erro=true;route();return}
+  admRpc('editar_endereco_pedido',{p_pedido:A9.po.id,p_dest:dest,p_obs_entregador:v_('edObs').trim(),p_motivo:v_('edM').trim()},'Endereço atualizado. O cliente foi avisado e a etiqueta ficou desatualizada.');
+}
+
+/* ======================= CARTÃO E RETIRADAS ======================= */
+A9.cx=null;A9.cxF={per:'mes',forma:'',st:''};A9.cxSel={};
+async function admCarregarCx(){
+  const [p,r,c]=await Promise.all([
+    SB.from('pedidos').select('id,status,criado_em,entrega,itens,desconto,pagamento').neq('status','cancelado').order('id',{ascending:false}).limit(300),
+    SB.from('retiradas').select('*').order('n',{ascending:false}).limit(50),
+    SB.from('configuracao').select('valor').eq('chave','cartao').maybeSingle()]);
+  A9.cx={peds:p.data||[],ret:r.data||[],cfg:Object.assign({},CXDEF,c.data&&c.data.valor)};
+  if(p.error||r.error){A9.msg='Não foi possível carregar. Confirme que os arquivos 08 a 15 foram rodados no Supabase.';A9.erro=true}
+  route();
+}
+var pagoP=o=>(o.pagamento||{}).status==='pago';
+var sitCx=o=>!pagoP(o)?'aguardando':((o.pagamento||{}).repassado?'repassado':'repassar');
+function cxFiltro(k,v){A9.cxF[k]=v;A9.cxSel={};route()}
+function cxTog(id,on){if(on)A9.cxSel[id]=true;else delete A9.cxSel[id];route()}
+function tabCartao(){
+  if(!A9.cx){if(!A9.busy){A9.busy=true;admCarregarCx().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
+  const F=A9.cxF,L=A9.cx,hoje=hojeS(),mes=hoje.slice(0,7),d30=addDias(hoje,-29);
+  const dia=o=>String((o.pagamento||{}).pagoEm||'').slice(0,10);
+  const noPer=o=>F.per==='todos'||(F.per==='mes'?dia(o).slice(0,7)===mes:dia(o)>=d30);
+  const pagos=L.peds.filter(pagoP).filter(noPer);
+  let rows=pagos.slice();
+  if(F.forma)rows=rows.filter(o=>o.pagamento.forma===F.forma);
+  if(F.st)rows=rows.filter(o=>sitCx(o)===F.st);
+  const aReceber=L.peds.filter(o=>!pagoP(o));
+  const aRepassar=L.peds.filter(o=>pagoP(o)&&!o.pagamento.repassado);
+  const soma=(l,f)=>l.reduce((s,o)=>s+(+f(o)||0),0);
+  const card=(v,t,s)=>`<div class="box" style="margin:0"><div style="font-size:1.5rem;font-weight:700">${v}</div><div style="color:var(--ink)">${t}</div><small style="color:var(--muted)">${s}</small></div>`;
+  const chips=(k,opts)=>`<select onchange="cxFiltro('${k}',this.value)" style="width:auto">${opts.map(x=>`<option value="${x[0]}" ${F[k]===x[0]?'selected':''}>${x[1]}</option>`).join('')}</select>`;
+  const sel=rows.filter(o=>A9.cxSel[o.id]&&pagoP(o)&&!o.pagamento.repassado);
+  const c=L.cfg;
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+   ${card(brl(soma(aReceber,pedTotal)),'A receber do cliente',aReceber.length+' pedido'+(aReceber.length===1?'':'s')+' sem pagamento registrado')}
+   ${card(brl(soma(pagos,o=>o.pagamento.bruto)),'Recebido no período',pagos.length+' pagamento'+(pagos.length===1?'':'s'))}
+   ${card(brl(soma(pagos,o=>o.pagamento.taxaValor)),'Taxas do provedor','no período')}
+   ${card(brl(soma(aRepassar,o=>o.pagamento.liquido)),'A repassar (líquido)',aRepassar.length+' pagamento'+(aRepassar.length===1?'':'s')+' ainda não retirados')}
+  </div>
+  <div class="box" style="margin-top:12px">${msgBox()}<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">${chips('per',[['mes','Neste mês'],['30','Últimos 30 dias'],['todos','Tudo']])}${chips('forma',[['','Todas as formas'],['credito','Crédito'],['debito','Débito'],['pix','Pix'],['outro','Outro']])}${chips('st',[['','Todas as situações'],['repassar','A repassar'],['repassado','Repassado']])}<button class="btn ghost sm" onclick="A9.cx=null;route()">Atualizar</button></div>
+  <h3>Recebimentos <small style="color:var(--muted)">${rows.length}</small></h3>
+  ${rows.length?`<div class="tbl"><table><thead><tr><th></th><th>Pedido</th><th>Cliente</th><th>Forma</th><th class="r">Valor</th><th class="r">Taxa</th><th class="r">Líquido</th><th>Pago em</th><th>Repasse</th><th>Situação</th></tr></thead><tbody>${rows.map(o=>{const p=o.pagamento,rep=p.repassado,atr=!rep&&p.prevRepasse&&p.prevRepasse<hoje;return `<tr><td>${rep?'':`<input type="checkbox" class="selck" ${A9.cxSel[o.id]?'checked':''} onchange="cxTog(${o.id},this.checked)" aria-label="Selecionar ${codPed(o)}">`}</td><td><b>${codPed(o)}</b></td><td>${esc((o.entrega||{}).nome||'')}</td><td>${esc(PGFORMAS[p.forma]||p.forma||'')}${p.parcelas>1?' '+p.parcelas+'x':''}</td><td class="r">${p.bruto!=null?brl(p.bruto):''}</td><td class="r">${p.taxaValor!=null?brl(p.taxaValor):''}</td><td class="r">${p.liquido!=null?brl(p.liquido):''}</td><td>${p.pagoEm?fmtD(Date.parse(p.pagoEm)):''}</td><td>${p.prevRepasse?dataBr(p.prevRepasse):''}</td><td>${rep?'Repassado':atr?'<b style="color:#b3261e">Repasse atrasado</b>':'A repassar'}</td></tr>`}).join('')}</tbody></table></div>`:'<p style="color:var(--muted)">Nenhum recebimento neste filtro.</p>'}
+  ${sel.length?`<div class="note" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center"><b>${sel.length} pagamento${sel.length===1?'':'s'} marcado${sel.length===1?'':'s'}: ${brl(soma(sel,o=>o.pagamento.liquido))} líquidos</b><span>Data da retirada <input id="rtD" type="date" value="${hoje}" style="width:auto"></span><button class="btn acc sm" onclick="admRetirada()">Registrar retirada</button></div>`:''}</div>
+  <div class="two" style="grid-template-columns:1fr 1fr;margin-top:12px"><div class="box"><h3 style="margin-top:0">Histórico de retiradas</h3>${L.ret.length?`<div class="tbl"><table><thead><tr><th>Nº</th><th>Data</th><th>Pedidos</th><th class="r">Líquido</th><th></th></tr></thead><tbody>${L.ret.map(r=>`<tr><td>${r.n}</td><td>${dataBr(r.data)}</td><td style="font-size:.8rem">${r.pedidos.map(id=>'ZP-'+String(id).padStart(6,'0')).join(', ')}</td><td class="r">${brl(r.total)}</td><td><button class="btn ghost sm" onclick="admDesfazRetirada('${r.id}',${r.n})">Desfazer</button></td></tr>`).join('')}</tbody></table></div>`:'<p style="color:var(--muted)">Nenhuma retirada registrada.</p>'}</div>
+  <div class="box"><h3 style="margin-top:0">Taxas e prazos estimados</h3><p style="margin:0 0 8px;font-size:.82rem;color:var(--muted)">Usados como sugestão ao registrar um pagamento. Troque pelos valores reais do seu provedor.</p>
+  <div class="fr"><div class="c3"><label for="cfC">Taxa crédito (%)</label><input id="cfC" inputmode="decimal" value="${c.taxaCredito}"></div><div class="c3"><label for="cfD">Taxa débito (%)</label><input id="cfD" inputmode="decimal" value="${c.taxaDebito}"></div><div class="c3"><label for="cfX">Taxa Pix (%)</label><input id="cfX" inputmode="decimal" value="${c.taxaPix}"></div><div class="c3"><label for="cfPC">Prazo crédito (dias)</label><input id="cfPC" type="number" min="0" max="365" value="${c.prazoCredito}"></div><div class="c3"><label for="cfPD">Prazo débito (dias)</label><input id="cfPD" type="number" min="0" max="365" value="${c.prazoDebito}"></div><div class="c3"><label for="cfPX">Prazo Pix (dias)</label><input id="cfPX" type="number" min="0" max="365" value="${c.prazoPix}"></div></div><p><button class="btn acc sm" onclick="admSalvaCx()">Salvar estimativas</button></p></div></div>`;
+}
+async function admRetirada(){
+  const ids=Object.keys(A9.cxSel).map(Number),d=v_('rtD');
+  if(!ids.length){A9.msg='Marque os pagamentos da retirada.';A9.erro=true;route();return}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){A9.msg='Informe a data da retirada.';A9.erro=true;route();return}
+  if(A9.busy)return;A9.busy=true;const r=await SB.rpc('criar_retirada',{p_data:d,p_pedidos:ids});A9.busy=false;
+  if(r.error){A9.msg=msgRpc(r.error);A9.erro=true;route();return}
+  A9.cxSel={};A9.msg='Retirada registrada.';A9.erro=false;A9.cx=null;route();
+}
+async function admDesfazRetirada(id,n){
+  if(!confirm('Desfazer a retirada nº '+n+'? Os pagamentos voltam para "A repassar".'))return;
+  if(A9.busy)return;A9.busy=true;const r=await SB.rpc('desfazer_retirada',{p_id:id});A9.busy=false;
+  if(r.error){A9.msg=msgRpc(r.error);A9.erro=true;route();return}
+  A9.msg='Retirada desfeita.';A9.erro=false;A9.cx=null;route();
+}
+async function admSalvaCx(){
+  const n=k=>+String(v_(k)).replace(',','.');
+  const c={taxaCredito:n('cfC'),taxaDebito:n('cfD'),taxaPix:n('cfX'),prazoCredito:n('cfPC'),prazoDebito:n('cfPD'),prazoPix:n('cfPX')};
+  if(![c.taxaCredito,c.taxaDebito,c.taxaPix].every(x=>x>=0&&x<=30)||![c.prazoCredito,c.prazoDebito,c.prazoPix].every(x=>Number.isInteger(x)&&x>=0&&x<=365)){A9.msg='Confira as taxas (0 a 30%) e os prazos (0 a 365 dias, números inteiros).';A9.erro=true;route();return}
+  const r=await SB.from('configuracao').upsert({chave:'cartao',valor:c,publica:false,atualizado_em:new Date().toISOString()});
+  if(r.error){A9.msg='Não foi possível salvar.';A9.erro=true}else{A9.cx.cfg=c;A9.cartaoCfg=c;A9.msg='Estimativas salvas.';A9.erro=false}
+  route();
 }
 
 </script>
