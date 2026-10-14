@@ -1252,7 +1252,6 @@ function resumoCliente(o){
   return `<div class="pgrid">
    <div class="pbox"><small>Previsão de entrega</small><b>${fmtDay(e.data)}</b><div>${turnoNome(e.turno)}${e.janela?', '+esc(e.janela):''}</div>${rea?'<span class="st s-prog" style="margin-top:6px">Reagendado '+rea+'x</span>':''}</div>
    <div class="pbox"><small>Endereço de entrega</small><div style="margin-top:2px">${enderecoHtml(e.dest)}</div>${e.secundario?'<small style="display:block;margin-top:4px">Entrega no endereço secundário.</small>':''}</div>
-   ${o.entregadorNome?`<div class="pbox"><small>Entregador</small><b>${esc(o.entregadorNome)}</b><div>Responsável pela sua entrega</div></div>`:''}
    <div class="pbox"><small>Pagamento</small><b>${pago(o)?'Pago':'A combinar pelo WhatsApp'}</b><div>${temSPo(o)?'Valor a confirmar':'Valor '+brl(valorAcordado(o))}${taxaEnt(o)>0?'<br>com entrega de '+brl(taxaEnt(o)):''}</div>${p.pagoEm?'<small style="display:block;margin-top:4px">Recebido em '+fmtD(p.pagoEm)+'</small>':''}</div>
   </div>`;
 }
@@ -2526,7 +2525,7 @@ function mapPedido(p,evs,avs){
     eventos:evs.map(e=>({id:e.id,t:Date.parse(e.t),tipo:e.tipo,de:e.de,para:e.para,publico:e.publico,texto:e.texto,motivo:e.motivo,por:e.por})),
     avisos:avs.map(a=>({id:a.id,t:Date.parse(a.t),titulo:a.titulo,texto:a.texto,lido:a.lido,motivo:a.motivo,previsao:a.previsao,evId:a.evento_id})),
     etiquetas:[],pagamento:p.pagamento||{modo:'link',status:'pendente',taxaEntrega:0},conf:p.conf_n||p.id,reduced:true,track:p.rastreio,
-    entrega:p.entrega,disc:p.desconto,ref:p.indicacao?{owner:p.indicacao.owner,code:p.indicacao.code}:null,token:p.token,rotaId:p.rota_id,entregadorId:p.entregador_id,entregadorNome:p.entregador_nome||''};
+    entrega:p.entrega,disc:p.desconto,ref:p.indicacao?{owner:p.indicacao.owner,code:p.indicacao.code}:null,token:p.token,rotaId:p.rota_id,entregadorId:p.entregador_id};
 }
 async function bancoPedidos(){
   const r=await SB.from('pedidos_cliente').select('*').order('id');
@@ -3319,7 +3318,6 @@ function pageAcompanhar(code,token){
   return '<div class="wrap pg"><h1 class="t">Acompanhe o seu pedido</h1><div class="box pcard"><div class="pc-head"><div><b class="pc-cod">Pedido '+esc(r.codigo)+'</b> <span class="st '+(CLS[r.status]||'')+'">'+esc(LAB[r.status]||r.status)+'</span><div class="pc-sub">Feito em '+fmtD(Date.parse(r.criado_em))+'</div></div><div class="btns"><a class="btn ghost sm" href="'+wa+'" target="_blank" rel="noopener">Falar sobre este pedido</a></div></div>'
    +'<div class="pgrid"><div class="pbox"><small>Previsão de entrega</small><b>'+fmtDay(r.data)+'</b><div>'+esc(TURNOS[r.turno]||'')+'</div></div>'
    +'<div class="pbox"><small>Entrega em</small><b>'+esc(r.cidade||'')+(r.uf?'/'+esc(r.uf):'')+'</b></div>'
-   +(r.entregador?'<div class="pbox"><small>Entregador</small><b>'+esc(r.entregador)+'</b><div>Responsável pela sua entrega</div></div>':'')
    +'<div class="pbox"><small>Pagamento</small><b>'+(r.pago?'Pago':'A combinar pelo WhatsApp')+'</b></div></div>'
    +'<h3>Itens do pedido</h3><div class="tbl"><table><tbody>'+r.itens.map(i=>'<tr><td>'+esc(i.name)+'</td><td>'+i.qty+'</td></tr>').join('')+'</tbody></table></div>'
    +'<h3>Andamento</h3>'+(evs.length?'<div class="tbl"><table><tbody>'+evs.map(e=>'<tr><td style="white-space:nowrap">'+fmtD(Date.parse(e.t))+'</td><td>'+esc(e.texto||'')+(e.motivo?'<div style="color:var(--muted);font-size:.82rem">Motivo: '+esc(e.motivo)+'</div>':'')+'</td></tr>').join('')+'</tbody></table></div>':'<p style="color:var(--muted)">Ainda sem atualizações.</p>')
