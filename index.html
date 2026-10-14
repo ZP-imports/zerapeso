@@ -381,7 +381,7 @@ const OFERTA=p=>!!p.sale;
 const LIVE=()=>PRODUCTS.filter(p=>p.ativo!==false);
 const REG={'primeira-compra':'Desconto na primeira compra'};
 const brl=v=>'R$ '+Number(v).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
-const unit=p=>p.vars&&p.vars.length?Math.min(...p.vars.map(v=>v.sale!=null?v.sale:v.p)):(p.sale||p.p);
+const unit=p=>{if(p.vars&&p.vars.length){const l=p.vars.filter(v=>!v.sp).map(v=>v.sale!=null?v.sale:v.p);return l.length?Math.min(...l):0}return p.sale||p.p};
 const byId=id=>PRODUCTS.find(p=>p.id===+id);
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -2442,8 +2442,8 @@ async function bancoProdutos(){
   const rvar=await SB.from('produto_variacoes').select('*').eq('ativo',true).order('ordem');
   const dvar=rvar.error?[]:rvar.data;
   const arr=r.data.map(x=>{const p={id:x.id,sku:x.sku,n:x.nome,d:x.descricao,p:x.preco!=null?+x.preco:0,consulta:false,img:x.imagem?(/^https?:/.test(x.imagem)?x.imagem:SB_URL+'/storage/v1/object/public/produtos/'+encodeURIComponent(x.imagem)):'',st:x.estoque,c:x.cor,ic:x.icone,cat:x.categoria,ativo:x.ativo};
-    p.vars=dvar.filter(v=>v.produto_id===x.id).map(v=>({id:v.id,n:v.nome,un:v.unidades,p:+v.preco,sale:v.preco_promo!=null?+v.preco_promo:null}));
-    p.consulta=!p.vars.length;if(p.vars.length)p.p=Math.min(...p.vars.map(v=>v.sale!=null?v.sale:v.p));
+    p.vars=dvar.filter(v=>v.produto_id===x.id).map(v=>({id:v.id,n:v.nome,un:v.unidades,p:v.preco!=null?+v.preco:0,sale:v.preco_promo!=null?+v.preco_promo:null,sp:v.preco==null}));
+    p.consulta=!p.vars.length;p.semValor=!p.vars.some(v=>!v.sp);p.p=unit(p);
     return p});
   PRODUCTS.length=0;arr.forEach(p=>PRODUCTS.push(p));
   BASE.length=0;JSON.parse(JSON.stringify(PRODUCTS)).forEach(p=>BASE.push(p));
@@ -2662,8 +2662,9 @@ var vPreco=v=>v.sale!=null?v.sale:v.p;
 var SP='sp';
 var vOf=i=>{if(i.v===SP)return {id:SP,n:'Unidade',un:1,p:0,sp:true};const p=byId(i.id);return p&&p.vars?p.vars.find(v=>v.id===i.v):null};
 var ipreco=i=>{const v=vOf(i);return v&&!v.sp?vPreco(v):0};
-var cartSP=()=>cart.some(i=>i.v===SP);
-var precoTxt=i=>i.v===SP?'a confirmar':brl(ipreco(i)*i.qty);
+var isSP=i=>i.v===SP||!!(vOf(i)&&vOf(i).sp);
+var cartSP=()=>cart.some(isSP);
+var precoTxt=i=>isSP(i)?'a confirmar':brl(ipreco(i)*i.qty);
 var totTxt=()=>cartSP()?(cartSub()>0?brl(cartSub())+' + itens a confirmar':'A confirmar'):brl(cartSub());
 var temSPo=o=>(o.items||[]).some(i=>i.semPreco);
 var brlI=i=>i.semPreco?'a confirmar':brl(i.unit*i.qty);
@@ -2674,7 +2675,7 @@ var nl=s=>String(s).replace(/ /g,' ');
 
 /* ---------- mensagem do WhatsApp com o carrinho ---------- */
 function linhasCarrinho(){
-  return cart.map(i=>{const p=byId(i.id);return '• '+p.n+' ('+i.qty+' '+i.opt+') = '+(i.v===SP?'valor a confirmar':brl(ipreco(i)*i.qty))}).join('\n');
+  return cart.map(i=>{const p=byId(i.id);return '• '+p.n+' ('+i.qty+' '+i.opt+') = '+(isSP(i)?'valor a confirmar':brl(ipreco(i)*i.qty))}).join('\n');
 }
 function msgCarrinho(){
   if(!cart.length)return '';
@@ -2715,7 +2716,7 @@ function drawDrawer(){
 }
 function pageCart(){
   if(!cart.length)return `<div class="wrap pg"><h1 class="t">Carrinho</h1><div class="box" style="text-align:center;padding:50px 10px"><p>Seu carrinho está vazio.</p><button class="btn" onclick="nav('/')">Continuar comprando</button></div></div>`;
-  return `<div class="wrap pg"><h1 class="t">Carrinho</h1><div class="two"><div class="box tbl"><table><thead><tr><th>Produto</th><th>Preço</th><th>Qtd.</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>${cart.map(i=>{const {p,q}=linhaCart(i);return `<tr><td><b style="color:var(--ink)">${esc(p.n)}</b><div style="color:var(--muted);font-size:.82rem">${esc(i.opt)}</div></td><td>${i.v===SP?'a confirmar':brl(ipreco(i))}</td><td>${q}</td><td class="r">${precoTxt(i)}</td><td class="r"><button class="btn ghost sm" onclick="rmItem(${i.id},'${i.v}')">Remover</button></td></tr>`}).join('')}</tbody></table></div>
+  return `<div class="wrap pg"><h1 class="t">Carrinho</h1><div class="two"><div class="box tbl"><table><thead><tr><th>Produto</th><th>Preço</th><th>Qtd.</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>${cart.map(i=>{const {p,q}=linhaCart(i);return `<tr><td><b style="color:var(--ink)">${esc(p.n)}</b><div style="color:var(--muted);font-size:.82rem">${esc(i.opt)}</div></td><td>${isSP(i)?'a confirmar':brl(ipreco(i))}</td><td>${q}</td><td class="r">${precoTxt(i)}</td><td class="r"><button class="btn ghost sm" onclick="rmItem(${i.id},'${i.v}')">Remover</button></td></tr>`}).join('')}</tbody></table></div>
   <div class="box"><h3 style="margin-top:0">Resumo</h3><div class="tot"><span class="big">Total</span><span class="big">${totTxt()}</span></div><button class="btn acc full" style="padding:1em" onclick="nav('/revisar')">Continuar</button><p style="text-align:center;margin:12px 0 0"><a onclick="nav('/')" style="cursor:pointer">Continuar comprando</a></p></div></div></div>`;
 }
 
@@ -2725,7 +2726,7 @@ function card(p){
   return `<div class="card">${ok?'':'<span class="out">Sem estoque</span>'}
   <div class="pimg" style="background:${p.c}" onclick="nav('/produto/${p.id}')">${svg(p.ic,64)}${fotoHtml(p)}</div>
   <div class="pn" onclick="nav('/produto/${p.id}')">${esc(p.n)}</div>
-  <div class="price">${p.consulta?'<span class="consulte">Valor sob consulta</span>':'<small class="apart">A partir de</small> '+brl(unit(p))}</div>
+  <div class="price">${p.consulta||p.semValor?'<span class="consulte">Valor sob consulta</span>':'<small class="apart">A partir de</small> '+brl(unit(p))}</div>
   <button class="btn acc" onclick="nav('/produto/${p.id}')">Ver produto</button></div>`;
 }
 var PV={id:0,q:{}};
@@ -2744,24 +2745,25 @@ function pageProd(id){
   }else{
     compra=`<div class="vars">${p.vars.map((v,k)=>{const m=maxVar(p,v);const q=PV.q[k]||0;
       return `<div class="vcard"><div class="vh"><b>${esc(v.n)}</b><span class="vst ${m>0?'ok':'no'}">${m>0?'Disponível':'Sem estoque'}</span></div>
-      <div class="vp">${v.sale!=null?`<del>${brl(v.p)}</del> <b>${brl(v.sale)}</b>`:`<b>${brl(v.p)}</b>`}</div>
-      <div class="vq"><div class="qty"><button onclick="pvq(${k},-1)" aria-label="Diminuir" ${m>0?'':'disabled'}>−</button><span id="pq${k}">${q}</span><button onclick="pvq(${k},1)" aria-label="Aumentar" ${m>0?'':'disabled'}>+</button></div><span class="vl" id="vl${k}">${q>0?q+' × '+brl(vPreco(v))+' = '+brl(vPreco(v)*q):''}</span></div></div>`}).join('')}</div>
-    <div class="ptot"><span>TOTAL DO PRODUTO</span><b id="ptot">${brl(pvTotal(p))}</b></div>
-    <button class="btn acc full" id="padd" style="padding:1em;font-weight:700;letter-spacing:.03em" onclick="pvAdd()" ${pvTotal(p)>0?'':'disabled'}>${ICO_CART}<span>ADICIONAR AO CARRINHO</span></button>
+      ${v.sp?'':`<div class="vp">${v.sale!=null?`<del>${brl(v.p)}</del> <b>${brl(v.sale)}</b>`:`<b>${brl(v.p)}</b>`}</div>`}
+      <div class="vq"><div class="qty"><button onclick="pvq(${k},-1)" aria-label="Diminuir" ${m>0?'':'disabled'}>−</button><span id="pq${k}">${q}</span><button onclick="pvq(${k},1)" aria-label="Aumentar" ${m>0?'':'disabled'}>+</button></div><span class="vl" id="vl${k}">${q>0&&!v.sp?q+' × '+brl(vPreco(v))+' = '+brl(vPreco(v)*q):''}</span></div></div>`}).join('')}</div>
+    ${p.semValor?'':`<div class="ptot"><span>TOTAL DO PRODUTO</span><b id="ptot">${brl(pvTotal(p))}</b></div>`}
+    <button class="btn acc full" id="padd" style="padding:1em;font-weight:700;letter-spacing:.03em" onclick="pvAdd()" ${pvQty(p)>0?'':'disabled'}>${ICO_CART}<span>ADICIONAR AO CARRINHO</span></button>
     ${LEGAL}`;
   }
   const cat=p.cat.length?`<a onclick="nav('/cat/${encodeURIComponent(p.cat.join('/'))}')">${esc(p.cat[p.cat.length-1])}</a> / `:'';
   return `<div class="wrap pg"><div class="bc"><a onclick="nav('/')">Início</a> / ${cat}${esc(p.n)}</div>
   <div class="prod"><div class="pbig" style="background:${p.c}">${svg(p.ic,120)}${fotoHtml(p)}</div><div class="pinfo"><h1>${esc(p.n)}</h1><div style="color:var(--muted);font-size:.85rem">SKU ${esc(p.sku)}</div>${desc}${compra}</div></div></div>`;
 }
-function pvTotal(p){return (p.vars||[]).reduce((s,v,k)=>s+vPreco(v)*(PV.q[k]||0),0)}
+function pvTotal(p){return (p.vars||[]).reduce((s,v,k)=>s+(v.sp?0:vPreco(v))*(PV.q[k]||0),0)}
+function pvQty(p){return (p.vars||[]).reduce((s,v,k)=>s+(PV.q[k]||0),0)}
 function pvq(k,d){
   const p=byId(PV.id);if(!p)return;
   if(p.consulta){const q=Math.min(99,Math.max(0,(PV.q[0]||0)+d));PV.q[0]=q;$('#pq0').textContent=q;$('#padd').disabled=!(q>0);return}
   const v=p.vars[k];const m=maxVar(p,v);const q=Math.min(m,Math.max(0,(PV.q[k]||0)+d));
   if((PV.q[k]||0)+d>m)toast('Só há '+m+' disponível'+(m>1?'is':'')+' desta opção.');
-  PV.q[k]=q;$('#pq'+k).textContent=q;$('#vl'+k).textContent=q>0?q+' × '+brl(vPreco(v))+' = '+brl(vPreco(v)*q):'';
-  const t=pvTotal(p);$('#ptot').textContent=brl(t);$('#padd').disabled=!(t>0);
+  PV.q[k]=q;$('#pq'+k).textContent=q;$('#vl'+k).textContent=q>0&&!v.sp?q+' × '+brl(vPreco(v))+' = '+brl(vPreco(v)*q):'';
+  const pt=$('#ptot');if(pt)pt.textContent=brl(pvTotal(p));$('#padd').disabled=!(pvQty(p)>0);
 }
 function pvAdd(){
   const p=byId(PV.id);if(!p)return;let n=0;
@@ -2842,12 +2844,12 @@ function tabProdutos(){
   if(A9.ed)return admFormProduto();
   const msg=A9.msg?`<div class="note ${/Não|Erro|erro/.test(A9.msg)?'err':''}">${esc(A9.msg)}</div>`:'';
   return `<div class="box"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><p style="margin:0;color:var(--muted)">As mudanças valem na hora na loja. Produto sem variação cadastrada aparece como "sob consulta" (WhatsApp).</p><button class="btn acc" onclick="admNovoProduto()">Novo produto</button></div>${msg}
-  <div class="tbl"><table><thead><tr><th></th><th>SKU</th><th>Produto</th><th>Categoria</th><th>Variações</th><th>Estoque (un.)</th><th>Situação</th><th></th></tr></thead><tbody>${A9.prods.map(p=>`<tr><td>${p.imagem?`<img src="${esc(admFotoUrl(p.imagem))}" alt="" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#fff" onerror="this.remove()">`:''}</td><td>${esc(p.sku)}</td><td><b>${esc(p.nome)}</b></td><td>${esc((p.categoria||[]).join(' / '))}</td><td>${p.vars.length?p.vars.map(v=>esc(v.nome)+' '+brl(v.preco_promo!=null?v.preco_promo:v.preco)).join('<br>'):'<span style="color:var(--muted)">sob consulta</span>'}</td><td>${p.estoque}</td><td>${p.ativo?'Ativo':'Inativo'}</td><td><button class="btn ghost sm" onclick="admEditar(${p.id})">Editar</button></td></tr>`).join('')||'<tr><td colspan="8">Nenhum produto cadastrado.</td></tr>'}</tbody></table></div></div>`;
+  <div class="tbl"><table><thead><tr><th></th><th>SKU</th><th>Produto</th><th>Categoria</th><th>Variações</th><th>Estoque (un.)</th><th>Situação</th><th></th></tr></thead><tbody>${A9.prods.map(p=>`<tr><td>${p.imagem?`<img src="${esc(admFotoUrl(p.imagem))}" alt="" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#fff" onerror="this.remove()">`:''}</td><td>${esc(p.sku)}</td><td><b>${esc(p.nome)}</b></td><td>${esc((p.categoria||[]).join(' / '))}</td><td>${p.vars.length?p.vars.map(v=>esc(v.nome)+' '+(v.preco==null?'sem preço':brl(v.preco_promo!=null?v.preco_promo:v.preco))).join('<br>'):'<span style="color:var(--muted)">sob consulta</span>'}</td><td>${p.estoque}</td><td>${p.ativo?'Ativo':'Inativo'}</td><td><button class="btn ghost sm" onclick="admEditar(${p.id})">Editar</button></td></tr>`).join('')||'<tr><td colspan="8">Nenhum produto cadastrado.</td></tr>'}</tbody></table></div></div>`;
 }
 function admNovoProduto(){A9.ed={id:null,sku:'',nome:'',descricao:'',estoque:0,ativo:true,cat:'Produtos injetáveis',sub:'',imagem:'',vars:[{id:null,nome:'',unidades:1,preco:'',preco_promo:'',ativo:true}]};A9.msg='';A9.fotoArq=null;route()}
 function admEditar(id){
   const p=A9.prods.find(x=>x.id===id);if(!p)return;const c=p.categoria||[];
-  A9.ed={id:p.id,sku:p.sku,nome:p.nome,descricao:p.descricao||'',estoque:p.estoque,ativo:p.ativo,cat:c[0]||'',sub:c[1]||'',imagem:p.imagem||'',vars:p.vars.map(v=>({id:v.id,nome:v.nome,unidades:v.unidades,preco:v.preco,preco_promo:v.preco_promo==null?'':v.preco_promo,ativo:v.ativo}))};
+  A9.ed={id:p.id,sku:p.sku,nome:p.nome,descricao:p.descricao||'',estoque:p.estoque,ativo:p.ativo,cat:c[0]||'',sub:c[1]||'',imagem:p.imagem||'',vars:p.vars.map(v=>({id:v.id,nome:v.nome,unidades:v.unidades,preco:v.preco==null?'':v.preco,preco_promo:v.preco_promo==null?'':v.preco_promo,ativo:v.ativo}))};
   A9.msg='';A9.fotoArq=null;route();
 }
 function admLerForm(){
@@ -2870,7 +2872,7 @@ function admFormProduto(){
   <label for="fDesc">Descrição (opcional)</label><textarea id="fDesc" rows="3" maxlength="1500">${esc(e.descricao)}</textarea>
   <label>Foto do produto</label><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">${e.imagem?`<img src="${esc(admFotoUrl(e.imagem))}" alt="" style="width:64px;height:64px;object-fit:contain;border:1px solid var(--line);border-radius:8px;background:#fff" onerror="this.remove()">`:''}<input type="file" accept="image/jpeg,image/png,image/webp" onchange="admEscolheFoto(this)" style="width:auto"><span id="fFotoNome" style="color:var(--muted);font-size:.85rem"></span></div>
   <p style="color:var(--muted);font-size:.82rem;margin:4px 0 0">A foto é reduzida automaticamente para ficar leve na loja.</p>
-  <h3>Variações e preços</h3><p style="color:var(--muted);font-size:.85rem;margin-top:0">Ex.: "Caixa com 4 Ampolas" (4 unidades) e "Ampola Unidade" (1 unidade). As unidades descontam do estoque. O preço promocional é opcional e aparece como "por", com o preço normal riscado como "de".</p>
+  <h3>Variações e preços</h3><p style="color:var(--muted);font-size:.85rem;margin-top:0">Ex.: "Caixa com 4 Ampolas" (4 unidades) e "Ampola Unidade" (1 unidade). As unidades descontam do estoque (só quando há preço). Deixe o preço em branco para o valor ser confirmado no atendimento. O preço promocional é opcional e aparece como "por", com o preço normal riscado como "de".</p>
   <div class="tbl"><table><thead><tr><th>Nome da variação</th><th>Unidades</th><th>Preço (R$)</th><th>Preço promo (R$)</th><th>Ativa</th><th></th></tr></thead><tbody>${e.vars.map((x,k)=>`<tr><td><input id="vn${k}" value="${esc(x.nome)}" maxlength="80"></td><td><input id="vu${k}" type="number" min="1" value="${x.unidades}" style="width:80px"></td><td><input id="vp${k}" inputmode="decimal" value="${esc(x.preco)}" style="width:110px"></td><td><input id="vq${k}" inputmode="decimal" value="${esc(x.preco_promo)}" style="width:110px"></td><td><input id="va${k}" type="checkbox" style="width:auto" ${x.ativa===false||x.ativo===false?'':'checked'}></td><td><button class="btn ghost sm" onclick="admDelVar(${k})">Remover</button></td></tr>`).join('')}</tbody></table></div>
   <p><button class="btn ghost sm" onclick="admAddVar()">Adicionar variação</button></p>
   <div style="display:flex;gap:10px;margin-top:14px"><button class="btn acc" id="fSalvar" onclick="admSalvar()">Salvar produto</button><button class="btn ghost" onclick="admCancelar()">Cancelar</button></div></div>`;
@@ -2891,8 +2893,8 @@ async function admSalvar(){
   e.vars.forEach((x,k)=>{const n=k+1;
     if(!x.nome)er.push('Variação '+n+': informe o nome.');
     if(isNaN(x.unidades)||x.unidades<1)er.push('Variação '+n+': unidades deve ser 1 ou mais.');
-    if(x.preco===''||isNaN(+x.preco)||+x.preco<0)er.push('Variação '+n+': informe o preço.');
-    if(x.preco_promo!==''&&(isNaN(+x.preco_promo)||+x.preco_promo<0||+x.preco_promo>=+x.preco))er.push('Variação '+n+': o preço promocional deve ser menor que o preço.');
+    if(x.preco!==''&&(isNaN(+x.preco)||+x.preco<0))er.push('Variação '+n+': preço inválido.');
+    if(x.preco_promo!==''&&(x.preco===''||isNaN(+x.preco_promo)||+x.preco_promo<0||+x.preco_promo>=+x.preco))er.push('Variação '+n+': o preço promocional deve ser menor que o preço.');
   });
   if(er.length){A9.msg=er.join(' ');route();return}
   A9.busy=true;const b=document.getElementById('fSalvar');if(b){b.disabled=true;b.textContent='Salvando...'}
@@ -2913,7 +2915,7 @@ async function admSalvar(){
     const apagar=antigos.filter(i=>!manter.includes(i));
     if(apagar.length){const r=await SB.from('produto_variacoes').delete().in('id',apagar);if(r.error)throw r.error}
     for(let k=0;k<e.vars.length;k++){const x=e.vars[k];
-      const linha={produto_id:pid,nome:x.nome,unidades:x.unidades,preco:+x.preco,preco_promo:x.preco_promo===''?null:+x.preco_promo,ordem:k+1,ativo:x.ativo!==false};
+      const linha={produto_id:pid,nome:x.nome,unidades:x.unidades,preco:x.preco===''?null:+x.preco,preco_promo:x.preco_promo===''?null:+x.preco_promo,ordem:k+1,ativo:x.ativo!==false};
       const r=x.id?await SB.from('produto_variacoes').update(linha).eq('id',x.id):await SB.from('produto_variacoes').insert(linha);
       if(r.error)throw r.error;
     }
