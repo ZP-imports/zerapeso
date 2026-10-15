@@ -2984,7 +2984,7 @@ function card(p){
 }
 var QA={};
 function qaHtml(p){
-  if(p.consulta||p.semValor||!(p.vars||[]).length)return `<button class="btn acc" onclick="nav('/produto/${p.id}')">Ver produto</button>`;
+  if(p.consulta||!(p.vars||[]).length)return `<button class="btn acc" onclick="nav('/produto/${p.id}')">Ver produto</button>`;
   return `<div class="qa">${p.vars.map((v,k)=>{const m=maxVar(p,v);const q=QA[p.id+'_'+k]||0;return `<div class="qar"><div class="qan"><b>${esc(v.n)}</b><span class="vst ${m>0?'ok':'no'}">${m>0?'Disponível':'Sem estoque'}</span>${v.sp?'':`<small>${brl(vPreco(v))}</small>`}</div>${m>0?`<div class="qty"><button onclick="qaq(${p.id},${k},-1)" aria-label="Diminuir">−</button><span id="qa${p.id}_${k}">${q}</span><button onclick="qaq(${p.id},${k},1)" aria-label="Aumentar">+</button></div>`:''}</div>`}).join('')}<button class="btn acc full" id="qab${p.id}" onclick="qaAdd(${p.id})" disabled>${ICO_CART}<span>ADICIONAR AO CARRINHO</span></button><a class="qal" onclick="nav('/produto/${p.id}')">Ver detalhes</a></div>`;
 }
 function qaq(id,k,d){const p=byId(id);if(!p)return;const v=p.vars[k],m=maxVar(p,v);const key=id+'_'+k;const q=Math.min(m,Math.max(0,(QA[key]||0)+d));QA[key]=q;const e=document.getElementById('qa'+key);if(e)e.textContent=q;const b=document.getElementById('qab'+id);if(b)b.disabled=!p.vars.some((x,j)=>QA[id+'_'+j]>0)}
@@ -4372,7 +4372,7 @@ setInterval(()=>{
 /* ---- carrinho: avisos, caixa fechada, voltar aos produtos ---- */
 function irProdutos(){nav('/');setTimeout(()=>{const e=document.getElementById('destaque');if(e)e.scrollIntoView({behavior:'smooth'})},80)}
 function addPop(){openModal('<h3 style="margin:0 0 6px">Produto adicionado ao carrinho</h3><p style="margin:0 0 14px;color:var(--muted)">O que você quer fazer agora?</p><button class="btn acc full" style="padding:1em;margin-bottom:10px" onclick="closeModal();irProdutos()">Continuar comprando</button><button class="btn full" style="padding:1em" onclick="closeModal();nav(\'/carrinho\')">Finalizar compra</button>')}
-function caixaPar(p){const vs=(p&&p.vars)||[];const cx=vs.findIndex(v=>!v.sp&&v.un>1),un=vs.findIndex(v=>!v.sp&&v.un===1);return(cx>=0&&un>=0)?[cx,un]:null}
+function caixaPar(p){const vs=(p&&p.vars)||[];const cx=vs.findIndex(v=>v.un>1),un=vs.findIndex(v=>v.un===1);return(cx>=0&&un>=0)?[cx,un]:null}
 function caixaMsg(n){toast('Você está adicionando o equivalente a '+(n>1?n+' caixas fechadas':'uma caixa fechada')+'. Selecionamos a caixa para você.')}
 (function(){
   if(typeof pvq==='function'){const _pvq=pvq;
@@ -4391,6 +4391,9 @@ function caixaMsg(n){toast('Você está adicionando o equivalente a '+(n>1?n+' c
     if(!cartAdd(id,vc.id,n)){iu&&cart.indexOf(iu)<0&&cart.push(iu);iu.qty+=n*vc.un;return}
     save();updHead();drawDrawer();reRoute();caixaMsg(n)}}
 })();
+
+(function(){const re=/powered by netlify/i;function hide(){try{[].slice.call(document.body.children).forEach(el=>{if(el.id==='app'||el.tagName==='SCRIPT')return;const t=(el.shadowRoot?el.shadowRoot.textContent:'')+' '+(el.children.length<6?el.textContent:'');if(re.test(t)||/netlify/i.test(el.id+' '+el.className+' '+el.tagName))el.style.setProperty('display','none','important')})}catch(x){}}
+hide();let n=0;const iv=setInterval(()=>{hide();if(++n>40)clearInterval(iv)},500);try{new MutationObserver(hide).observe(document.body,{childList:true})}catch(x){}})();
 </script>
 </body>
 </html>
