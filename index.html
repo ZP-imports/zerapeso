@@ -498,6 +498,10 @@ a[href*="netlify.com"],[class*="netlify" i],[id*="netlify" i]{display:none!impor
 .pagos .turno3[data-p=debito]{background:#f3e8ff;border-color:#7c3aed;color:#6d28d9}
 .pagos .turno3.on[data-p=pix]{background:#16a34a;color:#fff}.pagos .turno3.on[data-p=credito]{background:#2563eb;color:#fff}.pagos .turno3.on[data-p=debito]{background:#7c3aed;color:#fff}
 @media(max-width:760px){.pagos{display:grid!important;grid-template-columns:1fr!important;gap:10px}.pagos .turno3{white-space:normal!important;padding:20px 12px!important;font-size:1.1rem!important;border-radius:14px;text-align:center}}
+
+.campo-erro{outline:3px solid #d92d20;outline-offset:4px;border-radius:12px;background:#fff1f0!important}
+.campo-msg{background:#d92d20;color:#fff;font-weight:700;border-radius:10px;padding:10px 14px;margin:0 0 8px;font-size:.95rem}
+.erro-topo{background:#d92d20;color:#fff;font-weight:800;border-radius:12px;padding:14px 16px;margin:12px 0;font-size:1.05rem;text-align:center}
 </style>
 </head>
 <body>
@@ -1438,7 +1442,7 @@ function pageRev(){
   ${entrega}
   ${pagInfo}
   ${ent.erros.length?`<div class="note err"><b>Confira antes de finalizar:</b><ul style="margin:6px 0 0;padding-left:18px">${ent.erros.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
-  <p><button class="btn acc full finbtn" id="fin" onclick="finish()" ${pronto?'':'disabled'}>CONCLUIR PEDIDO</button></p>${pronto?'':'<p style="color:var(--muted);font-size:.82rem;margin:0">Preencha seus dados, a preferência de entrega, o melhor horário e a forma de pagamento para liberar o envio.</p>'}${LEGAL}</div>
+  <p><button class="btn acc full finbtn" id="fin" onclick="finish()">CONCLUIR PEDIDO</button></p>${pronto?'':'<p style="color:var(--muted);font-size:.82rem;margin:0">Toque em CONCLUIR PEDIDO e mostramos em vermelho o que ainda falta.</p>'}${LEGAL}</div>
   <div class="box"><h3 style="margin-top:0">Como funciona</h3><ol style="padding-left:18px;margin:0"><li>Você escolhe a entrega e o pagamento.</li><li>Ao tocar em Concluir pedido, o pedido é registrado e a conversa abre já com os dados.</li><li>Nossa equipe confirma tudo com você pelo WhatsApp.</li><li>Acompanhe cada etapa em Rastrear pedido.</li></ol></div></div></div>`;
 }
 const STEPDESC={realizado:'Recebemos o seu pedido.',confirmado:'A loja confere o pedido e libera para preparação.',preparacao:'A equipe prepara os itens do seu pedido.',separacao:'Os itens são separados e conferidos com a etiqueta do pedido.','aguardando-programacao':'A loja organiza a rota e define a programação da entrega.',programada:'A entrega está programada para a data e o turno do pedido.','em-rota':'O pedido saiu para entrega. Fique atento ao telefone informado.',entregue:'Pedido entregue.'};
@@ -4393,6 +4397,18 @@ function caixaMsg(n){toast('Você está adicionando o equivalente a '+(n>1?n+' c
 
 (function(){const re=/powered by netlify/i;function hide(){try{[].slice.call(document.body.children).forEach(el=>{if(el.id==='app'||el.tagName==='SCRIPT')return;const t=(el.shadowRoot?el.shadowRoot.textContent:'')+' '+(el.children.length<6?el.textContent:'');if(re.test(t)||/netlify/i.test(el.id+' '+el.className+' '+el.tagName))el.style.setProperty('display','none','important')})}catch(x){}}
 hide();let n=0;const iv=setInterval(()=>{hide();if(++n>40)clearInterval(iv)},500);try{new MutationObserver(hide).observe(document.body,{childList:true})}catch(x){}})();
+
+/* ---- finalizar: mostra em vermelho o que falta e leva até o campo ---- */
+function realcaFaltas(){
+  document.querySelectorAll('.campo-msg,.erro-topo').forEach(e=>e.remove());document.querySelectorAll('.campo-erro').forEach(e=>e.classList.remove('campo-erro'));
+  const regras=[[/nome|telefone|endere[çc]o/i,()=>document.querySelector('form[onsubmit^="return ckSalvar"]')],[/data/i,()=>document.querySelector('.datepick')],[/hor[aá]rio|turno/i,()=>document.querySelector('.turnos3:not(.pagos)')],[/pagamento/i,()=>document.querySelector('.turnos3.pagos')]];
+  const vistos=new Set();let primeiro=null;
+  (ent.erros||[]).forEach(m=>{for(const [re,get] of regras){if(!re.test(m))continue;const el=get();if(!el||vistos.has(el))return;vistos.add(el);const alvo=el.closest('.box')&&el.tagName==='FORM'?el.closest('.box'):el;alvo.classList.add('campo-erro');const d=document.createElement('div');d.className='campo-msg';d.textContent='Falta preencher: '+m.replace(/^Complete seu nome e telefone no quadro Complete seus dados\.$/,'nome e telefone').replace(/^Complete o endereço principal de entrega\.$/,'endereço de entrega').replace(/^Escolha a data desejada para receber o pedido\.$/,'a data de entrega');alvo.parentNode.insertBefore(d,alvo);if(!primeiro)primeiro=d;return}});
+  const bt=document.getElementById('fin');
+  if(vistos.size&&bt){const t=document.createElement('div');t.className='erro-topo';t.textContent='Preencha os campos obrigatórios abaixo para concluir o pedido.';bt.parentNode.parentNode.insertBefore(t,bt.parentNode)}
+  if(primeiro)primeiro.scrollIntoView({behavior:'smooth',block:'center'});
+}
+if(typeof finish==='function'){const _fin0=finish;window.finish=async function(){await _fin0();if(ent&&ent.erros&&ent.erros.length)setTimeout(realcaFaltas,60)}}
 </script>
 </body>
 </html>
