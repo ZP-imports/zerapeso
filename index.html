@@ -484,6 +484,8 @@ tr[data-sc] td:first-child{box-shadow:inset 4px 0 0 var(--sc)}
 .stp small{font-size:.75rem;color:var(--muted)}
 .entq{cursor:pointer}.entq.sel{outline:3px solid var(--ink);box-shadow:0 10px 26px rgba(0,0,0,.14)}
 .entblk{margin-top:16px;padding:14px 14px 14px 16px;border:1px solid var(--line);border-radius:var(--r);background:#fff}
+
+.qa{margin-top:auto;display:flex;flex-direction:column;gap:6px}.qar{display:flex;justify-content:space-between;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:5px 8px}.qan{display:flex;flex-direction:column;line-height:1.2;min-width:0}.qan small{color:var(--muted)}.qa .qty button{width:26px;height:26px}.qal{text-align:center;font-size:.8rem;cursor:pointer;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -704,7 +706,6 @@ function validarEntrega(d,t){
   const min=addDias(hojeS(),LOG.antecedencia),max=addDias(hojeS(),LOG.janela);
   if(d<min)return 'A data deve ser a partir de '+fmtDay(min)+'.';
   if(d>max)return 'A data deve ser até '+fmtDay(max)+'.';
-  if(!LOG.dias.includes(wd(d)))return 'Não fazemos entregas neste dia da semana. Escolha outra data.';
   if(LOG.bloqueados.includes(d))return 'Não há entregas em '+fmtDay(d)+'. Escolha outra data.';
   if(!t)return 'Escolha o turno desejado.';
   if(!TURNOS[t]||!LOG.turnos[t])return 'Turno indisponível.';
@@ -909,12 +910,13 @@ const DIMG={'Ampolas':'ampola','Caixas':'caixa','Acompanhamento':'prancheta','Pr
 function pageHome(){
   const ben=[['Entrega rápida','Consulte prazo e regiões atendidas*','M2 6h11v10H2zM13 9h4l3 3v4h-7','caminhao'],['Pague na entrega','Link de pagamento enviado quando o pedido sai para entrega','M3 6h18v12H3zM3 10h18M7 15h4','cartao'],['Equipe de saúde','Atendimento por profissionais','M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z','coracao']];
   const D0=Object.keys(TREE)[0];const deps=Object.keys(TREE).filter(d=>d!=='Ofertas');const dIc={'Medicamentos':'inj','Produtos injetáveis':'inj','Acessórios de aplicação':'needle','Caixas':'inj','Ampolas':'inj','Acompanhamento':'scale'};
-  const slides=SL();
+  const slides=SL();const mobHome=window.innerWidth<=760;const SHF=shelf(D0+' em destaque',LIVE().filter(p=>p.cat[0]===D0&&p.cat[1]!=='Acessórios de Aplicação'),'/cat/'+encodeURIComponent(D0));
   return `<section class="hero" id="hero">${slides.map((s,i)=>`<div class="sl ${i?'':'on'}${s.img?' wantimg':''}" style="background:${s.c}" onclick="nav('${s.l}')">${s.img?`<picture class="slpic"><source media="(max-width:760px)" srcset="${BANURL(s.img,'mobile')}"><img src="${BANURL(s.img,'desktop')}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:''}<div class="wrap"><span class="tag">${s.s}</span><strong>${s.t}</strong><u>${s.b}</u></div></div>`).join('')}
    <button class="arr l" onclick="slide(-1)" aria-label="Anterior"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m15 5-7 7 7 7"/></svg></button><button class="arr r" onclick="slide(1)" aria-label="Próximo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 5 7 7-7 7"/></svg></button>
    <div class="dots">${slides.map((s,i)=>`<button class="${i?'':'on'}" onclick="slide(${i}-sl)" aria-label="Banner ${i+1}"></button>`).join('')}</div></section>
+  ${mobHome?SHF:''}
   <section class="ben"><div class="wrap g">${ben.map(b=>`<div class="bi"><span class="ic">${icoImg(b[3],'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+b[2]+'"/></svg>')}</span><div><b>${b[0]}</b><small>${b[1]}</small></div></div>`).join('')}</div></section>
-  ${shelf(D0+' em destaque',LIVE().filter(p=>p.cat[0]===D0&&p.cat[1]!=='Acessórios de Aplicação'),'/cat/'+encodeURIComponent(D0))}
+  ${mobHome?'':SHF}
   <section class="sec"><div class="wrap"><div class="sh"><h2>Compre por departamento</h2></div><div class="deps">${deps.map(d=>`<div class="dep" onclick="nav('/cat/${encodeURIComponent(d)}')"><span>${DIMG[d]?icoImg(DIMG[d],svg(dIc[d]||'cross',46)):svg(dIc[d]||'cross',46)}</span>${d}</div>`).join('')}</div></div></section>
   <section class="amigoban"><div class="wrap g"><div><h2>Amigo Emagrece Amigo${amOn()?': '+AM.pct+'% de desconto':''}</h2><p>Indique a ${esc(CFG.brand)} para um amigo. Ele ganha desconto na primeira compra e você ganha desconto a cada amigo que comprar.</p></div><button class="btn" style="padding:1em 2em" onclick="nav('/amigo')">Quero indicar</button></div></section>`;
 }
@@ -1414,7 +1416,7 @@ function pageRev(){
    ${ent.sec?`<div class="box" style="box-shadow:none"><div class="fr"><div class="c2"><label>CEP</label><input value="${sv('cep')}" oninput="entCep(this)" placeholder="00000-000" inputmode="numeric"></div><div class="c2"><label>Estado (UF)</label><select onchange="entS('uf',this.value)" ${ent.slock?'style="pointer-events:none;background:#eee"':''}><option value="">UF</option>${UFS.map(x=>`<option ${x===ent.s.uf?'selected':''}>${x}</option>`).join('')}</select></div><div class="c2"><label>Cidade</label><input value="${sv('cidade')}" oninput="entS('cidade',this.value)" ${ent.slock?'readonly':''}></div><div class="c3"><label>Bairro</label><input value="${sv('bairro')}" oninput="entS('bairro',this.value)"></div><div class="c4"><label>Rua</label><input value="${sv('rua')}" oninput="entS('rua',this.value)"></div><div class="c2"><label>Número do imóvel</label><input id="sNum" value="${sv('num')}" oninput="entS('num',this.value)"></div><div class="c4"><label>Complemento</label><input value="${sv('comp')}" oninput="entS('comp',this.value)"></div><div><label>Ponto de referência</label><input value="${sv('ref')}" oninput="entS('ref',this.value)"></div></div></div>`:''}
    ${prefHtml(turnos)}
    ${verr&&ent.data?`<div class="note err">${verr}</div>`:''}
-   <p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">Datas de ${fmtDay(min)} a ${fmtDay(max)}. Entregamos de ${LOG.dias.map(i=>['dom','seg','ter','qua','qui','sex','sáb'][i]).join(', ')}. A data é uma preferência: a loja confirma a programação e você acompanha tudo em Rastrear pedido.</p>
+   <p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">Datas de ${fmtDay(min)} a ${fmtDay(max)}. A data é uma preferência: a loja confirma a programação e você acompanha tudo em Rastrear pedido.</p>
    <label for="obs">Observações sobre o pedido ou a entrega (opcional)</label><textarea id="obs" rows="2" maxlength="500" oninput="ent.obs=this.value" placeholder="Ex.: portão azul, deixar com o porteiro">${esc(ent.obs)}</textarea>`;
   const pagInfo=`<h3 class="pref-h">Forma de pagamento</h3><div class="turnos3 pagos">${PAGS.map(x=>`<label class="turno3 ${ent.pag===x[0]?'on':''}"><input type="radio" name="pag" value="${x[0]}" ${ent.pag===x[0]?'checked':''} onchange="ent.pag=this.value;route()">${x[1]}</label>`).join('')}</div><p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">O pagamento é combinado com a nossa equipe pelo WhatsApp.</p>`;
   return `<div class="wrap pg"><h1 class="t">Finalizar compra</h1><div class="two"><div class="box"><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td>${esc(p.n)} (${esc(i.opt)})</td><td>${i.qty}</td><td class="r">${precoTxt(i)}</td></tr>`}).join('')}</tbody></table></div>
@@ -1495,7 +1497,7 @@ function infoCorpo(s){
   return ({
    'duvidas':faqHtml(),
    'como-comprar':`<ol><li><b>Escolha os produtos</b> e adicione ao carrinho.</li><li><b>Revise o pedido:</b> confira o endereço, escolha a data e o turno da entrega e, se tiver, informe o código de um amigo.</li><li><b>Escolha a forma de pagamento</b> (Pix, cartão de crédito ou débito) e envie o pedido pelo WhatsApp.</li><li><b>Nossa equipe confirma</b> e envia o link de pagamento pelo WhatsApp.</li><li>Acompanhe cada etapa em <a onclick="nav('/pedidos')">Rastrear pedido</a>.</li></ol><p>Ficou com dúvida? ${wa}.</p>`,
-   'entregas':`<h3>Data e turno</h3><p>Você escolhe a data e o turno ao finalizar a compra, com pelo menos ${LOG.antecedencia} dia de antecedência e até ${LOG.janela} dias à frente. Entregamos de ${dias}, nos turnos: ${turnos}.</p><h3>Frete</h3><p>${esc(CFG.frete)}.</p><h3>Quando a entrega é programada</h3><p>A programação começa depois da confirmação do pagamento. A data é uma preferência: a loja confirma a programação e avisa pelo site se algo mudar.</p><h3>Acompanhamento</h3><p>Em <a onclick="nav('/pedidos')">Rastrear pedido</a> você vê cada etapa. O código de rastreio só aparece quando existir.</p><h3>Tentativa sem sucesso</h3><p>Se não for possível entregar, entraremos em contato para reprogramar.</p>`,
+   'entregas':`<h3>Data e turno</h3><p>Você escolhe a data e o turno ao finalizar a compra, com pelo menos ${LOG.antecedencia} dia de antecedência e até ${LOG.janela} dias à frente. Entregamos em qualquer dia escolhido, nos turnos: ${turnos}.</p><h3>Frete</h3><p>${esc(CFG.frete)}.</p><h3>Quando a entrega é programada</h3><p>A programação começa depois da confirmação do pagamento. A data é uma preferência: a loja confirma a programação e avisa pelo site se algo mudar.</p><h3>Acompanhamento</h3><p>Em <a onclick="nav('/pedidos')">Rastrear pedido</a> você vê cada etapa. O código de rastreio só aparece quando existir.</p><h3>Tentativa sem sucesso</h3><p>Se não for possível entregar, entraremos em contato para reprogramar.</p>`,
    'pagamento':`<h3>Quando pagar</h3><p>Você escolhe a forma de pagamento ao enviar o pedido. Nossa equipe confirma o pedido e envia o link de pagamento pelo WhatsApp.</p><h3>Valor</h3><p>O valor é o do pedido: produtos, menos descontos, mais a taxa de entrega, quando houver, informada pela loja.</p><h3>Formas de pagamento</h3><p>Pix, cartão de crédito e cartão de débito.</p><h3>Como pagar</h3><p>Abra o link enviado pela nossa equipe no WhatsApp. Depois que a loja registrar o recebimento, o pedido mostra Pagamento recebido.</p>`,
    'trocas':`<h3>Troca e devolução</h3><p>Se o produto chegar com avaria, divergência ou erro de envio, avise nosso atendimento em até 7 dias corridos após o recebimento, com o número do pedido e fotos.</p><h3>Medicamentos</h3><p>Por segurança sanitária, medicamentos não podem ser devolvidos depois de entregues, salvo em caso de erro da loja ou produto com defeito, conforme a legislação aplicável.</p><h3>Reembolso</h3><p>Aprovada a troca ou a devolução, o valor é estornado pelo mesmo meio de pagamento.</p><p>${wa}.</p>`,
    'privacidade':`<h3>Dados que coletamos</h3><p>Nome, telefone, e-mail, endereço de entrega e histórico de pedidos, para processar e entregar suas compras.</p><h3>Como usamos</h3><p>Para confirmar pagamento, programar a entrega, avisar você sobre o pedido e verificar a elegibilidade a descontos.</p><h3>Pagamento</h3><p>Os dados de cartão e de Pix são tratados pelos provedores de pagamento. A loja não armazena número de cartão nem código de segurança.</p><h3>Seus direitos</h3><p>Você pode pedir acesso, correção ou exclusão dos seus dados pelo atendimento, conforme a LGPD.</p><p>${wa}.</p>`,
@@ -2965,8 +2967,15 @@ function card(p){
   <div class="pimg" style="background:${p.c}" onclick="nav('/produto/${p.id}')">${svg(p.ic,64)}${fotoHtml(p)}</div>
   <div class="pn" onclick="nav('/produto/${p.id}')">${esc(p.n)}</div>
   <div class="price">${p.consulta||p.semValor?'<span class="consulte">Valor sob consulta</span>':'<small class="apart">A partir de</small> '+brl(unit(p))}</div>
-  <button class="btn acc" onclick="nav('/produto/${p.id}')">Ver produto</button></div>`;
+  ${qaHtml(p)}</div>`;
 }
+var QA={};
+function qaHtml(p){
+  if(p.consulta||p.semValor||!(p.vars||[]).length)return `<button class="btn acc" onclick="nav('/produto/${p.id}')">Ver produto</button>`;
+  return `<div class="qa">${p.vars.map((v,k)=>{const m=maxVar(p,v);const q=QA[p.id+'_'+k]||0;return `<div class="qar"><div class="qan"><b>${esc(v.n)}</b>${v.sp?'':`<small>${brl(vPreco(v))}</small>`}</div>${m>0?`<div class="qty"><button onclick="qaq(${p.id},${k},-1)" aria-label="Diminuir">−</button><span id="qa${p.id}_${k}">${q}</span><button onclick="qaq(${p.id},${k},1)" aria-label="Aumentar">+</button></div>`:'<small style="color:#b3261e">Sem estoque</small>'}</div>`}).join('')}<button class="btn acc full" id="qab${p.id}" onclick="qaAdd(${p.id})" disabled>Adicionar ao carrinho</button><a class="qal" onclick="nav('/produto/${p.id}')">Ver detalhes</a></div>`;
+}
+function qaq(id,k,d){const p=byId(id);if(!p)return;const v=p.vars[k],m=maxVar(p,v);const key=id+'_'+k;const q=Math.min(m,Math.max(0,(QA[key]||0)+d));QA[key]=q;const e=document.getElementById('qa'+key);if(e)e.textContent=q;const b=document.getElementById('qab'+id);if(b)b.disabled=!p.vars.some((x,j)=>QA[id+'_'+j]>0)}
+function qaAdd(id){const p=byId(id);if(!p)return;let n=0;p.vars.forEach((v,k)=>{const q=QA[id+'_'+k]||0;if(q>0&&cartAdd(id,v.id,q))n++;QA[id+'_'+k]=0;const e=document.getElementById('qa'+id+'_'+k);if(e)e.textContent=0});if(!n)return;const b=document.getElementById('qab'+id);if(b)b.disabled=true;save();updHead();bump();toast('Adicionado ao carrinho.',['Ver carrinho','openCart()'])}
 var PV={id:0,q:{}};
 function pageProd(id){
   const p=byId(id);if(!p||p.ativo===false)return pageNF();
@@ -3183,7 +3192,9 @@ async function admCarregarLink(){
 }
 async function admCarregarPedidos(){
   const r=await SB.from('pedidos').select('*').order('id',{ascending:false}).limit(300);
-  A9.pedidos=r.error?[]:r.data;if(r.error){A9.msg='Não foi possível carregar os pedidos.';A9.erro=true}route();
+  A9.pedidos=r.error?[]:r.data;if(r.error){A9.msg='Não foi possível carregar os pedidos.';A9.erro=true}
+  try{const ev=await SB.from('pedido_eventos').select('pedido_id').ilike('texto','Link de pagamento aberto%').limit(3000);A9.pagEnv=A9.pagEnv||{};(ev.data||[]).forEach(e=>{A9.pagEnv[e.pedido_id]=true})}catch(x){}
+  route();
 }
 async function admAbrirPedido(id){
   const [r,ev,et]=await Promise.all([SB.from('pedidos').select('*').eq('id',id).single(),SB.from('pedido_eventos').select('*').eq('pedido_id',id).order('t'),SB.from('etiquetas').select('*').eq('pedido_id',id).order('v')]);
@@ -3352,7 +3363,7 @@ function msgRota(r){
 function tabLogistica(){
   if(!A9.lg){if(!A9.busy){A9.busy=true;admCarregarLog().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
   const L=A9.lg;const hoje=hojeS();
-  const fl=A9.lgF||'';
+  const fl='';
   const elegiveis=L.abertos.filter(PODE_ROTA).filter(o=>!fl||(o.entrega||{}).data===fl).sort((a,b)=>((a.entrega||{}).data||'').localeCompare((b.entrega||{}).data||'')||String((a.entrega||{}).turno).localeCompare(String((b.entrega||{}).turno))||String(((a.entrega||{}).dest||{}).bairro).localeCompare(String(((b.entrega||{}).dest||{}).bairro)));
   const nSel=Object.keys(A9.sel).length;
   const ativos=L.ent.filter(x=>x.ativo);
@@ -3361,11 +3372,13 @@ function tabLogistica(){
   const andamento=rotas.filter(r=>!r.pedidos.map(id=>L.peds[id]).filter(Boolean).every(ENC));
   const concluidas=rotas.filter(r=>!andamento.includes(r));
   return `<div class="box">${msgBox()}<h3 style="margin-top:0">Selecione os pedidos e envie para o motoboy</h3>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><div><label for="lgF">Filtrar pela data desejada</label><input id="lgF" type="date" value="${esc(fl)}" onchange="A9.lgF=this.value;route()" style="width:auto"></div>${fl?'<button class="btn ghost sm" onclick="A9.lgF=\'\';route()">Limpar filtro</button>':''}<button class="btn ghost sm" onclick="admLgRecarrega()">Atualizar</button></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><button class="btn ghost sm" onclick="admLgRecarrega()">Atualizar</button></div>
   <div class="tbl"><table><thead><tr><th></th><th>Pedido</th><th>Cliente</th><th>Bairro / cidade</th><th>Data desejada</th><th>Itens</th></tr></thead><tbody>${elegiveis.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td><input type="checkbox" style="width:auto" ${A9.sel[o.id]?'checked':''} onchange="admSel(${o.id},this.checked)"></td><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${esc(STLB[o.status]||o.status)}</div></td><td>${esc(e.nome||'')}</td><td>${esc((d.bairro||'')+' / '+(d.cidade||''))}</td><td>${dataBr(e.data)} ${esc(TURNOS[e.turno]||'')}${e.data&&e.data<hoje?' <b style="color:#b3261e">atrasado</b>':''}</td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td></tr>`}).join('')||'<tr><td colspan="6">Nenhum pedido encaminhado pela loja ainda. Na aba Pedidos, abra o pedido e clique em Encaminhar para entregador.</td></tr>'}</tbody></table></div>
-  ${ativos.length?`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:12px"><div><label for="lgE">Entregador</label><select id="lgE" style="width:auto"><option value="">Escolha</option>${ativos.map(x=>`<option value="${x.id}" ${A9.lgE===x.id?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></div><div><label for="lgD">Data da rota</label><input id="lgD" type="date" value="${esc(A9.lgD||fl||hoje)}" style="width:auto"></div><button class="btn acc" onclick="admCriaRota()">Criar rota com ${nSel} pedido${nSel===1?'':'s'}</button></div>`:'<div class="note warn">Cadastre um entregador na aba Entregadores para criar rotas.</div>'}
-  <h3>Rotas em andamento</h3>${andamento.map(rotaHtml).join('')||'<p style="color:var(--muted)">Nenhuma rota em andamento.</p>'}
-  ${concluidas.length?`<h3>Rotas concluídas</h3>${concluidas.slice(0,10).map(rotaHtml).join('')}`:''}</div>`;
+  ${ativos.length?`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:12px"><div><label for="lgE">Entregador</label><select id="lgE" style="width:auto"><option value="">Escolha</option>${ativos.map(x=>`<option value="${x.id}" ${A9.lgE===x.id?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></div><div><label for="lgD">Data da rota</label><input id="lgD" type="date" value="${esc(A9.lgD||hoje)}" style="width:auto"></div><button class="btn acc" onclick="admCriaRota()">Criar rota com ${nSel} pedido${nSel===1?'':'s'}</button></div>`:'<div class="note warn">Cadastre um entregador na aba Entregadores para criar rotas.</div>'}
+  <h3>Rotas por entregador</h3><p style="margin:0 0 8px;color:var(--muted);font-size:.88rem">Clique em um ou mais entregadores para ver todas as rotas dele. Sem seleção, aparecem as rotas em andamento.</p>
+  <div class="entgrid">${L.ent.map(x=>{const rs=rotas.filter(r=>r.entregador_id===x.id);const na=rs.filter(r=>andamento.includes(r)).length;const cor=corEnt(x.id);return `<div class="entq${A9.entSel[x.id]?' sel':''}" style="border-top:6px solid ${cor};padding:10px" onclick="entSelTog('${x.id}')"><div class="entq-h"><span class="entq-av" style="background:${cor}">${esc((x.nome||'?').trim().charAt(0).toUpperCase())}</span><div><b>${esc(x.nome)}</b><div style="color:var(--muted);font-size:.8rem">${na} em andamento · ${rs.length-na} concluída${rs.length-na===1?'':'s'}</div></div></div></div>`}).join('')||'<p>Nenhum entregador cadastrado.</p>'}</div>
+  ${L.ent.some(x=>A9.entSel[x.id])?entRotas():`<h3>Rotas em andamento</h3>${andamento.map(rotaHtml).join('')||'<p style="color:var(--muted)">Nenhuma rota em andamento.</p>'}
+  ${concluidas.length?`<details style="margin-top:14px"><summary style="cursor:pointer;font-weight:700">Rotas concluídas (${concluidas.length})</summary>${concluidas.slice(0,10).map(rotaHtml).join('')}</details>`:''}`}</div>`;
 }
 
 
@@ -3881,12 +3894,12 @@ function pageRevConta(){
   const resumo=`<div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td>${esc(p.n)} (${esc(i.opt)})</td><td>${i.qty}</td><td class="r">${precoTxt(i)}</td></tr>`}).join('')}</tbody></table></div>
   <div class="tot"><span class="big">Total</span><span class="big">${totTxt()}</span></div>`;
   const entrar=`<form onsubmit="return ckLogin(event)"><label for="ckLe">E-mail</label><input id="ckLe" type="email" required autocomplete="email"><div style="height:10px"></div><label for="ckLp">Senha</label><input id="ckLp" type="password" required autocomplete="current-password"><p><button class="btn acc full" style="padding:1em">Entrar e continuar</button></p></form>`;
-  const criar=`<form onsubmit="return ckCadastro(event)"><div class="fr"><div class="c2"><label for="ckRn">Nome</label><input id="ckRn" required autocomplete="given-name"></div><div class="c2"><label for="ckRs">Sobrenome</label><input id="ckRs" required autocomplete="family-name"></div><div><label for="ckF">Telefone com WhatsApp</label>${foneCampo('ckF','',false)}</div><div><label for="ckRe">E-mail</label><input id="ckRe" type="email" required autocomplete="email"></div><div><label for="ckRp">Senha (mínimo 6 caracteres)</label><input id="ckRp" type="password" required minlength="6" autocomplete="new-password"></div></div>
+  const criar=`<form onsubmit="return ckCadastro(event)"><div class="fr"><div class="c2"><label for="ckRn">Nome</label><input id="ckRn" required autocomplete="given-name"></div><div class="c2"><label for="ckRs">Sobrenome</label><input id="ckRs" required autocomplete="family-name"></div><div><label for="ckF">Telefone com WhatsApp</label>${foneCampo('ckF','',false)}</div><div><label for="ckRe">E-mail (opcional)</label><input id="ckRe" type="email" autocomplete="email"></div><div><label for="ckRp">Senha (opcional, mínimo 6 caracteres)</label><input id="ckRp" type="password" minlength="6" autocomplete="new-password"><small style="color:var(--muted)">Sem senha, sua compra segue normalmente e você acompanha o pedido pelo código.</small></div></div>
   <h3>Endereço de entrega</h3><p style="margin:0 0 6px;color:var(--muted);font-size:.9rem">Digite o CEP e preenchemos estado, cidade, bairro e rua. Falta só o número.</p>${ckEndCampos({})}
-  <p style="font-size:.85rem;color:var(--muted)"><label style="font-weight:400"><input type="checkbox" id="ckRc" style="width:auto"> Li e concordo com a Política de Privacidade e autorizo o uso dos meus dados para processar e entregar meus pedidos.</label></p><p><button class="btn acc full" style="padding:1em">Criar conta e continuar</button></p></form>`;
+  <p style="font-size:.85rem;color:var(--muted)"><label style="font-weight:400"><input type="checkbox" id="ckRc" style="width:auto"> Li e concordo com a Política de Privacidade e autorizo o uso dos meus dados para processar e entregar meus pedidos.</label></p><p><button class="btn acc full" style="padding:1em">Continuar</button></p></form>`;
   return `<div class="wrap pg"><h1 class="t">Finalizar compra</h1><div class="two"><div class="box">${resumo}
-  <h3>Seus dados</h3><p style="margin:0 0 10px;color:var(--muted);font-size:.9rem">Crie a sua conta aqui mesmo, ou entre se já tem uma, e continue o pedido sem sair desta tela.</p>
-  <div class="tabs"><button class="${aba==='cad'?'on':''}" onclick="ckTab='cad';route()">Criar conta</button><button class="${aba==='entrar'?'on':''}" onclick="ckTab='entrar';route()">Já tenho conta</button></div><div id="fmsg"></div>
+  <h3>Seus dados</h3><p style="margin:0 0 10px;color:var(--muted);font-size:.9rem">Preencha seus dados para finalizar. Não precisa criar senha. Se já tem conta, use a aba ao lado.</p>
+  <div class="tabs"><button class="${aba==='cad'?'on':''}" onclick="ckTab='cad';route()">Novo por aqui</button><button class="${aba==='entrar'?'on':''}" onclick="ckTab='entrar';route()">Já tenho conta</button></div><div id="fmsg"></div>
   ${aba==='entrar'?entrar:criar}${LEGAL}</div>
   <div class="box"><h3 style="margin-top:0">Como funciona</h3><ol style="padding-left:18px;margin:0"><li>Você cria a conta ou entra.</li><li>Escolhe a entrega e o pagamento.</li><li>Ao tocar em Enviar pedido no WhatsApp, o pedido é registrado e a conversa abre já com os dados.</li><li>Nossa equipe confirma tudo com você pelo WhatsApp.</li></ol></div></div></div>`;
 }
@@ -3902,11 +3915,13 @@ async function ckLogin(e){
 async function ckCadastro(e){
   e.preventDefault();
   if(!SB){msg(semConexao);return false}
-  const em=$('#ckRe').value.trim().toLowerCase(),nome=tc($('#ckRn').value),sob=tc($('#ckRs').value),fone=$('#ckF').value.trim(),sem9=$('#ckFn9').checked,pw=$('#ckRp').value;
+  let em=$('#ckRe').value.trim().toLowerCase(),pw=$('#ckRp').value;const nome=tc($('#ckRn').value),sob=tc($('#ckRs').value),fone=$('#ckF').value.trim(),sem9=$('#ckFn9').checked;
+  if(!em)em=(fone.replace(/\D/g,'')||String(Date.now()))+'@cliente.zpimports.app';
+  if(!pw){pw=Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b=>b.toString(36)).join('')+'Zp1'}
   {const er=foneErro(fone,sem9);if(er){msg(er);return false}}
   if(nome.length<2||sob.length<2){msg('Informe nome e sobrenome.');return false}
   const end=ckEndLer();{const er=validarEnd(end);if(er.length){msg(er.join(' '));return false}}
-  if(!$('#ckRc').checked){msg('Para criar a conta, é preciso aceitar a Política de Privacidade.');return false}
+  if(!$('#ckRc').checked){msg('Para continuar, é preciso aceitar a Política de Privacidade.');return false}
   if(pw.length<6){msg('A senha precisa ter pelo menos 6 caracteres.');return false}
   const r=await SB.auth.signUp({email:em,password:pw,options:{data:{nome,sobrenome:sob,fone,sem9,consentimento:true}}});
   if(r.error){msg(traduzErro(r.error));return false}
@@ -4061,11 +4076,12 @@ function pagChipP(o){const p=o.pagamento||{};return p.status==='pago'?'<span cla
 
 /* filtros (cidade, turno, quando) */
 A9.fc='';A9.ft='';A9.fq='';A9.mais=false;A9.pagEnv={};A9.pf='cobrar';A9.cores=A9.cores||{};
+var grpCid=c=>{const k=cidNorm(c);return ['sao jose dos campos','jacarei','cacapava'].includes(k)?'sjc':k};
 function filtroExtra(o,f){
   f=f||{fc:A9.fc,ft:A9.ft,fq:A9.fq,fe:A9.fe};const e=o.entrega||{};
   if(f.fe==='fin'&&!(o.extra&&o.extra.etq_em))return false;
   if(f.fe==='pend'&&(o.extra&&o.extra.etq_em))return false;
-  if(f.fc&&cidNorm(cidadeDe(o))!==cidNorm(f.fc))return false;
+  if(f.fc&&grpCid(cidadeDe(o))!==grpCid(f.fc))return false;
   if(f.ft&&e.turno!==f.ft)return false;
   if(f.fq==='abertos'&&ENC(o))return false;
   if(f.fq==='feitos-hoje'&&!feitoHoje(o))return false;
@@ -4091,7 +4107,7 @@ function barraFiltros(){
 function listaPed(filtro,intro){
   if(A9.po)return admDetalhe();
   if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
-  if(!A9.pedidos._sel){A9.pedidos._sel=true;A9.pedidos.forEach(o=>{if(o.status==='realizado')A9.selP[o.id]=true})}
+  A9.vistos=A9.vistos||{};A9.pedidos.forEach(o=>{if(!A9.vistos[o.id]){A9.vistos[o.id]=true;if(o.status==='realizado')A9.selP[o.id]=true}})
   if(!A9.lg&&!A9.busyLg){A9.busyLg=true;admCarregarLog().finally(()=>{A9.busyLg=false})}
   const lista=A9.pedidos.filter(o=>(!filtro||filtro(o))&&(!A9.fs||o.status===A9.fs)&&filtroExtra(o));
   A9.lastLista=lista.map(o=>o.id);const nSel=lista.filter(o=>A9.selP[o.id]).length;
@@ -4126,17 +4142,17 @@ function tabPagamentos(){
   if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
   if(!A9.linkCarregado){if(!A9.busyL){A9.busyL=true;admCarregarLink().finally(()=>{A9.busyL=false;A9.linkCarregado=true;route()})}return '<div class="box">Carregando...</div>'}
   const L=A9.pedidos,total=o=>pedTotal(o)+(freteDoPedido(o)||0);
-  const cobrar=L.filter(o=>o.status==='entregue'&&aguardaPag(o)),andam=L.filter(o=>!ENC(o)&&aguardaPag(o)),pagos=L.filter(o=>(o.pagamento||{}).status==='pago');
+  const cobrar=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!A9.pagEnv[o.id]),andam=L.filter(o=>aguardaPag(o)&&!cobrar.includes(o)),pagos=L.filter(o=>(o.pagamento||{}).status==='pago');
   const f=A9.pf||'cobrar';const lista=(f==='cobrar'?cobrar:f==='andamento'?andam:pagos).filter(o=>filtroExtra(o));
   const soma=a=>brl(a.reduce((s,o)=>s+total(o),0));
   const aba=(k,t,a,c)=>`<button class="kc ${f===k?'sel':''}" style="--c:${c}" onclick="A9.pf='${k}';route()"><div class="n">${a.length}</div><div class="t">${t}</div><div class="t">${soma(a)}</div></button>`;
   return `<div class="box">${msgBox()}${A9.link?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre em Mais opções > Configurações.</div>'}
-  <p style="margin:0 0 10px;color:var(--muted)">Assim que o pedido é entregue, ele aparece aqui para cobrança. Envie o link ao cliente e, quando ele pagar, toque em <b>Marcar como pago</b>.</p>
-  <div class="kcards" style="margin-bottom:12px">${aba('cobrar','A cobrar (já entregues)',cobrar,'#d92d20')}${aba('andamento','Pendentes (ainda em andamento)',andam,'#d97706')}${aba('pagos','Pagos',pagos,'#16a34a')}</div>
+  <p style="margin:0 0 10px;color:var(--muted)">Pedido entregue aparece em <b>A cobrar</b>. Ao enviar o link de pagamento, ele passa para <b>Pendentes</b>. Quando o cliente pagar, toque em <b>Marcar como pago</b> e ele vai para <b>Pagos</b>.</p>
+  <div class="kcards" style="margin-bottom:12px">${aba('cobrar','A cobrar (entregues, link não enviado)',cobrar,'#d92d20')}${aba('andamento','Pendentes (link enviado ou pedido em andamento)',andam,'#d97706')}${aba('pagos','Pagos',pagos,'#16a34a')}</div>
   ${barraFiltros()}
   <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Produtos</th><th>Frete</th><th>Total</th><th>Forma</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const fr=freteDoPedido(o);const sp=temSP(o);const pago=(o.pagamento||{}).status==='pago';
    return `<tr data-sc style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${totAdm(o)}</td><td>${fr!=null?brl(fr):'<span style="color:var(--muted)">a combinar</span>'}</td><td><b>${sp?'A confirmar':brl(total(o))}</b></td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td>${stChip(o.status)} ${pagChipP(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">Link aberto no WhatsApp</div>':''}</td>
-   <td style="white-space:nowrap">${pago?`<button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link&&!sp)?'':'disabled'} title="${sp?'Pedido com item sob consulta: confirme o valor antes':A9.link?'Abre a conversa do cliente com a mensagem de cobrança':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})">Enviar link de pagamento</button> <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar como pago</button>`} <button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||'<tr><td colspan="8">Nenhum pedido nesta lista.</td></tr>'}</tbody></table></div></div>`;
+   <td style="white-space:nowrap">${pago?`<button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link&&!sp)?'':'disabled'} title="${sp?'Pedido com item sob consulta: confirme o valor antes':A9.link?'Abre a conversa do cliente com a mensagem de cobrança':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})">${A9.pagEnv[o.id]?'Reenviar link':'Enviar link de pagamento'}</button> <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar como pago</button>`} <button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||'<tr><td colspan="8">Nenhum pedido nesta lista.</td></tr>'}</tbody></table></div></div>`;
 }
 function pagEnviar(id){
   const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
@@ -4159,7 +4175,7 @@ function dashCont(){
   const e=document.getElementById('dN');if(e)e.textContent=n+' pedido'+(n===1?'':'s')+' em aberto'
 }
 function dashVer(){admIr('pedidos',{fc:v_('dC'),ft:v_('dT'),fq:v_('dQ')||'abertos'})}
-function admIrCid(i,t){const c=(A9.dcid||[])[i];if(!c)return;admIr('pedidos',{fc:c.nome,ft:t||'',fq:'abertos'})}
+function admIrCid(i,t){const c=(A9.dcid||[])[i];if(!c)return;admIr('pedidos',{fc:c.fc||c.nome,ft:t||'',fq:'abertos'})}
 function freteSalvar(){
   const lista=[];
   document.querySelectorAll('input[data-fc]').forEach(i=>{const v=i.value.trim().replace(',','.');if(v!==''&&!isNaN(+v)&&+v>=0)lista.push({cidade:i.dataset.fc,valor:+(+v).toFixed(2)})});
@@ -4176,17 +4192,17 @@ function tabDash(){
   if(A9.dashView==='concluidos')return `<div class="box" style="padding-bottom:6px"><a style="cursor:pointer;font-weight:600" onclick="A9.dashView='';route()">← Voltar à visão geral</a><h2 style="margin:8px 0 0">Pedidos concluídos</h2><p style="margin:4px 0 0;color:var(--muted)">Pedidos entregues ou cancelados. Aqui você confere, imprime etiquetas e acompanha o histórico.</p></div>`+listaPed(ENC,'Pedidos concluídos (entregues e cancelados).');
   const L=A9.pedidos,hoje=hojeS(),ab=L.filter(o=>!ENC(o));
   const hojeN=L.filter(feitoHoje),entH=ab.filter(o=>(o.entrega||{}).data===hoje),atr=L.filter(emAtraso),rec=ab.filter(o=>+o.seq>=2);
-  const pend=L.filter(aguardaPag),cobrar=L.filter(o=>o.status==='entregue'&&aguardaPag(o)),pagos=L.filter(o=>(o.pagamento||{}).status==='pago'),entregues=L.filter(o=>o.status==='entregue');
+  const cobrar=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!A9.pagEnv[o.id]),pend=L.filter(o=>aguardaPag(o)&&!cobrar.includes(o)),pagos=L.filter(o=>(o.pagamento||{}).status==='pago'),entregues=L.filter(o=>o.status==='entregue');
   const tot=o=>pedTotal(o)+(freteDoPedido(o)||0);
   const k=(c,t,n,sub,go)=>`<button class="kc" style="--c:${c}" onclick="${go}"><div class="n">${n}</div><div class="t"><b>${t}</b></div><div class="t">${sub}</div></button>`;
-  const cid={};ab.forEach(o=>{const c=cidadeDe(o)||'Sem cidade';const key=cidNorm(c)||'sem';const x=cid[key]=cid[key]||{nome:c,t:0};x.t++;const tn=(o.entrega||{}).turno;x[tn]=(x[tn]||0)+1});
+  const cid={};ab.forEach(o=>{const c=cidadeDe(o)||'Sem cidade';const key=grpCid(c)||'sem';const x=cid[key]=cid[key]||{nome:key==='sjc'?'São José dos Campos + Jacareí + Caçapava':c,fc:key==='sjc'?'São José dos Campos':c,t:0};x.t++;const tn=(o.entrega||{}).turno;x[tn]=(x[tn]||0)+1});
   A9.dcid=Object.values(cid).sort((a,b)=>b.t-a.t);
   const dias=[0,1,2,3,4,5,6].map(i=>addDias(hoje,i-6));const vals=dias.map(d=>L.filter(o=>ymd(new Date(Date.parse(o.criado_em)))===d).length);
   const st={};L.forEach(o=>{st[o.status]=(st[o.status]||0)+1});const stk=Object.keys(st).sort((a,b)=>STSEQ.indexOf(a)-STSEQ.indexOf(b));
   const admin=ADMIN.papel==='admin';
   const todasCid={};cidadesPed().forEach(c=>{todasCid[cidNorm(c)]=c});(FRETE.lista||[]).forEach(x=>{if(!todasCid[cidNorm(x.cidade)])todasCid[cidNorm(x.cidade)]=x.cidade});
   const cidFrete=Object.values(todasCid).sort((a,b)=>a.localeCompare(b));
-  return `<div class="box">${msgBox()}<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="margin:0">Visão geral</h2><div><span style="color:var(--muted);font-size:.82rem">Atualiza sozinha a cada minuto. </span><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar agora</button></div></div>
+  return `<div class="box">${msgBox()}<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="margin:0">Visão geral</h2><div><span style="color:var(--muted);font-size:.82rem">Atualiza sozinha a cada 20 segundos. </span><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar agora</button></div></div>
   <div class="kcards" style="margin-top:14px">
    ${k('#2563eb','Pedidos de hoje',hojeN.length,'feitos hoje',"admIr('pedidos',{fq:'feitos-hoje'})")}
    ${k('#ea580c','Em aberto',ab.length,'não entregues',"admIr('pedidos',{fq:'abertos'})")}
@@ -4208,9 +4224,6 @@ function tabDash(){
   <div class="tbl"><table><thead><tr><th>Cidade</th><th>Frete (R$)</th></tr></thead><tbody>${cidFrete.map(c=>{const v=freteCidade(c);return `<tr><td>${esc(c)}</td><td><input type="text" inputmode="decimal" data-fc="${esc(c)}" value="${v==null?'':String(v).replace('.',',')}" placeholder="0,00" style="max-width:120px"></td></tr>`}).join('')}<tr><td><input id="frNova" placeholder="Adicionar outra cidade (ex.: Caçapava)"></td><td><input id="frNovaV" inputmode="decimal" placeholder="0,00" style="max-width:120px"></td></tr></tbody></table></div>
   <p><button class="btn acc" onclick="freteSalvar()">Salvar frete</button></p>`:''}</div>`;
 }
-setInterval(()=>{
-  if(window.__ADMIN_APP&&typeof A!=='undefined'&&A.tab==='dash'&&!A9.po&&!A9.busy&&!document.hidden&&!emEdicao()&&A9.pedidos){A9.pedidos=null;route()}
-},60000);
 
 /* cor de cada entregador */
 var COR_PAL=['#e63946','#1d7ad9','#2a9d8f','#f4a261','#6a4c93','#e76f51','#43aa8b','#b5179e','#8d6e00','#3a86ff'];
@@ -4242,17 +4255,17 @@ function abasHtml(tabs,extra){
 
 /* ======================= ANDAMENTO DO PEDIDO (BARRA DE ETAPAS) E ROTAS POR ENTREGADOR ======================= */
 var ADM_LB={'aguardando-programacao':'Em programação de rota',programada:'Enviado ao entregador'};
-var PASSOS=[['confirmado','Confirmado','Pedido confirmado com o cliente. A equipe vê que está tudo certo para seguir.'],['separacao','Em separação','Pedido sendo separado e embalado.'],['preparacao','Em preparação','Pedido pronto, aguardando a verificação do motoboy.'],['aguardando-programacao','Encaminhar para entregador','Libera o pedido na aba Logística para entrar em uma rota.']];
-var ORD_ST={realizado:0,confirmado:1,separacao:2,preparacao:3,'aguardando-programacao':4,programada:5,'em-rota':5,tentativa:5,entregue:5};
+var PASSOS=[['confirmado','Confirmado','Pedido confirmado com o cliente. A equipe vê que está tudo certo para seguir.'],['separacao','Em separação','Pedido sendo separado e embalado.'],['aguardando-programacao','Aguardando o motoboy','Pedido pronto. Libera na aba Logística para entrar em uma rota.']];
+var ORD_ST={realizado:0,confirmado:1,separacao:2,preparacao:2,'aguardando-programacao':3,programada:4,'em-rota':4,tentativa:4,entregue:4};
 function statusOpcoes(o){
   const idx=ORD_ST[o.status]==null?0:ORD_ST[o.status];
   const passos=PASSOS.map((p,i)=>{
     const feito=idx>i,prox=idx===i;
-    const nome=(feito&&p[0]==='aguardando-programacao')?'Em programação de rota':p[1];
-    return `<div class="stp ${feito?'done':prox?'next':'lock'}"><button type="button" ${prox?'':'disabled'} title="${esc(p[2])}" onclick="stAvanca('${p[0]}')"><span class="dot">${feito?'✓':i+1}</span><b>${esc(nome)}</b><small>${feito?'Concluído':prox?'Clique para marcar':'Aguarde a etapa anterior'}</small></button></div>`;
+    const nome=p[1];
+    return `<div class="stp ${feito?'done':prox?'next':'lock'}"><button type="button" ${prox?'':'disabled'} title="${esc(p[2])}" onclick="stAvanca('${p[0]}')"><span class="dot">${feito?'✓':i+2}</span><b>${esc(nome)}</b><small>${feito?'Concluído':prox?'Clique para marcar':'Aguarde a etapa anterior'}</small></button></div>`;
   }).join('');
-  const env=idx>=5?`<div class="stp done"><button type="button" disabled title="O pedido já foi entregue à logística"><span class="dot">✓</span><b>Enviado ao entregador</b><small>${esc(o.entregadorNome||'')}${o.status==='programada'?' · aguardando sair':o.status==='em-rota'?' · saiu para entrega':''}</small></button></div>`:'';
-  return `<div class="stepper">${passos}${env}</div>`;
+  const env=idx>=4?`<div class="stp done"><button type="button" disabled title="O pedido já foi entregue à logística"><span class="dot">✓</span><b>Enviado ao entregador</b><small>${esc(o.entregadorNome||'')}${o.status==='programada'?' · aguardando sair':o.status==='em-rota'?' · saiu para entrega':''}</small></button></div>`:'';
+  return `<div class="stepper"><div class="stp done"><button type="button" disabled><span class="dot">✓</span><b>Recebido</b><small>Pedido feito pelo cliente</small></button></div>${passos}${env}</div>`;
 }
 function stAvanca(s){
   const o=A9.po;if(!o||A9.busy)return;const p=PASSOS.find(x=>x[0]===s);if(!p)return;
@@ -4283,7 +4296,7 @@ function entRotas(){
     const and=rs.filter(r=>!psDe(r).every(ENC)),conc=rs.filter(r=>!and.includes(r));
     return `<div class="entblk" style="border-left:8px solid ${cor}"><h3 style="margin:0;color:${cor}">${esc(x.nome)}</h3>
     <h4 style="margin:12px 0 0">Rotas em andamento (${and.length})</h4>${and.map(rotaHtmlG).join('')||'<p style="color:var(--muted);margin:6px 0">Nenhuma rota em andamento.</p>'}
-    <h4 style="margin:14px 0 0">Rotas concluídas (${conc.length})</h4>${conc.map(rotaHtmlG).join('')||'<p style="color:var(--muted);margin:6px 0">Nenhuma rota concluída.</p>'}</div>`}).join('');
+    <details style="margin-top:14px"><summary style="cursor:pointer;font-weight:700">Rotas concluídas (${conc.length})</summary>${conc.map(rotaHtmlG).join('')||'<p style="color:var(--muted);margin:6px 0">Nenhuma rota concluída.</p>'}</details></div>`}).join('');
 }
 
 /* ======================= EM LOTE: CONFIRMAR + IMPRIMIR ETIQUETAS, ENVIAR PARA ENTREGADOR ======================= */
@@ -4320,6 +4333,27 @@ async function pedEnviarEntregador(){
   A9.selP={};A9.pedidos=null;A9.lg=null;A9.lgE=en;A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';A9.po=null;A.tab='logistica';
   A9.msg='Rota criada com '+ids.length+' pedido'+(ids.length>1?'s':'')+' para '+nome+'. Agora envie a rota pelo WhatsApp e toque em Saiu para entrega.';A9.erro=false;route();window.scrollTo(0,0);
 }
+
+/* ======================= ATUALIZAÇÃO AUTOMÁTICA: o motoboy entrega, o painel já mostra e libera a cobrança ======================= */
+async function admRefrescaQuieto(){
+  if(A9.refQ)return;A9.refQ=true;
+  try{
+    const r=await SB.from('pedidos').select('*').order('id',{ascending:false}).limit(300);
+    if(!r.error){
+      const prev={};(A9.pedidos||[]).forEach(o=>{prev[o.id]=o.status});
+      const ent=r.data.filter(o=>prev[o.id]&&prev[o.id]!=='entregue'&&o.status==='entregue');
+      A9.pedidos=r.data;
+      if(ent.length)toast(ent.length===1?codPed(ent[0])+' foi entregue. Já está em Pagamentos, para enviar o link de pagamento.':ent.length+' pedidos foram entregues. Já estão em Pagamentos, para enviar o link de pagamento.');
+      if(!emEdicao())route();
+    }
+  }catch(x){}
+  A9.refQ=false;
+}
+setInterval(()=>{
+  if(!window.__ADMIN_APP||typeof A==='undefined'||A9.po||A9.busy||document.hidden||emEdicao())return;
+  if(['dash','pedidos','pagamentos'].includes(A.tab)&&A9.pedidos)admRefrescaQuieto();
+  else if(A.tab==='entregadores'&&A9.lg)admCarregarLog();
+},20000);
 
 </script>
 </body>
