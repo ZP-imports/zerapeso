@@ -502,6 +502,12 @@ a[href*="netlify.com"],[class*="netlify" i],[id*="netlify" i]{display:none!impor
 .campo-erro{outline:3px solid #d92d20;outline-offset:4px;border-radius:12px;background:#fff1f0!important}
 .campo-msg{background:#d92d20;color:#fff;font-weight:700;border-radius:10px;padding:10px 14px;margin:0 0 8px;font-size:.95rem}
 .erro-topo{background:#d92d20;color:#fff;font-weight:800;border-radius:12px;padding:14px 16px;margin:12px 0;font-size:1.05rem;text-align:center}
+
+.turnos3 .turno3[data-t]{border:2px solid;font-weight:700;transition:.15s}
+.turno3[data-t=manha]{background:#fff7e0;border-color:#f59e0b;color:#92600a}
+.turno3[data-t=tarde]{background:#e8f0fe;border-color:#2563eb;color:#1d4ed8}
+.turno3[data-t=noite]{background:#f3e8ff;border-color:#7c3aed;color:#6d28d9}
+.turno3[data-t=manha].on{background:#f59e0b;color:#fff}.turno3[data-t=tarde].on{background:#2563eb;color:#fff}.turno3[data-t=noite].on{background:#7c3aed;color:#fff}
 </style>
 </head>
 <body class="adm-mode">
@@ -3484,7 +3490,7 @@ function prefHtml(turnos){
   const v=entDV();
   const col=(k,t,val)=>`<div class="dp-col"><span class="dp-t">${t}</span><button type="button" class="dp-up" onclick="entDt('${k}',1)" aria-label="Aumentar ${t.toLowerCase()}">+</button><b class="dp-v">${val}</b><button type="button" class="dp-dn" onclick="entDt('${k}',-1)" aria-label="Diminuir ${t.toLowerCase()}">−</button></div>`;
   return '<h3 class="pref-h">Preferência de entrega</h3><div class="pf-l">Data de entrega</div><div class="datepick"><div class="dp-cols">'+col('d','DIA',v.d)+col('m','MÊS',v.m)+col('y','ANO',v.y)+'</div><div class="dp-sum">'+v.txt+'</div></div>'
-   +'<div class="pf-l" style="margin-top:16px">Melhor horário para a entrega</div><div class="turnos3">'+(turnos.map(t=>'<label class="turno3 '+(ent.turno===t?'on':'')+'"><input type="radio" name="turno" value="'+t+'" '+(ent.turno===t?'checked':'')+' onchange="ent.turno=this.value;route()">'+TURNOS[t]+'</label>').join('')||'<span class="note err">Nenhum turno disponível no momento.</span>')+'</div>';
+   +'<div class="pf-l" style="margin-top:16px">Melhor horário para a entrega</div><div class="turnos3">'+(turnos.map(t=>'<label class="turno3 '+(ent.turno===t?'on':'')+'" data-t="'+t+'"><input type="radio" name="turno" value="'+t+'" '+(ent.turno===t?'checked':'')+' onchange="ent.turno=this.value;route()">'+TURNOS[t]+'</label>').join('')||'<span class="note err">Nenhum turno disponível no momento.</span>')+'</div>';
 }
 
 /* ---------- rastreio por link (sem login) ---------- */
