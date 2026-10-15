@@ -7,7 +7,7 @@
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%23ffb703%22%2F%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%3E%3Crect%20x%3D%2226%22%20y%3D%2212%22%20width%3D%2212%22%20height%3D%2240%22%20rx%3D%223%22%2F%3E%3Crect%20x%3D%2212%22%20y%3D%2226%22%20width%3D%2240%22%20height%3D%2212%22%20rx%3D%223%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
 <meta name="theme-color" content="#0a6e5c">
 <title>ZP Imports</title>
-<meta property="og:type" content="website"><meta property="og:title" content="ZP Imports"><meta property="og:description" content="Cadastre seu endereço e finalize seu pedido."><meta property="og:image" content="https://zpimports.netlify.app/og-banner.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:url" content="https://zpimports.netlify.app/"><meta name="twitter:card" content="summary_large_image">
+<meta property="og:type" content="website"><meta property="og:title" content="ZP Imports"><meta property="og:description" content="Cadastre seu endereço e finalize seu pedido."><meta property="og:image" content="https://zpimports.netlify.app/banner.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:url" content="https://zpimports.netlify.app/"><meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -487,6 +487,17 @@ tr[data-sc] td:first-child{box-shadow:inset 4px 0 0 var(--sc)}
 .entblk{margin-top:16px;padding:14px 14px 14px 16px;border:1px solid var(--line);border-radius:var(--r);background:#fff}
 
 .qa{margin-top:auto;display:flex;flex-direction:column;gap:6px}.qar{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;border:1px solid var(--line);border-radius:12px;padding:10px 8px}.qan{display:flex;flex-direction:column;align-items:center;gap:4px;line-height:1.2;min-width:0}.qan b{font-size:.9rem}.qan small{color:var(--muted)}.qa .qty button{width:26px;height:26px}.qal{text-align:center;font-size:.8rem;cursor:pointer;color:var(--muted)}
+
+a[href*="netlify.com"],[class*="netlify" i],[id*="netlify" i]{display:none!important}
+@keyframes pulo{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.finbtn{font-size:1.25rem!important;font-weight:800!important;letter-spacing:.04em;padding:1.1em!important;border-radius:16px!important}
+.finbtn:not(:disabled){animation:pulo 1s ease-in-out infinite;box-shadow:0 8px 24px rgba(10,110,92,.45)}
+.pagos .turno3{border:2px solid var(--line);font-weight:700;transition:.15s}
+.pagos .turno3[data-p=pix]{background:#e8f8f1;border-color:#16a34a;color:#0f6b3a}
+.pagos .turno3[data-p=credito]{background:#e8f0fe;border-color:#2563eb;color:#1d4ed8}
+.pagos .turno3[data-p=debito]{background:#f3e8ff;border-color:#7c3aed;color:#6d28d9}
+.pagos .turno3.on[data-p=pix]{background:#16a34a;color:#fff}.pagos .turno3.on[data-p=credito]{background:#2563eb;color:#fff}.pagos .turno3.on[data-p=debito]{background:#7c3aed;color:#fff}
+@media(max-width:760px){.pagos{display:grid!important;grid-template-columns:1fr!important;gap:10px}.pagos .turno3{white-space:normal!important;padding:20px 12px!important;font-size:1.1rem!important;border-radius:14px;text-align:center}}
 </style>
 </head>
 <body>
@@ -875,7 +886,7 @@ function setQty(id,opt,d){const i=cart.find(x=>x.id===id&&x.opt===opt);if(!i)ret
 function rmItem(id,opt){cart=cart.filter(x=>!(x.id===id&&x.opt===opt));save();updHead();drawDrawer();reRoute()}
 function drawDrawer(){
   const b=$('#dwb'),f=$('#dwf');
-  if(!cart.length){b.innerHTML='<p style="text-align:center;color:var(--muted);padding:40px 0">Seu carrinho está vazio.</p>';f.innerHTML='<button class="btn full" onclick="closeCart();nav(\'/\')">Continuar comprando</button>';return}
+  if(!cart.length){b.innerHTML='<p style="text-align:center;color:var(--muted);padding:40px 0">Seu carrinho está vazio.</p>';f.innerHTML='<button class="btn full" onclick="closeCart();irProdutos()">Continuar comprando</button>';return}
   b.innerHTML=cart.map(i=>{const p=byId(i.id);return `<div class="mi"><div class="th" style="background:${p.c}">${svg(p.ic,30)}</div><div><div style="font-size:.88rem;color:var(--ink);font-weight:500">${esc(p.n)}${i.opt?' ('+esc(i.opt)+')':''}</div><div style="display:flex;align-items:center;gap:10px;margin-top:4px;flex-wrap:wrap"><div class="qty"><button onclick="setQty(${i.id},'${i.opt}',-1)" aria-label="Diminuir">−</button><span>${i.qty}</span><button onclick="setQty(${i.id},'${i.opt}',1)" aria-label="Aumentar">+</button></div><b>${brl(unit(p)*i.qty)}</b><button class="btn ghost sm" onclick="rmItem(${i.id},'${i.opt}')">Remover</button></div></div></div>`}).join('');
   f.innerHTML=`<div class="tot" style="margin:0 0 12px"><span>Total</span><b>${brl(cartSub())}</b></div><button class="btn acc full" onclick="closeCart();nav('/carrinho')">Ver carrinho e finalizar</button>`;
 }
@@ -898,7 +909,7 @@ function card(p){
   <div class="price">${p.consulta?'<span class="consulte">Consulte o preço</span>':(p.sale?`<del>${brl(p.p)}</del>`:'')+brl(unit(p))}</div>
   ${p.consulta?`<a class="btn wa" href="${waProd(p)}" target="_blank" rel="noopener">Consultar no WhatsApp</a>`:left<=0?'<button class="btn" disabled>Indisponível</button>':p.opts?`<button class="btn" onclick="nav('/produto/${p.id}')">Escolher opção</button>`:`<button class="btn" onclick="addCart(${p.id},1,'',this)">Adicionar ao carrinho</button>`}</div>`;
 }
-function shelf(t,list,link){return list.length?`<section class="sec"><div class="wrap"><div class="sh"><h2>${t}</h2>${link?`<a onclick="nav('${link}')">Ver todos</a>`:''}</div><div class="grid">${list.map(card).join('')}</div></div></section>`:''}
+function shelf(t,list,link){return list.length?`<section class="sec" id="destaque"><div class="wrap"><div class="sh"><h2>${t}</h2>${link?`<a onclick="nav('${link}')">Ver todos</a>`:''}</div><div class="grid">${list.map(card).join('')}</div></div></section>`:''}
 const BANVER='2';/* troque este número quando substituir as imagens dos banners no Storage */
 const BANURL=(n,v)=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/public/produtos/'+n+'-'+v+'.webp?v='+BANVER;
 const SL=()=>[{t:'Medicamentos para emagrecimento com praticidade e entrega rápida',s:CFG.brand,b:'Ver medicamentos',l:'/cat/'+encodeURIComponent('Produtos disponíveis'),c:'#0a6e5c',img:'banner-01'},
@@ -910,7 +921,7 @@ const icoImg=(n,fb)=>`<img class="icoimg" src="${ICOURL(n)}" alt="" data-fb="${e
 const DIMG={'Ampolas':'ampola','Caixas':'caixa','Acompanhamento':'prancheta','Produtos injetáveis':'injecao'};
 function pageHome(){
   const ben=[['Entrega rápida','Consulte prazo e regiões atendidas*','M2 6h11v10H2zM13 9h4l3 3v4h-7','caminhao'],['Pague na entrega','Link de pagamento enviado quando o pedido sai para entrega','M3 6h18v12H3zM3 10h18M7 15h4','cartao'],['Equipe de saúde','Atendimento por profissionais','M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z','coracao']];
-  const D0=Object.keys(TREE)[0];const deps=Object.keys(TREE).filter(d=>d!=='Ofertas');const dIc={'Medicamentos':'inj','Produtos injetáveis':'inj','Acessórios de aplicação':'needle','Caixas':'inj','Ampolas':'inj','Acompanhamento':'scale'};
+  const D0=Object.keys(TREE)[0];const deps=Object.keys(TREE).filter(d=>!['Ofertas','Produtos injetáveis','Acompanhamento'].includes(d));const dIc={'Medicamentos':'inj','Produtos injetáveis':'inj','Acessórios de aplicação':'needle','Caixas':'inj','Ampolas':'inj','Acompanhamento':'scale'};
   const slides=SL();const mobHome=true;const SHF=shelf(D0+' em destaque',LIVE().filter(p=>p.cat[0]===D0&&p.cat[1]!=='Acessórios de Aplicação'),'/cat/'+encodeURIComponent(D0));
   return `<section class="hero" id="hero">${slides.map((s,i)=>`<div class="sl ${i?'':'on'}${s.img?' wantimg':''}" style="background:${s.c}" onclick="nav('${s.l}')">${s.img?`<picture class="slpic"><source media="(max-width:760px)" srcset="${BANURL(s.img,'mobile')}"><img src="${BANURL(s.img,'desktop')}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:''}<div class="wrap"><span class="tag">${s.s}</span><strong>${s.t}</strong><u>${s.b}</u></div></div>`).join('')}
    <button class="arr l" onclick="slide(-1)" aria-label="Anterior"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m15 5-7 7 7 7"/></svg></button><button class="arr r" onclick="slide(1)" aria-label="Próximo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 5 7 7-7 7"/></svg></button>
@@ -954,7 +965,7 @@ function pageProd(id){
 }
 let pQty=1;function pq(d){pQty=Math.max(1,pQty+d);$('#pqv').textContent=pQty}
 function pageCart(){
-  if(!cart.length)return `<div class="wrap pg"><h1 class="t">Carrinho</h1><div class="box" style="text-align:center;padding:50px 10px"><p>Seu carrinho está vazio.</p><button class="btn" onclick="nav('/')">Continuar comprando</button></div></div>`;
+  if(!cart.length)return `<div class="wrap pg"><h1 class="t">Carrinho</h1><div class="box" style="text-align:center;padding:50px 10px"><p>Seu carrinho está vazio.</p><button class="btn" onclick="irProdutos()">Continuar comprando</button></div></div>`;
   return `<div class="wrap pg"><h1 class="t">Carrinho</h1><div class="two"><div class="box tbl"><table><thead><tr><th>Produto</th><th>Preço</th><th>Qtd.</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td><b style="color:var(--ink)">${esc(p.n)}</b>${i.opt?'<div style="color:var(--muted);font-size:.82rem">'+esc(i.opt)+'</div>':''}</td><td>${brl(unit(p))}</td><td><div class="qty"><button onclick="setQty(${i.id},'${i.opt}',-1)" aria-label="Diminuir">−</button><span>${i.qty}</span><button onclick="setQty(${i.id},'${i.opt}',1)" aria-label="Aumentar">+</button></div></td><td class="r">${brl(unit(p)*i.qty)}</td><td class="r"><button class="btn ghost sm" onclick="rmItem(${i.id},'${i.opt}')">Remover</button></td></tr>`}).join('')}</tbody></table></div>
   <div class="box"><h3 style="margin-top:0">Resumo</h3><div class="tot"><span>Subtotal</span><span>${brl(cartSub())}</span><span>Entrega</span><span>${esc(CFG.frete)}</span><span class="big">Total</span><span class="big">${brl(cartSub())}</span></div><button class="btn acc full" style="padding:1em" onclick="nav('/revisar')">Revisar e finalizar</button><p style="text-align:center;margin:12px 0 0"><a onclick="nav('/')" style="cursor:pointer">Continuar comprando</a></p></div></div></div>`;
 }
@@ -1419,7 +1430,7 @@ function pageRev(){
    ${verr&&ent.data?`<div class="note err">${verr}</div>`:''}
    <p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">Datas de ${fmtDay(min)} a ${fmtDay(max)}. A data é uma preferência: a loja confirma a programação e você acompanha tudo em Rastrear pedido.</p>
    <label for="obs">Observações sobre o pedido ou a entrega (opcional)</label><textarea id="obs" rows="2" maxlength="500" oninput="ent.obs=this.value" placeholder="Ex.: portão azul, deixar com o porteiro">${esc(ent.obs)}</textarea>`;
-  const pagInfo=`<h3 class="pref-h">Forma de pagamento</h3><div class="turnos3 pagos">${PAGS.map(x=>`<label class="turno3 ${ent.pag===x[0]?'on':''}"><input type="radio" name="pag" value="${x[0]}" ${ent.pag===x[0]?'checked':''} onchange="ent.pag=this.value;route()">${x[1]}</label>`).join('')}</div><p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">O pagamento é combinado com a nossa equipe pelo WhatsApp.</p>`;
+  const pagInfo=`<h3 class="pref-h">Forma de pagamento</h3><div class="turnos3 pagos">${PAGS.map(x=>`<label class="turno3 ${ent.pag===x[0]?'on':''}" data-p="${x[0]}"><input type="radio" name="pag" value="${x[0]}" ${ent.pag===x[0]?'checked':''} onchange="ent.pag=this.value;route()">${x[1]}</label>`).join('')}</div><p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">O pagamento é combinado com a nossa equipe pelo WhatsApp.</p>`;
   return `<div class="wrap pg"><h1 class="t">Finalizar compra</h1><div class="two"><div class="box"><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td>${esc(p.n)} (${esc(i.opt)})</td><td>${i.qty}</td><td class="r">${precoTxt(i)}</td></tr>`}).join('')}</tbody></table></div>
   <div class="tot"><span>Subtotal dos produtos</span><span>${cartSP()?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span><span>Entrega</span><span>${freteLinha()}</span>${d?`<span class="dsc">${dLabel(d)} (${d.pct}%)</span><span class="dsc">- ${brl(d.valor)}</span>`:''}<span class="big">Total</span><span class="big">${cartSP()?(sub>0?brl(tot)+' + a confirmar':'A confirmar'):brl(tot)}</span></div>
   ${freteNota()}${nota}${amigo}
@@ -1427,8 +1438,8 @@ function pageRev(){
   ${entrega}
   ${pagInfo}
   ${ent.erros.length?`<div class="note err"><b>Confira antes de finalizar:</b><ul style="margin:6px 0 0;padding-left:18px">${ent.erros.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
-  <p><button class="btn acc full" id="fin" style="padding:1em" onclick="finish()" ${pronto?'':'disabled'}>Enviar pedido no WhatsApp</button></p>${pronto?'':'<p style="color:var(--muted);font-size:.82rem;margin:0">Preencha seus dados, a preferência de entrega, o melhor horário e a forma de pagamento para liberar o envio.</p>'}${LEGAL}</div>
-  <div class="box"><h3 style="margin-top:0">Como funciona</h3><ol style="padding-left:18px;margin:0"><li>Você escolhe a entrega e o pagamento.</li><li>Ao tocar em Enviar pedido no WhatsApp, o pedido é registrado e a conversa abre já com os dados.</li><li>Nossa equipe confirma tudo com você pelo WhatsApp.</li><li>Acompanhe cada etapa em Rastrear pedido.</li></ol></div></div></div>`;
+  <p><button class="btn acc full finbtn" id="fin" onclick="finish()" ${pronto?'':'disabled'}>CONCLUIR PEDIDO</button></p>${pronto?'':'<p style="color:var(--muted);font-size:.82rem;margin:0">Preencha seus dados, a preferência de entrega, o melhor horário e a forma de pagamento para liberar o envio.</p>'}${LEGAL}</div>
+  <div class="box"><h3 style="margin-top:0">Como funciona</h3><ol style="padding-left:18px;margin:0"><li>Você escolhe a entrega e o pagamento.</li><li>Ao tocar em Concluir pedido, o pedido é registrado e a conversa abre já com os dados.</li><li>Nossa equipe confirma tudo com você pelo WhatsApp.</li><li>Acompanhe cada etapa em Rastrear pedido.</li></ol></div></div></div>`;
 }
 const STEPDESC={realizado:'Recebemos o seu pedido.',confirmado:'A loja confere o pedido e libera para preparação.',preparacao:'A equipe prepara os itens do seu pedido.',separacao:'Os itens são separados e conferidos com a etiqueta do pedido.','aguardando-programacao':'A loja organiza a rota e define a programação da entrega.',programada:'A entrega está programada para a data e o turno do pedido.','em-rota':'O pedido saiu para entrega. Fique atento ao telefone informado.',entregue:'Pedido entregue.'};
 function enderecoHtml(d){return esc(d.rua)+', '+esc(d.num)+(d.comp?', '+esc(d.comp):'')+'<br>'+esc(d.bairro)+'<br>'+esc(d.cidade)+'/'+esc(String(d.uf).toUpperCase())+', CEP '+esc(d.cep)+(d.ref?'<br><small>Referência: '+esc(d.ref)+'</small>':'')}
@@ -1955,7 +1966,7 @@ function pageOrderBase(id){
   <h3>Resumo</h3><div class="tbl"><table><tbody>${o.items.map(i=>`<tr><td>${esc(i.name)}</td><td>${i.qty}</td><td class="r">${brlI(i)}</td></tr>`).join('')}</tbody></table></div>${o.disc?`<p style="color:#1b5e20;font-weight:600">Desconto ${o.disc.pct}%: - ${brl(o.disc.valor)}</p>`:''}<p><b>Total dos produtos:</b> ${totO(o)}</p>
   <p style="font-size:.88rem">Entrega desejada: <b>${fmtDay(e.data)}, ${turnoNome(e.turno)}</b> · ${esc(e.dest.cidade)}/${esc(String(e.dest.uf).toUpperCase())}</p>
   <p style="font-size:.88rem;color:var(--muted)">A taxa de entrega, quando houver, é informada pela loja antes do envio.</p>
-  <p><button class="btn acc" onclick="nav('/pedidos')">Acompanhar meu pedido</button> <button class="btn ghost" onclick="nav('/')">Continuar comprando</button></p></div></div>`;
+  <p><button class="btn acc" onclick="nav('/pedidos')">Acompanhar meu pedido</button> <button class="btn ghost" onclick="irProdutos()">Continuar comprando</button></p></div></div>`;
 }
 
 /* ---------- página fixa de acompanhamento e pagamento (sem login) ---------- */
@@ -2951,12 +2962,12 @@ function linhaCart(i,tabela){
 }
 function drawDrawer(){
   const b=$('#dwb'),f=$('#dwf');
-  if(!cart.length){b.innerHTML='<p style="text-align:center;color:var(--muted);padding:40px 0">Seu carrinho está vazio.</p>';f.innerHTML='<button class="btn full" onclick="closeCart();nav(\'/\')">Continuar comprando</button>';return}
+  if(!cart.length){b.innerHTML='<p style="text-align:center;color:var(--muted);padding:40px 0">Seu carrinho está vazio.</p>';f.innerHTML='<button class="btn full" onclick="closeCart();irProdutos()">Continuar comprando</button>';return}
   b.innerHTML=cart.map(i=>{const {p,q}=linhaCart(i);return `<div class="mi"><div class="th" style="background:${p.c}">${svg(p.ic,30)}${fotoHtml(p)}</div><div><div style="font-size:.88rem;color:var(--ink);font-weight:500">${esc(p.n)} (${esc(i.opt)})</div><div style="display:flex;align-items:center;gap:10px;margin-top:4px;flex-wrap:wrap">${q}<b>${precoTxt(i)}</b><button class="btn ghost sm" onclick="rmItem(${i.id},'${i.v}')">Remover</button></div></div></div>`}).join('');
   f.innerHTML=`<div class="tot" style="margin:0 0 12px"><span>Total</span><b>${totTxt()}</b></div><button class="btn acc full" onclick="closeCart();nav('/carrinho')">Ver carrinho e finalizar</button>`;
 }
 function pageCart(){
-  if(!cart.length)return `<div class="wrap pg"><h1 class="t">Carrinho</h1><div class="box" style="text-align:center;padding:50px 10px"><p>Seu carrinho está vazio.</p><button class="btn" onclick="nav('/')">Continuar comprando</button></div></div>`;
+  if(!cart.length)return `<div class="wrap pg"><h1 class="t">Carrinho</h1><div class="box" style="text-align:center;padding:50px 10px"><p>Seu carrinho está vazio.</p><button class="btn" onclick="irProdutos()">Continuar comprando</button></div></div>`;
   return `<div class="wrap pg cartpg"><h1 class="t">Carrinho</h1><div class="two"><div class="box tbl"><table class="ctab"><thead><tr><th>Produto</th><th>Preço</th><th>Qtd.</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>${cart.map(i=>{const {p,q}=linhaCart(i);return `<tr><td><b style="color:var(--ink)">${esc(p.n)}</b><div style="color:var(--muted);font-size:.82rem">${esc(i.opt)}</div></td><td data-l="Preço">${isSP(i)?'a confirmar':brl(ipreco(i))}</td><td data-l="Qtd.">${q}</td><td class="r" data-l="Subtotal">${precoTxt(i)}</td><td class="r"><button class="btn ghost sm" onclick="rmItem(${i.id},'${i.v}')">Remover</button></td></tr>`}).join('')}</tbody></table></div>
   <div class="box"><h3 style="margin-top:0">Resumo</h3><div class="tot"><span class="big">Total</span><span class="big">${totTxt()}</span></div><button class="btn acc full" style="padding:1em" onclick="nav('/revisar')">Continuar</button><p style="text-align:center;margin:12px 0 0"><a onclick="nav('/')" style="cursor:pointer">Continuar comprando</a></p></div></div></div>`;
 }
@@ -2976,7 +2987,7 @@ function qaHtml(p){
   return `<div class="qa">${p.vars.map((v,k)=>{const m=maxVar(p,v);const q=QA[p.id+'_'+k]||0;return `<div class="qar"><div class="qan"><b>${esc(v.n)}</b><span class="vst ${m>0?'ok':'no'}">${m>0?'Disponível':'Sem estoque'}</span>${v.sp?'':`<small>${brl(vPreco(v))}</small>`}</div>${m>0?`<div class="qty"><button onclick="qaq(${p.id},${k},-1)" aria-label="Diminuir">−</button><span id="qa${p.id}_${k}">${q}</span><button onclick="qaq(${p.id},${k},1)" aria-label="Aumentar">+</button></div>`:''}</div>`}).join('')}<button class="btn acc full" id="qab${p.id}" onclick="qaAdd(${p.id})" disabled>${ICO_CART}<span>ADICIONAR AO CARRINHO</span></button><a class="qal" onclick="nav('/produto/${p.id}')">Ver detalhes</a></div>`;
 }
 function qaq(id,k,d){const p=byId(id);if(!p)return;const v=p.vars[k],m=maxVar(p,v);const key=id+'_'+k;const q=Math.min(m,Math.max(0,(QA[key]||0)+d));QA[key]=q;const e=document.getElementById('qa'+key);if(e)e.textContent=q;const b=document.getElementById('qab'+id);if(b)b.disabled=!p.vars.some((x,j)=>QA[id+'_'+j]>0)}
-function qaAdd(id){const p=byId(id);if(!p)return;let n=0;p.vars.forEach((v,k)=>{const q=QA[id+'_'+k]||0;if(q>0&&cartAdd(id,v.id,q))n++;QA[id+'_'+k]=0;const e=document.getElementById('qa'+id+'_'+k);if(e)e.textContent=0});if(!n)return;const b=document.getElementById('qab'+id);if(b)b.disabled=true;save();updHead();bump();toast('Adicionado ao carrinho.',['Ver carrinho','openCart()'])}
+function qaAdd(id){const p=byId(id);if(!p)return;let n=0;p.vars.forEach((v,k)=>{const q=QA[id+'_'+k]||0;if(q>0&&cartAdd(id,v.id,q))n++;QA[id+'_'+k]=0;const e=document.getElementById('qa'+id+'_'+k);if(e)e.textContent=0});if(!n)return;const b=document.getElementById('qab'+id);if(b)b.disabled=true;save();updHead();bump();addPop()}
 var PV={id:0,q:{}};
 function pageProd(id){
   const p=byId(id);if(!p||p.ativo===false)return pageNF();
@@ -3017,7 +3028,7 @@ function pvAdd(){
   const p=byId(PV.id);if(!p)return;let n=0;
   if(p.consulta){const q=PV.q[0]||0;if(q>0&&cartAdd(p.id,SP,q))n++}
   else(p.vars||[]).forEach((v,k)=>{const q=PV.q[k]||0;if(q>0&&cartAdd(p.id,v.id,q))n++});
-  if(!n)return;PV={id:p.id,q:{}};save();updHead();bump();toast('Adicionado ao carrinho.',['Ver carrinho','openCart()']);nav('/');
+  if(!n)return;PV={id:p.id,q:{}};save();updHead();bump();addPop();
 }
 
 /* ---------- envio do pedido pelo WhatsApp ---------- */
@@ -3902,7 +3913,7 @@ function pageRevConta(){
   <h3>Seus dados</h3><p style="margin:0 0 10px;color:var(--muted);font-size:.9rem">Preencha seus dados para finalizar. Não precisa criar senha. Se já tem conta, use a aba ao lado.</p>
   <div class="tabs"><button class="${aba==='cad'?'on':''}" onclick="ckTab='cad';route()">Novo por aqui</button><button class="${aba==='entrar'?'on':''}" onclick="ckTab='entrar';route()">Já tenho conta</button></div><div id="fmsg"></div>
   ${aba==='entrar'?entrar:criar}${LEGAL}</div>
-  <div class="box"><h3 style="margin-top:0">Como funciona</h3><ol style="padding-left:18px;margin:0"><li>Você cria a conta ou entra.</li><li>Escolhe a entrega e o pagamento.</li><li>Ao tocar em Enviar pedido no WhatsApp, o pedido é registrado e a conversa abre já com os dados.</li><li>Nossa equipe confirma tudo com você pelo WhatsApp.</li></ol></div></div></div>`;
+  <div class="box"><h3 style="margin-top:0">Como funciona</h3><ol style="padding-left:18px;margin:0"><li>Você cria a conta ou entra.</li><li>Escolhe a entrega e o pagamento.</li><li>Ao tocar em Concluir pedido, o pedido é registrado e a conversa abre já com os dados.</li><li>Nossa equipe confirma tudo com você pelo WhatsApp.</li></ol></div></div></div>`;
 }
 async function ckLogin(e){
   e.preventDefault();
@@ -4356,6 +4367,29 @@ setInterval(()=>{
   else if(A.tab==='entregadores'&&A9.lg)admCarregarLog();
 },20000);
 
+
+/* ---- carrinho: avisos, caixa fechada, voltar aos produtos ---- */
+function irProdutos(){nav('/');setTimeout(()=>{const e=document.getElementById('destaque');if(e)e.scrollIntoView({behavior:'smooth'})},80)}
+function addPop(){openModal('<h3 style="margin:0 0 6px">Produto adicionado ao carrinho</h3><p style="margin:0 0 14px;color:var(--muted)">O que você quer fazer agora?</p><button class="btn acc full" style="padding:1em;margin-bottom:10px" onclick="closeModal();irProdutos()">Continuar comprando</button><button class="btn full" style="padding:1em" onclick="closeModal();nav(\'/carrinho\')">Finalizar compra</button>')}
+function caixaPar(p){const vs=(p&&p.vars)||[];const cx=vs.findIndex(v=>!v.sp&&v.un>1),un=vs.findIndex(v=>!v.sp&&v.un===1);return(cx>=0&&un>=0)?[cx,un]:null}
+function caixaMsg(n){toast('Você está adicionando o equivalente a '+(n>1?n+' caixas fechadas':'uma caixa fechada')+'. Selecionamos a caixa para você.')}
+(function(){
+  if(typeof pvq==='function'){const _pvq=pvq;
+  window.pvq=function(k,d){_pvq(k,d);const p=byId(PV.id),par=p&&caixaPar(p);if(!par||k!==par[1]||d<0)return;const[cx,un]=par,v=p.vars[cx],n=Math.floor((PV.q[un]||0)/v.un);if(n<1)return;
+    const m=maxVar(p,v);const add=Math.min(n,Math.max(0,m-(PV.q[cx]||0)));if(add<1)return;
+    PV.q[un]-=add*v.un;PV.q[cx]=(PV.q[cx]||0)+add;caixaMsg(add);route()}}
+  if(typeof qaq==='function'){const _qaq=qaq;
+  window.qaq=function(id,k,d){_qaq(id,k,d);const p=byId(id),par=p&&caixaPar(p);if(!par||k!==par[1]||d<0)return;const[cx,un]=par,v=p.vars[cx],n=Math.floor((QA[id+'_'+un]||0)/v.un);if(n<1)return;
+    const m=maxVar(p,v);const add=Math.min(n,Math.max(0,m-(QA[id+'_'+cx]||0)));if(add<1)return;
+    QA[id+'_'+un]-=add*v.un;QA[id+'_'+cx]=(QA[id+'_'+cx]||0)+add;
+    [cx,un].forEach(j=>{const e=document.getElementById('qa'+id+'_'+j);if(e)e.textContent=QA[id+'_'+j]});caixaMsg(add)}}
+  if(typeof setQty==='function'){const _setQty=setQty;
+  window.setQty=function(id,vid,d){_setQty(id,vid,d);if(d<0)return;const p=byId(id),par=p&&caixaPar(p);if(!par)return;const[cx,un]=par,vc=p.vars[cx],vu=p.vars[un];
+    const iu=cart.find(x=>x.id===id&&x.v===vu.id);if(!iu||iu.qty<vc.un)return;const n=Math.floor(iu.qty/vc.un);
+    iu.qty-=n*vc.un;if(iu.qty<1)cart=cart.filter(x=>x!==iu);
+    if(!cartAdd(id,vc.id,n)){iu&&cart.indexOf(iu)<0&&cart.push(iu);iu.qty+=n*vc.un;return}
+    save();updHead();drawDrawer();reRoute();caixaMsg(n)}}
+})();
 </script>
 </body>
 </html>
