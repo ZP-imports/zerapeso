@@ -3018,7 +3018,7 @@ function pvAdd(){
   const p=byId(PV.id);if(!p)return;let n=0;
   if(p.consulta){const q=PV.q[0]||0;if(q>0&&cartAdd(p.id,SP,q))n++}
   else(p.vars||[]).forEach((v,k)=>{const q=PV.q[k]||0;if(q>0&&cartAdd(p.id,v.id,q))n++});
-  if(!n)return;PV={id:p.id,q:{}};save();updHead();bump();route();openCart();
+  if(!n)return;PV={id:p.id,q:{}};save();updHead();bump();toast('Adicionado ao carrinho.',['Ver carrinho','openCart()']);nav('/');
 }
 
 /* ---------- envio do pedido pelo WhatsApp ---------- */
