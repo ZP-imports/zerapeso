@@ -3456,7 +3456,10 @@ function admCriaRota(){
   if(!en){A9.msg='Escolha o entregador.';A9.erro=true;route();return}
   if(!d){A9.msg='Informe a data da rota.';A9.erro=true;route();return}
   A9.lgD=d;A9.lgE=en;
-  admLgRpc('criar_rota',{p_data:d,p_entregador:en,p_pedidos:ids},'Rota criada. Os clientes foram avisados de que a entrega está programada.');
+  (async()=>{if(A9.busy)return;A9.busy=true;const r=await SB.rpc('criar_rota',{p_data:d,p_entregador:en,p_pedidos:ids});A9.busy=false;
+    if(r.error){A9.msg=msgRpc(r.error);A9.erro=true;route();return}
+    A9.sel={};A9.pedidos=null;A9.lg=null;A.tab='entregadores';A9.entSel={};A9.entSel[en]=true;A9.otAuto=en;A9.otim=null;
+    A9.msg='Rota criada. Agora arraste as paradas na ordem da rota e envie ao entregador.';A9.erro=false;route();window.scrollTo(0,0)})();
 }
 function admSaiuRota(id){if(confirm('Marcar que a rota saiu? Os pedidos passam para "Em rota" e os clientes são avisados.'))admLgRpc('saiu_rota',{p_rota:id},'Rota em andamento. Clientes avisados.')}
 function admDesfazRota(id){if(confirm('Desfazer esta rota? Os pedidos voltam para "Aguardando programação".'))admLgRpc('desfazer_rota',{p_rota:id},'Rota desfeita.')}
@@ -4455,8 +4458,8 @@ async function pedEnviarEntregador(){
   A9.busy=false;
   if(r.error){A9.msg=msgRpc(r.error);A9.erro=true;route();return}
   const nome=((A9.lg&&A9.lg.ent.find(x=>x.id===en))||{}).nome||'o entregador';
-  A9.selP={};A9.pedidos=null;A9.lg=null;A9.lgE=en;A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';A9.po=null;A.tab='logistica';
-  A9.msg='Rota criada com '+ids.length+' pedido'+(ids.length>1?'s':'')+' para '+nome+'. Agora envie a rota pelo WhatsApp e toque em Saiu para entrega.';A9.erro=false;route();window.scrollTo(0,0);
+  A9.selP={};A9.pedidos=null;A9.lg=null;A9.lgE=en;A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';A9.po=null;A.tab='entregadores';A9.entSel={};A9.entSel[en]=true;A9.otAuto=en;A9.otim=null;
+  A9.msg='Rota criada com '+ids.length+' pedido'+(ids.length>1?'s':'')+' para '+nome+'. Agora arraste as paradas na ordem da rota e envie ao entregador.';A9.erro=false;route();window.scrollTo(0,0);
 }
 
 /* ======================= ATUALIZAÇÃO AUTOMÁTICA: o motoboy entrega, o painel já mostra e libera a cobrança ======================= */
@@ -4599,11 +4602,11 @@ async function manEnviar(){
 
 /* ======================= OTIMIZAR ROTA DO ENTREGADOR: ordem das paradas (arrastar) + Google Maps + WhatsApp ======================= */
 A9.otim=null;
-function otAbrir(eid){
+function otAbrir(eid,quiet){
   const L=A9.lg;
   const rs=L.rotas.filter(r=>r.entregador_id===eid).filter(r=>!r.pedidos.map(i=>L.peds[i]).filter(Boolean).every(ENC)).sort((a,b)=>a.n-b.n);
   const ids=[];rs.forEach(r=>r.pedidos.forEach(id=>{const o=L.peds[id];if(o&&!ENC(o)&&!ids.includes(id))ids.push(id)}));
-  A9.otim={ent:eid,ids,drag:-1,salvo:false};route();
+  A9.otim={ent:eid,ids,drag:-1,salvo:false};if(!quiet)route();
 }
 function otFechar(){A9.otim=null;route()}
 function otPs(){const T=A9.otim,L=A9.lg;return T.ids.map(id=>L.peds[id]).filter(Boolean)}
@@ -4667,6 +4670,7 @@ async function otSalvar(quiet){
   toast(erro?'Não foi possível salvar a ordem de '+erro+' rota(s).':'Ordem da rota salva.');
 }
 window.entRotas=function(){
+  if(A9.otAuto&&A9.lg){const id=A9.otAuto;A9.otAuto=null;otAbrir(id,true)}
   const L=A9.lg,sel=L.ent.filter(x=>A9.entSel[x.id]);
   if(!sel.length)return '<p style="color:var(--muted);margin-top:16px">Clique em um ou mais entregadores para ver as rotas deles e para <b>otimizar a rota</b>.</p>';
   const psDe=r=>r.pedidos.map(id=>L.peds[id]).filter(Boolean);
