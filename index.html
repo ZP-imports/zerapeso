@@ -3455,7 +3455,11 @@ function admCriaRota(){
   if(!en){A9.msg='Escolha o entregador.';A9.erro=true;route();return}
   if(!d){A9.msg='Informe a data da rota.';A9.erro=true;route();return}
   A9.lgD=d;A9.lgE=en;
-  admLgRpc('criar_rota',{p_data:d,p_entregador:en,p_pedidos:ids},'Rota criada. Os clientes foram avisados de que a entrega está programada.');
+  (async()=>{if(A9.busy)return;A9.busy=true;const r=await SB.rpc('criar_rota',{p_data:d,p_entregador:en,p_pedidos:ids});A9.busy=false;
+    if(r.error){A9.msg=msgRpc(r.error);A9.erro=true;route();return}
+    const sr=await SB.rpc('saiu_rota',{p_rota:r.data});
+    A9.sel={};A9.pedidos=null;A9.lg=null;A.tab='entregadores';A9.entSel={};A9.entSel[en]=true;A9.otAuto=en;A9.otim=null;
+    A9.msg='Rota criada e já em andamento: os clientes foram avisados de que saiu para entrega'+(sr.error?' (falhou ao marcar a saída: use Saiu para entrega)':'')+'. Agora arraste as paradas na ordem da rota e envie ao entregador.';A9.erro=false;route();window.scrollTo(0,0)})();
 }
 function admSaiuRota(id){if(confirm('Marcar que a rota saiu? Os pedidos passam para "Em rota" e os clientes são avisados.'))admLgRpc('saiu_rota',{p_rota:id},'Rota em andamento. Clientes avisados.')}
 function admDesfazRota(id){if(confirm('Desfazer esta rota? Os pedidos voltam para "Aguardando programação".'))admLgRpc('desfazer_rota',{p_rota:id},'Rota desfeita.')}
@@ -3933,7 +3937,7 @@ function avPanel(r,ps){
   <p style="margin:0 0 8px;color:var(--muted);font-size:.88rem">Marque os clientes e toque em <b>Abrir o próximo</b>. ${waModo()==='colar'?'A mensagem é copiada e a conversa do cliente abre: é só colar (Ctrl+V) e enviar.':'O WhatsApp abre com a mensagem pronta e você só toca em enviar.'} O WhatsApp não permite que o site envie sozinho.</p>
   <div class="tbl"><table><tbody>${ab.map(o=>{const e=o.entrega||{};return `<tr><td style="width:34px"><input type="checkbox" style="width:auto" ${av.sel[o.id]?'checked':''} onchange="avTog(${o.id},this.checked)" aria-label="Avisar ${esc(e.nome||'')}"></td><td><b>${esc(e.nome||'')}</b><div style="color:var(--muted);font-size:.8rem">${codPed(o)}</div></td><td>${av.sent[o.id]?'✅ aberto':''}</td><td class="r"><button class="btn ghost sm" onclick="avEnviar(${o.id})">Só este</button> <button class="btn ghost sm" onclick="avCopiar(${o.id})">Copiar</button></td></tr>`}).join('')}</tbody></table></div>
   <details style="margin-top:8px"><summary style="cursor:pointer;font-weight:600;color:var(--pd)">Ver a mensagem</summary><pre style="white-space:pre-wrap;font:inherit;background:#f6f6f6;border-radius:12px;padding:12px;margin:8px 0 0">${esc(avTxt(ab[0]))}</pre></details>
-  <div class="btns" style="margin-top:10px"><button class="btn wa" onclick="avProximo()" ${marc.length>feitos?'':'disabled'}>Abrir o próximo (${feitos} de ${marc.length})</button><button class="btn ghost sm" onclick="avTodos(true)">Marcar todos</button><button class="btn ghost sm" onclick="avTodos(false)">Desmarcar todos</button></div></div>`;
+  <div class="btns" style="margin-top:10px"><button class="btn wa" onclick="avProximo()" ${marc.length>feitos?'':'disabled'}>Abrir o próximo (${feitos} de ${marc.length})</button><button class="btn ghost sm" onclick="avTodos(true)">Marcar todos</button><button class="btn ghost sm" onclick="avTodos(false)">Desmarcar todos</button><button class="btn acc sm" onclick="avMassa()">Mensagem para todos de uma vez</button></div>${av.massa?`<div class="note" style="margin-top:10px"><b>Para todos de uma vez (lista de transmissão):</b><ol style="margin:6px 0 8px 18px;padding:0;font-size:.88rem"><li>Toque em <b>Baixar contatos</b> e abra o arquivo no celular para salvar os clientes marcados na agenda.</li><li>No WhatsApp: Nova lista de transmissão, marque esses contatos.</li><li>Toque em <b>Copiar mensagem</b>, cole na lista e envie uma vez só.</li></ol><textarea id="avMassaTxt" rows="4">${esc(avTxtGeral())}</textarea><div class="btns" style="margin-top:8px"><button class="btn ghost sm" onclick="avMassaVcf()">Baixar contatos</button><button class="btn wa sm" onclick="avMassaCopiar()">Copiar mensagem</button></div><p style="margin:6px 0 0;color:var(--muted);font-size:.8rem">O WhatsApp só entrega a transmissão a quem tem o seu número salvo. O envio automático e individual para todos exige o WhatsApp Business API (pago).</p></div>`:''}</div>`;
 }
 /* a logística se atualiza sozinha: o entregador marca "cheguei" e "entreguei" e o painel mostra */
 setInterval(()=>{
@@ -3950,7 +3954,7 @@ function stopHtml(p,k,rid,tk,saiu){
   return `<div class="stop ${fim?'ok':''}"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><h3>${k+1}. ${esc(p.nome||'')}</h3><small style="color:var(--muted);white-space:nowrap">${esc(TURNOS[p.turno]||'')}</small></div>
   <div class="ad">${esc(t)}${p.dest&&p.dest.ref?'<div style="color:var(--muted);font-size:.85rem">Ref.: '+esc(p.dest.ref)+'</div>':''}</div>
   <div style="font-size:.88rem;margin-bottom:10px"><b>${st}</b></div>
-  ${canc?'':`<div class="acts"><a class="btn sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">Google Maps</a><a class="btn ghost sm" href="${esc(wazeDest(t))}" target="_blank" rel="noopener">Waze</a>${saiu&&!fim&&(emRota||tent)?(emRota&&!p.chegou_em?bt('cheguei','Cheguei','sm'):'')+bt('entregue','Entreguei','acc')+(emRota?bt('tentativa','Não consegui entregar','ghost sm'):''):''}</div>`}</div>`;
+  ${canc?'':`<div class="acts"><a class="btn sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">Google Maps</a><a class="btn ghost sm" href="${esc(wazeDest(t))}" target="_blank" rel="noopener">Waze</a>${saiu&&!fim&&(emRota||tent)?(emRota&&!p.chegou_em?`<button class="btn sm full2" onclick="entCheguei('${rid}','${tk}',${p.pedido})">📷 Cheguei: tirar foto do local</button>`:'')+bt('entregue','Entreguei','acc')+(emRota?bt('tentativa','Não consegui entregar','ghost sm'):''):''}</div>`}</div>`;
 }
 function pageEntregador(rid,tk){
   const caixa=t=>'<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota de entregas</h1>'+t+'</div>';
@@ -4239,7 +4243,7 @@ function listaPed(filtro,intro){
   return `<div class="box"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><p style="margin:0;color:var(--muted)">${intro||'Pedidos mais recentes.'} <b>${lista.length}</b> na lista.</p><div style="display:flex;gap:8px"><select onchange="A9.fs=this.value;route()" style="width:auto"><option value="">Todos os status</option>${STSEQ.map(s=>`<option value="${s}" ${A9.fs===s?'selected':''}>${STLB[s]}</option>`).join('')}</select><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar</button></div></div>${msgBox()}
   ${barraFiltros()}
   <div class="selbar"><button class="btn ghost sm" onclick="selTodosPed(true)">Selecionar todos</button><button class="btn ghost sm" onclick="selTodosPed(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><select id="etqTipo" style="width:auto" aria-label="Tipo de etiqueta"><option value="ambas">As duas etiquetas</option><option value="externa">Só externa</option><option value="interna">Só interna</option></select><button class="btn acc sm" onclick="pedConfirmarImprimir()" ${nSel?'':'disabled'} title="Baixa as etiquetas dos pedidos marcados e confirma os pedidos novos, avisando os clientes">Confirmar e imprimir etiquetas${nSel?' ('+nSel+')':''}</button>
-  <select id="bkE" style="width:auto" onchange="A9.bkE=this.value" aria-label="Entregador">${A9.lg?'<option value="">Entregador...</option>'+A9.lg.ent.filter(x=>x.ativo).map(x=>`<option value="${x.id}" ${A9.bkE===x.id?'selected':''}>${esc(x.nome)}</option>`).join(''):'<option value="">Carregando entregadores...</option>'}</select><input id="bkD" type="date" value="${esc(A9.bkD||hojeS())}" onchange="A9.bkD=this.value" style="width:auto" aria-label="Data da rota"><button class="btn wa sm" onclick="pedEnviarEntregador()" ${nSel?'':'disabled'}>Enviar para entregador${nSel?' ('+nSel+')':''}</button>${admin?`<button class="btn ghost sm danger" onclick="pedExcluir()" ${nSel?'':'disabled'}>Excluir selecionados${nSel?' ('+nSel+')':''}</button>`:''}</div>
+  <select id="bkE" style="width:auto" onchange="A9.bkE=this.value" aria-label="Entregador">${A9.lg?'<option value="">Entregador...</option>'+A9.lg.ent.filter(x=>x.ativo).map(x=>`<option value="${x.id}" ${A9.bkE===x.id?'selected':''}>${esc(x.nome)}</option>`).join(''):'<option value="">Carregando entregadores...</option>'}</select><input id="bkD" type="date" value="${esc(A9.bkD||hojeS())}" onchange="A9.bkD=this.value" style="width:auto" aria-label="Data da rota"><button class="btn wa sm" onclick="pedEnviarEntregador()" ${nSel?'':'disabled'}>Enviar para entregador${nSel?' ('+nSel+')':''}</button><input id="avNome" placeholder="Rota avulsa: nome de quem entrega" style="width:auto;min-width:190px" aria-label="Nome de quem vai entregar"><button class="btn ghost sm" onclick="rotaAvulsa()" ${nSel?'':'disabled'} title="Gera uma etiqueta simples com a rota, para um motoboy que não está cadastrado">Imprimir rota avulsa${nSel?' ('+nSel+')':''}</button>${admin?`<button class="btn ghost sm danger" onclick="pedExcluir()" ${nSel?'':'disabled'}>Excluir selecionados${nSel?' ('+nSel+')':''}</button>`:''}</div>
   <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${lista.length&&nSel===lista.length?'checked':''} onchange="selTodosPed(this.checked)"></th><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Entrega desejada</th><th>Pagamento</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const pg=o.pagamento||{};return `<tr class="${emAtraso(o)?'rowatr':''}" data-sc style="--sc:${STCOR[o.status]||'#999'}"><td><input type="checkbox" class="selck" aria-label="Selecionar ${codPed(o)}" ${A9.selP[o.id]?'checked':''} onchange="selPed(${o.id},this.checked)"></td><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' · '+((en.dest||{}).cidade||''))}</div></td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td><td>${totAdm(o)}</td><td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td><td>${esc(PAGNOME[pg.preferencia]||'')}<div>${pagChipP(o)}</div></td><td>${stChip(o.status)}</td><td style="white-space:nowrap"><button class="btn ghost sm etqbtn" title="Gerar etiquetas e abrir o PDF" aria-label="Gerar etiquetas do pedido ${codPed(o)}" onclick="etqRapida(${o.id})">${ICO_DOC}</button> <button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||'<tr><td colspan="9">Nenhum pedido.</td></tr>'}</tbody></table></div></div>`;
 }
 async function pedExcluir(){
@@ -4401,8 +4405,8 @@ function rotaHtmlG(r){const L=A9.lg;
 const en=L.ent.find(x=>x.id===r.entregador_id)||{nome:'?',whats:''};const ps=r.pedidos.map(id=>L.peds[id]).filter(Boolean);
     const fim=ps.length&&ps.every(o=>ENC(o));const fw=foneWa(en.whats);
     const cr=corEnt(r.entregador_id);return `<div class="box" style="box-shadow:none;background:#fafafa;margin-top:12px;border-left:8px solid ${cr}"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div><b>Rota ${r.n}</b> · ${dataBr(r.data)} · <span class="entdot" style="background:${cr}"></span><b style="color:${cr}">${esc(en.nome)}</b><div style="color:var(--muted);font-size:.82rem">${r.saiu_em?'Saiu em '+fmtD(Date.parse(r.saiu_em)):'Ainda não saiu'}${fim?' · Concluída':''}</div></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">${ADMIN.papel==='admin'?`<button class="btn ghost sm danger" onclick="rotaExcluir('${r.id}')">Excluir rota</button>`:''}${fw&&!fim?`<a class="btn wa sm" href="${waUrlPara(fw,msgRota(r))}" target="_blank" rel="noopener" onclick="admEnviouRota('${r.id}')">Enviar rota ao entregador</a>`:''}${!fim?`<button class="btn ghost sm" onclick="entCopiarLink('${r.id}')">Copiar link do entregador</button><button class="btn ghost sm" onclick="rotaCopiar('${r.id}')">Copiar mensagem da rota</button><button class="btn wa sm" onclick="avAbrir('${r.id}')">Avisar clientes</button>`:''}${!r.saiu_em?`<button class="btn acc sm" onclick="admSaiuRota('${r.id}')">Saiu para entrega</button><button class="btn ghost sm" onclick="admDesfazRota('${r.id}')">Desfazer rota</button>`:''}</div></div>
-    <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Endereço</th><th>Horário</th><th>Situação</th><th></th></tr></thead><tbody>${ps.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td style="box-shadow:inset 5px 0 0 ${cr}"><b>${codPed(o)}</b></td><td>${esc(e.nome||'')}</td><td>${esc((d.rua||'')+', '+(d.num||'')+' - '+(d.bairro||'')+', '+(d.cidade||''))}</td><td>${esc(TURNOS[e.turno]||'')}</td><td>${esc(ADM_LB[o.status]||STLB[o.status]||o.status)}${o.chegou_em?'<div style="color:var(--muted);font-size:.78rem">Chegou às '+horaBr(o.chegou_em)+'</div>':''}</td><td style="white-space:nowrap">${['em-rota','tentativa'].includes(o.status)?`<button class="btn sm" onclick="admResultado(${o.id},'entregue')">Entregue</button> `:''}${o.status==='em-rota'?`<button class="btn ghost sm" onclick="admResultado(${o.id},'tentativa')">Tentativa</button> `:''}<button class="btn ghost sm" onclick="A9.po=null;A.tab='pedidos';admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div>${A9.av&&A9.av.rota===r.id?avPanel(r,ps):''}</div>`
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${!fim?`<button class="btn wa sm" onclick="avAbrir('${r.id}')">Avisar clientes</button>`:''}${fw&&!fim?`<a class="btn wa sm" href="${waUrlPara(fw,msgRota(r))}" target="_blank" rel="noopener" onclick="admEnviouRota('${r.id}')">Enviar rota ao entregador</a>`:''}${!r.saiu_em?`<button class="btn acc sm" onclick="admSaiuRota('${r.id}')">Saiu para entrega</button>`:''}${!fim?`<button class="btn ghost sm" onclick="entCopiarLink('${r.id}')">Copiar link do entregador</button><button class="btn ghost sm" onclick="rotaCopiar('${r.id}')">Copiar mensagem da rota</button>`:''}${!r.saiu_em?`<button class="btn ghost sm" onclick="admDesfazRota('${r.id}')">Desfazer rota</button>`:''}${ADMIN.papel==='admin'?`<button class="btn ghost sm danger" onclick="rotaExcluir('${r.id}')">Excluir rota</button>`:''}</div></div>
+    <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Endereço</th><th>Horário</th><th>Situação</th><th></th></tr></thead><tbody>${ps.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td style="box-shadow:inset 5px 0 0 ${cr}"><b>${codPed(o)}</b></td><td>${esc(e.nome||'')}</td><td>${esc((d.rua||'')+', '+(d.num||'')+' - '+(d.bairro||'')+', '+(d.cidade||''))}</td><td>${esc(TURNOS[e.turno]||'')}</td><td>${esc(ADM_LB[o.status]||STLB[o.status]||o.status)}${o.chegou_em?'<div style="color:var(--muted);font-size:.78rem">Chegou às '+horaBr(o.chegou_em)+'</div>':''}</td><td style="white-space:nowrap">${['em-rota','tentativa'].includes(o.status)?`<button class="btn sm" onclick="admResultado(${o.id},'entregue')">Entregue</button> `:''}${o.status==='em-rota'?`<button class="btn ghost sm" onclick="admResultado(${o.id},'tentativa')">Tentativa</button> `:''}${o.chegou_em?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">Ver foto</button> `:''}<button class="btn ghost sm" onclick="A9.po=null;A.tab='pedidos';admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div>${A9.av&&A9.av.rota===r.id?avPanel(r,ps):''}</div>`
 }
 async function rotaExcluir(rid){
   if(!confirm('Excluir esta rota?\n\nOs pedidos que ainda não foram entregues voltam para a fila da Logística. Pedidos já entregues continuam entregues.'))return;
@@ -4453,9 +4457,10 @@ async function pedEnviarEntregador(){
   const r=await SB.rpc('criar_rota',{p_data:d,p_entregador:en,p_pedidos:ids});
   A9.busy=false;
   if(r.error){A9.msg=msgRpc(r.error);A9.erro=true;route();return}
+  const sr=await SB.rpc('saiu_rota',{p_rota:r.data});
   const nome=((A9.lg&&A9.lg.ent.find(x=>x.id===en))||{}).nome||'o entregador';
-  A9.selP={};A9.pedidos=null;A9.lg=null;A9.lgE=en;A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';A9.po=null;A.tab='logistica';
-  A9.msg='Rota criada com '+ids.length+' pedido'+(ids.length>1?'s':'')+' para '+nome+'. Agora envie a rota pelo WhatsApp e toque em Saiu para entrega.';A9.erro=false;route();window.scrollTo(0,0);
+  A9.selP={};A9.pedidos=null;A9.lg=null;A9.lgE=en;A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';A9.po=null;A.tab='entregadores';A9.entSel={};A9.entSel[en]=true;A9.otAuto=en;A9.otim=null;
+  A9.msg='Rota criada com '+ids.length+' pedido'+(ids.length>1?'s':'')+' para '+nome+'. Os clientes já foram avisados de que saiu para entrega'+(sr.error?' (falhou ao marcar a saída: use Saiu para entrega na Logística)':'')+'. Agora arraste as paradas na ordem da rota e envie ao entregador.';A9.erro=false;route();window.scrollTo(0,0);
 }
 
 /* ======================= ATUALIZAÇÃO AUTOMÁTICA: o motoboy entrega, o painel já mostra e libera a cobrança ======================= */
@@ -4598,11 +4603,11 @@ async function manEnviar(){
 
 /* ======================= OTIMIZAR ROTA DO ENTREGADOR: ordem das paradas (arrastar) + Google Maps + WhatsApp ======================= */
 A9.otim=null;
-function otAbrir(eid){
+function otAbrir(eid,quiet){
   const L=A9.lg;
   const rs=L.rotas.filter(r=>r.entregador_id===eid).filter(r=>!r.pedidos.map(i=>L.peds[i]).filter(Boolean).every(ENC)).sort((a,b)=>a.n-b.n);
   const ids=[];rs.forEach(r=>r.pedidos.forEach(id=>{const o=L.peds[id];if(o&&!ENC(o)&&!ids.includes(id))ids.push(id)}));
-  A9.otim={ent:eid,ids,drag:-1,salvo:false};route();
+  A9.otim={ent:eid,ids,drag:-1,salvo:false};if(!quiet)route();
 }
 function otFechar(){A9.otim=null;route()}
 function otPs(){const T=A9.otim,L=A9.lg;return T.ids.map(id=>L.peds[id]).filter(Boolean)}
@@ -4633,7 +4638,7 @@ function otInner(){
     return `<div class="otr" draggable="true" ondragstart="otDrag(event,${i})" ondragover="event.preventDefault();this.classList.add('ov')" ondragleave="this.classList.remove('ov')" ondrop="otDrop(event,${i})"><span class="otn" style="background:${cor}">${i+1}</span><span class="oth" title="Arraste">⋮⋮</span><div class="otx"><b>${esc(e.nome||'')}</b> <span class="otm">${codPed(o)} · ${esc(TURNOS[e.turno]||'')}</span><div>${esc(ends[i])}</div></div><span class="otb"><button class="btn ghost sm" ${i?'':'disabled'} onclick="otMov(${i},-1)">↑</button><button class="btn ghost sm" ${i<ps.length-1?'':'disabled'} onclick="otMov(${i},1)">↓</button></span></div>`}).join('');
   const tr=otTrechos(ends);const fw=foneWa(en.whats);
   return `<h4 style="margin:0">Otimizar rota de ${esc(en.nome)}</h4><p style="margin:4px 0 10px;color:var(--muted);font-size:.88rem">${ps.length} parada${ps.length>1?'s':''} de todas as rotas abertas dele. Arraste para mudar a ordem (ou use as setas). O Google Maps e o WhatsApp seguem exatamente esta ordem.</p>
-  <div class="btns" style="margin-bottom:10px"><button class="btn ghost sm" onclick="otSugerir()">Sugerir ordem por proximidade</button></div>
+  <div class="btns" style="margin-bottom:10px"><div style="flex:1;min-width:200px"><label for="otSaida" style="font-size:.8rem">Local de saída do entregador</label><input id="otSaida" value="${esc(T.saida||saidaPadrao())}" placeholder="Ex.: Centro, Jacareí/SP"></div><button class="btn acc sm" ${T.calc?'disabled':''} onclick="otSugerir()">Rota por proximidade</button></div>${T.calc?`<p style="margin:0 0 8px;color:#ea580c"><b>${esc(T.calc)}</b></p>`:''}
   <div class="otl">${rows}</div>
   <div class="btns" style="margin-top:12px">${tr.map(t=>`<a class="btn sm" href="${esc(t.url)}" target="_blank" rel="noopener">Ver no Google Maps${tr.length>1?' (paradas '+t.de+' a '+t.ate+')':''}</a>`).join('')}</div>
   <div class="btns" style="margin-top:8px"><button class="btn acc" onclick="otSalvar()">Salvar ordem</button>${fw?`<a class="btn wa" href="${waUrlPara(fw,otMsg())}" target="_blank" rel="noopener" onclick="otSalvar(true)">Salvar e enviar rota otimizada ao entregador</a>`:'<span style="color:var(--muted);font-size:.85rem">Cadastre o WhatsApp do entregador para enviar.</span>'}<button class="btn ghost" onclick="otFechar()">Fechar</button></div>
@@ -4666,6 +4671,7 @@ async function otSalvar(quiet){
   toast(erro?'Não foi possível salvar a ordem de '+erro+' rota(s).':'Ordem da rota salva.');
 }
 window.entRotas=function(){
+  if(A9.otAuto&&A9.lg){const id=A9.otAuto;A9.otAuto=null;otAbrir(id,true)}
   const L=A9.lg,sel=L.ent.filter(x=>A9.entSel[x.id]);
   if(!sel.length)return '<p style="color:var(--muted);margin-top:16px">Clique em um ou mais entregadores para ver as rotas deles e para <b>otimizar a rota</b>.</p>';
   const psDe=r=>r.pedidos.map(id=>L.peds[id]).filter(Boolean);
@@ -4676,6 +4682,145 @@ window.entRotas=function(){
     <h4 style="margin:12px 0 0">Rotas em andamento (${and.length})</h4>${and.map(rotaHtmlG).join('')||'<p style="color:var(--muted);margin:6px 0">Nenhuma rota em andamento.</p>'}
     <details style="margin-top:14px"><summary style="cursor:pointer;font-weight:700">Rotas concluídas (${conc.length})</summary>${conc.map(rotaHtmlG).join('')||'<p style="color:var(--muted);margin:6px 0">Nenhuma rota concluída.</p>'}</details></div>`}).join('');
 };
+
+/* ======================= ROTA POR PROXIMIDADE, AVISO EM MASSA E ROTA AVULSA ======================= */
+/* localização gratuita (OpenStreetMap), guardada no aparelho para não repetir a busca */
+function geoCache(){try{return JSON.parse(localStorage.getItem('zp_geo')||'{}')}catch(x){return{}}}
+function geoSalva(c){try{localStorage.setItem('zp_geo',JSON.stringify(c))}catch(x){}}
+var geoUlt=0;
+async function geoBusca(q){
+  const espera=geoUlt+1150-Date.now();if(espera>0)await new Promise(r=>setTimeout(r,espera));geoUlt=Date.now();
+  const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q='+encodeURIComponent(q));
+  if(!r.ok)throw new Error('geo');const j=await r.json();return j[0]?{lat:+j[0].lat,lon:+j[0].lon}:null;
+}
+async function geoTexto(tentativas){
+  const c=geoCache();
+  for(const q of tentativas){
+    if(!q)continue;
+    if(c[q]!==undefined){if(c[q])return c[q];continue}
+    let g=null;try{g=await geoBusca(q)}catch(x){return null}
+    c[q]=g;geoSalva(c);if(g)return g;
+  }
+  return null;
+}
+function geoDest(d){d=d||{};const j=a=>a.filter(Boolean).join(', ');
+  return [j([d.rua,d.num,d.bairro,d.cidade,d.uf,'Brasil']),j([d.rua,d.bairro,d.cidade,d.uf,'Brasil']),j([d.bairro,d.cidade,d.uf,'Brasil']),j([d.cep,'Brasil']),j([d.cidade,d.uf,'Brasil'])]}
+function geoKm(a,b){const R=6371,t=x=>x*Math.PI/180,dl=t(b.lat-a.lat),dn=t(b.lon-a.lon);const h=Math.sin(dl/2)**2+Math.cos(t(a.lat))*Math.cos(t(b.lat))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+/* vizinho mais próximo a partir do local de saída, depois melhora trocando trechos (2-opt) */
+function geoOrdem(ini,pts){
+  const rest=pts.slice(),ord=[];let cur=ini;
+  while(rest.length){let bi=0,bd=Infinity;rest.forEach((p,i)=>{const x=geoKm(cur,p);if(x<bd){bd=x;bi=i}});cur=rest.splice(bi,1)[0];ord.push(cur)}
+  const P=[ini].concat(ord),n=ord.length;let mel=true,voltas=0;
+  while(mel&&voltas++<60){mel=false;
+    for(let i=1;i<n;i++)for(let j=i+1;j<=n;j++){
+      const a=P[i-1],b=P[i],c=P[j],e=P[j+1];
+      const antes=geoKm(a,b)+(e?geoKm(c,e):0),depois=geoKm(a,c)+(e?geoKm(b,e):0);
+      if(depois<antes-1e-6){const seg=P.slice(i,j+1).reverse();for(let k=0;k<seg.length;k++)P[i+k]=seg[k];mel=true}}}
+  return P.slice(1);
+}
+/* items: [{id,dest}] ; devolve os ids na ordem da rota (quem não for localizado vai no fim, por CEP) */
+async function geoOrdenar(items,saidaTxt,prog){
+  const ini=await geoTexto([saidaTxt+', Brasil',saidaTxt]);
+  if(!ini)throw new Error('saida');
+  const ok=[],sem=[];let k=0;
+  for(const it of items){
+    const g=await geoTexto(geoDest(it.dest));k++;if(prog)prog(k,items.length);
+    if(g)ok.push({id:it.id,lat:g.lat,lon:g.lon});else sem.push(it);
+  }
+  const ord=geoOrdem(ini,ok).map(p=>p.id);
+  sem.sort((a,b)=>String((a.dest||{}).cep).localeCompare(String((b.dest||{}).cep))).forEach(x=>ord.push(x.id));
+  return ord;
+}
+function saidaPadrao(){let s='';try{s=localStorage.getItem('zp_saida')||''}catch(x){}return s||(typeof LBL!=='undefined'&&LBL.remEnd)||'Jacareí, SP'}
+async function otSugerir(){
+  const T=A9.otim,L=A9.lg;if(!T||T.calc)return;
+  T.saida=(v_('otSaida')||T.saida||saidaPadrao()).trim();try{localStorage.setItem('zp_saida',T.saida)}catch(x){}
+  T.calc='Localizando os endereços... 0 de '+T.ids.length;otRef();
+  try{
+    const ord=await geoOrdenar(T.ids.map(id=>({id,dest:((L.peds[id]||{}).entrega||{}).dest||{}})),T.saida,(k,n)=>{if(A9.otim){A9.otim.calc='Localizando os endereços... '+k+' de '+n;otRef()}});
+    T.ids=ord;T.salvo=false;T.calc='';otRef();toast('Rota montada a partir de '+T.saida+'. Confira e arraste o que precisar.');
+  }catch(e){T.calc='';otRef();toast(e&&e.message==='saida'?'Não encontrei o local de saída. Escreva a cidade ou o bairro de onde ele sai.':'Não consegui calcular agora. Confira a internet e tente de novo, ou arraste manualmente.')}
+}
+/* aviso a todos os clientes de uma vez: mensagem única + contatos para lista de transmissão */
+function avTxtGeral(){return nl('Olá! Aqui é da '+(CFG.brand||'ZP Imports')+'. Seu pedido já saiu para entrega e está a caminho 🛵. Fique atento ao telefone, nosso entregador vai chamar quando chegar. Obrigado!')}
+function avMassa(){if(!A9.av)return;A9.av.massa=!A9.av.massa;route()}
+function avMassaCopiar(){const t=(document.getElementById('avMassaTxt')||{}).value||avTxtGeral();copiaTexto(t,'Mensagem copiada. Agora cole na lista de transmissão do WhatsApp.')}
+function avMassaVcf(){
+  if(!A9.av)return;const r=A9.lg.rotas.find(x=>x.id===A9.av.rota);if(!r)return;
+  const ab=avAbertos(r).filter(o=>A9.av.sel[o.id]);let v='',n=0;
+  ab.forEach(o=>{const e=o.entrega||{},fw=foneWa(e.fone);if(!fw)return;n++;v+='BEGIN:VCARD\r\nVERSION:3.0\r\nFN:ZP '+String(e.nome||'Cliente').replace(/[\r\n,;]/g,' ')+' '+codPed(o)+'\r\nTEL;TYPE=CELL:+'+fw+'\r\nEND:VCARD\r\n'});
+  if(!n){toast('Nenhum cliente marcado com telefone válido.');return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([v],{type:'text/vcard'}));a.download='clientes-rota.vcf';document.body.appendChild(a);a.click();a.remove();
+  toast(n+' contato(s) baixado(s). Abra o arquivo no celular para salvar na agenda.');
+}
+/* rota avulsa: etiqueta simples para um motoboy que não está cadastrado */
+async function rotaAvulsa(){
+  const ids=(A9.lastLista||[]).filter(id=>A9.selP[id]);const nome=v_('avNome').trim();
+  if(!ids.length){toast('Marque os pedidos da rota.');return}
+  if(!nome){toast('Escreva o nome de quem vai entregar.');const e=document.getElementById('avNome');if(e)e.focus();return}
+  const ps=(A9.pedidos||[]).filter(o=>ids.includes(o.id));let ord=ps.map(o=>o.id);
+  toast('Montando a rota por proximidade de '+saidaPadrao()+'...');
+  try{ord=await geoOrdenar(ps.map(o=>({id:o.id,dest:(o.entrega||{}).dest||{}})),saidaPadrao())}catch(x){toast('Não consegui calcular a proximidade. Imprimindo na ordem da lista.')}
+  const por={};ps.forEach(o=>{por[o.id]=o});
+  const bytes=rotaAvulsaPdf(ord.map(id=>por[id]).filter(Boolean),nome);
+  const a=document.createElement('a');a.href=blobUrl(bytes);a.download='rota-avulsa-'+nome.replace(/[^\w]+/g,'-').toLowerCase()+'.pdf';document.body.appendChild(a);a.click();a.remove();
+  toast('Rota avulsa gerada para '+nome+'.');
+}
+function rotaAvulsaPdf(ps,nome){
+  const cfg=Object.assign({},LBL),W=cfg.w,H=cfg.h,m=cfg.m,mw=W-2*m,fs=cfg.fs,pgs=[];
+  const hoje=new Date().toLocaleDateString('pt-BR');
+  const nova=()=>{const pg=new Pg(W,H);pg.rect(1.6,1.6,W-3.2,H-3.2,'S',0.5);
+    pg.rect(m,m,mw,8,'f',0,0);pg.text(m+2.5,m+5.6,'ROTA AVULSA',fs+3,true,{gray:1});pg.text(W-m-2.5,m+5.6,cfg.remetente||'ZP IMPORTS',fs,true,{gray:1,align:'right'});
+    pg.text(m,m+13.5,'Entregador: ',fs+1,false);const w=tw('Entregador: ',fs+1,false);pg.para(m+w,m+13.5,nome,fs+2,true,mw-w,1);
+    pg.text(W-m,m+13.5,hoje,fs,false,{align:'right'});pg.line(m,m+16,W-m,m+16,0.4);pgs.push(pg);return {pg,y:m+20.5}};
+  let {pg,y}=nova();
+  ps.forEach((o,i)=>{
+    const e=o.entrega||{},d=e.dest||{};
+    const end=[d.rua,d.num].filter(Boolean).join(', ')+(d.comp?' - '+d.comp:'');const end2=[d.bairro,d.cidade].filter(Boolean).join(' - ');
+    const l1=wrapTxt(end,fs,false,mw-16).slice(0,2),l2=wrapTxt(end2,fs,false,mw-16).slice(0,1),lr=d.ref?wrapTxt('Ref.: '+d.ref,fs-1.5,false,mw-16).slice(0,1):[];
+    const lh=(fs)*0.44;const hh=5+(l1.length+l2.length)*lh+lr.length*(fs-1.5)*0.44+6;
+    if(y+hh>H-m-9){const n=nova();pg=n.pg;y=n.y}
+    pg.rect(m,y-3.6,6.4,6.4,'f',0,0);pg.text(m+3.2,y+0.9,String(i+1),fs+1,true,{gray:1,align:'center'});
+    pg.para(m+9,y,tituloPt(e.nome||''),fs+1.5,true,mw-26,1);
+    pg.rect(W-m-5.5,y-3.4,5.5,5.5,'S',0.4);
+    let yy=y+lh+1.2;
+    l1.concat(l2).forEach(l=>{pg.text(m+9,yy,l,fs,false);yy+=lh});
+    lr.forEach(l=>{pg.text(m+9,yy,l,fs-1.5,false,{gray:0.35});yy+=(fs-1.5)*0.44});
+    y=yy+5;pg.line(m,y-3.6,W-m,y-3.6,0.15);
+  });
+  const last=pgs[pgs.length-1];last.text(m,H-m-2,ps.length+' parada'+(ps.length>1?'s':''),fs-1,true,{gray:0.4});
+  return pdfBuild(pgs,null,{title:'Rota avulsa'});
+}
+
+/* ======================= FOTO DO LOCAL NO "CHEGUEI" + SAÍDA AUTOMÁTICA DA ROTA ======================= */
+function fotoReduz(file,max,q){
+  max=max||900;q=q||0.6;
+  return new Promise((ok,err)=>{const im=new Image(),u=URL.createObjectURL(file);
+    im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',q))};
+    im.onerror=()=>err(new Error('img'));im.src=u});
+}
+function entCheguei(rid,tk,pid){
+  const i=document.createElement('input');i.type='file';i.accept='image/*';i.setAttribute('capture','environment');
+  i.onchange=async()=>{
+    const f=i.files&&i.files[0];if(!f)return;toast('Enviando a foto...');
+    let d;try{d=await fotoReduz(f)}catch(x){toast('Não consegui ler a foto. Tire de novo.');return}
+    const a=await SB.rpc('rota_entregador_foto',{p_rota:rid,p_token:tk,p_pedido:pid,p_foto:d});
+    if(a.error){toast(/rota_entregador_foto|function|schema cache/i.test(a.error.message||'')?'Falta liberar a foto no sistema (a loja precisa rodar o arquivo 20).':msgRpc(a.error));return}
+    const r=await SB.rpc('rota_entregador_acao',{p_rota:rid,p_token:tk,p_pedido:pid,p_acao:'cheguei'});
+    if(r.error){toast(msgRpc(r.error));return}
+    toast('Chegada registrada com foto. 📍');entRecarrega(rid,tk);
+  };
+  i.click();
+}
+async function fotoVer(pid){
+  const r=await SB.from('pedido_fotos').select('foto,criado_em').eq('pedido_id',pid).order('criado_em',{ascending:false}).limit(1);
+  const f=r.data&&r.data[0];
+  if(!f){toast(r.error?'Falta rodar o arquivo 20 no Supabase.':'Este pedido ainda não tem foto.');return}
+  const d=document.createElement('div');d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:10px';
+  d.onclick=()=>d.remove();
+  d.innerHTML='<div style="color:#fff;font-weight:700">Foto do local · '+fmtD(Date.parse(f.criado_em))+' (toque para fechar)</div><img alt="Foto do local da entrega" style="max-width:100%;max-height:85vh;border-radius:12px">';
+  d.querySelector('img').src=f.foto;document.body.appendChild(d);
+}
 </script>
 </body>
 </html>
