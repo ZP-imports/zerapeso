@@ -2,12 +2,12 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="description" content="Cadastre seu endereço e finalize seu pedido."><meta property="og:site_name" content="ZP Imports"><meta property="og:locale" content="pt_BR"><meta property="og:type" content="website"><meta property="og:title" content="ZP Imports"><meta property="og:description" content="Cadastre seu endereço e finalize seu pedido."><meta property="og:url" content="https://zpimports.netlify.app/"><meta property="og:image" content="https://zpimports.netlify.app/banner-zp.jpg"><meta property="og:image:secure_url" content="https://zpimports.netlify.app/banner-zp.jpg"><meta property="og:image:type" content="image/jpeg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="ZP Imports: cadastre seu endereço e finalize seu pedido"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://zpimports.netlify.app/banner-zp.jpg">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%23ffb703%22%2F%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%3E%3Crect%20x%3D%2226%22%20y%3D%2212%22%20width%3D%2212%22%20height%3D%2240%22%20rx%3D%223%22%2F%3E%3Crect%20x%3D%2212%22%20y%3D%2226%22%20width%3D%2240%22%20height%3D%2212%22%20rx%3D%223%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%23ffb703%22%2F%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%3E%3Crect%20x%3D%2226%22%20y%3D%2212%22%20width%3D%2212%22%20height%3D%2240%22%20rx%3D%223%22%2F%3E%3Crect%20x%3D%2212%22%20y%3D%2226%22%20width%3D%2240%22%20height%3D%2212%22%20rx%3D%223%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
 <meta name="theme-color" content="#0a6e5c">
-<title>ZP Imports</title>
+<title>ZP Imports | Administração</title>
+<meta name="robots" content="noindex,nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>.otbox{background:#fff;border:2px solid #fed7aa;border-radius:14px;padding:14px;margin-top:12px}.otl{display:flex;flex-direction:column;gap:6px}.otr{display:flex;align-items:center;gap:10px;background:#fafafa;border:1px solid #e4e7ec;border-radius:10px;padding:8px 10px;cursor:grab}.otr.ov{outline:2px dashed #ea580c;background:#fff7ed}.otn{flex:none;width:28px;height:28px;border-radius:50%;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.9rem}.oth{color:#98a2b3;font-size:1.2rem;flex:none}.otx{flex:1;min-width:0;font-size:.92rem}.otm{color:#667085;font-size:.8rem}.otb{display:flex;gap:4px;flex:none}
@@ -401,7 +401,7 @@ body:not(.pronto) #menu,body:not(.pronto) #faixa{visibility:hidden}
 /* troca de slide sem "fantasma": o slide que sai fica opaco até o novo cobrir */
 .sl{transition:opacity .6s}
 .sl:not(.on){transition:opacity 0s linear .6s}
-
+.adm-mode #sf,.adm-mode #tCart,.adm-mode #tBell,.adm-mode #tAcc,.adm-mode .tool,.adm-mode nav.main,.adm-mode #mainnav,.adm-mode #faixa,.adm-mode #foot,.adm-mode #wafloat,.adm-mode .burger{display:none!important}.adm-mode #brand::after{content:" · Administração";font-weight:500;color:var(--muted);font-size:.85em}
 /* ===== mobile: carrinho maior e que se ajusta à tela ===== */
 @media(max-width:760px){
   .hd{padding:12px 14px}
@@ -522,7 +522,7 @@ a[href*="netlify.com"],[class*="netlify" i],[id*="netlify" i]{display:none!impor
 .mvars{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}.mvar{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#f7faf9;border-radius:10px;padding:8px 10px}.mvn{display:flex;flex-direction:column}.mvn small{color:var(--muted)}
 </style>
 </head>
-<body>
+<body class="adm-mode">
 
 <header>
   <div class="hd">
@@ -549,6 +549,7 @@ a[href*="netlify.com"],[class*="netlify" i],[id*="netlify" i]{display:none!impor
 <div id="toast" role="status" aria-live="polite"></div>
 <div class="modal" id="modal" role="dialog" aria-modal="true"><div id="modalb"></div></div>
 
+<script>window.__ADMIN_APP=true;</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 window.__banco=typeof supabase!=='undefined';
@@ -4679,4 +4680,3 @@ window.entRotas=function(){
 </script>
 </body>
 </html>
-
