@@ -10,7 +10,8 @@
 <meta name="robots" content="noindex,nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>.pagpulsa{display:inline-block;margin-top:4px;padding:5px 9px;border-radius:8px;background:#fee4e2;color:#b42318;font-weight:800;font-size:.78rem;cursor:pointer;animation:pagpulsa 1s ease-in-out infinite}@keyframes pagpulsa{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(1.05)}}
+<style>.pulsa{animation:pagpulsa 1s ease-in-out infinite}.selo{white-space:nowrap}.selo.gray{background:#e5e7eb;color:#374151}.kc.pulsa{box-shadow:0 0 0 3px rgba(124,58,237,.35)}
+.pagpulsa{display:inline-block;margin-top:4px;padding:5px 9px;border-radius:8px;background:#fee4e2;color:#b42318;font-weight:800;font-size:.78rem;cursor:pointer;animation:pagpulsa 1s ease-in-out infinite}@keyframes pagpulsa{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(1.05)}}
 .otbox{background:#fff;border:2px solid #fed7aa;border-radius:14px;padding:14px;margin-top:12px}.otl{display:flex;flex-direction:column;gap:6px}.otr{display:flex;align-items:center;gap:10px;background:#fafafa;border:1px solid #e4e7ec;border-radius:10px;padding:8px 10px;cursor:grab}.otr.ov{outline:2px dashed #ea580c;background:#fff7ed}.otn{flex:none;width:28px;height:28px;border-radius:50%;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.9rem}.oth{color:#98a2b3;font-size:1.2rem;flex:none}.otx{flex:1;min-width:0;font-size:.92rem}.otm{color:#667085;font-size:.8rem}.otb{display:flex;gap:4px;flex:none}
 .cidf{position:relative;min-width:170px}.cidf summary{cursor:pointer;list-style:none;border:1px solid var(--line,#d0d5dd);border-radius:10px;padding:10px 12px;background:#fff;font-size:.95rem}.cidf summary::-webkit-details-marker{display:none}.cidf summary:after{content:" ▾";float:right}.cidl{position:absolute;z-index:30;left:0;top:100%;margin-top:4px;min-width:230px;max-height:300px;overflow:auto;background:#fff;border:1px solid #d0d5dd;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:6px}.cidl label{display:flex;align-items:center;gap:8px;padding:8px 10px;margin:0;cursor:pointer;border-radius:8px;font-weight:400}.cidl label:hover{background:#f2f4f7}.cidl input{width:auto;margin:0;flex:none}
 
@@ -521,6 +522,12 @@ a[href*="netlify.com"],[class*="netlify" i],[id*="netlify" i]{display:none!impor
 .mst{display:flex;gap:12px;align-items:center;margin-bottom:12px}.mn{width:34px;height:34px;border-radius:50%;background:var(--p);color:#fff;display:grid;place-items:center;font-weight:800;flex:none}
 .mprod{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px}.mph{display:flex;flex-direction:column;margin-bottom:8px}.mph small{color:var(--muted)}
 .mvars{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}.mvar{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#f7faf9;border-radius:10px;padding:8px 10px}.mvn{display:flex;flex-direction:column}.mvn small{color:var(--muted)}
+
+/* ajuste visual dos selos e etiquetas coloridas: centralizados, mesma altura, letra legível */
+.st,.selo,.stchip{display:inline-flex;align-items:center;justify-content:center;gap:.35em;line-height:1.15;min-height:1.7em;padding:.22em .75em;border-radius:999px;white-space:nowrap;vertical-align:middle;font-weight:700;letter-spacing:.01em}
+.st{font-size:.76rem}.selo{font-size:.72rem;margin:3px 4px 0 0}.stchip{font-size:.76rem;margin:2px 4px 2px 0;color:color-mix(in srgb,var(--c) 78%,#000)}
+.selo.orange{background:#c2410c}.selo.green{background:#15803d}.selo.blue{background:#1d4ed8}.selo.red{background:#b42318}.selo.purple{background:#6d28d9}.selo.gray{background:#e5e7eb;color:#374151}
+.chipn{display:inline-flex;align-items:center;justify-content:center;line-height:1;min-width:2em;min-height:2em;padding:.2em .6em}
 </style>
 </head>
 <body class="adm-mode">
@@ -2125,7 +2132,7 @@ function pagePedidos(){
   const wa=o=>waUrl(msgTxt('s_duvida',{pedido:codigoPedido(o)}));
   return `<div class="wrap pg"><h1 class="t">Meus pedidos e rastreio</h1>${list.length?list.map(o=>{
    const cab=`<div class="pc-head"><div><b class="pc-cod">Pedido ${codigoPedido(o)}</b> <span class="st ${CLS[o.status]}">${LAB[o.status]}</span> ${pagChip(o)}${reagendados(o)?' <span class="st s-falha">Reagendado</span>':''}<div class="pc-sub">Feito em ${fmtD(o.at)} · ${temSPo(o)?'Valor a confirmar':'Valor '+brl(valorAcordado(o))}</div></div><div class="btns"><a class="btn ghost sm" href="${wa(o)}" target="_blank" rel="noopener">Falar sobre este pedido</a></div></div>`;
-   return `<div class="box pcard">${cab}${avisosHtml(o)}${payCliente(o)}${resumoCliente(o)}${itensCliente(o)}${timelineCliente(o)}</div>`;
+   return `<div class="box pcard">${cab}${fotoCliBox(o)}${avisosHtml(o)}${payCliente(o)}${resumoCliente(o)}${itensCliente(o)}${timelineCliente(o)}</div>`;
   }).join(''):'<div class="box" style="text-align:center;padding:40px"><p>Você ainda não fez pedidos.</p><button class="btn" onclick="nav(\'/\')">Ver produtos</button></div>'}</div>`;
 }
 
@@ -3418,11 +3425,11 @@ function pageOp(){
     if(me)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div class="note err">Esta conta não tem acesso à área administrativa.</div><p><button class="btn" onclick="admSair()">Sair</button></p></div></div>`;
     return '<div class="adlogin"><div class="adcard"><div class="adico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><h1>Acesso da equipe</h1><p class="adsub">Entre com o seu e-mail e senha para acessar o painel da loja.</p><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username" placeholder="voce@empresa.com"><label for="ap">Senha</label><div class="adsenha"><input id="ap" type="password" required autocomplete="current-password" placeholder="Sua senha"><button type="button" class="adver" onclick="admVerSenha(this)">Mostrar</button></div><button class="adbtn">Entrar</button></form><p class="adnota">Acesso restrito. Se você é cliente, <a href="./">volte para a loja</a>.</p></div></div>';
   }
-  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
-  const EXTRA_T=['cartao','atrasados','campanhas','produtos','etiquetas','mensagens','config'];
+  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['clientes','Clientes'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
+  const EXTRA_T=['cartao','atrasados','clientes','campanhas','produtos','etiquetas','mensagens','config'];
   if(!tabs.some(t=>t[0]===A.tab))A.tab=tabs[0][0];
   msgGarante();
-  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,manual:tabManual,pagamentos:tabPagamentos,cartao:tabCartao,campanhas:tabCampanhas,logistica:tabLogistica,entregadores:tabEntregadores,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,mensagens:tabMensagens,config:tabConfig})[A.tab]();
+  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,manual:tabManual,pagamentos:tabPagamentos,cartao:tabCartao,campanhas:tabCampanhas,logistica:tabLogistica,entregadores:tabEntregadores,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,mensagens:tabMensagens,config:tabConfig,clientes:tabClientes})[A.tab]();
   return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="font-size:.85rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]}) · <a style="cursor:pointer" onclick="admSair()">Sair</a></div></div>
   ${abasHtml(tabs,EXTRA_T)}${body}</div>`;
 }
@@ -3642,7 +3649,7 @@ function pageAcompanhar(code,token){
    +'<div class="pgrid"><div class="pbox"><small>Previsão de entrega</small><b>'+fmtDay(r.data)+'</b><div>'+esc(TURNOS[r.turno]||'')+'</div></div>'
    +'<div class="pbox"><small>Entrega em</small><b>'+esc(r.cidade||'')+(r.uf?'/'+esc(r.uf):'')+'</b></div>'
    +'<div class="pbox"><small>Pagamento</small><b>'+(r.pago?'Pago':'A combinar pelo WhatsApp')+'</b></div></div>'
-   +'<h3>Itens do pedido</h3><div class="tbl"><table><tbody>'+r.itens.map(i=>'<tr><td>'+esc(i.name)+'</td><td>'+i.qty+'</td></tr>').join('')+'</tbody></table></div>'
+   +fotoTrkBox(r.codigo,token)+'<h3>Itens do pedido</h3><div class="tbl"><table><tbody>'+r.itens.map(i=>'<tr><td>'+esc(i.name)+'</td><td>'+i.qty+'</td></tr>').join('')+'</tbody></table></div>'
    +'<h3>Andamento</h3>'+(evs.length?'<div class="tbl"><table><tbody>'+evs.map(e=>'<tr><td style="white-space:nowrap">'+fmtD(Date.parse(e.t))+'</td><td>'+esc(e.texto||'')+(e.motivo?'<div style="color:var(--muted);font-size:.82rem">Motivo: '+esc(e.motivo)+'</div>':'')+'</td></tr>').join('')+'</tbody></table></div>':'<p style="color:var(--muted)">Ainda sem atualizações.</p>')
    +'</div></div>';
 }
@@ -4215,8 +4222,6 @@ function selos(o){
   let h='';const n=+o.seq||1;
   if(emAtraso(o))h+='<span class="selo red" title="A data de entrega desejada já passou">Atrasado</span>';
   if(o.extra&&o.extra.manual)h+='<span class="selo orange" title="Pedido registrado pela equipe">Manual</span>';
-  if(n>=2)h+=`<span class="selo purple" title="Este cliente já fez ${n-1} pedido${n-1>1?'s':''} antes">Cliente recorrente · ${n}º pedido</span>`;
-  else h+='<span class="selo green" title="Primeiro pedido deste cliente">1º pedido</span>';
   if(feitoHoje(o))h+='<span class="selo blue" title="Pedido feito hoje">Hoje</span>';
   if(o.extra&&o.extra.etq_em)h+='<span class="selo gray" title="Etiquetas já impressas">Etiqueta impressa</span>';
   return h;
@@ -4248,7 +4253,7 @@ function filtroExtra(o,f){
 }
 function admIr(tab,f){f=f||{};A9.fc=f.fc||'';A9.ft=f.ft||'';A9.fq=f.fq||'';A9.fs=f.fs||'';A9.fe=f.fe||'';A9.po=null;A9.msg='';A.tab=tab;route();window.scrollTo(0,0)}
 function cidadesPed(){const m={};(A9.pedidos||[]).forEach(o=>{const c=cidadeDe(o);if(c&&!m[cidNorm(c)])m[cidNorm(c)]=c});return Object.values(m).sort((a,b)=>a.localeCompare(b))}
-var QUANDO=[['','Todos'],['abertos','Em aberto (não entregues)'],['feitos-hoje','Feitos hoje'],['entrega-hoje','Entrega hoje'],['atrasados','Atrasados'],['recorrentes','Clientes recorrentes']];
+var QUANDO=[['','Todos'],['abertos','Em aberto (não entregues)'],['feitos-hoje','Feitos hoje'],['entrega-hoje','Entrega hoje'],['atrasados','Atrasados']];
 function barraFiltros(){
   const sel=(v,arr,fn)=>arr.map(x=>`<option value="${esc(x[0])}" ${v===x[0]?'selected':''}>${esc(x[1])}</option>`).join('');
   const temF=A9.fc||A9.ft||A9.fq||A9.fe;
@@ -4364,7 +4369,7 @@ function tabDash(){
    ${k('#ea580c','Em aberto',ab.length,'não entregues',"admIr('pedidos',{fq:'abertos'})")}
    ${k('#0891b2','Entrega hoje',entH.length,'data desejada é hoje',"admIr('pedidos',{fq:'entrega-hoje'})")}
    ${k('#d92d20','Atrasados',atr.length,'data desejada vencida',"admIr('pedidos',{fq:'atrasados'})")}
-   ${k('#7c3aed','Clientes recorrentes',rec.length,'em aberto, 2º pedido ou mais',"admIr('pedidos',{fq:'recorrentes'})")}
+   ${ADMIN.papel==='admin'?(()=>{const fp=fielPend(L);return fp.total?`<button class="kc ${fp.novos?'pulsa':''}" style="--c:#7c3aed" onclick="A9.cliF='fiel';admTab('clientes')"><div class="n">${fp.total}</div><div class="t"><b>Clientes fiéis (${CLI_META}+ pedidos)</b></div><div class="t">${fp.novos?fp.novos+' para oferecer cupom':'todos já receberam o convite'}</div></button>`:''})():''}
    ${k('#d97706','Aguardando pagamento',pend.length,brl(pend.reduce((s,o)=>s+tot(o),0))+' a receber',"A9.pf='andamento';admTab('pagamentos')")}
    ${k('#be123c','A cobrar (entregues)',cobrar.length,brl(cobrar.reduce((s,o)=>s+tot(o),0)),"A9.pf='cobrar';admTab('pagamentos')")}
    ${k('#475569','Pedidos concluídos',L.filter(ENC).length,entregues.length+' entregue'+(entregues.length===1?'':'s')+' · '+L.filter(o=>o.status==='cancelado').length+' cancelado(s)',"A9.dashView='concluidos';A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';route()")}
@@ -4975,6 +4980,81 @@ async function pagDiaSalvar(id){
   SB.from('pedido_eventos').insert({pedido_id:id,tipo:'pagamento',publico:false,texto:dia?'Pagamento previsto para '+dataBr(dia)+(ob?': '+ob:''):'Dia de pagamento removido',por:ADMIN.nome}).then(()=>{},()=>{});
   const d=document.getElementById('pdbox');if(d)d.remove();
   toast(dia?'Dia do pagamento salvo: '+dataBr(dia)+'.':'Dia do pagamento removido.');route();
+}
+
+/* ======================= FOTO DA ENTREGA PARA O CLIENTE (Meus pedidos + link de acompanhamento) ======================= */
+var FOTO_C={};
+function fotoCliHtml(F){return '<div class="pbox" style="margin:10px 0"><small>📷 Foto da entrega</small><img alt="Foto do local da entrega" src="'+F.foto+'" style="width:100%;max-width:420px;border-radius:12px;display:block;margin-top:6px"><div style="color:var(--muted);font-size:.82rem;margin-top:4px">Tirada em '+esc(fmtD(Date.parse(F.criado_em)))+'</div></div>'}
+function fotoCliBox(o){
+  if(!SB||!o||!['em-rota','entregue'].includes(o.status))return '';
+  const k=o.id;
+  if(FOTO_C[k]===undefined){FOTO_C[k]=null;SB.rpc('foto_entrega_cliente',{p_pedido:+o.id}).then(r=>{FOTO_C[k]=(r.error||!r.data||!r.data.foto)?false:r.data;if(/^#\/pedidos/.test(location.hash))route()})}
+  return FOTO_C[k]?fotoCliHtml(FOTO_C[k]):'';
+}
+var FOTO_T={};
+function fotoTrkBox(codigo,token){
+  const pid=parseInt(String(codigo).replace(/\D/g,''),10);if(!SB||!pid)return '';
+  const k=pid+'/'+token;
+  if(FOTO_T[k]===undefined){FOTO_T[k]=null;SB.rpc('foto_entrega_publica',{p_pedido:pid,p_token:token}).then(r=>{FOTO_T[k]=(r.error||!r.data||!r.data.foto)?false:r.data;if(/^#\/acompanhar/.test(location.hash))route()})}
+  return FOTO_T[k]?fotoCliHtml(FOTO_T[k]):'';
+}
+
+/* ======================= CLIENTES: base de cadastrados (aba oculta) + aviso de fidelidade (10+ pedidos) ======================= */
+var CLI_META=10;
+function cupomMarcas(){try{return JSON.parse(localStorage.getItem('zp_cupom')||'{}')}catch(e){return {}}}
+function cupomMarca(k){try{const m=cupomMarcas();m[k]=hojeS();localStorage.setItem('zp_cupom',JSON.stringify(m))}catch(e){}}
+function cliChave(o){return o.usuario_id||('f'+String((o.entrega||{}).fone||'').replace(/\D/g,''))}
+/* clientes com 10+ pedidos que ainda não receberam o convite (usa os pedidos já carregados) */
+function fielPend(L){const m=cupomMarcas(),s={};(L||[]).forEach(o=>{if(+o.seq>=CLI_META){const k=cliChave(o);if(k&&k!=='f')s[k]=1}});const t=Object.keys(s);return {total:t.length,novos:t.filter(k=>!m[k]).length}}
+async function admCarregarClientes(){
+  A9.cliBusy=true;
+  try{
+    let ped=[],ini=0;
+    for(;;){const r=await SB.from('pedidos').select('id,usuario_id,seq,status,criado_em,entrega,pagamento,itens,extra').order('id',{ascending:false}).range(ini,ini+999);if(r.error)throw r.error;ped=ped.concat(r.data||[]);if((r.data||[]).length<1000)break;ini+=1000}
+    const pf=await SB.from('perfis').select('id,nome,sobrenome,fone,email,endereco,criado_em,papel').limit(5000);
+    const M={};
+    (pf.data||[]).forEach(p=>{if(p.papel&&p.papel!=='cliente')return;M[p.id]={k:p.id,nome:((p.nome||'')+' '+(p.sobrenome||'')).trim(),fone:p.fone||'',email:p.email||'',cidade:((p.endereco||{}).cidade)||'',cad:p.criado_em,n:0,ent:0,tot:0,pag:{},ult:null}});
+    ped.forEach(o=>{
+      const k=cliChave(o);if(!k||k==='f')return;const e=o.entrega||{};
+      const c=M[k]=M[k]||{k,nome:e.nome||'',fone:e.fone||'',email:'',cidade:'',cad:null,n:0,ent:0,tot:0,pag:{},ult:null};
+      if(!c.nome)c.nome=e.nome||'';if(!c.fone)c.fone=e.fone||'';if(!c.cidade)c.cidade=((e.dest||{}).cidade)||'';
+      if(o.status==='cancelado')return;
+      c.n++;if(o.status==='entregue')c.ent++;
+      try{c.tot+=pedTotal(o)+(freteDoPedido(o)||0)}catch(x){}
+      const pg=(o.pagamento||{}).preferencia||(o.pagamento||{}).metodo;if(pg)c.pag[pg]=(c.pag[pg]||0)+1;
+      if(!c.ult||o.criado_em>c.ult)c.ult=o.criado_em;
+    });
+    A9.clientes=Object.values(M);
+  }catch(x){A9.clientes=[];A9.cliErro='Não foi possível carregar os clientes agora.'}
+  A9.cliBusy=false;route();
+}
+function cliPagTop(c){const e=Object.entries(c.pag).sort((a,b)=>b[1]-a[1])[0];return e?((PAGNOME[e[0]]||e[0])+' ('+e[1]+'x)'):'—'}
+function tabClientes(){
+  if(!A9.clientes){if(!A9.cliBusy)admCarregarClientes();return '<div class="box">Carregando clientes...</div>'}
+  const q=String(A9.cliQ||'').toLowerCase(),f=A9.cliF||'';
+  let L=A9.clientes.filter(c=>(!q||(c.nome+' '+c.fone+' '+c.email+' '+c.cidade).toLowerCase().includes(q))&&(f!=='fiel'||c.n>=CLI_META));
+  L.sort((a,b)=>b.n-a.n||String(b.ult||'').localeCompare(String(a.ult||'')));
+  const fiel=A9.clientes.filter(c=>c.n>=CLI_META).length,m=cupomMarcas();
+  return `<div class="box"><h2 style="margin:0 0 4px">Clientes cadastrados</h2><p style="margin:0 0 10px;color:var(--muted)">${A9.clientes.length} cliente${A9.clientes.length===1?'':'s'} · ${fiel} com ${CLI_META} pedidos ou mais. Pedidos cancelados não contam.</p>${A9.cliErro?'<div class="note err">'+esc(A9.cliErro)+'</div>':''}
+  <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" onkeydown="if(event.key==='Enter'){A9.cliQ=this.value;route()}" onchange="A9.cliQ=this.value;route()"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button></div>
+  <div class="tbl"><table><thead><tr><th>Cliente</th><th>Contato</th><th>Cidade</th><th>Pedidos</th><th>Entregues</th><th>Total comprado</th><th>Pagamento mais usado</th><th>Último pedido</th><th>Cadastro</th><th></th></tr></thead><tbody>${L.map(c=>`<tr><td><b>${esc(c.nome||'Sem nome')}</b></td><td>${esc(c.fone||'')}${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${esc(cliPagTop(c))}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td>${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div></div>`;
+}
+var CUPOM_TXT='Olá, {nome}, tudo bem? 😊\nPassando para agradecer de coração: você já fez {pedidos} pedidos com a gente e isso é muito especial para nós!\nComo agradecimento pela sua fidelidade, preparamos um cupom exclusivo para você: *{cupom}*.\nÉ só avisar no seu próximo pedido. Obrigado pela confiança! 💜';
+function cupomAbrir(k){
+  const c=(A9.clientes||[]).find(x=>x.k===k);if(!c)return;
+  const old=document.getElementById('cpbox');if(old)old.remove();
+  const sv=localStorage.getItem('zp_cupom_cod')||'FIEL10';
+  const d=document.createElement('div');d.id='cpbox';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px';
+  d.innerHTML='<div style="background:#fff;border-radius:16px;max-width:480px;width:100%;padding:16px;max-height:92vh;overflow:auto"><h3 style="margin:0 0 4px">Cupom de fidelidade</h3><p style="margin:0 0 8px;color:#667085;font-size:.88rem">'+esc(c.nome)+' · '+c.n+' pedidos</p><label for="cpC">Código ou descrição do cupom</label><input id="cpC" value="'+esc(sv)+'" oninput="cupomPrev(\''+esc(k)+'\')"><label for="cpM" style="margin-top:8px">Mensagem (pode editar)</label><textarea id="cpM" rows="9" style="width:100%"></textarea><div class="btns" style="margin-top:10px"><button class="btn acc" onclick="cupomEnviar(\''+esc(k)+'\')">Abrir no WhatsApp</button><button class="btn ghost" onclick="document.getElementById(\'cpbox\').remove()">Fechar</button></div></div>';
+  document.body.appendChild(d);cupomPrev(k);
+}
+function cupomPrev(k){const c=(A9.clientes||[]).find(x=>x.k===k);if(!c)return;document.getElementById('cpM').value=CUPOM_TXT.replace('{nome}',String(c.nome||'').split(' ')[0]||'cliente').replace('{pedidos}',c.n).replace('{cupom}',v_('cpC')||'CUPOM')}
+function cupomEnviar(k){
+  const c=(A9.clientes||[]).find(x=>x.k===k);if(!c)return;
+  try{localStorage.setItem('zp_cupom_cod',v_('cpC'))}catch(e){}
+  const fone=foneWa(c.fone);const msg=document.getElementById('cpM').value;
+  window.open(waUrlPara(fone,msg),'_blank');cupomMarca(k);
+  const d=document.getElementById('cpbox');if(d)d.remove();toast('WhatsApp aberto. O envio é feito por você.');route();
 }
 </script>
 </body>
