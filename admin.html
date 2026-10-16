@@ -1345,10 +1345,10 @@ function etiquetaExterna(S,cfg,logo,t){
   pg.text(W/2,48.4,S.codigo,6.8,true,{align:'center'});
   pg.line(3,50.8,W-3,50.8,0.4);
   // linha de triagem
-  pg.text(5,57,C.origem,11,true);pg.text(48.6,57,C.hub,15,true);pg.text(W-5,56.6,C.hora,9,true,{align:'right'});
-  const bs=etqAjusta(C.grande,55,67,true,30);pg.text(5,83.6,C.grande,bs,true);pg.text(W-5,78.6,C.hora2,11,true,{align:'right'});
-  pg.text(5,91.6,C.caminho,7.4,false);
-  pg.text(5,98,(S.data?DSEM[new Date(S.data+'T12:00').getDay()].toUpperCase()+' '+fmtDay(S.data).slice(0,5):''),7.4,true);pg.text(W-5,98,'NF: '+C.nf,7.4,true,{align:'right'});
+  etqFaixa(pg,4.4,54,27,9.5,C.origem,12,true);pg.text(36,61.4,C.hub,16,true);pg.text(W-5,61,C.hora,9.5,true,{align:'right'});
+  const bs=etqAjusta(C.grande,55,56,true,30);pg.text(W/2-6,82,C.grande,bs,true,{align:'center'});pg.text(W-5,81,C.hora2,12,true,{align:'right'});
+  pg.text(W/2,90,C.caminho,7.4,false,{align:'center'});
+  pg.text(5,97.4,(S.data?DSEM[new Date(S.data+'T12:00').getDay()].toUpperCase()+' '+fmtDay(S.data).slice(0,5):''),7.4,true);pg.text(W-5,97.4,'NF: '+C.nf,7.4,true,{align:'right'});
   pg.line(3,101.8,W-3,101.8,0.4);
   // destinatário
   const nome=String(S.nome||'').toUpperCase();etqFaixa(pg,3.7,103.7,65.5,7,nome,10,false);
