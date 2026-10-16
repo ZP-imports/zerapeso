@@ -1083,7 +1083,7 @@ function pageReg(slug){
 function pageNF(){return `<div class="wrap pg"><div class="box"><h2>Página não encontrada</h2><button class="btn" onclick="nav('/')">Ir para o início</button></div></div>`}
 
 /* ======================= ETIQUETAS: CÓDIGO DE BARRAS, PDF E VERSÕES ======================= */
-const LBLDEF={w:100,h:150,m:4,fs:9,barcodePos:'rodape',logoH:16,remetente:'ZP IMPORTS',remEnd:'Centro, Jacareí/SP',logo:null,logoKey:''};
+const LBLDEF={w:100,h:150,m:4,fs:9,barcodePos:'rodape',logoH:16,remetente:'ZP IMPORTS',remEnd:'Centro, Jacareí/SP',tituloCtl:'Controle Interno',obsPadrao:'',logo:null,logoKey:''};
 let LBL=Object.assign({},LBLDEF,DB.get('lbl',{}));
 if(LBL.remetente==='XP IMPORTS')LBL.remetente='ZP IMPORTS';
 const saveLbl=()=>{DB.set('lbl',LBL);REV=uid()+Date.now();DB.set('rev',REV)};
@@ -1218,13 +1218,13 @@ function logoObj(key,dataUrl,w,h){return dataUrl?{w,h,bytes:b64ToBytes(dataUrl.s
 function snapOrder(o){
   const e=o.entrega,d=e.dest;const pag={metodo:'Link de pagamento',status:'enviado ao cliente na rota'};
   const itens=o.items.map(i=>({qtd:i.qty,nome:i.base||i.name,opt:i.opt||(i.base?'':''),sku:i.sku}));
-  return {id:o.id,codigo:codigoPedido(o),nome:e.nome,fone:e.fone,
+  return {id:o.id,at:o.at,codigo:codigoPedido(o),nome:e.nome,fone:e.fone,
    dest:{rua:d.rua,num:d.num,comp:d.comp||'',bairro:d.bairro,cidade:d.cidade,uf:String(d.uf).toUpperCase(),cep:d.cep,ref:d.ref||''},
    sec:!!e.secundario,data:e.data,turno:e.turno,janela:e.janela||'',
    obsEntregador:e.obsEntregador!=null?e.obsEntregador:(e.obs||''),
    itens,totalItens:itens.reduce((s,i)=>s+i.qtd,0),pag:{metodo:pag.metodo,status:pag.status},obs:e.obs||'',obsInt:o.obsInt||'',obsSep:o.obsSep||''};
 }
-const snapHash=(S,cfg)=>hashStr(JSON.stringify(S)+JSON.stringify([cfg.w,cfg.h,cfg.m,cfg.fs,cfg.barcodePos,cfg.logoH,cfg.remetente,cfg.remEnd,cfg.logoKey]));
+const snapHash=(S,cfg)=>hashStr(JSON.stringify(S)+JSON.stringify([cfg.w,cfg.h,cfg.m,cfg.fs,cfg.barcodePos,cfg.logoH,cfg.remetente,cfg.remEnd,cfg.tituloCtl,cfg.obsPadrao,cfg.logoKey]));
 
 /* ---------- desenho das etiquetas ---------- */
 function drawHeader(pg,S,cfg,logo,sub){
@@ -1248,34 +1248,116 @@ function drawBarcode(pg,S,cfg,y,hh){
 }
 const DSEM=['dom','seg','ter','qua','qui','sex','sáb'];
 const dataLonga=(d)=>d?DSEM[new Date(d+'T12:00').getDay()]+', '+fmtDay(d):'';
+/* QR Code (modo byte, correção L, versões 1 a 6) */
+function qrMatrix(text){
+  let data=Array.from(unescape(encodeURIComponent(String(text))),c=>c.charCodeAt(0));
+  if(data.length>130)data=data.slice(0,130);
+  const TOT=[0,26,44,70,100,134,172],EC=[0,7,10,15,20,26,18],NB=[0,1,1,1,1,1,2];
+  const AP=[[],[],[6,18],[6,22],[6,26],[6,30],[6,34]];
+  let ver=1;while(ver<6&&TOT[ver]-EC[ver]*NB[ver]<data.length+2)ver++;
+  const cap=TOT[ver]-EC[ver]*NB[ver];
+  const bits=[];const put=(v,n)=>{for(let i=n-1;i>=0;i--)bits.push((v>>i)&1)};
+  put(4,4);put(data.length,8);data.forEach(b=>put(b,8));
+  for(let i=0;i<4&&bits.length<cap*8;i++)bits.push(0);
+  while(bits.length%8)bits.push(0);
+  const cw=[];for(let i=0;i<bits.length;i+=8){let v=0;for(let j=0;j<8;j++)v=v*2+bits[i+j];cw.push(v)}
+  for(let p=0;cw.length<cap;p++)cw.push(p%2?0x11:0xEC);
+  // Reed-Solomon
+  const exp=[],log=[];let x=1;for(let i=0;i<255;i++){exp[i]=x;log[x]=i;x<<=1;if(x&256)x^=0x11D}
+  const mul=(a,b)=>a&&b?exp[(log[a]+log[b])%255]:0;
+  const ec=EC[ver];let g=[1];for(let i=0;i<ec;i++){const n=new Array(g.length+1).fill(0);g.forEach((c,j)=>{n[j]^=c;n[j+1]^=mul(c,exp[i])});g=n}
+  const per=cap/NB[ver];const blocks=[],eccs=[];
+  for(let b=0;b<NB[ver];b++){const d=cw.slice(b*per,(b+1)*per);const r=new Array(ec).fill(0);
+    d.forEach(v=>{const f=v^r.shift();r.push(0);if(f)g.slice(1).forEach((c,j)=>r[j]^=mul(c,f))});blocks.push(d);eccs.push(r)}
+  const all=[];for(let i=0;i<per;i++)blocks.forEach(b=>all.push(b[i]));for(let i=0;i<ec;i++)eccs.forEach(e=>all.push(e[i]));
+  const N=17+4*ver;const M=[],F=[];for(let i=0;i<N;i++){M.push(new Array(N).fill(0));F.push(new Array(N).fill(false))}
+  const set=(r,c,v)=>{if(r>=0&&c>=0&&r<N&&c<N){M[r][c]=v?1:0;F[r][c]=true}};
+  const finder=(r,c)=>{for(let i=-1;i<=7;i++)for(let j=-1;j<=7;j++){const d=Math.max(Math.abs(i-3),Math.abs(j-3));set(r+i,c+j,d!==2&&d!==4&&i>=0&&i<=6&&j>=0&&j<=6)}};
+  finder(0,0);finder(0,N-7);finder(N-7,0);
+  for(let i=8;i<N-8;i++){set(6,i,i%2===0);set(i,6,i%2===0)}
+  const ap=AP[ver];ap.forEach((r,i)=>ap.forEach((c,j)=>{if((i===0&&j===0)||(i===0&&j===ap.length-1)||(i===ap.length-1&&j===0))return;
+    for(let a=-2;a<=2;a++)for(let b=-2;b<=2;b++)set(r+a,c+b,Math.max(Math.abs(a),Math.abs(b))!==1)}));
+  set(N-8,8,true);
+  for(let i=0;i<9;i++){if(!F[8][i])set(8,i,0);if(!F[i][8])set(i,8,0)}
+  for(let i=0;i<8;i++){set(8,N-1-i,0);set(N-1-i,8,0)}
+  // dados
+  const dbits=[];all.forEach(b=>put2(b));function put2(v){for(let i=7;i>=0;i--)dbits.push((v>>i)&1)}
+  const mask=m=>[(r,c)=>(r+c)%2===0,(r,c)=>r%2===0,(r,c)=>c%3===0,(r,c)=>(r+c)%3===0,(r,c)=>(Math.floor(r/2)+Math.floor(c/3))%2===0,(r,c)=>(r*c)%2+(r*c)%3===0,(r,c)=>((r*c)%2+(r*c)%3)%2===0,(r,c)=>((r+c)%2+(r*c)%3)%2===0][m];
+  const build=m=>{
+    const Q=M.map(r=>r.slice());const fn=mask(m);let k=0,up=true;
+    for(let c=N-1;c>0;c-=2){if(c===6)c--;
+      for(let t=0;t<N;t++){const r=up?N-1-t:t;for(let d=0;d<2;d++){const cc=c-d;if(F[r][cc])continue;let v=k<dbits.length?dbits[k]:0;k++;if(fn(r,cc))v^=1;Q[r][cc]=v}}
+      up=!up}
+    // formato (L = 01)
+    let fd=(1<<3)|m,rem=fd;for(let i=0;i<10;i++)rem=(rem<<1)^((rem>>>9)*0x537);
+    const fb=((fd<<10)|rem)^0x5412;const bit=i=>(fb>>i)&1;
+    for(let i=0;i<=5;i++)Q[i][8]=bit(i);Q[7][8]=bit(6);Q[8][8]=bit(7);Q[8][7]=bit(8);for(let i=9;i<15;i++)Q[8][14-i]=bit(i);
+    for(let i=0;i<8;i++)Q[8][N-1-i]=bit(i);for(let i=8;i<15;i++)Q[N-15+i][8]=bit(i);Q[N-8][8]=1;
+    return Q};
+  const pen=Q=>{let p=0;for(let a=0;a<2;a++)for(let i=0;i<N;i++){let run=1;for(let j=1;j<N;j++){const x=a?Q[j][i]:Q[i][j],y=a?Q[j-1][i]:Q[i][j-1];if(x===y){run++;if(run===5)p+=3;else if(run>5)p++}else run=1}}
+    for(let i=0;i<N-1;i++)for(let j=0;j<N-1;j++){const v=Q[i][j];if(v===Q[i+1][j]&&v===Q[i][j+1]&&v===Q[i+1][j+1])p+=3}
+    let d=0;Q.forEach(r=>r.forEach(v=>d+=v));p+=Math.floor(Math.abs(d*20-N*N*10)/(N*N))*10;return p};
+  let best=null,bp=1e9;for(let m=0;m<8;m++){const Q=build(m),p=pen(Q);if(p<bp){bp=p;best=Q}}
+  return best;
+}
+function tituloPt(s){return String(s||'').toLowerCase().replace(/(^|[\s\-\/(])([a-zà-ú])/g,(a,b,c)=>b+c.toUpperCase())}
 function etiquetaExterna(S,cfg,logo){
-  const pg=new Pg(cfg.w,cfg.h),m=cfg.m,W=cfg.w,fs=cfg.fs,mw=W-2*m;
-  let y=drawHeader(pg,S,cfg,logo,'');
-  pg.text(m,y+2.2,'DESTINATÁRIO',6.5,false,{gray:0.45});y+=4.2;
-  y=pg.para(m,y+(fs+6)*0.36,S.nome,fs+6,true,mw,2,(fs+6)*0.42)+0.8;
-  const d=S.dest;
-  pg.text(m,y+fs*0.4,'Tel.: '+S.fone,fs+2,false);y+=(fs+2)*0.42;
-  y=pg.para(m,y+(fs+2)*0.3,d.rua+', '+d.num+(d.comp?', '+d.comp:''),fs+2,false,mw,2,(fs+2)*0.46)+0.2;
-  y=pg.para(m,y+(fs+2)*0.3,d.bairro+', '+d.cidade+'/'+d.uf,fs+2,false,mw,2,(fs+2)*0.46)+0.2;
-  pg.text(m,y+(fs+2)*0.3,'CEP '+d.cep,fs+2,false);y+=(fs+2)*0.42+1.5;
-  if(d.ref){y=pg.para(m,y+fs*0.4,'Ref.: '+d.ref,fs-1,false,mw,1)+0.8}
-  pg.text(m,y+2.2,'ENTREGA PREFERIDA',6.5,false,{gray:0.45});y+=4.4;
-  pg.text(m,y+(fs+3)*0.36,dataLonga(S.data)+' · '+turnoNome(S.turno),fs+3,true);y+=(fs+3)*0.5+0.6;
-  if(S.janela){pg.text(m,y+fs*0.36,'Janela estimada: '+S.janela,fs,false);y+=fs*0.5+0.6}
-  if(S.obsEntregador){
-    y+=1;pg.text(m,y+2,'OBSERVAÇÃO PARA O ENTREGADOR',6.5,false,{gray:0.45});y+=3.6;
-    y=pg.para(m,y+fs*0.36,S.obsEntregador,fs,false,mw,3,fs*0.44)+0.8;
-  }
-  y+=2;
-  // código de barras grande, centralizado (preenche o espaço livre até o rodapé)
-  const rodape=cfg.h-m-9.5;
-  const barH=Math.max(14,Math.min(26,rodape-y-fs*0.45-6));
-  const yb=Math.max(y,rodape-barH-fs*0.45-5);
-  drawBarcode(pg,S,cfg,yb,barH);
-  pg.line(m,rodape+1,W-m,rodape+1,0.3);
-  pg.text(m,rodape+4,'REMETENTE',6.5,false,{gray:0.45});
-  pg.text(m,rodape+8,cfg.remetente||'ZP IMPORTS',fs+1,true);
-  if(cfg.remEnd)pg.text(W-m,rodape+8,cfg.remEnd,fs-2.5,false,{align:'right'});
+  const pg=new Pg(cfg.w,cfg.h),m=cfg.m,W=cfg.w,H=cfg.h,fs=cfg.fs,mw=W-2*m,d=S.dest;
+  pg.rect(1.6,1.6,W-3.2,H-3.2,'S',0.5);
+  const fit=(t,sz,maxw)=>{while(sz>6&&tw(t,sz,true)>maxw)sz-=0.5;return sz};
+  const faixa=(x,y,w,h,txt,sz,center)=>{pg.rect(x,y,w,h,'f',0,0);sz=fit(txt,sz,w-4);pg.text(center?x+w/2:x+2.5,y+h/2+sz*0.13,txt,sz,true,{gray:1,align:center?'center':undefined})};
+  const lv=(x,y,lab,val,sz,maxw)=>{const w=tw(lab,sz,false);pg.text(x,y,lab,sz,false);const v=pg.para(x+w,y,val,sz,true,maxw-w,1);return y+sz*0.46};
+  // cabeçalho: logomarca ou nome, endereço do remetente e número da venda
+  let y=m+1,hx=m;
+  if(logo){const lh=Math.min(cfg.logoH,13),ratio=logo.w/logo.h;let w=lh*ratio,h=lh;if(w>34){w=34;h=w/ratio}pg.image(m,y,w,h);hx=m+w+3;
+    pg.text(hx,y+6,cfg.remetente||'ZP IMPORTS',fs+5,true)}
+  else pg.text(hx,y+5.5,cfg.remetente||'ZP IMPORTS',fs+6,true);
+  let ay=y+(logo?Math.min(cfg.logoH,13)+3.2:10);
+  if(cfg.remEnd)ay=pg.para(m,ay,cfg.remEnd,fs-2.5,false,mw,2,(fs-2.5)*0.44);
+  pg.text(m,ay+3.2,'Pedido: '+S.id,fs-1,true);pg.text(W-m,ay+3.2,'Itens: '+S.totalItens,fs-1,true,{align:'right'});
+  y=ay+5;
+  // faixas pretas: código do pedido e remetente
+  faixa(m,y,46,9,S.codigo,fs+6,false);
+  faixa(W-m-40,y,40,9,cfg.remetente||'ZP IMPORTS',fs+1,true);
+  y+=10.5;
+  y=drawBarcode(pg,S,cfg,y,10);
+  // controle interno
+  faixa(m,y,mw,6,cfg.tituloCtl||'Controle Interno',fs+1,false);y+=7.2;
+  faixa(m,y,mw,7.5,tituloPt(S.nome),fs+3,false);y+=9.8;
+  const top=y,bx=W-m-33,lw=mw-36,L=fs+1.5,st=(fs+1.5)*0.5;
+  let ly=y+2.2;
+  pg.text(m,ly,'P - '+S.id,fs+3,true);ly+=st+0.8;
+  lv(m,ly,'Cidade: ',tituloPt(d.cidade),L,lw);ly+=st;
+  lv(m,ly,'Bairro: ',tituloPt(d.bairro),L,lw);ly+=st;
+  lv(m,ly,'Envio: ',S.at?new Date(S.at).toLocaleDateString('pt-BR'):'-',L,lw);ly+=st;
+  {const rt=tituloPt(d.rua)+', '+d.num;let rs=L;while(rs>7&&tw(rt,rs,false)>lw)rs-=0.5;ly=pg.para(m,ly,rt,rs,false,lw,2,st*0.92)+0.4}
+  if(d.comp){ly=pg.para(m,ly,tituloPt(d.comp),L,false,lw,1,st*0.92)+0.4}
+  pg.text(m,ly,'CEP: '+d.cep+' • '+d.uf,L,true);ly+=st;
+  if(d.ref){ly=pg.para(m,ly,'Referência: '+tituloPt(d.ref),L-1,false,lw,1,st*0.92)+0.4}
+  // quadradinhos de data
+  pg.rect(bx,top,33,15,'S',0.35);
+  pg.text(bx+16.5,top+4,'Pedido Enviado',6.5,false,{align:'center'});
+  pg.text(bx+16.5,top+9,S.at?new Date(S.at).toLocaleDateString('pt-BR'):'-',fs+2,true,{align:'center'});
+  pg.text(bx+16.5,top+13,S.at?new Date(S.at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'',6.8,false,{align:'center'});
+  pg.rect(bx,top+17,33,17,'S',0.35);
+  pg.text(bx+16.5,top+21,'Data Entrega · '+(S.data?DSEM[new Date(S.data+'T12:00').getDay()]:''),6.5,false,{align:'center'});
+  pg.text(bx+16.5,top+26.5,fmtDay(S.data),fs+2,true,{align:'center'});
+  pg.text(bx+16.5,top+31.5,turnoNome(S.turno),7,true,{align:'center'});
+  y=Math.max(ly,top+34)+1.5;
+  // observações (à esquerda) e QR do endereço (à direita)
+  const qs=19;const obs=[S.obsEntregador||S.obs,cfg.obsPadrao].filter(Boolean).join(' | ');
+  if(obs)pg.para(m,y+3.2,'Obs.: '+obs,fs-0.5,false,mw-qs-3,4,(fs-0.5)*0.46);
+  try{
+    const txt=d.rua+', '+d.num+' - '+d.bairro+', '+d.cidade+'/'+d.uf+' - '+d.cep;
+    const Q=qrMatrix(txt),n=Q.length,mod=qs/(n+2);const qx=W-m-qs;
+    Q.forEach((row,r)=>{let c=0;while(c<n){if(!row[c]){c++;continue}let e=c;while(e<n&&row[e])e++;pg.rect(qx+(c+1)*mod,y+(r+1)*mod,(e-c)*mod,mod,'f',0,0);c=e}});
+  }catch(e){}
+  y+=qs+1.5;
+  // itens na faixa preta final
+  const it=S.itens.map(i=>i.qtd+(i.qtd>1?' x ':' x ')+tituloPt(i.nome)+(i.opt?' ('+i.opt+')':'')).join(' + ');
+  const isz=fs+1;const lines=wrapTxt(it,isz,true,mw-5).slice(0,3);
+  const bh=lines.length*isz*0.44+3.4;const by=Math.min(y,H-m-bh-1);
+  pg.rect(m,by,mw,bh,'f',0,0);lines.forEach((l,i)=>pg.text(m+2.5,by+2.8+isz*0.3+i*isz*0.44+0.4,l,isz,true,{gray:1}));
   return pg;
 }
 function etiquetaInterna(S,cfg,logo){
@@ -1319,7 +1401,7 @@ function gerarPdfBytes(S,cfg,logo,tipo){
   if(tipo!=='externa')etiquetaInterna(S,cfg,logo).forEach(p=>pgs.push(p));
   return pdfBuild(pgs,logo,{title:'Etiquetas pedido '+S.codigo});
 }
-function cfgSnap(){return {w:LBL.w,h:LBL.h,m:LBL.m,fs:LBL.fs,barcodePos:LBL.barcodePos,logoH:LBL.logoH,remetente:LBL.remetente,remEnd:LBL.remEnd,logoKey:LBL.logoKey}}
+function cfgSnap(){return {w:LBL.w,h:LBL.h,m:LBL.m,fs:LBL.fs,barcodePos:LBL.barcodePos,logoH:LBL.logoH,remetente:LBL.remetente,remEnd:LBL.remEnd,tituloCtl:LBL.tituloCtl,obsPadrao:LBL.obsPadrao,logoKey:LBL.logoKey}}
 function currentLogo(){return LBL.logo?{w:LBL.logo.w,h:LBL.logo.h,bytes:b64ToBytes(LBL.logo.data.split(',')[1])}:null}
 
 /* ---------- versões, histórico e atualização ---------- */
@@ -2593,7 +2675,7 @@ function saveAm(){
 function savePc(){const p=+v_('pcP');if(!(p>=1&&p<=90)){toast('Informe um desconto de 1 a 90%.');return}SITE.pct=p;applySite();paintShell();save();toast('Desconto de primeira compra salvo.');route()}
 function tabEtiquetas(){
   const ult=orders.slice().sort((a,b)=>b.at-a.at)[0];
-  return `<div class="two" style="grid-template-columns:1fr 1fr"><div class="box"><h3 style="margin-top:0">Formato e impressão</h3><div class="fr"><div class="c3"><label for="lbW">Largura (mm)</label><input id="lbW" type="number" min="40" max="300" value="${LBL.w}"></div><div class="c3"><label for="lbH">Altura (mm)</label><input id="lbH" type="number" min="40" max="400" value="${LBL.h}"></div><div class="c3"><label for="lbM">Margens (mm)</label><input id="lbM" type="number" min="1" max="15" step="0.5" value="${LBL.m}"></div><div class="c3"><label for="lbF">Tamanho base da fonte (pt)</label><input id="lbF" type="number" min="6" max="14" step="0.5" value="${LBL.fs}"></div><div class="c3"><label for="lbL">Altura da área da logomarca (mm)</label><input id="lbL" type="number" min="8" max="40" value="${LBL.logoH}"></div><div class="c3"><label for="lbP">Código de barras</label><select id="lbP" style="width:100%"><option value="rodape" ${LBL.barcodePos==='rodape'?'selected':''}>Parte inferior</option><option value="meio" ${LBL.barcodePos==='meio'?'selected':''}>Menor, acima do rodapé</option></select></div><div class="c3"><label for="lbR">Remetente</label><input id="lbR" value="${esc(LBL.remetente)}"></div><div class="c3"><label for="lbE">Endereço do remetente (opcional)</label><input id="lbE" value="${esc(LBL.remEnd)}"></div></div><p><button class="btn acc" onclick="admLbl()">Salvar configuração</button></p><div class="note warn">Ao mudar o formato ou a logomarca, as etiquetas existentes ficam marcadas como desatualizadas até você gerar a versão atualizada. O tamanho definitivo deve ser conferido na impressora da empresa.</div></div>
+  return `<div class="two" style="grid-template-columns:1fr 1fr"><div class="box"><h3 style="margin-top:0">Formato e impressão</h3><div class="fr"><input id="lbW" type="hidden" value="${LBL.w}"><input id="lbH" type="hidden" value="${LBL.h}"><div class="c3"><label for="lbT">Título da faixa preta (Controle interno)</label><input id="lbT" value="${esc(LBL.tituloCtl||'')}"></div><div class="c3"><label for="lbO">Observação fixa em todas as etiquetas</label><input id="lbO" value="${esc(LBL.obsPadrao||'')}" placeholder="Ex.: Frágil. Manter refrigerado"></div><div class="c3"><label for="lbM">Margens (mm)</label><input id="lbM" type="number" min="1" max="15" step="0.5" value="${LBL.m}"></div><div class="c3"><label for="lbF">Tamanho base da fonte (pt)</label><input id="lbF" type="number" min="6" max="14" step="0.5" value="${LBL.fs}"></div><div class="c3"><label for="lbL">Altura da área da logomarca (mm)</label><input id="lbL" type="number" min="8" max="40" value="${LBL.logoH}"></div><div class="c3"><label for="lbP">Código de barras</label><select id="lbP" style="width:100%"><option value="rodape" ${LBL.barcodePos==='rodape'?'selected':''}>Parte inferior</option><option value="meio" ${LBL.barcodePos==='meio'?'selected':''}>Menor, acima do rodapé</option></select></div><div class="c3"><label for="lbR">Nome da loja (cabeçalho e faixa)</label><input id="lbR" value="${esc(LBL.remetente)}"></div><div class="c3"><label for="lbE">Endereço / login da loja (cabeçalho)</label><input id="lbE" value="${esc(LBL.remEnd)}"></div></div><p><button class="btn acc" onclick="admLbl()">Salvar configuração</button></p><div class="note warn">Ao mudar o formato ou a logomarca, as etiquetas existentes ficam marcadas como desatualizadas até você gerar a versão atualizada. O tamanho definitivo deve ser conferido na impressora da empresa.</div></div>
   <div class="box"><h3 style="margin-top:0">Logomarca</h3><div class="logoprev">${LBL.logo?`<img src="${LBL.logo.data}" alt="Logomarca atual">`:`<div class="semlogo">${esc(LBL.remetente||'ZP IMPORTS')}</div><p style="color:var(--muted);font-size:.85rem;margin:6px 0 0">Ainda sem logomarca. Enquanto isso, as etiquetas usam o nome em destaque.</p>`}</div><label for="lgF" style="margin-top:10px">Enviar nova logomarca (PNG, JPG ou WebP)</label><input id="lgF" type="file" accept="image/png,image/jpeg,image/webp" onchange="admLogo(this)">${LBL.logo?`<p><button class="btn ghost sm" onclick="admLogoRem()">Remover logomarca</button></p>`:''}
   <h3>Teste de impressão</h3>${ult?`<p style="font-size:.85rem;color:var(--muted)">Gera as etiquetas do pedido mais recente (${codigoPedido(ult)}) com a configuração atual.</p><button class="btn sm" onclick="etqAtualizarVer(${ult.id})">Gerar e visualizar</button>`:'<p style="color:var(--muted)">Ainda não há pedidos para gerar etiqueta.</p>'}</div></div>`;
 }
@@ -2601,7 +2683,7 @@ function etqAtualizarVer(id){const o=gO(id);const r=gerarEtiquetas(o,etqDiff(o))
 function admLbl(){
   const w=+v_('lbW'),h=+v_('lbH'),m=+v_('lbM'),f=+v_('lbF'),lh=+v_('lbL');
   if(!(w>=40&&h>=40&&m>=1&&m*2<w&&m*2<h&&f>=6&&lh>=8&&lh<h/3)){toast('Confira as medidas: a margem e a área da logomarca precisam caber na etiqueta.');return}
-  Object.assign(LBL,{w,h,m,fs:f,logoH:lh,barcodePos:v_('lbP'),remetente:v_('lbR').trim()||'ZP IMPORTS',remEnd:v_('lbE').trim()});saveLbl();toast('Configuração salva.');route()}
+  Object.assign(LBL,{w,h,m,fs:f,logoH:lh,barcodePos:v_('lbP'),remetente:v_('lbR').trim()||'ZP IMPORTS',remEnd:v_('lbE').trim(),tituloCtl:v_('lbT').trim()||'Controle Interno',obsPadrao:v_('lbO').trim()});saveLbl();toast('Configuração salva.');route()}
 async function admLogo(inp){const f=inp.files&&inp.files[0];if(!f)return;if(f.size>4e6){toast('A imagem deve ter até 4 MB.');return}
   try{const l=await logoLoad(f);LBL.logo=l;LBL.logoKey=hashStr(l.data.slice(0,4000)+l.data.length);saveLbl();toast('Logomarca salva. As próximas etiquetas já usam a nova identidade.');route()}catch(e){toast('Não foi possível ler a imagem.')}}
 function admLogoRem(){LBL.logo=null;LBL.logoKey='';saveLbl();toast('Logomarca removida.');route()}
