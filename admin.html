@@ -459,7 +459,7 @@ body:not(.pronto) #menu,body:not(.pronto) #faixa{visibility:hidden}
 .kc:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.1)}.kc.sel{outline:3px solid var(--c)}
 .kc .n{font-size:1.9rem;font-weight:700;color:var(--c);line-height:1.1}.kc .t{font-size:.82rem;color:var(--muted)}.kc .t b{color:var(--ink)}
 .selo{display:inline-block;font-size:.7rem;font-weight:600;padding:.15em .6em;border-radius:999px;margin:3px 4px 0 0;color:#fff}
-.selo.gray{background:#6b7280}.selo.red{background:#d92d20}.selo.purple{background:#7c3aed}.selo.green{background:#16a34a}.selo.blue{background:#2563eb}
+.selo.orange{background:#f97316}.selo.gray{background:#6b7280}.selo.red{background:#d92d20}.selo.purple{background:#7c3aed}.selo.green{background:#16a34a}.selo.blue{background:#2563eb}
 .stchip{display:inline-block;font-size:.78rem;font-weight:600;padding:.2em .7em;border-radius:999px;background:color-mix(in srgb,var(--c) 14%,#fff);color:var(--c);border:1px solid color-mix(in srgb,var(--c) 35%,#fff);margin:1px 0}
 tr.rowatr td{background:#fff3f2}
 tr[data-sc] td:first-child{box-shadow:inset 4px 0 0 var(--sc)}
@@ -511,6 +511,13 @@ a[href*="netlify.com"],[class*="netlify" i],[id*="netlify" i]{display:none!impor
 
 .opc{border:1px solid #f97316!important;border-left:6px solid #f97316!important;background:#fff8f1}
 .opc-tag{display:inline-block;background:#f97316;color:#fff;font-size:.7rem;font-weight:800;letter-spacing:.06em;border-radius:999px;padding:2px 10px;margin-left:8px;vertical-align:middle}
+
+.mgrid{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start;margin-top:14px}.mgrid .box{margin-bottom:14px}
+.mside{position:sticky;top:12px}
+@media(max-width:900px){.mgrid{grid-template-columns:1fr}.mside{position:static}}
+.mst{display:flex;gap:12px;align-items:center;margin-bottom:12px}.mn{width:34px;height:34px;border-radius:50%;background:var(--p);color:#fff;display:grid;place-items:center;font-weight:800;flex:none}
+.mprod{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px}.mph{display:flex;flex-direction:column;margin-bottom:8px}.mph small{color:var(--muted)}
+.mvars{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}.mvar{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#f7faf9;border-radius:10px;padding:8px 10px}.mvn{display:flex;flex-direction:column}.mvn small{color:var(--muted)}
 </style>
 </head>
 <body class="adm-mode">
@@ -643,7 +650,7 @@ let cart,users,me,orders,seqUser,clock,AM,SITE,LOG,PEDIT,ROTAS,SEEN,ADMIN,OFFSET
 function load(){
   cart=DB.get('cart',[]).filter(i=>{const p=PRODUCTS.find(x=>x.id===+i.id);return p&&p.ativo!==false});users=DB.get('users',{});me=DB.get('me',null);orders=DB.get('orders',[]).filter(o=>!o.real).concat((typeof MEUS!=='undefined'&&MEUS)||[]);seqUser=DB.get('seq',{});clock=DB.get('clock',100);
   AM=Object.assign({},AMDEF,DB.get('amigo',{}));AM.nome=String(AM.nome).replace('Amigo Indica Amigo','Amigo Emagrece Amigo');
-  SITE=DB.get('site',{});LOG=Object.assign({},LOGDEF,DB.get('log',{}));PEDIT=DB.get('pedit',{});ROTAS=DB.get('rotas',{});SEEN=DB.get('seen',{});ADMIN=DB.get('adm',null);OFFSET=DB.get('offset',0);REV=DB.get('rev',0);ENTR=DB.get('entr',[]);ROTE=DB.get('rote',[]);RETIR=DB.get('ret',[]);
+  SITE=DB.get('site',{});LOG=Object.assign({},LOGDEF,DB.get('log',{}),{dias:[0,1,2,3,4,5,6]});PEDIT=DB.get('pedit',{});ROTAS=DB.get('rotas',{});SEEN=DB.get('seen',{});ADMIN=DB.get('adm',null);OFFSET=DB.get('offset',0);REV=DB.get('rev',0);ENTR=DB.get('entr',[]);ROTE=DB.get('rote',[]);RETIR=DB.get('ret',[]);
   migrate();applySite();applyProd();
 }
 function save(){
@@ -2566,11 +2573,11 @@ function admSite(){const w=digits(v_('sW'));if(w.length<12||w.length>13){toast('
   SITE.cfg={brand:v_('sB').trim(),wa:w,frete:v_('sF').trim(),linkPag:lk,faixa:v_('sT').trim(),aviso:v_('sA').trim()};applySite();paintShell();save();toast('Site atualizado.');route()}
 const DSEMF=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 function tabEntrega(){
-  return `<div class="box" style="max-width:760px"><p style="margin-top:0;color:var(--muted)">Estas regras definem o que o cliente pode escolher ao finalizar e quando um pedido é considerado atrasado.</p><div class="fr"><div><label>Turnos disponíveis</label><div class="turnos">${Object.keys(TURNOS).map(t=>`<label class="turno"><input type="checkbox" id="lt_${t}" ${LOG.turnos[t]?'checked':''}> ${TURNOS[t]}</label>`).join('')}</div></div><div><label>Dias da semana com entrega</label><div class="turnos">${DSEMF.map((n,i)=>`<label class="turno"><input type="checkbox" id="ld_${i}" ${LOG.dias.includes(i)?'checked':''}> ${n}</label>`).join('')}</div></div><div class="c3"><label for="lA">Antecedência mínima (dias)</label><input id="lA" type="number" min="0" max="30" value="${LOG.antecedencia}"></div><div class="c3"><label for="lJ">Janela máxima de agendamento (dias)</label><input id="lJ" type="number" min="1" max="180" value="${LOG.janela}"></div><div class="c3"><label for="lAm">Atenção (amarelo): parado há mais de, em horas</label><input id="lAm" type="number" min="1" max="240" value="${LOG.alertaAmarelo}"></div><div class="c3"><label for="lLa">Quase atrasado (laranja): parado há mais de, em horas</label><input id="lLa" type="number" min="1" max="240" value="${LOG.alertaLaranja}"></div><div class="c3"><label for="lH">Atrasado (vermelho): parado há mais de, em horas</label><input id="lH" type="number" min="1" max="240" value="${LOG.atrasoHoras}"></div><div class="c3"><label>Fim do turno (hora)</label><div style="display:flex;gap:6px">${Object.keys(TURNOS).map(t=>`<input id="lf_${t}" type="number" min="1" max="24" value="${LOG.fim[t]}" title="${TURNOS[t]}" style="width:70px">`).join('')}</div></div><div><label for="lB">Datas sem entrega (AAAA-MM-DD, separadas por vírgula)</label><input id="lB" value="${esc(LOG.bloqueados.join(', '))}" placeholder="2026-12-25, 2027-01-01"></div></div><p><button class="btn acc" onclick="admEntrega()">Salvar regras</button></p></div>`;
+  return `<div class="box" style="max-width:760px"><p style="margin-top:0;color:var(--muted)">Estas regras definem o que o cliente pode escolher ao finalizar e quando um pedido é considerado atrasado.</p><div class="fr"><div><label>Turnos disponíveis</label><div class="turnos">${Object.keys(TURNOS).map(t=>`<label class="turno"><input type="checkbox" id="lt_${t}" ${LOG.turnos[t]?'checked':''}> ${TURNOS[t]}</label>`).join('')}</div></div><div class="c3"><label for="lA">Antecedência mínima (dias)</label><input id="lA" type="number" min="0" max="30" value="${LOG.antecedencia}"></div><div class="c3"><label for="lJ">Janela máxima de agendamento (dias)</label><input id="lJ" type="number" min="1" max="180" value="${LOG.janela}"></div><div class="c3"><label for="lAm">Atenção (amarelo): parado há mais de, em horas</label><input id="lAm" type="number" min="1" max="240" value="${LOG.alertaAmarelo}"></div><div class="c3"><label for="lLa">Quase atrasado (laranja): parado há mais de, em horas</label><input id="lLa" type="number" min="1" max="240" value="${LOG.alertaLaranja}"></div><div class="c3"><label for="lH">Atrasado (vermelho): parado há mais de, em horas</label><input id="lH" type="number" min="1" max="240" value="${LOG.atrasoHoras}"></div><div class="c3"><label>Fim do turno (hora)</label><div style="display:flex;gap:6px">${Object.keys(TURNOS).map(t=>`<input id="lf_${t}" type="number" min="1" max="24" value="${LOG.fim[t]}" title="${TURNOS[t]}" style="width:70px">`).join('')}</div></div><div><label for="lB">Datas sem entrega (AAAA-MM-DD, separadas por vírgula)</label><input id="lB" value="${esc(LOG.bloqueados.join(', '))}" placeholder="2026-12-25, 2027-01-01"></div></div><p><button class="btn acc" onclick="admEntrega()">Salvar regras</button></p></div>`;
 }
 function admEntrega(){
   const turnos={};Object.keys(TURNOS).forEach(t=>turnos[t]=c_('lt_'+t));if(!Object.values(turnos).some(Boolean)){toast('Deixe ao menos um turno disponível.');return}
-  const dias=DSEMF.map((n,i)=>i).filter(i=>c_('ld_'+i));if(!dias.length){toast('Escolha ao menos um dia da semana.');return}
+  const dias=[0,1,2,3,4,5,6];
   const bl=v_('lB').split(',').map(x=>x.trim()).filter(Boolean);if(bl.some(x=>!/^\d{4}-\d{2}-\d{2}$/.test(x))){toast('Use datas no formato AAAA-MM-DD.');return}
   const fim={};Object.keys(TURNOS).forEach(t=>fim[t]=+v_('lf_'+t));
   if(!(+v_('lAm')>0&&+v_('lAm')<+v_('lLa')&&+v_('lLa')<+v_('lH'))){toast('Os limites do semáforo precisam crescer: amarelo menor que laranja, e laranja menor que vermelho.');return}
@@ -2684,7 +2691,7 @@ async function bancoConfig(){
     if(x.chave==='site')SITE.cfg=Object.assign({},v);
     else if(x.chave==='primeira_compra')SITE.pct=+v.pct;
     else if(x.chave==='amigo')AM=Object.assign({},AMDEF,v);
-    else if(x.chave==='logistica')LOG=Object.assign({},LOGDEF,v);
+    else if(x.chave==='logistica')LOG=Object.assign({},LOGDEF,v,{dias:[0,1,2,3,4,5,6]});
     else if(x.chave==='frete')FRETE=Object.assign({lista:[]},v||{});
     else if(x.chave==='mensagens')MSGT.adm=v||{};
     else if(x.chave==='mensagens_site')MSGT.site=v||{};
@@ -3300,11 +3307,11 @@ function pageOp(){
     if(me)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div class="note err">Esta conta não tem acesso à área administrativa.</div><p><button class="btn" onclick="admSair()">Sair</button></p></div></div>`;
     return '<div class="adlogin"><div class="adcard"><div class="adico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><h1>Acesso da equipe</h1><p class="adsub">Entre com o seu e-mail e senha para acessar o painel da loja.</p><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username" placeholder="voce@empresa.com"><label for="ap">Senha</label><div class="adsenha"><input id="ap" type="password" required autocomplete="current-password" placeholder="Sua senha"><button type="button" class="adver" onclick="admVerSenha(this)">Mostrar</button></div><button class="adbtn">Entrar</button></form><p class="adnota">Acesso restrito. Se você é cliente, <a href="./">volte para a loja</a>.</p></div></div>';
   }
-  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
+  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
   const EXTRA_T=['cartao','atrasados','campanhas','produtos','etiquetas','mensagens','config'];
   if(!tabs.some(t=>t[0]===A.tab))A.tab=tabs[0][0];
   msgGarante();
-  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,pagamentos:tabPagamentos,cartao:tabCartao,campanhas:tabCampanhas,logistica:tabLogistica,entregadores:tabEntregadores,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,mensagens:tabMensagens,config:tabConfig})[A.tab]();
+  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,manual:tabManual,pagamentos:tabPagamentos,cartao:tabCartao,campanhas:tabCampanhas,logistica:tabLogistica,entregadores:tabEntregadores,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,mensagens:tabMensagens,config:tabConfig})[A.tab]();
   return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="font-size:.85rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]}) · <a style="cursor:pointer" onclick="admSair()">Sair</a></div></div>
   ${abasHtml(tabs,EXTRA_T)}${body}</div>`;
 }
@@ -4092,6 +4099,7 @@ function stChip(s){return `<span class="stchip" style="--c:${STCOR[s]||'#6b7280'
 function selos(o){
   let h='';const n=+o.seq||1;
   if(emAtraso(o))h+='<span class="selo red" title="A data de entrega desejada já passou">Atrasado</span>';
+  if(o.extra&&o.extra.manual)h+='<span class="selo orange" title="Pedido registrado pela equipe">Manual</span>';
   if(n>=2)h+=`<span class="selo purple" title="Este cliente já fez ${n-1} pedido${n-1>1?'s':''} antes">Cliente recorrente · ${n}º pedido</span>`;
   else h+='<span class="selo green" title="Primeiro pedido deste cliente">1º pedido</span>';
   if(feitoHoje(o))h+='<span class="selo blue" title="Pedido feito hoje">Hoje</span>';
@@ -4419,6 +4427,84 @@ function realcaFaltas(){
   if(primeiro)primeiro.scrollIntoView({behavior:'smooth',block:'center'});
 }
 if(typeof finish==='function'){const _fin0=finish;window.finish=async function(){await _fin0();if(ent&&ent.erros&&ent.erros.length)setTimeout(realcaFaltas,60)}}
+
+/* ======================= PEDIDO MANUAL (aba da equipe) ======================= */
+A9.man=A9.man||{q:{},f:{},busca:'',turno:'',pag:'pix',ok:null,err:''};
+function manNovo(){A9.man={q:{},f:{},busca:'',turno:'',pag:'pix',ok:null,err:''};route();window.scrollTo(0,0)}
+function manCapta(){
+  const f=A9.man.f;['mnNome','mnF','ckC','ckU','ckCi','ckB','ckR','ckN','ckCo','ckRef','mnData','mnObs'].forEach(id=>{const e=document.getElementById(id);if(e)f[id]=e.value});
+  const c=document.getElementById('mnFn9');if(c)f.mnFn9=c.checked;
+}
+function manPrecoVar(v){return v.preco==null?null:(v.preco_promo!=null?+v.preco_promo:+v.preco)}
+function manItens(){
+  const out=[];(A9.prods||[]).forEach(p=>(p.vars||[]).forEach(v=>{const q=A9.man.q[v.id]||0;if(q>0)out.push({p,v,q,u:manPrecoVar(v)})}));return out;
+}
+function manResumo(){
+  const L=manItens();const el=document.getElementById('manRes');if(!el)return;
+  const tot=L.reduce((s,i)=>s+(i.u||0)*i.q,0),sp=L.some(i=>i.u==null);
+  el.innerHTML=L.length?`<table style="width:100%;font-size:.9rem"><tbody>${L.map(i=>`<tr><td>${i.q} × ${esc(i.p.nome)} <span style="color:var(--muted)">(${esc(i.v.nome)})</span></td><td class="r" style="white-space:nowrap">${i.u==null?'a confirmar':brl(i.u*i.q)}</td></tr>`).join('')}</tbody></table><div class="tot" style="margin-top:10px"><span class="big">Total</span><span class="big">${brl(tot)}${sp?' + a confirmar':''}</span></div>`:'<p style="color:var(--muted);margin:0">Nenhum produto escolhido ainda.</p>';
+}
+function manQ(id,d){
+  const q=Math.max(0,Math.min(99,(A9.man.q[id]||0)+d));A9.man.q[id]=q;
+  const e=document.getElementById('mq_'+id);if(e)e.textContent=q;manResumo();
+}
+function manBusca(v){manCapta();A9.man.busca=v;const e=document.getElementById('manProds');if(e)e.innerHTML=manProdsHtml()}
+function manSel(k,v){A9.man[k]=v;document.querySelectorAll('[data-mk="'+k+'"]').forEach(e=>e.classList.toggle('on',e.dataset.mv===v))}
+function manProdsHtml(){
+  const b=cidNorm(A9.man.busca||'');
+  const L=(A9.prods||[]).filter(p=>p.ativo!==false&&(p.vars||[]).some(v=>v.ativo!==false)&&(!b||cidNorm(p.nome+' '+(p.sku||'')).includes(b)));
+  return L.map(p=>`<div class="mprod"><div class="mph"><b>${esc(p.nome)}</b><small>SKU ${esc(p.sku||'')} · estoque ${p.estoque}</small></div><div class="mvars">${(p.vars||[]).filter(v=>v.ativo!==false).map(v=>{const u=manPrecoVar(v);return `<div class="mvar"><div class="mvn"><b>${esc(v.nome)}</b><small>${u==null?'valor a confirmar':brl(u)}</small></div><div class="qty"><button type="button" onclick="manQ('${v.id}',-1)" aria-label="Diminuir">−</button><span id="mq_${v.id}">${A9.man.q[v.id]||0}</span><button type="button" onclick="manQ('${v.id}',1)" aria-label="Aumentar">+</button></div></div>`}).join('')}</div></div>`).join('')||'<p style="color:var(--muted)">Nenhum produto encontrado.</p>';
+}
+function tabManual(){
+  if(!A9.prods){if(!A9.busy){A9.busy=true;admCarregarProdutos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando produtos...</div>'}
+  const M=A9.man,f=M.f;setTimeout(manResumo,0);
+  if(M.ok)return `<div class="box" style="text-align:center;padding:34px 16px">${msgBox()}<div style="font-size:2.4rem">✅</div><h2 style="margin:6px 0">Pedido ${esc(M.ok.codigo)} registrado</h2><p style="color:var(--muted);margin:0 0 18px">Ele já está em <b>Pedidos</b>, como Recebido, e segue o mesmo fluxo dos pedidos do site: confirmar, separar e enviar ao entregador.</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn acc" style="padding:1em 1.6em" onclick="A9.pedidos=null;admAbrirPedido(${M.ok.id})">Abrir o pedido</button><button class="btn" style="padding:1em 1.6em" onclick="manNovo()">Fazer outro pedido</button></div></div>`;
+  const turnos=Object.keys(TURNOS).filter(t=>LOG.turnos[t]);
+  const e={cep:f.ckC,uf:f.ckU,cidade:f.ckCi,bairro:f.ckB,rua:f.ckR,num:f.ckN,comp:f.ckCo,ref:f.ckRef};
+  const passo=(n,t,s)=>`<div class="mst"><span class="mn">${n}</span><div><h3 style="margin:0">${t}</h3>${s?`<small style="color:var(--muted)">${s}</small>`:''}</div></div>`;
+  return `<div class="box" style="padding-bottom:6px">${msgBox()}<h2 style="margin:0">Pedido manual</h2><p style="margin:4px 0 0;color:var(--muted)">Para pedidos feitos por telefone ou WhatsApp. Preencha os 3 passos e registre. O pedido entra em Pedidos como Recebido e segue o fluxo normal.</p></div>
+  <div class="mgrid" id="manForm" oninput="manCapta()">
+   <div>
+    <div class="box" id="mc_cli">${passo(1,'Cliente e endereço','Nome, telefone e onde entregar')}
+     <div class="fr"><div class="c2"><label for="mnNome">Nome completo</label><input id="mnNome" autocomplete="off" value="${esc(f.mnNome||'')}"></div><div class="c2"><label for="mnF">Telefone com WhatsApp</label>${foneCampo('mnF',f.mnF||'',!!f.mnFn9)}</div></div>
+     <p style="margin:12px 0 6px;color:var(--muted);font-size:.9rem">Digite o CEP e preenchemos estado, cidade, bairro e rua.</p>${ckEndCampos(e)}</div>
+    <div class="box" id="mc_prod">${passo(2,'Produtos','Escolha as quantidades de cada opção')}
+     <input id="mnBusca" placeholder="Buscar produto..." value="${esc(M.busca||'')}" oninput="manBusca(this.value)" style="margin-bottom:10px"><div id="manProds">${manProdsHtml()}</div></div>
+    <div class="box" id="mc_ent">${passo(3,'Entrega e pagamento','Data, horário e forma de pagamento')}
+     <div class="fr"><div class="c2"><label for="mnData">Data de entrega</label><input id="mnData" type="date" min="${hojeS()}" value="${esc(f.mnData||hojeS())}"></div></div>
+     <div class="pf-l" style="margin-top:12px">Horário</div><div class="turnos3">${turnos.map(t=>`<label class="turno3 ${M.turno===t?'on':''}" data-t="${t}" data-mk="turno" data-mv="${t}" onclick="manSel('turno','${t}')"><input type="radio" name="mnt">${TURNOS[t]}</label>`).join('')}</div>
+     <div class="pf-l" style="margin-top:12px">Forma de pagamento</div><div class="turnos3 pagos">${PAGS.map(x=>`<label class="turno3 ${M.pag===x[0]?'on':''}" data-p="${x[0]}" data-mk="pag" data-mv="${x[0]}" onclick="manSel('pag','${x[0]}')"><input type="radio" name="mnp">${x[1]}</label>`).join('')}</div>
+     <label for="mnObs" style="margin-top:12px">Observações (opcional)</label><textarea id="mnObs" rows="2" maxlength="500" placeholder="Ex.: portão azul, deixar com o porteiro">${esc(f.mnObs||'')}</textarea></div>
+   </div>
+   <div class="mside"><div class="box"><h3 style="margin-top:0">Resumo do pedido</h3><div id="manRes"></div>${M.err?`<div class="note err" style="margin-top:10px">${esc(M.err)}</div>`:''}<button class="btn acc full finbtn" style="margin-top:14px;animation:none!important" id="manBtn" onclick="manEnviar()">REGISTRAR PEDIDO</button></div></div>
+  </div>`;
+}
+function manFaltas(){
+  manCapta();const f=A9.man.f,er=[];const nome=(f.mnNome||'').trim();
+  if(nome.length<2)er.push(['mc_cli','Falta preencher: o nome do cliente.']);
+  else if(!foneOk(f.mnF||''))er.push(['mc_cli','Falta preencher: o telefone com DDD.']);
+  else{const e=normEnd({cep:fmtCep(f.ckC||''),uf:f.ckU,cidade:f.ckCi,bairro:f.ckB,rua:f.ckR,num:(f.ckN||'').trim(),comp:(f.ckCo||'').trim(),ref:(f.ckRef||'').trim()});const x=validarEnd(e);if(x.length)er.push(['mc_cli','Falta preencher: '+x[0].replace(/\.$/,'').toLowerCase()+'.'])}
+  if(!manItens().length)er.push(['mc_prod','Falta escolher: pelo menos um produto.']);
+  if(!f.mnData)er.push(['mc_ent','Falta preencher: a data de entrega.']);
+  else if(!A9.man.turno)er.push(['mc_ent','Falta escolher: o horário da entrega.']);
+  return er;
+}
+function manMostra(er){
+  document.querySelectorAll('.campo-msg').forEach(e=>e.remove());document.querySelectorAll('.campo-erro').forEach(e=>e.classList.remove('campo-erro'));
+  let primeiro=null;er.forEach(([id,m])=>{const c=document.getElementById(id);if(!c)return;c.classList.add('campo-erro');const d=document.createElement('div');d.className='campo-msg';d.textContent=m;c.insertBefore(d,c.firstChild);if(!primeiro)primeiro=d});
+  if(primeiro)primeiro.scrollIntoView({behavior:'smooth',block:'center'});
+}
+async function manEnviar(){
+  if(A9.busy)return;const er=manFaltas();A9.man.err='';
+  if(er.length){manMostra(er);return}
+  const f=A9.man.f;const end=normEnd({cep:fmtCep(f.ckC),uf:f.ckU,cidade:f.ckCi,bairro:f.ckB,rua:f.ckR,num:(f.ckN||'').trim(),comp:(f.ckCo||'').trim(),ref:(f.ckRef||'').trim()});
+  const b=document.getElementById('manBtn');if(b){b.disabled=true;b.textContent='Registrando...'}
+  A9.busy=true;
+  const r=await SB.rpc('criar_pedido_manual',{p_cliente:{nome:tc(f.mnNome.trim()),fone:digits(f.mnF)},p_endereco:end,p_itens:manItens().map(i=>({var:i.v.id,qty:i.q})),p_entrega:{data:f.mnData,turno:A9.man.turno,pagamento:A9.man.pag||'pix',obs:(f.mnObs||'').trim()}});
+  A9.busy=false;
+  if(r.error){A9.man.err=msgRpc(r.error);if(/function.*criar_pedido_manual|schema cache/i.test(r.error.message||''))A9.man.err='Falta rodar o arquivo 19_pedido_manual.sql no Supabase.';route();return}
+  A9.man.ok=r.data;A9.pedidos=null;A9.prods=null;A9.lg=null;route();window.scrollTo(0,0);
+}
 </script>
 </body>
 </html>
