@@ -10,7 +10,8 @@
 <title>ZP Imports</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
+<style>.cidf{position:relative;min-width:170px}.cidf summary{cursor:pointer;list-style:none;border:1px solid var(--line,#d0d5dd);border-radius:10px;padding:10px 12px;background:#fff;font-size:.95rem}.cidf summary::-webkit-details-marker{display:none}.cidf summary:after{content:" ▾";float:right}.cidl{position:absolute;z-index:30;left:0;top:100%;margin-top:4px;min-width:230px;max-height:300px;overflow:auto;background:#fff;border:1px solid #d0d5dd;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:6px}.cidl label{display:flex;align-items:center;gap:8px;padding:8px 10px;margin:0;cursor:pointer;border-radius:8px;font-weight:400}.cidl label:hover{background:#f2f4f7}.cidl input{width:auto;margin:0;flex:none}
+
 :root{--p:#0a6e5c;--pd:#074d40;--pl:#e5f3ef;--acc:#ffb703;--accd:#e09e00;--ink:#2b2b2b;--ink2:#444;--muted:#6f6f6f;--line:#e6e6e6;--bg:#f3f3f3;--wa:#25d366;--r:16px}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -4191,12 +4192,19 @@ function pagChipP(o){const p=o.pagamento||{};return p.status==='pago'?'<span cla
 
 /* filtros (cidade, turno, quando) */
 A9.fc='';A9.ft='';A9.fq='';A9.mais=false;A9.pagEnv={};A9.pf='cobrar';A9.cores=A9.cores||{};
-var grpCid=c=>{const k=cidNorm(c);return ['sao jose dos campos','jacarei','cacapava'].includes(k)?'sjc':k};
+var grpCid=c=>cidNorm(c);
+/* cidades soltas, com seleção por flag */
+function cidFlag(id,val,cb){const sel=String(val||'').split('|').filter(Boolean).map(cidNorm);const L=cidadesPed();
+ return `<details class="cidf" ${A9.cfOpen===id?'open':''} ontoggle="if(this.open)A9.cfOpen='${id}';else if(A9.cfOpen==='${id}')A9.cfOpen=''"><summary>${sel.length?sel.length+' cidade'+(sel.length>1?'s':'')+' marcada'+(sel.length>1?'s':''):'Todas as cidades'}</summary><div class="cidl"><label><input type="checkbox" ${sel.length?'':'checked'} onchange="cidTodas('${id}');${cb}"> <b>Todas</b></label>${L.map(c=>`<label><input type="checkbox" data-cf="${id}" value="${esc(c)}" ${sel.includes(cidNorm(c))?'checked':''} onchange="cidMark('${id}');${cb}"> ${esc(c)}</label>`).join('')}</div></details><input type="hidden" id="${id}" value="${esc(val||'')}">`}
+function cidMark(id){const ck=[...document.querySelectorAll('input[data-cf="'+id+'"]:checked')].map(i=>i.value);const h=document.getElementById(id);h.value=ck.join('|');
+ const d=h.previousElementSibling;if(d){d.querySelector('summary').textContent=ck.length?ck.length+' cidade'+(ck.length>1?'s':'')+' marcada'+(ck.length>1?'s':''):'Todas as cidades';const t=d.querySelector('.cidl input:not([data-cf])');if(t)t.checked=!ck.length}}
+function cidTodas(id){document.querySelectorAll('input[data-cf="'+id+'"]').forEach(i=>i.checked=false);cidMark(id)}
+
 function filtroExtra(o,f){
   f=f||{fc:A9.fc,ft:A9.ft,fq:A9.fq,fe:A9.fe};const e=o.entrega||{};
   if(f.fe==='fin'&&!(o.extra&&o.extra.etq_em))return false;
   if(f.fe==='pend'&&(o.extra&&o.extra.etq_em))return false;
-  if(f.fc&&grpCid(cidadeDe(o))!==grpCid(f.fc))return false;
+  if(f.fc){const l=String(f.fc).split('|').map(cidNorm);if(!l.includes(cidNorm(cidadeDe(o))))return false}
   if(f.ft&&e.turno!==f.ft)return false;
   if(f.fq==='abertos'&&ENC(o))return false;
   if(f.fq==='feitos-hoje'&&!feitoHoje(o))return false;
@@ -4211,7 +4219,7 @@ var QUANDO=[['','Todos'],['abertos','Em aberto (não entregues)'],['feitos-hoje'
 function barraFiltros(){
   const sel=(v,arr,fn)=>arr.map(x=>`<option value="${esc(x[0])}" ${v===x[0]?'selected':''}>${esc(x[1])}</option>`).join('');
   const temF=A9.fc||A9.ft||A9.fq||A9.fe;
-  return `<div class="fbar"><div><label for="fC">Cidade</label><select id="fC" onchange="A9.fc=this.value;route()"><option value="">Todas</option>${cidadesPed().map(c=>`<option ${cidNorm(A9.fc)===cidNorm(c)?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
+  return `<div class="fbar"><div><label>Cidades</label>${cidFlag('fC',A9.fc,"A9.fc=v_('fC');route()")}</div>
   <div><label for="fT">Horário</label><select id="fT" onchange="A9.ft=this.value;route()"><option value="">Todos</option>${Object.keys(TURNOS).map(t=>`<option value="${t}" ${A9.ft===t?'selected':''}>${esc(TURNOS[t])}</option>`).join('')}</select></div>
   <div><label for="fQ">Quando</label><select id="fQ" onchange="A9.fq=this.value;route()">${sel(A9.fq,QUANDO)}</select></div>
   <div><label for="fE">Etiquetas</label><select id="fE" onchange="A9.fe=this.value;route()"><option value="">Todas</option><option value="pend" ${A9.fe==='pend'?'selected':''}>Pendentes</option><option value="fin" ${A9.fe==='fin'?'selected':''}>Finalizadas (impressas)</option></select></div>
@@ -4330,7 +4338,7 @@ function tabDash(){
    ${k('#16a34a','Recebido',brl(pagos.reduce((s,o)=>s+tot(o),0)),pagos.length+' pago'+(pagos.length===1?'':'s')+' · '+entregues.length+' entregue'+(entregues.length===1?'':'s'),"A9.pf='pagos';admTab('pagamentos')")}
   </div>
   <h3>Filtro rápido</h3><p style="margin:0;color:var(--muted);font-size:.88rem">Ex.: todos os pedidos de São José da manhã que são para hoje.</p>
-  <div class="fbar"><div><label for="dC">Cidade</label><select id="dC" onchange="dashCont()"><option value="">Todas</option>${cidadesPed().map(c=>`<option>${esc(c)}</option>`).join('')}</select></div><div><label for="dT">Horário</label><select id="dT" onchange="dashCont()"><option value="">Todos</option>${Object.keys(TURNOS).map(t=>`<option value="${t}">${esc(TURNOS[t])}</option>`).join('')}</select></div><div><label for="dQ">Quando</label><select id="dQ" onchange="dashCont()">${QUANDO.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select></div><button class="btn acc" onclick="dashVer()">Ver estes pedidos</button><b id="dN" style="padding-bottom:10px">${ab.length} pedido${ab.length===1?'':'s'} em aberto</b></div>
+  <div class="fbar"><div><label>Cidades</label>${cidFlag('dC','',"dashCont()")}</div><div><label for="dT">Horário</label><select id="dT" onchange="dashCont()"><option value="">Todos</option>${Object.keys(TURNOS).map(t=>`<option value="${t}">${esc(TURNOS[t])}</option>`).join('')}</select></div><div><label for="dQ">Quando</label><select id="dQ" onchange="dashCont()">${QUANDO.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select></div><button class="btn acc" onclick="dashVer()">Ver estes pedidos</button><b id="dN" style="padding-bottom:10px">${ab.length} pedido${ab.length===1?'':'s'} em aberto</b></div>
   <div class="two" style="gap:18px;align-items:start"><div><h3 style="margin-top:0">Pedidos em aberto por cidade</h3>
    <div class="tbl"><table><thead><tr><th>Cidade</th><th>Total</th>${Object.keys(TURNOS).map(t=>`<th>${esc(TURNOS[t])}</th>`).join('')}</tr></thead><tbody>${A9.dcid.map((c,i)=>`<tr><td><b>${esc(c.nome)}</b></td><td><button class="chipn" style="--c:#ea580c" onclick="admIrCid(${i},'')">${c.t}</button></td>${Object.keys(TURNOS).map((t,j)=>`<td>${c[t]?`<button class="chipn" style="--c:${['#f59e0b','#2563eb','#7c3aed'][j%3]}" onclick="admIrCid(${i},'${t}')">${c[t]}</button>`:'<span style="color:#bbb">0</span>'}</td>`).join('')}</tr>`).join('')||'<tr><td colspan="5">Nenhum pedido em aberto.</td></tr>'}</tbody></table></div></div>
   <div><h3 style="margin-top:0">Pedidos nos últimos 7 dias</h3>${chartBars(dias.map(d=>d.slice(8)+'/'+d.slice(5,7)),vals,'#2563eb')}
