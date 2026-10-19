@@ -3478,8 +3478,50 @@ async function admSalvaFootVis(){
   FOOTVIS=fv;DB.set('footvis',FOOTVIS);A9.msg='Rodapé salvo.';A9.erro=false;buildFoot();route();
 }
 function fvChk(id,key,label){return `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 0"><input type="checkbox" id="${id}" ${FOOTVIS[key]?'checked':''} style="width:16px;height:16px"> ${label}</label>`;}
+A9.menuItens=null;
+async function admCarregarMenuItens(){
+  const r=await SB.from('configuracao').select('valor').eq('chave','menu_itens').maybeSingle();
+  A9.menuItens=r.data&&r.data.valor&&Array.isArray(r.data.valor)?r.data.valor:[];
+}
+async function admSalvaMenuItens(){
+  const itens=A9.menuItens||[];
+  const r=await SB.from('configuracao').upsert({chave:'menu_itens',valor:itens,publica:true,atualizado_em:new Date().toISOString()});
+  if(r.error){A9.msg='Não foi possível salvar o menu.';A9.erro=true;route();return}
+  MENU_ITENS=itens.length?itens:null;DB.set('menu_itens',MENU_ITENS);
+  A9.msg='Menu salvo. O site já reflete as alterações.';A9.erro=false;route();
+}
+function menuAdicionar(){
+  const nome=document.getElementById('miNome').value.trim();
+  const link=document.getElementById('miLink').value.trim();
+  if(!nome||!link){toast('Preencha nome e link.');return}
+  if(!A9.menuItens)A9.menuItens=[];
+  A9.menuItens.push({nome,link,ativo:true});
+  document.getElementById('miNome').value='';
+  document.getElementById('miLink').value='';
+  admSalvaMenuItens();
+}
+function menuRemover(i){if(!A9.menuItens)return;if(!confirm('Remover este item?'))return;A9.menuItens.splice(i,1);admSalvaMenuItens();}
+function menuToggle(i,val){if(!A9.menuItens||!A9.menuItens[i])return;A9.menuItens[i].ativo=val;admSalvaMenuItens();}
+function menuMover(i,dir){
+  const arr=A9.menuItens;if(!arr)return;
+  const j=i+dir;if(j<0||j>=arr.length)return;
+  [arr[i],arr[j]]=[arr[j],arr[i]];admSalvaMenuItens();
+}
+function menuEditarNome(i){
+  const arr=A9.menuItens;if(!arr||!arr[i])return;
+  const novo=prompt('Novo nome:',arr[i].nome);
+  if(novo===null)return;
+  arr[i].nome=novo.trim()||arr[i].nome;admSalvaMenuItens();
+}
+function menuEditarLink(i){
+  const arr=A9.menuItens;if(!arr||!arr[i])return;
+  const novo=prompt('Novo link (ex: /cat/Ampolas):',arr[i].link);
+  if(novo===null)return;
+  arr[i].link=novo.trim()||arr[i].link;admSalvaMenuItens();
+}
 function tabConfig(){
-  if(A9.cfgOk!==true){if(!A9.busy){A9.busy=true;admCarregarLink().finally(()=>{A9.busy=false;A9.cfgOk=true;route()})}return '<div class="box">Carregando...</div>'}
+  if(A9.cfgOk!==true){if(!A9.busy){A9.busy=true;Promise.all([admCarregarLink(),admCarregarMenuItens()]).finally(()=>{A9.busy=false;A9.cfgOk=true;route()})}return '<div class="box">Carregando...</div>'}
+  const menuItens=A9.menuItens||[];
   return `<div class="box" style="max-width:640px"><h3 style="margin-top:0">Link de pagamento</h3>${msgBox()}<p style="color:var(--muted);margin-top:0">Link fixo do Mercado Pago. Em cada pedido, o botão "Enviar link de pagamento no WhatsApp" manda este link ao cliente com o valor do pedido.</p><label for="cfLink">Link</label><input id="cfLink" value="${esc(A9.link)}" placeholder="https://link.mercadopago.com.br/..."><p><button class="btn acc" onclick="admSalvaLink()">Salvar</button></p></div>
   <div class="box" style="max-width:640px;margin-top:16px"><h3 style="margin-top:0">Rodapé da página</h3>
   <p style="color:var(--muted);margin-top:0;font-size:.9rem">Escolha quais links aparecem no rodapé do site para os clientes.</p>
@@ -3499,7 +3541,32 @@ function tabConfig(){
     ${fvChk('fvPri','privacidade','Política de Privacidade')}
     ${fvChk('fvTer','termos','Termos de uso')}</div>
   </div>
-  <p style="margin-top:14px"><button class="btn acc" onclick="admSalvaFootVis()">Salvar rodapé</button></p></div>`;
+  <p style="margin-top:14px"><button class="btn acc" onclick="admSalvaFootVis()">Salvar rodapé</button></p></div>
+
+  <div class="box" style="max-width:640px;margin-top:16px"><h3 style="margin-top:0">Menu do site</h3>
+  <p style="color:var(--muted);margin-top:0;font-size:.9rem">Gerencie os itens do menu principal. O site usa esta lista; deixe vazia para usar as categorias dos produtos automaticamente.</p>
+  ${menuItens.length?`<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">${menuItens.map((m,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid #e5e7eb;border-radius:10px;background:#fafafa">
+    <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+      <button class="btn ghost sm" style="padding:2px 6px;font-size:.75rem" onclick="menuMover(${i},-1)" ${i===0?'disabled':''}>▲</button>
+      <button class="btn ghost sm" style="padding:2px 6px;font-size:.75rem" onclick="menuMover(${i},1)" ${i===menuItens.length-1?'disabled':''}>▼</button>
+    </div>
+    <div style="flex:1;min-width:0">
+      <b style="font-size:.92rem">${esc(m.nome)}</b>
+      <br><span style="font-size:.78rem;color:var(--muted)">${esc(m.link)}</span>
+    </div>
+    <label style="font-size:.82rem;display:flex;align-items:center;gap:5px;cursor:pointer;flex-shrink:0"><input type="checkbox" style="width:auto" ${m.ativo!==false?'checked':''} onchange="menuToggle(${i},this.checked)"> Ativo</label>
+    <button class="btn ghost sm" style="flex-shrink:0" onclick="menuEditarNome(${i})">Nome</button>
+    <button class="btn ghost sm" style="flex-shrink:0" onclick="menuEditarLink(${i})">Link</button>
+    <button class="btn ghost sm" style="color:#b42318;flex-shrink:0" onclick="menuRemover(${i})">✕</button>
+  </div>`).join('')}</div>`:'<p style="color:var(--muted);font-size:.88rem">Nenhum item. O menu usa as categorias dos produtos automaticamente.</p>'}
+  <div style="padding:14px;border:1px dashed #d1d5db;border-radius:10px">
+    <p style="margin:0 0 10px;font-weight:600;font-size:.9rem">Adicionar item</p>
+    <div class="fr">
+      <div class="c2"><label for="miNome">Nome do item</label><input id="miNome" maxlength="60" placeholder="Ex.: Ampolas"></div>
+      <div class="c2"><label for="miLink">Link (ex: /cat/Ampolas)</label><input id="miLink" placeholder="/cat/Ampolas"></div>
+    </div>
+    <p style="margin-top:10px"><button class="btn acc" onclick="menuAdicionar()">Adicionar</button></p>
+  </div></div>`;
 }
 function admTab(t){A.tab=t;A9.ed=null;A9.po=null;A9.edE=null;A9.msg='';A9.cfgOk=false;A9.lg=null;A9.cx=null;A9.camp=null;A9.pagF=null;route()}
 function pageOp(){
