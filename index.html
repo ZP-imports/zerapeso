@@ -383,12 +383,13 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 .adnota{color:var(--muted);font-size:.82rem;margin:18px 0 0}
 /* banner da home */
 .hero{position:relative;overflow:hidden;height:clamp(230px,34vw,440px)}
-.hero.custom-ban{height:auto!important;aspect-ratio:unset!important}
+.hero.custom-ban{height:auto!important}
+.hero.custom-ban .sl{position:relative;display:none}
+.hero.custom-ban .sl.on{display:block}
 .slpic{position:absolute;inset:0;display:block;background:#000}
 .slpic img{width:100%;height:100%;object-fit:contain;display:block}
-.hero.custom-ban .slpic{position:relative;inset:unset}
-.hero.custom-ban .slpic img{height:auto;max-height:none;object-fit:fill}
-.hero.custom-ban .sl{position:relative;height:auto}
+.hero.custom-ban .slpic{position:relative;inset:unset;display:block}
+.hero.custom-ban .slpic img{width:100%;height:auto;object-fit:fill;display:block}
 .sl.hasimg .wrap{display:none}
 @media(max-width:760px){.hero:not(.custom-ban){aspect-ratio:5/4}}
 /* barra de cupom */
@@ -574,7 +575,11 @@ const AMDEF={ativa:true,nome:'Amigo Emagrece Amigo, campanha Out/Nov 2026',pct:1
 const UFS=['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 const TURNOS={manha:'Manhã',tarde:'Tarde',noite:'Noite'};
 const LOGDEF={turnos:{manha:true,tarde:true,noite:true},antecedencia:1,janela:30,dias:[1,2,3,4,5,6],bloqueados:[],atrasoHoras:24,alertaAmarelo:12,alertaLaranja:20,fim:{manha:12,tarde:18,noite:22}};
-const ADMINS=[];
+const ADMINS=[
+  {email:'wesley@zpimports.com',  senha:'Wesley123',  nome:'Wesley',  papel:'admin'},
+  {email:'bruna@zpimports.com',   senha:'Bruna123',   nome:'Bruna',   papel:'admin'},
+  {email:'rithieli@zpimports.com',senha:'Rithieli123',nome:'Rithieli',papel:'admin'},
+];
 const ICON={
  inj:'<rect x="4" y="9" width="12" height="6" rx="2" transform="rotate(-35 10 12)"/><path d="m15 7 3-3M17 9l3-3M5.5 18.5 8 16"/>',
  pill:'<rect x="3" y="9" width="18" height="6" rx="3" transform="rotate(-40 12 12)"/>',
@@ -665,6 +670,7 @@ function load(){
   AM=Object.assign({},AMDEF,DB.get('amigo',{}));AM.nome=String(AM.nome).replace('Amigo Indica Amigo','Amigo Emagrece Amigo');
   CAMPVIS=Object.assign({tab:true,amigo:true,primeira:true},DB.get('campvis',{}));
   BANS=DB.get('bans',null);
+  FOOTVIS=Object.assign({atendimento:true,duvidas:true,comoComprar:true,pedidos:true,rastreio:true,cadastro:true,entregas:true,trocas:true,pagamento:true,privacidade:true,termos:true},DB.get('footvis',{}));
   SITE=DB.get('site',{});LOG=Object.assign({},LOGDEF,DB.get('log',{}),{dias:[0,1,2,3,4,5,6]});PEDIT=DB.get('pedit',{});ROTAS=DB.get('rotas',{});SEEN=DB.get('seen',{});ADMIN=DB.get('adm',null);OFFSET=DB.get('offset',0);REV=DB.get('rev',0);ENTR=DB.get('entr',[]);ROTE=DB.get('rote',[]);RETIR=DB.get('ret',[]);
   migrate();applySite();applyProd();
 }
@@ -672,6 +678,7 @@ function save(){
   DB.set('cart',cart);DB.set('users',users);DB.set('me',me);DB.set('orders',orders.filter(o=>!o.real));DB.set('seq',seqUser);DB.set('clock',clock);DB.set('amigo',AM);
   DB.set('site',SITE);DB.set('log',LOG);DB.set('pedit',PEDIT);DB.set('rotas',ROTAS);DB.set('seen',SEEN);DB.set('adm',ADMIN);DB.set('offset',OFFSET);DB.set('entr',ENTR);DB.set('rote',ROTE);DB.set('ret',RETIR);
   DB.set('campvis',CAMPVIS);if(BANS!==null)DB.set('bans',BANS);
+  DB.set('footvis',FOOTVIS);
   REV=uid()+Date.now();DB.set('rev',REV);
 }
 function applySite(){
@@ -889,9 +896,9 @@ const PAYLOGOS=[
 const payLogos=()=>'<div class="paylogos">'+PAYLOGOS.map(l=>`<svg viewBox="0 0 48 30" role="img" aria-label="${l[0]}"><title>${l[0]}</title><rect x=".5" y=".5" width="47" height="29" rx="5" fill="#fff" stroke="#d6d6dc"/>${l[1]}</svg>`).join('')+'</div>';
 function buildFoot(){
   const wa=`href="${waUrl()}" target="_blank" rel="noopener"`;
-  $('#foot').innerHTML=`<div class="fg"><div><h3>Informações</h3><a ${wa}>Central de Atendimento</a><a onclick="nav('/info/duvidas')">Dúvidas Frequentes</a><a onclick="nav('/info/como-comprar')">Como comprar</a>${CAMPVIS.amigo?`<a onclick="nav('/amigo')">Amigo Emagrece Amigo</a><a onclick="nav('/reg/amigo')">Regulamento: Amigo Emagrece Amigo</a>`:''}${CAMPVIS.primeira?`<a onclick="nav('/reg/primeira-compra')">Regulamento: Desconto na Primeira Compra</a>`:''}</div>
-  <div><h3>Acesso rápido</h3><a onclick="nav('/conta')">Minha Conta</a><a onclick="nav('/pedidos')">Meus Pedidos e Rastreio</a><a onclick="nav('/acompanhar')">Acompanhar pelo código</a><a onclick="tab='cad';nav('/conta')">Cadastre-se</a></div>
-  <div><h3>Políticas</h3><a onclick="nav('/info/entregas')">Entregas</a><a onclick="nav('/info/trocas')">Troca e Devolução</a><a onclick="nav('/info/pagamento')">Formas de Pagamento</a><a onclick="nav('/info/privacidade')">Política de Privacidade</a><a onclick="nav('/info/termos')">Termos de uso</a></div>
+  $('#foot').innerHTML=`<div class="fg"><div><h3>Informações</h3>${FOOTVIS.atendimento?`<a ${wa}>Central de Atendimento</a>`:''} ${FOOTVIS.duvidas?`<a onclick="nav('/info/duvidas')">Dúvidas Frequentes</a>`:''} ${FOOTVIS.comoComprar?`<a onclick="nav('/info/como-comprar')">Como comprar</a>`:''} ${CAMPVIS.amigo?`<a onclick="nav('/amigo')">Amigo Emagrece Amigo</a><a onclick="nav('/reg/amigo')">Regulamento: Amigo Emagrece Amigo</a>`:''} ${CAMPVIS.primeira?`<a onclick="nav('/reg/primeira-compra')">Regulamento: Desconto na Primeira Compra</a>`:''}</div>
+  <div><h3>Acesso rápido</h3>${FOOTVIS.pedidos?`<a onclick="nav('/conta')">Minha Conta</a><a onclick="nav('/pedidos')">Meus Pedidos e Rastreio</a>`:''} ${FOOTVIS.rastreio?`<a onclick="nav('/acompanhar')">Acompanhar pelo código</a>`:''} ${FOOTVIS.cadastro?`<a onclick="tab='cad';nav('/conta')">Cadastre-se</a>`:''}</div>
+  <div><h3>Políticas</h3>${FOOTVIS.entregas?`<a onclick="nav('/info/entregas')">Entregas</a>`:''} ${FOOTVIS.trocas?`<a onclick="nav('/info/trocas')">Troca e Devolução</a>`:''} ${FOOTVIS.pagamento?`<a onclick="nav('/info/pagamento')">Formas de Pagamento</a>`:''} ${FOOTVIS.privacidade?`<a onclick="nav('/info/privacidade')">Política de Privacidade</a>`:''} ${FOOTVIS.termos?`<a onclick="nav('/info/termos')">Termos de uso</a>`:''}</div>
   <div><h3>Formas de pagamento</h3><span>Débito, Pix e Cartão de Crédito.</span><span style="font-size:.85rem;color:var(--muted)">O pagamento é combinado com a nossa equipe pelo WhatsApp.</span>${payLogos()}</div></div>
   <div class="fb"><div class="wrap"><p>${esc(CFG.aviso)}</p></div></div>`;
 }
@@ -953,6 +960,7 @@ const BANVER='2';/* troque este número quando substituir as imagens dos banners
 const BANURL=(n,v)=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/public/produtos/'+n+'-'+v+'.webp?v='+BANVER;
 /* Banners personalizados: BANS={url,titulo,subtitulo,botao,link,cor}[] | null */
 var CAMPVIS={tab:true,amigo:true,primeira:true},BANS=null;
+var FOOTVIS={atendimento:true,duvidas:true,comoComprar:true,pedidos:true,rastreio:true,cadastro:true,entregas:true,trocas:true,pagamento:true,privacidade:true,termos:true};
 const SL=()=>{
   const fixos=[{t:'Medicamentos para emagrecimento com praticidade e entrega rápida',s:CFG.brand,b:'Ver medicamentos',l:'/cat/'+encodeURIComponent('Produtos disponíveis'),c:'#0a6e5c',img:'banner-01'}];
   if(CAMPVIS.amigo)fixos.push({t:amOn()?`Amigo Emagrece Amigo: ${AM.pct}% de desconto`:'Amigo Emagrece Amigo',s:'Indique e ganhe',b:'Saiba como',l:'/amigo',c:'#b97a00',img:'banner-02'});
@@ -2833,8 +2841,9 @@ async function bancoConfig(){
     else if(x.chave==='mensagens_site')MSGT.site=v||{};
     else if(x.chave==='camp_vis')CAMPVIS=Object.assign({tab:true,amigo:true,primeira:true},v);
     else if(x.chave==='banners'&&Array.isArray(v))BANS=v;
+    else if(x.chave==='foot_vis')FOOTVIS=Object.assign({atendimento:true,duvidas:true,comoComprar:true,pedidos:true,rastreio:true,cadastro:true,entregas:true,trocas:true,pagamento:true,privacidade:true,termos:true},v);
   });
-  DB.set('campvis',CAMPVIS);if(BANS!==null)DB.set('bans',BANS);
+  DB.set('campvis',CAMPVIS);if(BANS!==null)DB.set('bans',BANS);DB.set('footvis',FOOTVIS);
   applySite();
 }
 /* o menu e a página inicial seguem as categorias que vêm dos produtos */
@@ -3435,9 +3444,40 @@ async function admSalvaLink(){
   if(r.error){A9.msg='Não foi possível salvar. Confirme que está com a conta de administrador.';A9.erro=true}else{A9.link=l;A9.msg='Link de pagamento salvo.';A9.erro=false}
   route();
 }
+async function admSalvaFootVis(){
+  const fv={
+    atendimento:c_('fvAt'),duvidas:c_('fvDuv'),comoComprar:c_('fvCom'),
+    pedidos:c_('fvPed'),rastreio:c_('fvRas'),cadastro:c_('fvCad'),
+    entregas:c_('fvEnt'),trocas:c_('fvTro'),pagamento:c_('fvPag'),
+    privacidade:c_('fvPri'),termos:c_('fvTer')
+  };
+  const r=await SB.from('configuracao').upsert({chave:'foot_vis',valor:fv,publica:true,atualizado_em:new Date().toISOString()});
+  if(r.error){A9.msg='Não foi possível salvar.';A9.erro=true;route();return}
+  FOOTVIS=fv;DB.set('footvis',FOOTVIS);A9.msg='Rodapé salvo.';A9.erro=false;buildFoot();route();
+}
+function fvChk(id,key,label){return `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 0"><input type="checkbox" id="${id}" ${FOOTVIS[key]?'checked':''} style="width:16px;height:16px"> ${label}</label>`;}
 function tabConfig(){
   if(A9.cfgOk!==true){if(!A9.busy){A9.busy=true;admCarregarLink().finally(()=>{A9.busy=false;A9.cfgOk=true;route()})}return '<div class="box">Carregando...</div>'}
-  return `<div class="box" style="max-width:640px"><h3 style="margin-top:0">Link de pagamento</h3>${msgBox()}<p style="color:var(--muted);margin-top:0">Link fixo do Mercado Pago. Em cada pedido, o botão "Enviar link de pagamento no WhatsApp" manda este link ao cliente com o valor do pedido.</p><label for="cfLink">Link</label><input id="cfLink" value="${esc(A9.link)}" placeholder="https://link.mercadopago.com.br/..."><p><button class="btn acc" onclick="admSalvaLink()">Salvar</button></p></div>`;
+  return `<div class="box" style="max-width:640px"><h3 style="margin-top:0">Link de pagamento</h3>${msgBox()}<p style="color:var(--muted);margin-top:0">Link fixo do Mercado Pago. Em cada pedido, o botão "Enviar link de pagamento no WhatsApp" manda este link ao cliente com o valor do pedido.</p><label for="cfLink">Link</label><input id="cfLink" value="${esc(A9.link)}" placeholder="https://link.mercadopago.com.br/..."><p><button class="btn acc" onclick="admSalvaLink()">Salvar</button></p></div>
+  <div class="box" style="max-width:640px;margin-top:16px"><h3 style="margin-top:0">Rodapé da página</h3>
+  <p style="color:var(--muted);margin-top:0;font-size:.9rem">Escolha quais links aparecem no rodapé do site para os clientes.</p>
+  <div class="fr" style="gap:4px 20px">
+    <div><p style="margin:10px 0 4px;font-weight:600;font-size:.85rem;color:var(--p)">Informações</p>
+    ${fvChk('fvAt','atendimento','Central de Atendimento')}
+    ${fvChk('fvDuv','duvidas','Dúvidas Frequentes')}
+    ${fvChk('fvCom','comoComprar','Como comprar')}</div>
+    <div class="c2"><p style="margin:10px 0 4px;font-weight:600;font-size:.85rem;color:var(--p)">Acesso rápido</p>
+    ${fvChk('fvPed','pedidos','Minha Conta + Meus Pedidos')}
+    ${fvChk('fvRas','rastreio','Acompanhar pelo código')}
+    ${fvChk('fvCad','cadastro','Cadastre-se')}</div>
+    <div class="c2"><p style="margin:10px 0 4px;font-weight:600;font-size:.85rem;color:var(--p)">Políticas</p>
+    ${fvChk('fvEnt','entregas','Entregas')}
+    ${fvChk('fvTro','trocas','Troca e Devolução')}
+    ${fvChk('fvPag','pagamento','Formas de Pagamento')}
+    ${fvChk('fvPri','privacidade','Política de Privacidade')}
+    ${fvChk('fvTer','termos','Termos de uso')}</div>
+  </div>
+  <p style="margin-top:14px"><button class="btn acc" onclick="admSalvaFootVis()">Salvar rodapé</button></p></div>`;
 }
 function admTab(t){A.tab=t;A9.ed=null;A9.po=null;A9.edE=null;A9.msg='';A9.cfgOk=false;A9.lg=null;A9.cx=null;A9.camp=null;A9.pagF=null;route()}
 function pageOp(){
