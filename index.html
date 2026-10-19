@@ -670,6 +670,7 @@ function load(){
   AM=Object.assign({},AMDEF,DB.get('amigo',{}));AM.nome=String(AM.nome).replace('Amigo Indica Amigo','Amigo Emagrece Amigo');
   CAMPVIS=Object.assign({tab:true,amigo:true,primeira:true},DB.get('campvis',{}));
   BANS=DB.get('bans',null);
+  MENU_ITENS=DB.get('menu_itens',null);
   FOOTVIS=Object.assign({atendimento:true,duvidas:true,comoComprar:true,pedidos:true,rastreio:true,cadastro:true,entregas:true,trocas:true,pagamento:true,privacidade:true,termos:true},DB.get('footvis',{}));
   SITE=DB.get('site',{});LOG=Object.assign({},LOGDEF,DB.get('log',{}),{dias:[0,1,2,3,4,5,6]});PEDIT=DB.get('pedit',{});ROTAS=DB.get('rotas',{});SEEN=DB.get('seen',{});ADMIN=DB.get('adm',null);OFFSET=DB.get('offset',0);REV=DB.get('rev',0);ENTR=DB.get('entr',[]);ROTE=DB.get('rote',[]);RETIR=DB.get('ret',[]);
   migrate();applySite();applyProd();
@@ -864,16 +865,24 @@ function paintShell(){
 }
 function buildMenu(){
   let h='';
-  const OCULTOS=['Produtos injetáveis','Acompanhamento','Ofertas'];/* itens que não aparecem no menu do topo */
   const chev12='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>';
-  for(const [dep,gs] of Object.entries(TREE)){
-    if(OCULTOS.includes(dep))continue;
-    const has=Object.keys(gs).length;
-    h+=`<li class="${has||SOON.includes(dep)?'m':''}"><a onclick="nav('/cat/${encodeURIComponent(dep)}')">${dep}${has||SOON.includes(dep)?' '+chev12:''}</a>`;
-    if(has){h+='<div class="mega"><div class="mega-g">';
-      for(const [g,subs] of Object.entries(gs)){h+=`<div><b onclick="nav('/cat/${encodeURIComponent(dep+'/'+g)}')">${g}</b>`+subs.map(s=>`<i onclick="nav('/cat/${encodeURIComponent(dep+'/'+g+'/'+s)}')">${s}</i>`).join('')+'</div>'}
-      h+='</div></div>'}else if(SOON.includes(dep)){h+='<div class="mega"><div class="mega-g"><div><b style="cursor:default;color:var(--muted)">Em breve</b></div></div></div>'}
-    h+='</li>';
+  /* Se houver menu manual configurado no painel, usa ele */
+  if(MENU_ITENS&&MENU_ITENS.length){
+    MENU_ITENS.filter(m=>m.ativo===true).forEach(m=>{
+      h+=`<li class=""><a onclick="nav('${esc(m.link)}')">${esc(m.nome)}</a></li>`;
+    });
+  } else {
+    /* fallback: automático pelas categorias dos produtos */
+    const OCULTOS=['Produtos injetáveis','Acompanhamento','Ofertas'];
+    for(const [dep,gs] of Object.entries(TREE)){
+      if(OCULTOS.includes(dep))continue;
+      const has=Object.keys(gs).length;
+      h+=`<li class="${has||SOON.includes(dep)?'m':''}"><a onclick="nav('/cat/${encodeURIComponent(dep)}')">${dep}${has||SOON.includes(dep)?' '+chev12:''}</a>`;
+      if(has){h+='<div class="mega"><div class="mega-g">';
+        for(const [g,subs] of Object.entries(gs)){h+=`<div><b onclick="nav('/cat/${encodeURIComponent(dep+'/'+g)}')">${g}</b>`+subs.map(s=>`<i onclick="nav('/cat/${encodeURIComponent(dep+'/'+g+'/'+s)}')">${s}</i>`).join('')+'</div>'}
+        h+='</div></div>'}else if(SOON.includes(dep)){h+='<div class="mega"><div class="mega-g"><div><b style="cursor:default;color:var(--muted)">Em breve</b></div></div></div>'}
+      h+='</li>';
+    }
   }
   const lk=(u,css,txt)=>u==='wa:'?`<a href="${waUrl()}" target="_blank" rel="noopener" style="${css}">${txt}</a>`:`<a onclick="nav('${u}')" style="${css};cursor:pointer">${txt}</a>`;
   const chev='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>';
@@ -954,7 +963,7 @@ function shelf(t,list,link){return list.length?`<section class="sec" id="destaqu
 const BANVER='2';/* troque este número quando substituir as imagens dos banners no Storage */
 const BANURL=(n,v)=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/public/produtos/'+n+'-'+v+'.webp?v='+BANVER;
 /* Banners personalizados: BANS={url,titulo,subtitulo,botao,link,cor}[] | null */
-var CAMPVIS={tab:true,amigo:true,primeira:true},BANS=null;
+var CAMPVIS={tab:true,amigo:true,primeira:true},BANS=null,MENU_ITENS=null;
 var FOOTVIS={atendimento:true,duvidas:true,comoComprar:true,pedidos:true,rastreio:true,cadastro:true,entregas:true,trocas:true,pagamento:true,privacidade:true,termos:true};
 const APP_VERIF=[
   {nome:'AuthNow',play:'https://play.google.com/store/apps/details?id=com.authnow.qrvalidator&hl=pt_BR',ios:'https://apps.apple.com/us/app/authnow-product-verification/id6745412484?l=pt-BR'},
@@ -2859,8 +2868,9 @@ async function bancoConfig(){
     else if(x.chave==='camp_vis')CAMPVIS=Object.assign({tab:true,amigo:true,primeira:true},v);
     else if(x.chave==='banners'&&Array.isArray(v))BANS=v;
     else if(x.chave==='foot_vis')FOOTVIS=Object.assign({atendimento:true,duvidas:true,comoComprar:true,pedidos:true,rastreio:true,cadastro:true,entregas:true,trocas:true,pagamento:true,privacidade:true,termos:true},v);
+    else if(x.chave==='menu_itens'&&Array.isArray(v))MENU_ITENS=v;
   });
-  DB.set('campvis',CAMPVIS);if(BANS!==null)DB.set('bans',BANS);DB.set('footvis',FOOTVIS);
+  DB.set('campvis',CAMPVIS);if(BANS!==null)DB.set('bans',BANS);DB.set('footvis',FOOTVIS);if(MENU_ITENS!==null)DB.set('menu_itens',MENU_ITENS);
   applySite();
 }
 /* o menu e a página inicial seguem as categorias que vêm dos produtos */

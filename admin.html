@@ -3495,7 +3495,7 @@ function menuAdicionar(){
   const link=document.getElementById('miLink').value.trim();
   if(!nome||!link){toast('Preencha nome e link.');return}
   if(!A9.menuItens)A9.menuItens=[];
-  A9.menuItens.push({nome,link,ativo:true});
+  A9.menuItens.push({nome,link,ativo:false});
   document.getElementById('miNome').value='';
   document.getElementById('miLink').value='';
   admSalvaMenuItens();
@@ -3554,7 +3554,7 @@ function tabConfig(){
       <b style="font-size:.92rem">${esc(m.nome)}</b>
       <br><span style="font-size:.78rem;color:var(--muted)">${esc(m.link)}</span>
     </div>
-    <label style="font-size:.82rem;display:flex;align-items:center;gap:5px;cursor:pointer;flex-shrink:0"><input type="checkbox" style="width:auto" ${m.ativo!==false?'checked':''} onchange="menuToggle(${i},this.checked)"> Ativo</label>
+    <label style="font-size:.82rem;display:flex;align-items:center;gap:5px;cursor:pointer;flex-shrink:0"><input type="checkbox" style="width:auto" ${m.ativo===true?'checked':''} onchange="menuToggle(${i},this.checked)"> Ativo</label>
     <button class="btn ghost sm" style="flex-shrink:0" onclick="menuEditarNome(${i})">Nome</button>
     <button class="btn ghost sm" style="flex-shrink:0" onclick="menuEditarLink(${i})">Link</button>
     <button class="btn ghost sm" style="color:#b42318;flex-shrink:0" onclick="menuRemover(${i})">✕</button>
