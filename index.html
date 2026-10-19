@@ -965,7 +965,21 @@ const APP_VERIF=[
   {nome:'AuthNow',play:'https://play.google.com/store/apps/details?id=com.authnow.qrvalidator&hl=pt_BR',ios:'https://apps.apple.com/us/app/authnow-product-verification/id6745412484?l=pt-BR'},
   {nome:'Laava Scan',play:'https://play.google.com/store/apps/developer?id=Laava',ios:'https://apps.apple.com/ee/app/laava-scanner/id6448958240'}
 ];
-function abrirPopupApp(e){e&&e.stopPropagation();const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);const isAnd=/Android/.test(navigator.userAgent);document.getElementById('appModal').style.display='flex';document.querySelectorAll('.appbtn').forEach(b=>{if(isIOS&&b.dataset.plat==='ios')b.classList.add('appbtn-hl');else if(isAnd&&b.dataset.plat==='play')b.classList.add('appbtn-hl');});}
+function abrirPopupApp(e){
+  e&&e.stopPropagation();
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAnd=/Android/.test(navigator.userAgent);
+  const playIco='<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#34a853" d="M3.18 23.76c.37.21.8.22 1.19.03l12.6-7.27-2.83-2.83z"/><path fill="#4285f4" d="M20.6 10.27a1.88 1.88 0 0 0 0 3.46l1.22.7A1.88 1.88 0 0 0 22 12a1.88 1.88 0 0 0-.94-1.63z" opacity=".8"/><path fill="#fbbc04" d="M4.37.21A1.88 1.88 0 0 0 3.18.24L14.14 11.2 16.97 8.4z"/><path fill="#ea4335" d="M3.18.24A1.9 1.9 0 0 0 2 2v20c0 .76.42 1.43 1.05 1.76l11.09-11.1z"/></svg>';
+  const iosIco='<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>';
+  const btnSt='flex:1;display:flex;align-items:center;justify-content:center;gap:7px;background:#f3f3f3;border-radius:10px;padding:9px 10px;font-size:.82rem;font-weight:600;color:#2b2b2b;text-decoration:none;border:2px solid transparent';
+  const apps=APP_VERIF.map(a=>{
+    const hlP=isAnd?' appbtn-hl':'';const hlI=isIOS?' appbtn-hl':'';
+    return '<div style="border:1px solid #e6e6e6;border-radius:14px;padding:14px 16px"><div style="font-weight:600;color:#2b2b2b;margin-bottom:10px;font-size:.95rem">'+a.nome+'</div><div style="display:flex;gap:10px"><a class="appbtn'+hlP+'" data-plat="play" href="'+a.play+'" target="_blank" rel="noopener" style="'+btnSt+'">'+playIco+' Google Play</a><a class="appbtn'+hlI+'" data-plat="ios" href="'+a.ios+'" target="_blank" rel="noopener" style="'+btnSt+'">'+iosIco+' App Store</a></div></div>';
+  }).join('');
+  const modal=document.getElementById('appModal');
+  modal.innerHTML='<div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)" onclick="event.stopPropagation()"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><h3 style="margin:0;font-size:1.1rem;color:#0a6e5c">Verificar autenticidade</h3><button onclick="fecharPopupApp()" style="background:none;border:0;font-size:1.5rem;cursor:pointer;color:#888;line-height:1">×</button></div><p style="margin:0 0 20px;color:#667085;font-size:.88rem">Baixe o app do fabricante e escaneie o QR Code da embalagem para confirmar que seu produto é original.</p><div style="display:flex;flex-direction:column;gap:14px">'+apps+'</div><p style="margin:16px 0 0;font-size:.78rem;color:#98a2b3;text-align:center">Após baixar, abra o app e escaneie o QR Code da embalagem.</p></div>';
+  modal.style.display='flex';
+}
 function fecharPopupApp(){document.getElementById('appModal').style.display='none';}
 const SL=()=>{
   const fixos=[{t:'Medicamentos para emagrecimento com praticidade e entrega rápida',s:CFG.brand,b:'Ver medicamentos',l:'/cat/'+encodeURIComponent('Produtos disponíveis'),c:'#0a6e5c',img:'banner-01'}];
@@ -985,7 +999,7 @@ const DIMG={'Ampolas':'ampola','Caixas':'caixa','Acompanhamento':'prancheta','Pr
 function pageHome(){
   const ben=[['Entrega rápida','Consulte prazo e regiões atendidas*','M2 6h11v10H2zM13 9h4l3 3v4h-7','caminhao'],['Pague na entrega','Link de pagamento enviado quando o pedido sai para entrega','M3 6h18v12H3zM3 10h18M7 15h4','cartao'],['Equipe de saúde','Atendimento por profissionais','M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z','coracao']];
   const D0=Object.keys(TREE)[0];const deps=Object.keys(TREE).filter(d=>!['Ofertas','Produtos injetáveis','Acompanhamento'].includes(d));const dIc={'Medicamentos':'inj','Produtos injetáveis':'inj','Acessórios de aplicação':'needle','Caixas':'inj','Ampolas':'inj','Acompanhamento':'scale'};
-  const slides=SL();const mobHome=true;const SHF=shelf(D0+' em destaque',LIVE().filter(p=>p.cat[0]===D0&&p.cat[1]!=='Acessórios de Aplicação'),'/cat/'+encodeURIComponent(D0));
+  const DEST='Ampolas';const slides=SL();const mobHome=true;const SHF=shelf(DEST+' em destaque',LIVE().filter(p=>p.cat[0]===DEST),'/cat/'+encodeURIComponent(DEST));
   const slPic=s=>s.imgurl?`<picture class="slpic"><img src="${esc(s.imgurl)}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:s.img?`<picture class="slpic"><source media="(max-width:760px)" srcset="${BANURL(s.img,'mobile')}"><img src="${BANURL(s.img,'desktop')}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:'';
   const slClick=s=>s.l==='__appverif__'?'abrirPopupApp(event)':`nav('${s.l}')`;
   return `<section class="hero${BANS&&BANS.length?' custom-ban':''}" id="hero">${slides.map((s,i)=>`<div class="sl ${i?'':'on'}${(s.img||s.imgurl)?' wantimg':''}" style="background:${s.c}" onclick="${slClick(s)}">${slPic(s)}<div class="wrap"><span class="tag">${s.s}</span><strong>${s.t}</strong><u>${s.b}</u></div></div>`).join('')}
@@ -3842,16 +3856,17 @@ function tabCampanhas(){
 
   <div class="box" style="grid-column:1/-1"><h3 style="margin-top:0">Banners do carrossel</h3>
   <p style="color:var(--muted);font-size:.88rem;margin:0 0 12px">Adicione banners personalizados. Quando há banners aqui, eles substituem os banners padrão. Deixe a lista vazia para voltar aos banners padrão.</p>
-  ${bans.length?`<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">${bans.map((b,i)=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid #e5e7eb;border-radius:10px;background:#fafafa"><div style="width:56px;height:32px;border-radius:6px;background:#ddd;overflow:hidden;flex-shrink:0">${b.url?`<img src="${esc(b.url)}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`:'<span style="font-size:.7rem;color:#999;padding:2px">sem img</span>'}</div><div style="flex:1;min-width:0"><b style="font-size:.9rem">${esc(b.titulo||'Banner '+(i+1))}</b><br><span style="font-size:.78rem;color:var(--muted)">${b.seg||4}s por slide</span></div><label style="font-size:.82rem;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" style="width:auto" ${b.ativo!==false?'checked':''} onchange="banSetAtivo(${i},this.checked)"> Ativo</label><button class="btn ghost sm" style="color:#b42318;flex-shrink:0" onclick="banRemover(${i})">Remover</button></div>`).join('')}</div>`:'<p style="color:var(--muted)">Nenhum banner. Usando banners padrão.</p>'}
-  <div style="padding:14px;border:1px dashed #d1d5db;border-radius:10px;margin-top:4px">
-    <p style="margin:0 0 10px;font-weight:600;font-size:.9rem">Adicionar banner</p>
+  ${bans.length?`<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">${bans.map((b,i)=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid #e5e7eb;border-radius:10px;background:#fafafa"><div style="width:56px;height:32px;border-radius:6px;background:#ddd;overflow:hidden;flex-shrink:0">${b.url?`<img src="${esc(b.url)}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`:'<span style="font-size:.7rem;color:#999;padding:2px">sem img</span>'}</div><div style="flex:1;min-width:0"><b style="font-size:.9rem">${esc(b.titulo||'Banner '+(i+1))}</b><br><span style="font-size:.78rem;color:var(--muted)">${b.link?esc(b.link):''} · ${b.seg||4}s por slide</span></div><label style="font-size:.82rem;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" style="width:auto" ${b.ativo!==false?'checked':''} onchange="banSetAtivo(${i},this.checked)"> Ativo</label><button class="btn ghost sm" style="flex-shrink:0" onclick="banEditar(${i})">Editar</button><button class="btn ghost sm" style="color:#b42318;flex-shrink:0" onclick="banRemover(${i})">Remover</button></div>`).join('')}</div>`:'<p style="color:var(--muted)">Nenhum banner. Usando banners padrão.</p>'}
+  <div id="bnFormWrap" style="padding:14px;border:1px dashed #d1d5db;border-radius:10px;margin-top:4px">
+    <p style="margin:0 0 10px;font-weight:600;font-size:.9rem" id="bnFormTitulo">Adicionar banner</p>
     <div class="fr">
-      <div><label>Imagem do banner</label><input id="bnFile" type="file" accept="image/*" style="padding:4px"></div>
+      <div id="bnFileWrap"><label>Imagem do banner</label><input id="bnFile" type="file" accept="image/*" style="padding:4px"><span id="bnFileNote" style="display:none;font-size:.8rem;color:var(--muted)">Deixe em branco para manter a imagem atual</span></div>
       <div class="c2"><label for="bnTit">Título (aparece sobre a imagem)</label><input id="bnTit" maxlength="80" placeholder="Ex.: Promoção de Verão"></div>
       <div class="c2"><label for="bnLnk">Link ao clicar (ex: /cat/Ampolas)</label><input id="bnLnk" placeholder="/cat/Ampolas"></div>
       <div><label for="bnSeg">Tempo no carrossel (segundos)</label><div style="display:flex;align-items:center;gap:10px"><input id="bnSeg" type="number" min="2" max="30" value="4" style="width:80px"><span style="font-size:.82rem;color:var(--muted)">Mín: 2s — Máx: 30s</span></div></div>
     </div>
-    <p style="margin-top:10px"><button class="btn acc" onclick="banAdicionar(event)">Subir e adicionar</button> <span id="bnStatus" style="font-size:.85rem;color:var(--muted)"></span></p>
+    <input type="hidden" id="bnEditIdx" value="-1">
+    <p style="margin-top:10px"><button class="btn acc" id="bnSubmitBtn" onclick="banAdicionar(event)">Subir e adicionar</button> <button class="btn ghost" id="bnCancelarBtn" style="display:none" onclick="banCancelarEdicao()">Cancelar</button> <span id="bnStatus" style="font-size:.85rem;color:var(--muted)"></span></p>
   </div>
   </div>`;
 }
@@ -3882,6 +3897,58 @@ async function banSalvar(){
   const r=await SB.from('configuracao').upsert({chave:'banners',valor:bans,publica:true,atualizado_em:new Date().toISOString()});
   if(r.error){A9.msg='Não foi possível salvar os banners.';A9.erro=true;route();return}
   BANS=bans.length?bans:null;DB.set('bans',BANS);A9.msg='Banners salvos.';A9.erro=false;try{await bancoConfig()}catch(x){}route();
+}
+function banEditar(i){
+  const b=A9.camp&&A9.camp.bans&&A9.camp.bans[i];if(!b)return;
+  const tit=document.getElementById('bnFormTitulo');
+  const sub=document.getElementById('bnSubmitBtn');
+  const can=document.getElementById('bnCancelarBtn');
+  const fn=document.getElementById('bnFileNote');
+  if(tit)tit.textContent='Editando banner '+(i+1);
+  if(sub){sub.textContent='Salvar alterações';sub.onclick=ev=>banSalvarEdicao(ev);}
+  if(can)can.style.display='';
+  if(fn)fn.style.display='';
+  const ei=document.getElementById('bnEditIdx');if(ei)ei.value=i;
+  const ft=document.getElementById('bnTit');if(ft)ft.value=b.titulo||'';
+  const fl=document.getElementById('bnLnk');if(fl)fl.value=b.link||'';
+  const fs=document.getElementById('bnSeg');if(fs)fs.value=b.seg||4;
+  const fw=document.getElementById('bnFormWrap');
+  if(fw)fw.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function banCancelarEdicao(){
+  const tit=document.getElementById('bnFormTitulo');if(tit)tit.textContent='Adicionar banner';
+  const sub=document.getElementById('bnSubmitBtn');if(sub){sub.textContent='Subir e adicionar';sub.onclick=ev=>banAdicionar(ev);}
+  const can=document.getElementById('bnCancelarBtn');if(can)can.style.display='none';
+  const fn=document.getElementById('bnFileNote');if(fn)fn.style.display='none';
+  const ei=document.getElementById('bnEditIdx');if(ei)ei.value='-1';
+  const ft=document.getElementById('bnTit');if(ft)ft.value='';
+  const fl=document.getElementById('bnLnk');if(fl)fl.value='';
+  const fs=document.getElementById('bnSeg');if(fs)fs.value='4';
+  const fi=document.getElementById('bnFile');if(fi)fi.value='';
+}
+async function banSalvarEdicao(ev){
+  if(ev)ev.preventDefault();
+  const idx=+(document.getElementById('bnEditIdx')||{value:'-1'}).value;
+  if(idx<0||!A9.camp.bans||!A9.camp.bans[idx]){toast('Índice inválido.');return}
+  const titulo=v_('bnTit').trim(),seg=Math.max(2,Math.min(30,+(v_('bnSeg')||4)||4));
+  if(!titulo){toast('Preencha o título.');return}
+  const lnk=v_('bnLnk').trim()||'/';
+  const st=document.getElementById('bnStatus');
+  const fi=document.getElementById('bnFile');
+  const b=A9.camp.bans[idx];
+  if(fi&&fi.files&&fi.files[0]){
+    const file=fi.files[0];
+    const ext=file.name.split('.').pop().toLowerCase()||'jpg';
+    const nome='banner-custom-'+Date.now()+'.'+ext;
+    if(st)st.textContent='Enviando imagem...';
+    const up=await SB.storage.from('produtos').upload(nome,file,{cacheControl:'3600',upsert:true,contentType:file.type});
+    if(up.error){if(st)st.textContent='';toast('Erro ao subir imagem: '+up.error.message);return}
+    b.url=SB_URL+'/storage/v1/object/public/produtos/'+nome;
+  }
+  b.titulo=titulo;b.link=lnk;b.seg=seg;
+  if(st)st.textContent='';
+  banCancelarEdicao();
+  banSalvar();
 }
 async function banAdicionar(ev){
   if(ev)ev.preventDefault();
@@ -5184,32 +5251,7 @@ function cupomEnviar(k){
   const d=document.getElementById('cpbox');if(d)d.remove();toast('WhatsApp aberto. O envio é feito por você.');route();
 }
 </script>
-<!-- Modal verificação de autenticidade -->
-<div id="appModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;padding:16px" onclick="fecharPopupApp()">
-  <div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)" onclick="event.stopPropagation()">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-      <h3 style="margin:0;font-size:1.1rem;color:#0a6e5c">Verificar autenticidade</h3>
-      <button onclick="fecharPopupApp()" style="background:none;border:0;font-size:1.5rem;cursor:pointer;color:#888;line-height:1">×</button>
-    </div>
-    <p style="margin:0 0 20px;color:#667085;font-size:.88rem">Baixe o app do fabricante e escaneie o QR Code da embalagem para confirmar que seu produto é original.</p>
-    <div style="display:flex;flex-direction:column;gap:14px">
-      ${APP_VERIF.map(a=>`<div style="border:1px solid #e6e6e6;border-radius:14px;padding:14px 16px">
-        <div style="font-weight:600;color:#2b2b2b;margin-bottom:10px;font-size:.95rem">${a.nome}</div>
-        <div style="display:flex;gap:10px">
-          <a class="appbtn" data-plat="play" href="${a.play}" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;background:#f3f3f3;border-radius:10px;padding:9px 10px;font-size:.82rem;font-weight:600;color:#2b2b2b;text-decoration:none;border:2px solid transparent">
-            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#34a853" d="M3.18 23.76c.37.21.8.22 1.19.03l12.6-7.27-2.83-2.83z"/><path fill="#4285f4" d="M20.6 10.27a1.88 1.88 0 0 0 0 3.46l1.22.7A1.88 1.88 0 0 0 22 12a1.88 1.88 0 0 0-.94-1.63z" opacity=".8"/><path fill="#fbbc04" d="M4.37.21A1.88 1.88 0 0 0 3.18.24L14.14 11.2 16.97 8.4z"/><path fill="#ea4335" d="M3.18.24A1.9 1.9 0 0 0 2 2v20c0 .76.42 1.43 1.05 1.76l11.09-11.1z"/></svg>
-            Google Play
-          </a>
-          <a class="appbtn" data-plat="ios" href="${a.ios}" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;background:#f3f3f3;border-radius:10px;padding:9px 10px;font-size:.82rem;font-weight:600;color:#2b2b2b;text-decoration:none;border:2px solid transparent">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-            App Store
-          </a>
-        </div>
-      </div>`).join('')}
-    </div>
-    <p style="margin:16px 0 0;font-size:.78rem;color:#98a2b3;text-align:center">Após baixar, abra o app e escaneie o QR Code da embalagem.</p>
-  </div>
-</div>
+<div id="appModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;padding:16px" onclick="fecharPopupApp()"></div>
 <style>.appbtn-hl{background:#e5f3ef!important;border-color:#0a6e5c!important;color:#0a6e5c!important}</style>
 </body>
 </html>
