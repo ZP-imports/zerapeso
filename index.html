@@ -670,7 +670,7 @@ function load(){
   AM=Object.assign({},AMDEF,DB.get('amigo',{}));AM.nome=String(AM.nome).replace('Amigo Indica Amigo','Amigo Emagrece Amigo');
   CAMPVIS=Object.assign({tab:true,amigo:true,primeira:true},DB.get('campvis',{}));
   BANS=DB.get('bans',null);
-  MENU_ITENS=DB.get('menu_itens',null);
+  MENU_ITENS=DB.get('menu_itens',null);LOGO_URL=DB.get('logo_url',null);
   FOOTVIS=Object.assign({atendimento:true,duvidas:true,comoComprar:true,pedidos:true,rastreio:true,cadastro:true,entregas:true,trocas:true,pagamento:true,privacidade:true,termos:true},DB.get('footvis',{}));
   SITE=DB.get('site',{});LOG=Object.assign({},LOGDEF,DB.get('log',{}),{dias:[0,1,2,3,4,5,6]});PEDIT=DB.get('pedit',{});ROTAS=DB.get('rotas',{});SEEN=DB.get('seen',{});ADMIN=DB.get('adm',null);OFFSET=DB.get('offset',0);REV=DB.get('rev',0);ENTR=DB.get('entr',[]);ROTE=DB.get('rote',[]);RETIR=DB.get('ret',[]);
   migrate();applySite();applyProd();
@@ -690,6 +690,13 @@ function applySite(){
   if(/orientação profissional/.test(CFG.aviso))CFG.aviso=CFG0.aviso;
   if(CFG.frete==='Grátis')CFG.frete=CFG0.frete;
   if(CFG.brand==='XP Imports')CFG.brand='ZP Imports';
+  /* aplica cores customizadas */
+  const c=SITE.cores||{};
+  const r=document.documentElement.style;
+  r.setProperty('--p',c.primaria||'#0a6e5c');
+  r.setProperty('--pd',c.primaria_dark||(c.primaria?c.primaria:'#074d40'));
+  r.setProperty('--acc',c.acento||'#ffb703');
+  r.setProperty('--bg',c.nav_bg||'#f3f3f3');
 }
 function applyProd(){
   PRODUCTS.forEach((p,i)=>{Object.keys(p).forEach(k=>{if(!(k in BASE[i]))delete p[k]});Object.assign(p,BASE[i],PEDIT[p.id]||{});if(p.sale===''||p.sale==null||isNaN(p.sale))delete p.sale})
@@ -857,7 +864,7 @@ function friendRows(owner){
 
 /* ======================= CABEÇALHO, MENU, RODAPÉ ======================= */
 function paintShell(){
-  $('#brand').textContent=CFG.brand;
+  if(LOGO_URL){$('.mark').innerHTML=`<img src="${LOGO_URL}" alt="${esc(CFG.brand)}" style="width:44px;height:44px;object-fit:contain;border-radius:13px">`;$('#brand').textContent='';}else{$('.mark').innerHTML='<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="18" rx="1.5"/><rect x="3" y="9" width="18" height="6" rx="1.5"/></svg>';$('#brand').textContent=CFG.brand;}
   if(CAMPVIS.primeira){$('#faixa').innerHTML='<span class="fxi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg></span><span><b>'+PC.pct+'% OFF</b> na sua primeira compra de medicamentos para emagrecimento</span>';$('#faixa').style.cursor='pointer';$('#faixa').onclick=()=>nav('/reg/primeira-compra');$('#faixa').style.display='';}
   else{$('#faixa').innerHTML='';$('#faixa').style.display='none';}
   $('#wafloat').href=waUrl();
@@ -963,7 +970,7 @@ function shelf(t,list,link){return list.length?`<section class="sec" id="destaqu
 const BANVER='2';/* troque este número quando substituir as imagens dos banners no Storage */
 const BANURL=(n,v)=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/public/produtos/'+n+'-'+v+'.webp?v='+BANVER;
 /* Banners personalizados: BANS={url,titulo,subtitulo,botao,link,cor}[] | null */
-var CAMPVIS={tab:true,amigo:true,primeira:true},BANS=null,MENU_ITENS=null;
+var CAMPVIS={tab:true,amigo:true,primeira:true},BANS=null,MENU_ITENS=null,LOGO_URL=null;
 var FOOTVIS={atendimento:true,duvidas:true,comoComprar:true,pedidos:true,rastreio:true,cadastro:true,entregas:true,trocas:true,pagamento:true,privacidade:true,termos:true};
 const APP_VERIF=[
   {nome:'AuthNow',play:'https://play.google.com/store/apps/details?id=com.authnow.qrvalidator&hl=pt_BR',ios:'https://apps.apple.com/us/app/authnow-product-verification/id6745412484?l=pt-BR'},
@@ -2858,7 +2865,7 @@ async function bancoConfig(){
   if(r.error)throw r.error;
   r.data.forEach(x=>{
     const v=x.valor;
-    if(x.chave==='site')SITE.cfg=Object.assign({},v);
+    if(x.chave==='site'){if(v&&typeof v==='object'&&(v.cfg||v.cores)){SITE.cfg=Object.assign({},v.cfg||{});if(v.pct!=null)SITE.pct=+v.pct;SITE.cores=Object.assign({},v.cores||{});}else{SITE.cfg=Object.assign({},v||{});SITE.cores={};} }
     else if(x.chave==='primeira_compra')SITE.pct=+v.pct;
     else if(x.chave==='amigo')AM=Object.assign({},AMDEF,v);
     else if(x.chave==='logistica')LOG=Object.assign({},LOGDEF,v,{dias:[0,1,2,3,4,5,6]});
@@ -2869,8 +2876,9 @@ async function bancoConfig(){
     else if(x.chave==='banners'&&Array.isArray(v))BANS=v;
     else if(x.chave==='foot_vis')FOOTVIS=Object.assign({atendimento:true,duvidas:true,comoComprar:true,pedidos:true,rastreio:true,cadastro:true,entregas:true,trocas:true,pagamento:true,privacidade:true,termos:true},v);
     else if(x.chave==='menu_itens'&&Array.isArray(v))MENU_ITENS=v;
+    else if(x.chave==='logo_url'&&typeof v==='string')LOGO_URL=v||null;
   });
-  DB.set('campvis',CAMPVIS);if(BANS!==null)DB.set('bans',BANS);DB.set('footvis',FOOTVIS);if(MENU_ITENS!==null)DB.set('menu_itens',MENU_ITENS);
+  DB.set('campvis',CAMPVIS);if(BANS!==null)DB.set('bans',BANS);DB.set('footvis',FOOTVIS);if(MENU_ITENS!==null)DB.set('menu_itens',MENU_ITENS);DB.set('logo_url',LOGO_URL);
   applySite();
 }
 /* o menu e a página inicial seguem as categorias que vêm dos produtos */

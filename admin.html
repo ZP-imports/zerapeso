@@ -671,7 +671,7 @@ function load(){
   AM=Object.assign({},AMDEF,DB.get('amigo',{}));AM.nome=String(AM.nome).replace('Amigo Indica Amigo','Amigo Emagrece Amigo');
   SITE=DB.get('site',{});LOG=Object.assign({},LOGDEF,DB.get('log',{}),{dias:[0,1,2,3,4,5,6]});PEDIT=DB.get('pedit',{});ROTAS=DB.get('rotas',{});SEEN=DB.get('seen',{});ADMIN=DB.get('adm',null);OFFSET=DB.get('offset',0);REV=DB.get('rev',0);ENTR=DB.get('entr',[]);ROTE=DB.get('rote',[]);RETIR=DB.get('ret',[]);
   CAMPVIS=Object.assign({tab:true,amigo:true,primeira:true},DB.get('campvis',{}));
-  BANS=DB.get('bans',null);
+  BANS=DB.get('bans',null);LOGO_URL=DB.get('logo_url',null);
   FOOTVIS=Object.assign({atendimento:true,duvidas:true,comoComprar:true,pedidos:true,rastreio:true,cadastro:true,entregas:true,trocas:true,pagamento:true,privacidade:true,termos:true},DB.get('footvis',{}));
   migrate();applySite();applyProd();
 }
@@ -690,6 +690,12 @@ function applySite(){
   if(/orientação profissional/.test(CFG.aviso))CFG.aviso=CFG0.aviso;
   if(CFG.frete==='Grátis')CFG.frete=CFG0.frete;
   if(CFG.brand==='XP Imports')CFG.brand='ZP Imports';
+  const c=SITE.cores||{};
+  const r=document.documentElement.style;
+  r.setProperty('--p',c.primaria||'#0a6e5c');
+  r.setProperty('--pd',c.primaria_dark||(c.primaria?c.primaria:'#074d40'));
+  r.setProperty('--acc',c.acento||'#ffb703');
+  r.setProperty('--bg',c.nav_bg||'#f3f3f3');
 }
 function applyProd(){
   PRODUCTS.forEach((p,i)=>{Object.keys(p).forEach(k=>{if(!(k in BASE[i]))delete p[k]});Object.assign(p,BASE[i],PEDIT[p.id]||{});if(p.sale===''||p.sale==null||isNaN(p.sale))delete p.sale})
@@ -857,7 +863,7 @@ function friendRows(owner){
 
 /* ======================= CABEÇALHO, MENU, RODAPÉ ======================= */
 function paintShell(){
-  $('#brand').textContent=CFG.brand;
+  if(LOGO_URL){$('.mark').innerHTML=`<img src="${LOGO_URL}" alt="${esc(CFG.brand)}" style="width:44px;height:44px;object-fit:contain;border-radius:13px">`;$('#brand').textContent='';}else{$('.mark').innerHTML='<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="18" rx="1.5"/><rect x="3" y="9" width="18" height="6" rx="1.5"/></svg>';$('#brand').textContent=CFG.brand;}
   if(CAMPVIS.primeira){$('#faixa').innerHTML='<span class="fxi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg></span><span><b>'+PC.pct+'% OFF</b> na sua primeira compra de medicamentos para emagrecimento</span>';$('#faixa').style.cursor='pointer';$('#faixa').onclick=()=>nav('/reg/primeira-compra');$('#faixa').style.display='';}
   else{$('#faixa').innerHTML='';$('#faixa').style.display='none';}
   $('#wafloat').href=waUrl();
@@ -959,7 +965,7 @@ function card(p){
 function shelf(t,list,link){return list.length?`<section class="sec" id="destaque"><div class="wrap"><div class="sh"><h2>${t}</h2>${link?`<a onclick="nav('${link}')">Ver todos</a>`:''}</div><div class="grid">${list.map(card).join('')}</div></div></section>`:''}
 const BANVER='2';/* troque este número quando substituir as imagens dos banners no Storage */
 const BANURL=(n,v)=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/public/produtos/'+n+'-'+v+'.webp?v='+BANVER;
-var CAMPVIS={tab:true,amigo:true,primeira:true},BANS=null;
+var CAMPVIS={tab:true,amigo:true,primeira:true},BANS=null,LOGO_URL=null;
 var FOOTVIS={atendimento:true,duvidas:true,comoComprar:true,pedidos:true,rastreio:true,cadastro:true,entregas:true,trocas:true,pagamento:true,privacidade:true,termos:true};
 const APP_VERIF=[
   {nome:'AuthNow',play:'https://play.google.com/store/apps/details?id=com.authnow.qrvalidator&hl=pt_BR',ios:'https://apps.apple.com/us/app/authnow-product-verification/id6745412484?l=pt-BR'},
@@ -2854,7 +2860,7 @@ async function bancoConfig(){
   if(r.error)throw r.error;
   r.data.forEach(x=>{
     const v=x.valor;
-    if(x.chave==='site')SITE.cfg=Object.assign({},v);
+    if(x.chave==='site'){if(v&&typeof v==='object'&&(v.cfg||v.cores)){SITE.cfg=Object.assign({},v.cfg||{});if(v.pct!=null)SITE.pct=+v.pct;SITE.cores=Object.assign({},v.cores||{});}else{SITE.cfg=Object.assign({},v||{});SITE.cores={};} }
     else if(x.chave==='primeira_compra')SITE.pct=+v.pct;
     else if(x.chave==='amigo')AM=Object.assign({},AMDEF,v);
     else if(x.chave==='logistica')LOG=Object.assign({},LOGDEF,v,{dias:[0,1,2,3,4,5,6]});
@@ -3478,7 +3484,55 @@ async function admSalvaFootVis(){
   FOOTVIS=fv;DB.set('footvis',FOOTVIS);A9.msg='Rodapé salvo.';A9.erro=false;buildFoot();route();
 }
 function fvChk(id,key,label){return `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 0"><input type="checkbox" id="${id}" ${FOOTVIS[key]?'checked':''} style="width:16px;height:16px"> ${label}</label>`;}
-A9.menuItens=null;
+A9.menuItens=null;A9.logoUrl=null;
+async function admCarregarLogo(){
+  const r=await SB.from('configuracao').select('valor').eq('chave','logo_url').maybeSingle();
+  A9.logoUrl=(r.data&&typeof r.data.valor==='string')?r.data.valor:'';
+}
+async function admSalvaLogo(ev){
+  ev.preventDefault();
+  const file=document.getElementById('logoFile').files[0];
+  if(!file){A9.msg='Selecione uma imagem.';A9.erro=true;route();return}
+  if(file.size>2*1024*1024){A9.msg='Imagem muito grande (máx 2MB).';A9.erro=true;route();return}
+  A9.busy=true;route();
+  const ext=file.name.split('.').pop().toLowerCase();
+  const path=`logo/logo.${ext}`;
+  const up=await SB.storage.from('publico').upload(path,file,{upsert:true,contentType:file.type});
+  A9.busy=false;
+  if(up.error){A9.msg='Erro ao subir imagem: '+up.error.message;A9.erro=true;route();return}
+  const {data:pub}=SB.storage.from('publico').getPublicUrl(path);
+  const url=pub.publicUrl+'?t='+Date.now();
+  const r=await SB.from('configuracao').upsert({chave:'logo_url',valor:url,publica:true,atualizado_em:new Date().toISOString()});
+  if(r.error){A9.msg='Erro ao salvar logo.';A9.erro=true;route();return}
+  LOGO_URL=url;DB.set('logo_url',url);A9.logoUrl=url;
+  A9.msg='Logo atualizada! O site já reflete a alteração.';A9.erro=false;route();
+}
+async function admRemoverLogo(){
+  if(!confirm('Remover logo e voltar ao ícone padrão?'))return;
+  await SB.from('configuracao').upsert({chave:'logo_url',valor:'',publica:true,atualizado_em:new Date().toISOString()});
+  LOGO_URL=null;DB.set('logo_url',null);A9.logoUrl='';
+  A9.msg='Logo removida. O site voltou ao ícone padrão.';A9.erro=false;route();
+}
+async function admSalvaCores(){
+  const primaria=document.getElementById('corP').value;
+  const acento=document.getElementById('corA').value;
+  const nav_bg=document.getElementById('corN').value;
+  if(!SITE.cores)SITE.cores={};
+  SITE.cores={primaria,acento,nav_bg};
+  const cfg=Object.assign({},SITE.cfg||{});
+  const r=await SB.from('configuracao').upsert({chave:'site',valor:{cfg,pct:SITE.pct,cores:SITE.cores},publica:false,atualizado_em:new Date().toISOString()});
+  if(r.error){A9.msg='Erro ao salvar cores.';A9.erro=true;route();return}
+  DB.set('site',SITE);applySite();
+  A9.msg='Cores salvas! O site já reflete as alterações.';A9.erro=false;route();
+}
+async function admResetCores(){
+  if(!confirm('Restaurar as cores padrão?'))return;
+  SITE.cores={};
+  const r=await SB.from('configuracao').upsert({chave:'site',valor:{cfg:SITE.cfg||{},pct:SITE.pct,cores:{}},publica:false,atualizado_em:new Date().toISOString()});
+  if(r.error){A9.msg='Erro ao restaurar cores.';A9.erro=true;route();return}
+  DB.set('site',SITE);applySite();
+  A9.msg='Cores restauradas ao padrão.';A9.erro=false;route();
+}
 async function admCarregarMenuItens(){
   const r=await SB.from('configuracao').select('valor').eq('chave','menu_itens').maybeSingle();
   A9.menuItens=r.data&&r.data.valor&&Array.isArray(r.data.valor)?r.data.valor:[];
@@ -3520,7 +3574,7 @@ function menuEditarLink(i){
   arr[i].link=novo.trim()||arr[i].link;admSalvaMenuItens();
 }
 function tabConfig(){
-  if(A9.cfgOk!==true){if(!A9.busy){A9.busy=true;Promise.all([admCarregarLink(),admCarregarMenuItens()]).finally(()=>{A9.busy=false;A9.cfgOk=true;route()})}return '<div class="box">Carregando...</div>'}
+  if(A9.cfgOk!==true){if(!A9.busy){A9.busy=true;Promise.all([admCarregarLink(),admCarregarMenuItens(),admCarregarLogo()]).finally(()=>{A9.busy=false;A9.cfgOk=true;route()})}return '<div class="box">Carregando...</div>'}
   const menuItens=A9.menuItens||[];
   return `<div class="box" style="max-width:640px"><h3 style="margin-top:0">Link de pagamento</h3>${msgBox()}<p style="color:var(--muted);margin-top:0">Link fixo do Mercado Pago. Em cada pedido, o botão "Enviar link de pagamento no WhatsApp" manda este link ao cliente com o valor do pedido.</p><label for="cfLink">Link</label><input id="cfLink" value="${esc(A9.link)}" placeholder="https://link.mercadopago.com.br/..."><p><button class="btn acc" onclick="admSalvaLink()">Salvar</button></p></div>
   <div class="box" style="max-width:640px;margin-top:16px"><h3 style="margin-top:0">Rodapé da página</h3>
@@ -3542,6 +3596,23 @@ function tabConfig(){
     ${fvChk('fvTer','termos','Termos de uso')}</div>
   </div>
   <p style="margin-top:14px"><button class="btn acc" onclick="admSalvaFootVis()">Salvar rodapé</button></p></div>
+
+  <div class="box" style="max-width:640px;margin-top:16px"><h3 style="margin-top:0">Logo da loja</h3>
+  <p style="color:var(--muted);margin-top:0;font-size:.9rem">Suba uma imagem para substituir o ícone padrão. Aparece no cabeçalho do site e do administrativo.</p>
+  ${A9.logoUrl?`<div style="margin-bottom:12px;display:flex;align-items:center;gap:12px"><img src="${A9.logoUrl}" style="width:54px;height:54px;object-fit:contain;border-radius:13px;border:1px solid var(--line)"><button class="btn ghost sm" style="color:#b42318" onclick="admRemoverLogo()">Remover logo</button></div>`:'<p style="font-size:.88rem;color:var(--muted)">Nenhuma logo customizada. Usando ícone padrão.</p>'}
+  <form onsubmit="admSalvaLogo(event);return false" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+    <div style="flex:1;min-width:200px"><label for="logoFile">Nova imagem (PNG, JPG, SVG — máx 2MB)</label><input id="logoFile" type="file" accept="image/*" style="padding:8px"></div>
+    <button class="btn acc" type="submit" ${A9.busy?'disabled':''}>Subir logo</button>
+  </form></div>
+
+  <div class="box" style="max-width:640px;margin-top:16px"><h3 style="margin-top:0">Cores da loja</h3>
+  <p style="color:var(--muted);margin-top:0;font-size:.9rem">Altere as cores principais do site e do administrativo.</p>
+  <div class="fr" style="gap:12px;flex-wrap:wrap">
+    <div><label for="corP">Cor principal (menu, botões)</label><input id="corP" type="color" value="${(SITE.cores&&SITE.cores.primaria)||'#0a6e5c'}" style="width:60px;height:36px;padding:2px;border-radius:8px;border:1px solid var(--line);cursor:pointer"></div>
+    <div><label for="corA">Cor de destaque (amarelo)</label><input id="corA" type="color" value="${(SITE.cores&&SITE.cores.acento)||'#ffb703'}" style="width:60px;height:36px;padding:2px;border-radius:8px;border:1px solid var(--line);cursor:pointer"></div>
+    <div><label for="corN">Fundo da barra do menu</label><input id="corN" type="color" value="${(SITE.cores&&SITE.cores.nav_bg)||'#f3f3f3'}" style="width:60px;height:36px;padding:2px;border-radius:8px;border:1px solid var(--line);cursor:pointer"></div>
+  </div>
+  <p style="margin-top:14px;display:flex;gap:8px"><button class="btn acc" onclick="admSalvaCores()">Salvar cores</button><button class="btn ghost" onclick="admResetCores()">Restaurar padrão</button></p></div>
 
   <div class="box" style="max-width:640px;margin-top:16px"><h3 style="margin-top:0">Menu do site</h3>
   <p style="color:var(--muted);margin-top:0;font-size:.9rem">Gerencie os itens do menu principal. O site usa esta lista; deixe vazia para usar as categorias dos produtos automaticamente.</p>
