@@ -863,18 +863,13 @@ function paintShell(){
   document.title=window.__ADMIN_APP?CFG.brand+' | Administração':CFG.brand;buildMenu();buildFoot();
 }
 function buildMenu(){
-  let h='';const GRP=['Ampolas','Caixas'];let grpFeito=false;
+  let h='';
   const OCULTOS=['Produtos injetáveis','Acompanhamento','Ofertas'];/* itens que não aparecem no menu do topo */
-  h+=`<li class=""><a onclick="nav('/cat/${encodeURIComponent('Produtos disponíveis')}')">Medicamentos</a></li>`;
+  const chev12='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>';
   for(const [dep,gs] of Object.entries(TREE)){
-    if(GRP.includes(dep)||OCULTOS.includes(dep))continue;
-    if(GRP.includes(dep)){
-      if(!grpFeito){grpFeito=true;const gd=GRP.filter(d=>TREE[d]);
-        h+=`<li class="m"><a onclick="nav('/cat/${encodeURIComponent('Produtos disponíveis')}')">Produtos disponíveis <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg></a><div class="mega"><div class="mega-g">${gd.map(d=>`<div><b onclick="nav('/cat/${encodeURIComponent(d)}')">${d}</b>${Object.keys(TREE[d]).map(g=>`<i onclick="nav('/cat/${encodeURIComponent(d+'/'+g)}')">${g}</i>`).join('')}</div>`).join('')}</div></div></li>`}
-      continue;
-    }
+    if(OCULTOS.includes(dep))continue;
     const has=Object.keys(gs).length;
-    h+=`<li class="${has||SOON.includes(dep)?'m':''}"><a onclick="nav('/cat/${encodeURIComponent(dep)}')">${dep}${has||SOON.includes(dep)?' <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>':''}</a>`;
+    h+=`<li class="${has||SOON.includes(dep)?'m':''}"><a onclick="nav('/cat/${encodeURIComponent(dep)}')">${dep}${has||SOON.includes(dep)?' '+chev12:''}</a>`;
     if(has){h+='<div class="mega"><div class="mega-g">';
       for(const [g,subs] of Object.entries(gs)){h+=`<div><b onclick="nav('/cat/${encodeURIComponent(dep+'/'+g)}')">${g}</b>`+subs.map(s=>`<i onclick="nav('/cat/${encodeURIComponent(dep+'/'+g+'/'+s)}')">${s}</i>`).join('')+'</div>'}
       h+='</div></div>'}else if(SOON.includes(dep)){h+='<div class="mega"><div class="mega-g"><div><b style="cursor:default;color:var(--muted)">Em breve</b></div></div></div>'}
