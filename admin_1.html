@@ -383,8 +383,8 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 .adnota{color:var(--muted);font-size:.82rem;margin:18px 0 0}
 /* banner da home: arte 3:1 no desktop e 5:4 no celular */
 .hero{height:auto!important;aspect-ratio:3/1}
-.slpic{position:absolute;inset:0;display:block}
-.slpic img{width:100%;height:100%;object-fit:cover;display:block}
+.slpic{position:absolute;inset:0;display:block;background:#000}
+.slpic img{width:100%;height:100%;object-fit:contain;display:block}
 .sl.hasimg .wrap{display:none}
 @media(max-width:760px){.hero{aspect-ratio:5/4}}
 /* barra de cupom */
@@ -3795,9 +3795,9 @@ function tabCampanhas(){
     <p style="margin:0 0 10px;font-weight:600;font-size:.9rem">Adicionar banner</p>
     <div class="fr">
       <div><label>Imagem do banner</label><input id="bnFile" type="file" accept="image/*" style="padding:4px"></div>
-      <div class="c2"><label for="bnTit">Título (texto sobre a imagem)</label><input id="bnTit" maxlength="80" placeholder="Ex.: Promoção de Verão"></div>
+      <div class="c2"><label for="bnTit">Título (aparece sobre a imagem)</label><input id="bnTit" maxlength="80" placeholder="Ex.: Promoção de Verão"></div>
       <div class="c2"><label for="bnLnk">Link ao clicar (ex: /cat/Ampolas)</label><input id="bnLnk" placeholder="/cat/Ampolas"></div>
-      <div class="c2"><label for="bnSeg">Tempo no carrossel (segundos)</label><input id="bnSeg" type="number" min="2" max="30" value="4" style="width:80px"></div>
+      <div><label for="bnSeg">Tempo no carrossel (segundos)</label><div style="display:flex;align-items:center;gap:10px"><input id="bnSeg" type="number" min="2" max="30" value="4" style="width:80px"><span style="font-size:.82rem;color:var(--muted)">Mín: 2s — Máx: 30s</span></div></div>
     </div>
     <p style="margin-top:10px"><button class="btn acc" onclick="banAdicionar(event)">Subir e adicionar</button> <span id="bnStatus" style="font-size:.85rem;color:var(--muted)"></span></p>
   </div>
