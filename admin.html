@@ -958,7 +958,8 @@ const SL=()=>{
   return fixos;
 };
 let sl=0,slT;
-function slide(d){const s=document.querySelectorAll('.sl'),dt=document.querySelectorAll('.dots button');if(!s.length)return;sl=(sl+d+s.length)%s.length;s.forEach((e,i)=>e.classList.toggle('on',i===sl));dt.forEach((e,i)=>e.classList.toggle('on',i===sl))}
+function slSeg(){const slides=SL();const cur=slides[sl];return cur&&cur.seg?cur.seg*1000:6000;}
+function slide(d){const s=document.querySelectorAll('.sl'),dt=document.querySelectorAll('.dots button');if(!s.length)return;sl=(sl+d+s.length)%s.length;s.forEach((e,i)=>e.classList.toggle('on',i===sl));dt.forEach((e,i)=>e.classList.toggle('on',i===sl));clearInterval(slT);slT=setInterval(()=>slide(1),slSeg());}
 const ICOURL=n=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/public/produtos/icone-'+n+'.png';
 const icoImg=(n,fb)=>`<img class="icoimg" src="${ICOURL(n)}" alt="" data-fb="${encodeURIComponent(fb)}" onerror="this.outerHTML=decodeURIComponent(this.dataset.fb)">`;
 const DIMG={'Ampolas':'ampola','Caixas':'caixa','Acompanhamento':'prancheta','Produtos injetáveis':'injecao'};
@@ -2770,7 +2771,7 @@ function route(fromHash){
   const y=window.scrollY;
   document.body.classList.toggle('mb-mode',a==='entrega');
   $('#app').innerHTML=html;updHead();
-  if(a===''){slT=setInterval(()=>slide(1),6000)}
+  if(a===''){slT=setInterval(()=>slide(1),slSeg())}
   $('#mainnav').classList.remove('open');
   if(fromHash)window.scrollTo(0,0);else window.scrollTo(0,y);
 }
@@ -3789,17 +3790,16 @@ function tabCampanhas(){
 
   <div class="box" style="grid-column:1/-1"><h3 style="margin-top:0">Banners do carrossel</h3>
   <p style="color:var(--muted);font-size:.88rem;margin:0 0 12px">Adicione banners personalizados. Quando há banners aqui, eles substituem os banners padrão. Deixe a lista vazia para voltar aos banners padrão.</p>
-  ${bans.length?`<div class="tbl"><table><thead><tr><th>#</th><th>Título</th><th>Link</th><th>Cor</th><th>Ativo</th><th></th></tr></thead><tbody>${bans.map((b,i)=>`<tr><td>${i+1}</td><td>${esc(b.titulo||'')}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${esc(b.link||'/')}</td><td><span style="display:inline-block;width:18px;height:18px;border-radius:4px;background:${esc(b.cor||'#0a6e5c')};vertical-align:middle"></span></td><td>${b.ativo!==false?'✅':'⛔'}</td><td><button class="btn ghost sm" onclick="banToggle(${i})">Ligar/desligar</button> <button class="btn ghost sm" style="color:#b42318" onclick="banRemover(${i})">Remover</button></td></tr>`).join('')}</tbody></table></div>`:'<p style="color:var(--muted)">Nenhum banner personalizado. Usando banners padrão.</p>'}
-  <details style="margin-top:14px"><summary style="cursor:pointer;font-weight:600">Adicionar banner</summary>
-  <div class="fr" style="margin-top:10px">
-    <div><label for="bnUrl">URL da imagem (desktop, proporção 3:1 recomendada)</label><input id="bnUrl" type="url" placeholder="https://..."></div>
-    <div><label for="bnTit">Título do banner</label><input id="bnTit" maxlength="80" placeholder="Ex.: Promoção de Verão"></div>
-    <div class="c2"><label for="bnSub">Subtítulo / tag</label><input id="bnSub" maxlength="40" placeholder="Ex.: ZP Imports"></div>
-    <div class="c2"><label for="bnBot">Texto do botão</label><input id="bnBot" maxlength="30" placeholder="Ver mais"></div>
-    <div class="c2"><label for="bnLnk">Link (página do site)</label><input id="bnLnk" placeholder="/cat/..."></div>
-    <div class="c2"><label for="bnCor">Cor de fundo (hex)</label><input id="bnCor" type="color" value="#0a6e5c" style="height:38px;padding:2px 4px"></div>
+  ${bans.length?`<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">${bans.map((b,i)=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid #e5e7eb;border-radius:10px;background:#fafafa"><div style="width:56px;height:32px;border-radius:6px;background:#ddd;overflow:hidden;flex-shrink:0">${b.url?`<img src="${esc(b.url)}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`:'<span style="font-size:.7rem;color:#999;padding:2px">sem img</span>'}</div><div style="flex:1;min-width:0"><b style="font-size:.9rem">${esc(b.titulo||'Banner '+(i+1))}</b><br><span style="font-size:.78rem;color:var(--muted)">${b.seg||4}s por slide</span></div><label style="font-size:.82rem;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" style="width:auto" ${b.ativo!==false?'checked':''} onchange="banSetAtivo(${i},this.checked)"> Ativo</label><button class="btn ghost sm" style="color:#b42318;flex-shrink:0" onclick="banRemover(${i})">Remover</button></div>`).join('')}</div>`:'<p style="color:var(--muted)">Nenhum banner. Usando banners padrão.</p>'}
+  <div style="padding:14px;border:1px dashed #d1d5db;border-radius:10px;margin-top:4px">
+    <p style="margin:0 0 10px;font-weight:600;font-size:.9rem">Adicionar banner</p>
+    <div class="fr">
+      <div><label>Imagem do banner</label><input id="bnFile" type="file" accept="image/*" style="padding:4px"></div>
+      <div class="c2"><label for="bnTit">Título (texto sobre a imagem)</label><input id="bnTit" maxlength="80" placeholder="Ex.: Promoção de Verão"></div>
+      <div class="c2"><label for="bnSeg">Tempo no carrossel (segundos)</label><input id="bnSeg" type="number" min="2" max="30" value="4" style="width:80px"></div>
+    </div>
+    <p style="margin-top:10px"><button class="btn acc" onclick="banAdicionar(event)">Subir e adicionar</button> <span id="bnStatus" style="font-size:.85rem;color:var(--muted)"></span></p>
   </div>
-  <p><button class="btn acc" onclick="banAdicionar()">Adicionar banner</button></p></details>
   </div>`;
 }
 async function admSalvaVis(){
@@ -3830,14 +3830,25 @@ async function banSalvar(){
   if(r.error){A9.msg='Não foi possível salvar os banners.';A9.erro=true;route();return}
   BANS=bans.length?bans:null;DB.set('bans',BANS);A9.msg='Banners salvos.';A9.erro=false;try{await bancoConfig()}catch(x){}route();
 }
-function banAdicionar(){
-  const url=v_('bnUrl').trim(),titulo=v_('bnTit').trim();
-  if(!url||!titulo){toast('Preencha pelo menos a URL e o título.');return}
+async function banAdicionar(ev){
+  if(ev)ev.preventDefault();
+  const fi=document.getElementById('bnFile'),titulo=v_('bnTit').trim(),seg=Math.max(2,Math.min(30,+(v_('bnSeg')||4)||4));
+  const st=document.getElementById('bnStatus');
+  if(!fi||!fi.files||!fi.files[0]){toast('Selecione uma imagem.');return}
+  if(!titulo){toast('Preencha o título.');return}
+  const file=fi.files[0];
+  const ext=file.name.split('.').pop().toLowerCase()||'jpg';
+  const nome='banner-custom-'+Date.now()+'.'+ext;
+  if(st)st.textContent='Enviando imagem...';
+  const up=await SB.storage.from('produtos').upload(nome,file,{cacheControl:'3600',upsert:true,contentType:file.type});
+  if(up.error){if(st)st.textContent='';toast('Erro ao subir imagem: '+up.error.message);return}
+  const url=SB_URL+'/storage/v1/object/public/produtos/'+nome;
   if(!A9.camp.bans)A9.camp.bans=[];
-  A9.camp.bans.push({url,titulo,subtitulo:v_('bnSub').trim(),botao:v_('bnBot').trim()||'Ver mais',link:v_('bnLnk').trim()||'/',cor:v_('bnCor')||'#0a6e5c',ativo:true});
+  A9.camp.bans.push({url,titulo,seg,ativo:true});
+  if(st)st.textContent='';
   banSalvar();
 }
-function banToggle(i){if(!A9.camp.bans||!A9.camp.bans[i])return;A9.camp.bans[i].ativo=!A9.camp.bans[i].ativo;banSalvar();}
+function banSetAtivo(i,val){if(!A9.camp.bans||!A9.camp.bans[i])return;A9.camp.bans[i].ativo=val;banSalvar();}
 function banRemover(i){if(!A9.camp.bans)return;if(!confirm('Remover este banner?'))return;A9.camp.bans.splice(i,1);banSalvar();}
 
 /* ======================= RECEBIMENTO NO PEDIDO ======================= */
