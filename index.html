@@ -381,12 +381,16 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 .adbtn{width:100%;margin-top:22px;padding:1em;border:0;border-radius:12px;background:linear-gradient(90deg,var(--pd),var(--p));color:#fff;font-weight:700;font-size:1rem;cursor:pointer;box-shadow:0 6px 16px rgba(7,77,64,.28)}
 .adbtn:disabled{opacity:.65;cursor:wait}
 .adnota{color:var(--muted);font-size:.82rem;margin:18px 0 0}
-/* banner da home: arte 3:1 no desktop e 5:4 no celular */
-.hero{height:auto!important;aspect-ratio:3/1}
-.slpic{position:absolute;inset:0;display:block}
-.slpic img{width:100%;height:100%;object-fit:cover;display:block}
+/* banner da home */
+.hero{position:relative;overflow:hidden;height:clamp(230px,34vw,440px)}
+.hero.custom-ban{height:auto!important;aspect-ratio:unset!important}
+.slpic{position:absolute;inset:0;display:block;background:#000}
+.slpic img{width:100%;height:100%;object-fit:contain;display:block}
+.hero.custom-ban .slpic{position:relative;inset:unset}
+.hero.custom-ban .slpic img{height:auto;max-height:none;object-fit:fill}
+.hero.custom-ban .sl{position:relative;height:auto}
 .sl.hasimg .wrap{display:none}
-@media(max-width:760px){.hero{aspect-ratio:5/4}}
+@media(max-width:760px){.hero:not(.custom-ban){aspect-ratio:5/4}}
 /* barra de cupom */
 .faixa{background:#06344a;display:flex;align-items:center;justify-content:center;gap:10px;font-size:.9rem;padding:10px 14px;line-height:1.3}
 .faixa .fxi{display:inline-grid;place-items:center;flex:none;color:#fff}
@@ -885,7 +889,7 @@ const PAYLOGOS=[
 const payLogos=()=>'<div class="paylogos">'+PAYLOGOS.map(l=>`<svg viewBox="0 0 48 30" role="img" aria-label="${l[0]}"><title>${l[0]}</title><rect x=".5" y=".5" width="47" height="29" rx="5" fill="#fff" stroke="#d6d6dc"/>${l[1]}</svg>`).join('')+'</div>';
 function buildFoot(){
   const wa=`href="${waUrl()}" target="_blank" rel="noopener"`;
-  $('#foot').innerHTML=`<div class="fg"><div><h3>Informações</h3><a ${wa}>Central de Atendimento</a><a onclick="nav('/info/duvidas')">Dúvidas Frequentes</a><a onclick="nav('/info/como-comprar')">Como comprar</a><a onclick="nav('/amigo')">Amigo Emagrece Amigo</a><a onclick="nav('/reg/amigo')">Regulamento: Amigo Emagrece Amigo</a><a onclick="nav('/reg/primeira-compra')">Regulamento: Desconto na Primeira Compra</a></div>
+  $('#foot').innerHTML=`<div class="fg"><div><h3>Informações</h3><a ${wa}>Central de Atendimento</a><a onclick="nav('/info/duvidas')">Dúvidas Frequentes</a><a onclick="nav('/info/como-comprar')">Como comprar</a>${CAMPVIS.amigo?`<a onclick="nav('/amigo')">Amigo Emagrece Amigo</a><a onclick="nav('/reg/amigo')">Regulamento: Amigo Emagrece Amigo</a>`:''}${CAMPVIS.primeira?`<a onclick="nav('/reg/primeira-compra')">Regulamento: Desconto na Primeira Compra</a>`:''}</div>
   <div><h3>Acesso rápido</h3><a onclick="nav('/conta')">Minha Conta</a><a onclick="nav('/pedidos')">Meus Pedidos e Rastreio</a><a onclick="nav('/acompanhar')">Acompanhar pelo código</a><a onclick="tab='cad';nav('/conta')">Cadastre-se</a></div>
   <div><h3>Políticas</h3><a onclick="nav('/info/entregas')">Entregas</a><a onclick="nav('/info/trocas')">Troca e Devolução</a><a onclick="nav('/info/pagamento')">Formas de Pagamento</a><a onclick="nav('/info/privacidade')">Política de Privacidade</a><a onclick="nav('/info/termos')">Termos de uso</a></div>
   <div><h3>Formas de pagamento</h3><span>Débito, Pix e Cartão de Crédito.</span><span style="font-size:.85rem;color:var(--muted)">O pagamento é combinado com a nossa equipe pelo WhatsApp.</span>${payLogos()}</div></div>
@@ -968,7 +972,7 @@ function pageHome(){
   const D0=Object.keys(TREE)[0];const deps=Object.keys(TREE).filter(d=>!['Ofertas','Produtos injetáveis','Acompanhamento'].includes(d));const dIc={'Medicamentos':'inj','Produtos injetáveis':'inj','Acessórios de aplicação':'needle','Caixas':'inj','Ampolas':'inj','Acompanhamento':'scale'};
   const slides=SL();const mobHome=true;const SHF=shelf(D0+' em destaque',LIVE().filter(p=>p.cat[0]===D0&&p.cat[1]!=='Acessórios de Aplicação'),'/cat/'+encodeURIComponent(D0));
   const slPic=s=>s.imgurl?`<picture class="slpic"><img src="${esc(s.imgurl)}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:s.img?`<picture class="slpic"><source media="(max-width:760px)" srcset="${BANURL(s.img,'mobile')}"><img src="${BANURL(s.img,'desktop')}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:'';
-  return `<section class="hero" id="hero">${slides.map((s,i)=>`<div class="sl ${i?'':'on'}${(s.img||s.imgurl)?' wantimg':''}" style="background:${s.c}" onclick="nav('${s.l}')">${slPic(s)}<div class="wrap"><span class="tag">${s.s}</span><strong>${s.t}</strong><u>${s.b}</u></div></div>`).join('')}
+  return `<section class="hero${BANS&&BANS.length?' custom-ban':''}" id="hero">${slides.map((s,i)=>`<div class="sl ${i?'':'on'}${(s.img||s.imgurl)?' wantimg':''}" style="background:${s.c}" onclick="nav('${s.l}')">${slPic(s)}<div class="wrap"><span class="tag">${s.s}</span><strong>${s.t}</strong><u>${s.b}</u></div></div>`).join('')}
    <button class="arr l" onclick="slide(-1)" aria-label="Anterior"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m15 5-7 7 7 7"/></svg></button><button class="arr r" onclick="slide(1)" aria-label="Próximo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 5 7 7-7 7"/></svg></button>
    <div class="dots">${slides.map((s,i)=>`<button class="${i?'':'on'}" onclick="slide(${i}-sl)" aria-label="Banner ${i+1}"></button>`).join('')}</div></section>
   ${mobHome?SHF:''}
@@ -3795,8 +3799,9 @@ function tabCampanhas(){
     <p style="margin:0 0 10px;font-weight:600;font-size:.9rem">Adicionar banner</p>
     <div class="fr">
       <div><label>Imagem do banner</label><input id="bnFile" type="file" accept="image/*" style="padding:4px"></div>
-      <div class="c2"><label for="bnTit">Título (texto sobre a imagem)</label><input id="bnTit" maxlength="80" placeholder="Ex.: Promoção de Verão"></div>
-      <div class="c2"><label for="bnSeg">Tempo no carrossel (segundos)</label><input id="bnSeg" type="number" min="2" max="30" value="4" style="width:80px"></div>
+      <div class="c2"><label for="bnTit">Título (aparece sobre a imagem)</label><input id="bnTit" maxlength="80" placeholder="Ex.: Promoção de Verão"></div>
+      <div class="c2"><label for="bnLnk">Link ao clicar (ex: /cat/Ampolas)</label><input id="bnLnk" placeholder="/cat/Ampolas"></div>
+      <div><label for="bnSeg">Tempo no carrossel (segundos)</label><div style="display:flex;align-items:center;gap:10px"><input id="bnSeg" type="number" min="2" max="30" value="4" style="width:80px"><span style="font-size:.82rem;color:var(--muted)">Mín: 2s — Máx: 30s</span></div></div>
     </div>
     <p style="margin-top:10px"><button class="btn acc" onclick="banAdicionar(event)">Subir e adicionar</button> <span id="bnStatus" style="font-size:.85rem;color:var(--muted)"></span></p>
   </div>
@@ -3844,7 +3849,8 @@ async function banAdicionar(ev){
   if(up.error){if(st)st.textContent='';toast('Erro ao subir imagem: '+up.error.message);return}
   const url=SB_URL+'/storage/v1/object/public/produtos/'+nome;
   if(!A9.camp.bans)A9.camp.bans=[];
-  A9.camp.bans.push({url,titulo,seg,ativo:true});
+  const lnk=v_('bnLnk').trim()||'/';
+  A9.camp.bans.push({url,titulo,link:lnk,seg,ativo:true});
   if(st)st.textContent='';
   banSalvar();
 }
