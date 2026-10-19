@@ -961,9 +961,16 @@ const BANURL=(n,v)=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/
 /* Banners personalizados: BANS={url,titulo,subtitulo,botao,link,cor}[] | null */
 var CAMPVIS={tab:true,amigo:true,primeira:true},BANS=null;
 var FOOTVIS={atendimento:true,duvidas:true,comoComprar:true,pedidos:true,rastreio:true,cadastro:true,entregas:true,trocas:true,pagamento:true,privacidade:true,termos:true};
+const APP_VERIF=[
+  {nome:'AuthNow',play:'https://play.google.com/store/apps/details?id=com.authnow.qrvalidator&hl=pt_BR',ios:'https://apps.apple.com/us/app/authnow-product-verification/id6745412484?l=pt-BR'},
+  {nome:'Laava Scan',play:'https://play.google.com/store/apps/developer?id=Laava',ios:'https://apps.apple.com/ee/app/laava-scanner/id6448958240'}
+];
+function abrirPopupApp(e){e&&e.stopPropagation();const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);const isAnd=/Android/.test(navigator.userAgent);document.getElementById('appModal').style.display='flex';document.querySelectorAll('.appbtn').forEach(b=>{if(isIOS&&b.dataset.plat==='ios')b.classList.add('appbtn-hl');else if(isAnd&&b.dataset.plat==='play')b.classList.add('appbtn-hl');});}
+function fecharPopupApp(){document.getElementById('appModal').style.display='none';}
 const SL=()=>{
   const fixos=[{t:'Medicamentos para emagrecimento com praticidade e entrega rápida',s:CFG.brand,b:'Ver medicamentos',l:'/cat/'+encodeURIComponent('Produtos disponíveis'),c:'#0a6e5c',img:'banner-01'}];
   if(CAMPVIS.amigo)fixos.push({t:amOn()?`Amigo Emagrece Amigo: ${AM.pct}% de desconto`:'Amigo Emagrece Amigo',s:'Indique e ganhe',b:'Saiba como',l:'/amigo',c:'#b97a00',img:'banner-02'});
+  fixos.push({t:'Verifique a autenticidade do seu produto',s:'Segurança garantida',b:'Ver apps',l:'__appverif__',c:'#0b5a8a'});
   if(BANS&&BANS.length){
     return BANS.filter(b=>b.ativo!==false).map(b=>({t:b.titulo||'',s:b.subtitulo||CFG.brand,b:b.botao||'Ver mais',l:b.link||'/',c:b.cor||'#0a6e5c',imgurl:b.url||''}));
   }
@@ -980,7 +987,8 @@ function pageHome(){
   const D0=Object.keys(TREE)[0];const deps=Object.keys(TREE).filter(d=>!['Ofertas','Produtos injetáveis','Acompanhamento'].includes(d));const dIc={'Medicamentos':'inj','Produtos injetáveis':'inj','Acessórios de aplicação':'needle','Caixas':'inj','Ampolas':'inj','Acompanhamento':'scale'};
   const slides=SL();const mobHome=true;const SHF=shelf(D0+' em destaque',LIVE().filter(p=>p.cat[0]===D0&&p.cat[1]!=='Acessórios de Aplicação'),'/cat/'+encodeURIComponent(D0));
   const slPic=s=>s.imgurl?`<picture class="slpic"><img src="${esc(s.imgurl)}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:s.img?`<picture class="slpic"><source media="(max-width:760px)" srcset="${BANURL(s.img,'mobile')}"><img src="${BANURL(s.img,'desktop')}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:'';
-  return `<section class="hero${BANS&&BANS.length?' custom-ban':''}" id="hero">${slides.map((s,i)=>`<div class="sl ${i?'':'on'}${(s.img||s.imgurl)?' wantimg':''}" style="background:${s.c}" onclick="nav('${s.l}')">${slPic(s)}<div class="wrap"><span class="tag">${s.s}</span><strong>${s.t}</strong><u>${s.b}</u></div></div>`).join('')}
+  const slClick=s=>s.l==='__appverif__'?'abrirPopupApp(event)':`nav('${s.l}')`;
+  return `<section class="hero${BANS&&BANS.length?' custom-ban':''}" id="hero">${slides.map((s,i)=>`<div class="sl ${i?'':'on'}${(s.img||s.imgurl)?' wantimg':''}" style="background:${s.c}" onclick="${slClick(s)}">${slPic(s)}<div class="wrap"><span class="tag">${s.s}</span><strong>${s.t}</strong><u>${s.b}</u></div></div>`).join('')}
    <button class="arr l" onclick="slide(-1)" aria-label="Anterior"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m15 5-7 7 7 7"/></svg></button><button class="arr r" onclick="slide(1)" aria-label="Próximo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 5 7 7-7 7"/></svg></button>
    <div class="dots">${slides.map((s,i)=>`<button class="${i?'':'on'}" onclick="slide(${i}-sl)" aria-label="Banner ${i+1}"></button>`).join('')}</div></section>
   ${mobHome?SHF:''}
@@ -5176,6 +5184,33 @@ function cupomEnviar(k){
   const d=document.getElementById('cpbox');if(d)d.remove();toast('WhatsApp aberto. O envio é feito por você.');route();
 }
 </script>
+<!-- Modal verificação de autenticidade -->
+<div id="appModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;padding:16px" onclick="fecharPopupApp()">
+  <div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <h3 style="margin:0;font-size:1.1rem;color:#0a6e5c">Verificar autenticidade</h3>
+      <button onclick="fecharPopupApp()" style="background:none;border:0;font-size:1.5rem;cursor:pointer;color:#888;line-height:1">×</button>
+    </div>
+    <p style="margin:0 0 20px;color:#667085;font-size:.88rem">Baixe o app do fabricante e escaneie o QR Code da embalagem para confirmar que seu produto é original.</p>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      ${APP_VERIF.map(a=>`<div style="border:1px solid #e6e6e6;border-radius:14px;padding:14px 16px">
+        <div style="font-weight:600;color:#2b2b2b;margin-bottom:10px;font-size:.95rem">${a.nome}</div>
+        <div style="display:flex;gap:10px">
+          <a class="appbtn" data-plat="play" href="${a.play}" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;background:#f3f3f3;border-radius:10px;padding:9px 10px;font-size:.82rem;font-weight:600;color:#2b2b2b;text-decoration:none;border:2px solid transparent">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#34a853" d="M3.18 23.76c.37.21.8.22 1.19.03l12.6-7.27-2.83-2.83z"/><path fill="#4285f4" d="M20.6 10.27a1.88 1.88 0 0 0 0 3.46l1.22.7A1.88 1.88 0 0 0 22 12a1.88 1.88 0 0 0-.94-1.63z" opacity=".8"/><path fill="#fbbc04" d="M4.37.21A1.88 1.88 0 0 0 3.18.24L14.14 11.2 16.97 8.4z"/><path fill="#ea4335" d="M3.18.24A1.9 1.9 0 0 0 2 2v20c0 .76.42 1.43 1.05 1.76l11.09-11.1z"/></svg>
+            Google Play
+          </a>
+          <a class="appbtn" data-plat="ios" href="${a.ios}" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;background:#f3f3f3;border-radius:10px;padding:9px 10px;font-size:.82rem;font-weight:600;color:#2b2b2b;text-decoration:none;border:2px solid transparent">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+            App Store
+          </a>
+        </div>
+      </div>`).join('')}
+    </div>
+    <p style="margin:16px 0 0;font-size:.78rem;color:#98a2b3;text-align:center">Após baixar, abra o app e escaneie o QR Code da embalagem.</p>
+  </div>
+</div>
+<style>.appbtn-hl{background:#e5f3ef!important;border-color:#0a6e5c!important;color:#0a6e5c!important}</style>
 </body>
 </html>
 
