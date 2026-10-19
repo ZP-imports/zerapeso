@@ -659,12 +659,15 @@ let cart,users,me,orders,seqUser,clock,AM,SITE,LOG,PEDIT,ROTAS,SEEN,ADMIN,OFFSET
 function load(){
   cart=DB.get('cart',[]).filter(i=>{const p=PRODUCTS.find(x=>x.id===+i.id);return p&&p.ativo!==false});users=DB.get('users',{});me=DB.get('me',null);orders=DB.get('orders',[]).filter(o=>!o.real).concat((typeof MEUS!=='undefined'&&MEUS)||[]);seqUser=DB.get('seq',{});clock=DB.get('clock',100);
   AM=Object.assign({},AMDEF,DB.get('amigo',{}));AM.nome=String(AM.nome).replace('Amigo Indica Amigo','Amigo Emagrece Amigo');
+  CAMPVIS=Object.assign({tab:true,amigo:true,primeira:true},DB.get('campvis',{}));
+  BANS=DB.get('bans',null);
   SITE=DB.get('site',{});LOG=Object.assign({},LOGDEF,DB.get('log',{}),{dias:[0,1,2,3,4,5,6]});PEDIT=DB.get('pedit',{});ROTAS=DB.get('rotas',{});SEEN=DB.get('seen',{});ADMIN=DB.get('adm',null);OFFSET=DB.get('offset',0);REV=DB.get('rev',0);ENTR=DB.get('entr',[]);ROTE=DB.get('rote',[]);RETIR=DB.get('ret',[]);
   migrate();applySite();applyProd();
 }
 function save(){
   DB.set('cart',cart);DB.set('users',users);DB.set('me',me);DB.set('orders',orders.filter(o=>!o.real));DB.set('seq',seqUser);DB.set('clock',clock);DB.set('amigo',AM);
   DB.set('site',SITE);DB.set('log',LOG);DB.set('pedit',PEDIT);DB.set('rotas',ROTAS);DB.set('seen',SEEN);DB.set('adm',ADMIN);DB.set('offset',OFFSET);DB.set('entr',ENTR);DB.set('rote',ROTE);DB.set('ret',RETIR);
+  DB.set('campvis',CAMPVIS);if(BANS!==null)DB.set('bans',BANS);
   REV=uid()+Date.now();DB.set('rev',REV);
 }
 function applySite(){
@@ -842,7 +845,9 @@ function friendRows(owner){
 
 /* ======================= CABEÇALHO, MENU, RODAPÉ ======================= */
 function paintShell(){
-  $('#brand').textContent=CFG.brand;$('#faixa').innerHTML='<span class="fxi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg></span><span><b>'+PC.pct+'% OFF</b> na sua primeira compra de medicamentos para emagrecimento</span>';$('#faixa').style.cursor='pointer';$('#faixa').onclick=()=>nav('/reg/primeira-compra');
+  $('#brand').textContent=CFG.brand;
+  if(CAMPVIS.primeira){$('#faixa').innerHTML='<span class="fxi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg></span><span><b>'+PC.pct+'% OFF</b> na sua primeira compra de medicamentos para emagrecimento</span>';$('#faixa').style.cursor='pointer';$('#faixa').onclick=()=>nav('/reg/primeira-compra');$('#faixa').style.display='';}
+  else{$('#faixa').innerHTML='';$('#faixa').style.display='none';}
   $('#wafloat').href=waUrl();
   document.title=window.__ADMIN_APP?CFG.brand+' | Administração':CFG.brand;buildMenu();buildFoot();
 }
@@ -866,8 +871,8 @@ function buildMenu(){
   }
   const lk=(u,css,txt)=>u==='wa:'?`<a href="${waUrl()}" target="_blank" rel="noopener" style="${css}">${txt}</a>`:`<a onclick="nav('${u}')" style="${css};cursor:pointer">${txt}</a>`;
   const chev='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>';
-  for(const e of EXTRA){h+=`<li class="simple">${lk(e.go,'display:flex;align-items:center;gap:4px;padding:14px;font-weight:500;color:var(--ink);font-size:.93rem',e.t+' '+chev)}<div class="mega-s">${e.sub.map(s=>lk(s[1],'',s[0])).join('')}</div></li>`}
-  h+=`<li class="amigo"><a onclick="nav('/amigo')">Amigo Emagrece Amigo</a></li>`;
+  for(const e of EXTRA){if(e.t==='Campanhas'&&!CAMPVIS.tab)continue;h+=`<li class="simple">${lk(e.go,'display:flex;align-items:center;gap:4px;padding:14px;font-weight:500;color:var(--ink);font-size:.93rem',e.t+' '+chev)}<div class="mega-s">${e.sub.map(s=>lk(s[1],'',s[0])).join('')}</div></li>`}
+  if(CAMPVIS.amigo)h+=`<li class="amigo"><a onclick="nav('/amigo')">Amigo Emagrece Amigo</a></li>`;
   $('#menu').innerHTML=h;
 }
 const PAYLOGOS=[
@@ -942,8 +947,16 @@ function card(p){
 function shelf(t,list,link){return list.length?`<section class="sec" id="destaque"><div class="wrap"><div class="sh"><h2>${t}</h2>${link?`<a onclick="nav('${link}')">Ver todos</a>`:''}</div><div class="grid">${list.map(card).join('')}</div></div></section>`:''}
 const BANVER='2';/* troque este número quando substituir as imagens dos banners no Storage */
 const BANURL=(n,v)=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/public/produtos/'+n+'-'+v+'.webp?v='+BANVER;
-const SL=()=>[{t:'Medicamentos para emagrecimento com praticidade e entrega rápida',s:CFG.brand,b:'Ver medicamentos',l:'/cat/'+encodeURIComponent('Produtos disponíveis'),c:'#0a6e5c',img:'banner-01'},
- {t:amOn()?`Amigo Emagrece Amigo: ${AM.pct}% de desconto`:'Amigo Emagrece Amigo',s:'Indique e ganhe',b:'Saiba como',l:'/amigo',c:'#b97a00',img:'banner-02'}];
+/* Banners personalizados: BANS={url,titulo,subtitulo,botao,link,cor}[] | null */
+var CAMPVIS={tab:true,amigo:true,primeira:true},BANS=null;
+const SL=()=>{
+  const fixos=[{t:'Medicamentos para emagrecimento com praticidade e entrega rápida',s:CFG.brand,b:'Ver medicamentos',l:'/cat/'+encodeURIComponent('Produtos disponíveis'),c:'#0a6e5c',img:'banner-01'}];
+  if(CAMPVIS.amigo)fixos.push({t:amOn()?`Amigo Emagrece Amigo: ${AM.pct}% de desconto`:'Amigo Emagrece Amigo',s:'Indique e ganhe',b:'Saiba como',l:'/amigo',c:'#b97a00',img:'banner-02'});
+  if(BANS&&BANS.length){
+    return BANS.filter(b=>b.ativo!==false).map(b=>({t:b.titulo||'',s:b.subtitulo||CFG.brand,b:b.botao||'Ver mais',l:b.link||'/',c:b.cor||'#0a6e5c',imgurl:b.url||''}));
+  }
+  return fixos;
+};
 let sl=0,slT;
 function slide(d){const s=document.querySelectorAll('.sl'),dt=document.querySelectorAll('.dots button');if(!s.length)return;sl=(sl+d+s.length)%s.length;s.forEach((e,i)=>e.classList.toggle('on',i===sl));dt.forEach((e,i)=>e.classList.toggle('on',i===sl))}
 const ICOURL=n=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/public/produtos/icone-'+n+'.png';
@@ -953,14 +966,15 @@ function pageHome(){
   const ben=[['Entrega rápida','Consulte prazo e regiões atendidas*','M2 6h11v10H2zM13 9h4l3 3v4h-7','caminhao'],['Pague na entrega','Link de pagamento enviado quando o pedido sai para entrega','M3 6h18v12H3zM3 10h18M7 15h4','cartao'],['Equipe de saúde','Atendimento por profissionais','M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z','coracao']];
   const D0=Object.keys(TREE)[0];const deps=Object.keys(TREE).filter(d=>!['Ofertas','Produtos injetáveis','Acompanhamento'].includes(d));const dIc={'Medicamentos':'inj','Produtos injetáveis':'inj','Acessórios de aplicação':'needle','Caixas':'inj','Ampolas':'inj','Acompanhamento':'scale'};
   const slides=SL();const mobHome=true;const SHF=shelf(D0+' em destaque',LIVE().filter(p=>p.cat[0]===D0&&p.cat[1]!=='Acessórios de Aplicação'),'/cat/'+encodeURIComponent(D0));
-  return `<section class="hero" id="hero">${slides.map((s,i)=>`<div class="sl ${i?'':'on'}${s.img?' wantimg':''}" style="background:${s.c}" onclick="nav('${s.l}')">${s.img?`<picture class="slpic"><source media="(max-width:760px)" srcset="${BANURL(s.img,'mobile')}"><img src="${BANURL(s.img,'desktop')}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:''}<div class="wrap"><span class="tag">${s.s}</span><strong>${s.t}</strong><u>${s.b}</u></div></div>`).join('')}
+  const slPic=s=>s.imgurl?`<picture class="slpic"><img src="${esc(s.imgurl)}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:s.img?`<picture class="slpic"><source media="(max-width:760px)" srcset="${BANURL(s.img,'mobile')}"><img src="${BANURL(s.img,'desktop')}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:'';
+  return `<section class="hero" id="hero">${slides.map((s,i)=>`<div class="sl ${i?'':'on'}${(s.img||s.imgurl)?' wantimg':''}" style="background:${s.c}" onclick="nav('${s.l}')">${slPic(s)}<div class="wrap"><span class="tag">${s.s}</span><strong>${s.t}</strong><u>${s.b}</u></div></div>`).join('')}
    <button class="arr l" onclick="slide(-1)" aria-label="Anterior"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m15 5-7 7 7 7"/></svg></button><button class="arr r" onclick="slide(1)" aria-label="Próximo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 5 7 7-7 7"/></svg></button>
    <div class="dots">${slides.map((s,i)=>`<button class="${i?'':'on'}" onclick="slide(${i}-sl)" aria-label="Banner ${i+1}"></button>`).join('')}</div></section>
   ${mobHome?SHF:''}
   <section class="ben"><div class="wrap g">${ben.map(b=>`<div class="bi"><span class="ic">${icoImg(b[3],'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+b[2]+'"/></svg>')}</span><div><b>${b[0]}</b><small>${b[1]}</small></div></div>`).join('')}</div></section>
   ${mobHome?'':SHF}
   <section class="sec"><div class="wrap"><div class="sh"><h2>Compre por departamento</h2></div><div class="deps">${deps.map(d=>`<div class="dep" onclick="nav('/cat/${encodeURIComponent(d)}')"><span>${DIMG[d]?icoImg(DIMG[d],svg(dIc[d]||'cross',46)):svg(dIc[d]||'cross',46)}</span>${d}</div>`).join('')}</div></div></section>
-  <section class="amigoban"><div class="wrap g"><div><h2>Amigo Emagrece Amigo${amOn()?': '+AM.pct+'% de desconto':''}</h2><p>Indique a ${esc(CFG.brand)} para um amigo. Ele ganha desconto na primeira compra e você ganha desconto a cada amigo que comprar.</p></div><button class="btn" style="padding:1em 2em" onclick="nav('/amigo')">Quero indicar</button></div></section>`;
+  ${CAMPVIS.amigo?`<section class="amigoban"><div class="wrap g"><div><h2>Amigo Emagrece Amigo${amOn()?': '+AM.pct+'% de desconto':''}</h2><p>Indique a ${esc(CFG.brand)} para um amigo. Ele ganha desconto na primeira compra e você ganha desconto a cada amigo que comprar.</p></div><button class="btn" style="padding:1em 2em" onclick="nav('/amigo')">Quero indicar</button></div></section>`:''}` ;
 }
 function matchCat(p,path){const parts=path.split('/').filter(Boolean);if(parts[0]==='Ofertas')return OFERTA(p);if(parts[0]==='Produtos disponíveis')return true;if(parts[0]==='Caixas')return !!(p.vars&&p.vars.some(v=>/^caixa/i.test(v.n)));return parts.every((x,i)=>p.cat[i]===x)}
 function pageCat(path){
@@ -2812,7 +2826,10 @@ async function bancoConfig(){
     else if(x.chave==='frete')FRETE=Object.assign({lista:[]},v||{});
     else if(x.chave==='mensagens')MSGT.adm=v||{};
     else if(x.chave==='mensagens_site')MSGT.site=v||{};
+    else if(x.chave==='camp_vis')CAMPVIS=Object.assign({tab:true,amigo:true,primeira:true},v);
+    else if(x.chave==='banners'&&Array.isArray(v))BANS=v;
   });
+  DB.set('campvis',CAMPVIS);if(BANS!==null)DB.set('bans',BANS);
   applySite();
 }
 /* o menu e a página inicial seguem as categorias que vêm dos produtos */
@@ -3731,27 +3748,70 @@ async function etqLote(){
 A9.camp=null;
 async function admCarregarCamp(){
   const [c,ind]=await Promise.all([
-    SB.from('configuracao').select('chave,valor').in('chave',['amigo','primeira_compra']),
+    SB.from('configuracao').select('chave,valor').in('chave',['amigo','primeira_compra','camp_vis','banners']),
     SB.from('pedidos').select('id,status,criado_em,entrega,indicacao').not('indicacao','is',null).order('id',{ascending:false}).limit(100)]);
   const am=(c.data||[]).find(x=>x.chave==='amigo'),pc=(c.data||[]).find(x=>x.chave==='primeira_compra');
+  const cv=(c.data||[]).find(x=>x.chave==='camp_vis'),bns=(c.data||[]).find(x=>x.chave==='banners');
   const donos={};const ids=[...new Set((ind.data||[]).map(o=>o.indicacao&&o.indicacao.owner).filter(Boolean))];
   if(ids.length){const pf=await SB.from('perfis').select('id,nome,sobrenome').in('id',ids);(pf.data||[]).forEach(x=>{donos[x.id]=((x.nome||'')+' '+(x.sobrenome||'')).trim()})}
-  A9.camp={am:Object.assign({ativa:false,nome:'Amigo Emagrece Amigo',pct:10,inicio:'',fim:'',limite:10},am&&am.valor),pc:Object.assign({pct:10},pc&&pc.valor),ind:ind.data||[],donos};
+  A9.camp={
+    am:Object.assign({ativa:false,nome:'Amigo Emagrece Amigo',pct:10,inicio:'',fim:'',limite:10},am&&am.valor),
+    pc:Object.assign({pct:10},pc&&pc.valor),
+    vis:Object.assign({tab:true,amigo:true,primeira:true},cv&&cv.valor),
+    bans:Array.isArray(bns&&bns.valor)?bns.valor:[],
+    ind:ind.data||[],donos
+  };
   route();
 }
 function tabCampanhas(){
   if(!A9.camp){if(!A9.busy){A9.busy=true;admCarregarCamp().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
-  const a=A9.camp.am,p=A9.camp.pc;const hoje=hojeS();
+  const a=A9.camp.am,p=A9.camp.pc,vis=A9.camp.vis,bans=A9.camp.bans||[];const hoje=hojeS();
   const ativaHoje=a.ativa&&a.inicio&&a.fim&&hoje>=a.inicio&&hoje<=a.fim;
-  return `<div class="two" style="grid-template-columns:1fr 1fr"><div class="box"><h3 style="margin-top:0">Amigo Emagrece Amigo</h3>${msgBox()}
-  <div class="fr"><div><label for="aN">Nome da campanha</label><input id="aN" value="${esc(a.nome)}" maxlength="80"></div><div class="c2"><label for="aP">Desconto (%)</label><input id="aP" type="number" min="1" max="90" value="${a.pct}"></div><div class="c2"><label for="aL">Limite de amigos que compram por mês, por indicador</label><input id="aL" type="number" min="1" max="500" value="${a.limite}"></div><div class="c2"><label for="aI">Início</label><input id="aI" type="date" value="${esc(a.inicio)}"></div><div class="c2"><label for="aF">Fim</label><input id="aF" type="date" value="${esc(a.fim)}"></div><div><label style="font-weight:500"><input type="checkbox" id="aA" style="width:auto" ${a.ativa?'checked':''}> Campanha ligada</label></div></div>
-  <p><button class="btn acc" onclick="admSalvaAmigo()">Salvar campanha</button></p><div class="note ${ativaHoje?'':'warn'}">${ativaHoje?'Campanha ativa hoje.':'Campanha desligada ou fora do período: o código de indicação não é aceito agora.'}</div></div>
-  <div class="box"><h3 style="margin-top:0">Primeira compra</h3><div class="fr"><div class="c3"><label for="pcP">Desconto (%)</label><input id="pcP" type="number" min="1" max="90" value="${p.pct}"></div></div><p><button class="btn acc" onclick="admSalvaPC()">Salvar</button></p>
-  <h3>Indicações</h3>${A9.camp.ind.length?`<div class="tbl"><table><thead><tr><th>Quem comprou</th><th>Indicado por</th><th>Pedido</th><th>Situação</th></tr></thead><tbody>${A9.camp.ind.map(o=>`<tr><td>${esc((o.entrega||{}).nome||'')}</td><td>${esc(A9.camp.donos[o.indicacao.owner]||'')} <small>(${esc(o.indicacao.code||'')})</small></td><td>${codPed(o)}</td><td>${esc(STLB[o.status]||o.status)}</td></tr>`).join('')}</tbody></table></div>`:'<p style="color:var(--muted)">Nenhuma indicação ainda.</p>'}</div></div>`;
+  return `
+  <div class="box" style="max-width:680px"><h3 style="margin-top:0">Visibilidade no site</h3>${msgBox()}
+  <p style="color:var(--muted);font-size:.88rem;margin:0 0 12px">Controle o que aparece para os clientes. Desligar oculta o item mas não apaga as configurações.</p>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <label style="display:flex;align-items:center;gap:10px;font-weight:500;cursor:pointer"><input type="checkbox" id="vTab" style="width:auto" ${vis.tab?'checked':''}> Mostrar aba <b>Campanhas</b> no menu do cliente</label>
+    <label style="display:flex;align-items:center;gap:10px;font-weight:500;cursor:pointer"><input type="checkbox" id="vAm" style="width:auto" ${vis.amigo?'checked':''}> Mostrar <b>Amigo Emagrece Amigo</b> (menu, banner e seção na home)</label>
+    <label style="display:flex;align-items:center;gap:10px;font-weight:500;cursor:pointer"><input type="checkbox" id="vPc" style="width:auto" ${vis.primeira?'checked':''}> Mostrar <b>10% off na primeira compra</b> (faixa do topo)</label>
+  </div>
+  <p style="margin-top:14px"><button class="btn acc" onclick="admSalvaVis()">Salvar visibilidade</button></p></div>
+
+  <div class="two" style="grid-template-columns:1fr 1fr">
+  <div class="box"><h3 style="margin-top:0">Amigo Emagrece Amigo</h3>
+  <div class="fr"><div><label for="aN">Nome da campanha</label><input id="aN" value="${esc(a.nome)}" maxlength="80"></div><div class="c2"><label for="aP">Desconto (%)</label><input id="aP" type="number" min="1" max="90" value="${a.pct}"></div><div class="c2"><label for="aL">Limite de amigos/mês por indicador</label><input id="aL" type="number" min="1" max="500" value="${a.limite}"></div><div class="c2"><label for="aI">Início</label><input id="aI" type="date" value="${esc(a.inicio)}"></div><div class="c2"><label for="aF">Fim</label><input id="aF" type="date" value="${esc(a.fim)}"></div><div><label style="font-weight:500"><input type="checkbox" id="aA" style="width:auto" ${a.ativa?'checked':''}> Campanha ligada</label></div></div>
+  <p><button class="btn acc" onclick="admSalvaAmigo()">Salvar campanha</button></p><div class="note ${ativaHoje?'':'warn'}">${ativaHoje?'Campanha ativa hoje.':'Campanha desligada ou fora do período.'}</div></div>
+
+  <div class="box"><h3 style="margin-top:0">Primeira compra</h3>
+  <div class="fr"><div class="c3"><label for="pcP">Desconto (%)</label><input id="pcP" type="number" min="1" max="90" value="${p.pct}"></div></div>
+  <p><button class="btn acc" onclick="admSalvaPC()">Salvar</button></p>
+  <h3>Indicações</h3>${A9.camp.ind.length?`<div class="tbl"><table><thead><tr><th>Quem comprou</th><th>Indicado por</th><th>Pedido</th><th>Situação</th></tr></thead><tbody>${A9.camp.ind.map(o=>`<tr><td>${esc((o.entrega||{}).nome||'')}</td><td>${esc(A9.camp.donos[o.indicacao.owner]||'')} <small>(${esc(o.indicacao.code||'')})</small></td><td>${codPed(o)}</td><td>${esc(STLB[o.status]||o.status)}</td></tr>`).join('')}</tbody></table></div>`:'<p style="color:var(--muted)">Nenhuma indicação ainda.</p>'}</div></div>
+
+  <div class="box" style="grid-column:1/-1"><h3 style="margin-top:0">Banners do carrossel</h3>
+  <p style="color:var(--muted);font-size:.88rem;margin:0 0 12px">Adicione banners personalizados. Quando há banners aqui, eles substituem os banners padrão. Deixe a lista vazia para voltar aos banners padrão.</p>
+  ${bans.length?`<div class="tbl"><table><thead><tr><th>#</th><th>Título</th><th>Link</th><th>Cor</th><th>Ativo</th><th></th></tr></thead><tbody>${bans.map((b,i)=>`<tr><td>${i+1}</td><td>${esc(b.titulo||'')}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${esc(b.link||'/')}</td><td><span style="display:inline-block;width:18px;height:18px;border-radius:4px;background:${esc(b.cor||'#0a6e5c')};vertical-align:middle"></span></td><td>${b.ativo!==false?'✅':'⛔'}</td><td><button class="btn ghost sm" onclick="banToggle(${i})">Ligar/desligar</button> <button class="btn ghost sm" style="color:#b42318" onclick="banRemover(${i})">Remover</button></td></tr>`).join('')}</tbody></table></div>`:'<p style="color:var(--muted)">Nenhum banner personalizado. Usando banners padrão.</p>'}
+  <details style="margin-top:14px"><summary style="cursor:pointer;font-weight:600">Adicionar banner</summary>
+  <div class="fr" style="margin-top:10px">
+    <div><label for="bnUrl">URL da imagem (desktop, proporção 3:1 recomendada)</label><input id="bnUrl" type="url" placeholder="https://..."></div>
+    <div><label for="bnTit">Título do banner</label><input id="bnTit" maxlength="80" placeholder="Ex.: Promoção de Verão"></div>
+    <div class="c2"><label for="bnSub">Subtítulo / tag</label><input id="bnSub" maxlength="40" placeholder="Ex.: ZP Imports"></div>
+    <div class="c2"><label for="bnBot">Texto do botão</label><input id="bnBot" maxlength="30" placeholder="Ver mais"></div>
+    <div class="c2"><label for="bnLnk">Link (página do site)</label><input id="bnLnk" placeholder="/cat/..."></div>
+    <div class="c2"><label for="bnCor">Cor de fundo (hex)</label><input id="bnCor" type="color" value="#0a6e5c" style="height:38px;padding:2px 4px"></div>
+  </div>
+  <p><button class="btn acc" onclick="banAdicionar()">Adicionar banner</button></p></details>
+  </div>`;
+}
+async function admSalvaVis(){
+  const vis={tab:c_('vTab'),amigo:c_('vAm'),primeira:c_('vPc')};
+  const r=await SB.from('configuracao').upsert({chave:'camp_vis',valor:vis,publica:true,atualizado_em:new Date().toISOString()});
+  if(r.error){A9.msg='Não foi possível salvar.';A9.erro=true;route();return}
+  CAMPVIS=vis;A9.camp.vis=vis;A9.msg='Visibilidade salva.';A9.erro=false;
+  DB.set('campvis',CAMPVIS);paintShell();route();
 }
 async function admSalvaAmigo(){
   const pct=+v_('aP'),lim=+v_('aL'),ini=v_('aI'),fim=v_('aF');
-  if(!(pct>=1&&pct<=90)||!(lim>=1)||!ini||!fim||fim<ini){A9.msg='Confira os campos: desconto de 1 a 90%, limite maior que zero e datas válidas (o fim não pode ser antes do início).';A9.erro=true;route();return}
+  if(!(pct>=1&&pct<=90)||!(lim>=1)||!ini||!fim||fim<ini){A9.msg='Confira os campos: desconto de 1 a 90%, limite maior que zero e datas válidas.';A9.erro=true;route();return}
   const valor={ativa:c_('aA'),nome:v_('aN').trim()||'Amigo Emagrece Amigo',pct,inicio:ini,fim,limite:lim};
   const r=await SB.from('configuracao').upsert({chave:'amigo',valor,publica:true,atualizado_em:new Date().toISOString()});
   if(r.error){A9.msg='Não foi possível salvar. Confirme que está com a conta de administrador.';A9.erro=true;route();return}
@@ -3764,6 +3824,21 @@ async function admSalvaPC(){
   if(r.error){A9.msg='Não foi possível salvar. Confirme que está com a conta de administrador.';A9.erro=true;route();return}
   A9.camp.pc={pct};A9.msg='Desconto de primeira compra salvo.';A9.erro=false;try{await bancoConfig()}catch(x){}route();
 }
+async function banSalvar(){
+  const bans=A9.camp.bans||[];
+  const r=await SB.from('configuracao').upsert({chave:'banners',valor:bans,publica:true,atualizado_em:new Date().toISOString()});
+  if(r.error){A9.msg='Não foi possível salvar os banners.';A9.erro=true;route();return}
+  BANS=bans.length?bans:null;DB.set('bans',BANS);A9.msg='Banners salvos.';A9.erro=false;try{await bancoConfig()}catch(x){}route();
+}
+function banAdicionar(){
+  const url=v_('bnUrl').trim(),titulo=v_('bnTit').trim();
+  if(!url||!titulo){toast('Preencha pelo menos a URL e o título.');return}
+  if(!A9.camp.bans)A9.camp.bans=[];
+  A9.camp.bans.push({url,titulo,subtitulo:v_('bnSub').trim(),botao:v_('bnBot').trim()||'Ver mais',link:v_('bnLnk').trim()||'/',cor:v_('bnCor')||'#0a6e5c',ativo:true});
+  banSalvar();
+}
+function banToggle(i){if(!A9.camp.bans||!A9.camp.bans[i])return;A9.camp.bans[i].ativo=!A9.camp.bans[i].ativo;banSalvar();}
+function banRemover(i){if(!A9.camp.bans)return;if(!confirm('Remover este banner?'))return;A9.camp.bans.splice(i,1);banSalvar();}
 
 /* ======================= RECEBIMENTO NO PEDIDO ======================= */
 var PGFORMAS={pix:'Pix',credito:'Cartão de crédito',debito:'Cartão de débito',outro:'Outro'};
@@ -4312,7 +4387,7 @@ function tabPagamentos(){
   ${barraFiltros()}
   <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Produtos</th><th>Frete</th><th>Total</th><th>Forma</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const fr=freteDoPedido(o);const sp=temSP(o);const pago=(o.pagamento||{}).status==='pago';
    return `<tr data-sc style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${totAdm(o)}</td><td>${fr!=null?brl(fr):'<span style="color:var(--muted)">a combinar</span>'}</td><td><b>${sp?'A confirmar':brl(total(o))}</b></td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">Link aberto no WhatsApp</div>':''}</td>
-   <td style="white-space:nowrap">${pago?`<button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança (com a foto da entrega) antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})">${A9.pagEnv[o.id]?'Reenviar link':'Enviar link de pagamento'}${temFoto(o)?' + foto':''}</button> <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar como pago</button> <button class="btn ghost sm" onclick="pagDia(${o.id})">Dia do pagamento</button>`} ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||'<tr><td colspan="8">Nenhum pedido nesta lista.</td></tr>'}</tbody></table></div></div>`;
+   <td style="white-space:nowrap">${pago?`<button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})">${A9.pagEnv[o.id]?'Reenviar link':'Enviar link de pagamento'}</button> <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar como pago</button> <button class="btn ghost sm" onclick="pagDia(${o.id})">Dia do pagamento</button>`} ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||'<tr><td colspan="8">Nenhum pedido nesta lista.</td></tr>'}</tbody></table></div></div>`;
 }
 function pagEnviar(id){
   const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
@@ -4905,35 +4980,23 @@ async function pagPrevia(id){
   if(!A9.link&&typeof CFG!=='undefined'&&CFG.linkPag)A9.link=CFG.linkPag;
   if(!A9.link){toast('Cadastre o link de pagamento na aba Site ou em Configurações.');return}
   const fw=foneWa((o.entrega||{}).fone);if(!fw){toast('Este pedido está sem telefone válido.');return}
-  let foto=null;
-  if(temFoto(o)){try{const r=await SB.from('pedido_fotos').select('foto').eq('pedido_id',id).order('criado_em',{ascending:false}).limit(1);foto=(r.data&&r.data[0]&&r.data[0].foto)||null}catch(x){}}
-  const base=admMsgPagamento(o),lk=(foto&&o.token)?'\n\n📷 Foto da entrega (o local onde deixamos o seu pedido):\n'+location.origin+'/#/foto/'+o.id+'/'+o.token:'';
-  A9.pv={id,fw,base,lk,foto,aberto:false};
+  const base=admMsgPagamento(o);
+  A9.pv={id,fw,base,aberto:false};
   const old=document.getElementById('pvbox');if(old)old.remove();
   const d=document.createElement('div');d.id='pvbox';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px';
   d.innerHTML='<div style="background:#fff;border-radius:16px;max-width:540px;width:100%;max-height:94vh;overflow:auto;padding:16px">'
-   +'<h3 style="margin:0 0 4px">Enviar link de pagamento'+(foto?' com foto':'')+'</h3><p style="margin:0 0 10px;color:#667085;font-size:.88rem">'+esc(codPed(o))+' · '+esc((o.entrega||{}).nome||'')+'</p>'
-   +(foto?'<img alt="Foto da entrega" src="'+foto+'" style="width:100%;max-height:240px;object-fit:cover;border-radius:12px"><label style="display:flex;gap:8px;align-items:center;margin:8px 0;font-weight:600"><input type="checkbox" id="pvFoto" checked style="width:auto" onchange="pvAtualiza()"> Enviar a foto da entrega junto</label>':'<p style="color:#667085;font-size:.88rem;margin:0 0 8px">Este pedido ainda não tem foto do motoboy.</p>')
-   +'<label for="pvTxt" style="font-size:.85rem">Mensagem (você pode editar)</label><textarea id="pvTxt" rows="12" style="width:100%">'+esc(base+lk)+'</textarea>'
-   +'<div class="btns" style="margin-top:10px"><button class="btn wa" onclick="pvEnviar()">Abrir no WhatsApp</button>'+(foto?'<button class="btn ghost" onclick="pvCopiarFoto()">Copiar foto</button>':'')+'<button class="btn ghost" onclick="pvFechar()">Fechar</button></div>'
-   +'<p id="pvDica" style="margin:8px 0 0;color:#667085;font-size:.8rem">'+(foto?'A foto vai como link na mensagem. Se quiser a imagem na conversa: abra o WhatsApp, depois toque em Copiar foto e cole (Ctrl+V) na conversa do cliente.':'')+'</p></div>';
+   +'<h3 style="margin:0 0 4px">Enviar link de pagamento</h3><p style="margin:0 0 10px;color:#667085;font-size:.88rem">'+esc(codPed(o))+' · '+esc((o.entrega||{}).nome||'')+'</p>'
+   +'<label for="pvTxt" style="font-size:.85rem">Mensagem (você pode editar)</label><textarea id="pvTxt" rows="12" style="width:100%">'+esc(base)+'</textarea>'
+   +'<div class="btns" style="margin-top:10px"><button class="btn wa" onclick="pvEnviar()">Abrir no WhatsApp</button><button class="btn ghost" onclick="pvFechar()">Fechar</button></div>'
+   +'<p id="pvDica" style="margin:8px 0 0;color:#667085;font-size:.8rem"></p></div>';
   document.body.appendChild(d);
 }
-function pvAtualiza(){const p=A9.pv;if(!p)return;const c=document.getElementById('pvFoto');document.getElementById('pvTxt').value=p.base+((!c||c.checked)?p.lk:'')}
 function pvFechar(){const d=document.getElementById('pvbox');if(d)d.remove();A9.pv=null;route()}
 function pvEnviar(){
-  const p=A9.pv;if(!p)return;const t=document.getElementById('pvTxt').value;const c=document.getElementById('pvFoto');
+  const p=A9.pv;if(!p)return;const t=document.getElementById('pvTxt').value;
   waAbrir(p.fw,t);A9.pagEnv[p.id]=true;p.aberto=true;
-  SB.from('pedido_eventos').insert({pedido_id:p.id,tipo:'whatsapp',publico:false,texto:'Link de pagamento aberto no WhatsApp'+((c&&c.checked)?' com a foto da entrega':'')+' (envio não confirmado pelo sistema)',por:ADMIN.nome}).then(()=>{},()=>{});
-  const dc=document.getElementById('pvDica');if(dc)dc.innerHTML='<b style="color:#16a34a">WhatsApp aberto.</b> '+(p.foto?'Se quiser a foto como imagem, toque em <b>Copiar foto</b> e cole na conversa. ':'')+'Depois toque em Fechar.';
-}
-async function pvCopiarFoto(){
-  const p=A9.pv;if(!p||!p.foto)return;
-  try{const im=new Image();await new Promise((ok,er)=>{im.onload=ok;im.onerror=er;im.src=p.foto});
-    const c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').drawImage(im,0,0);
-    const b=await new Promise(r=>c.toBlob(r,'image/png'));await navigator.clipboard.write([new ClipboardItem({'image/png':b})]);
-    toast('Foto copiada. Na conversa do cliente, cole com Ctrl+V.');
-  }catch(e){toast('Este navegador não deixou copiar a foto. Use o link da foto na mensagem.')}
+  SB.from('pedido_eventos').insert({pedido_id:p.id,tipo:'whatsapp',publico:false,texto:'Link de pagamento aberto no WhatsApp (envio não confirmado pelo sistema)',por:ADMIN.nome}).then(()=>{},()=>{});
+  const dc=document.getElementById('pvDica');if(dc)dc.innerHTML='<b style="color:#16a34a">WhatsApp aberto.</b> Depois toque em Fechar.';
 }
 
 /* ======================= PAGAMENTO EM OUTRO DIA: dia combinado, observação e aviso piscando ======================= */
