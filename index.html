@@ -163,7 +163,7 @@ footer.ft{border-top:1px solid var(--line);margin-top:30px}.fg{display:grid;grid
 @media(max-width:1100px){.grid{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:900px){.grid{grid-template-columns:repeat(3,1fr)}.bi{padding:14px;gap:12px}.bi .ic{width:48px;height:48px}.bi .ic svg{width:24px;height:24px}.tiles{grid-template-columns:1fr 1fr}.app .g{grid-template-columns:1fr}.appart{display:none}.fg{grid-template-columns:1fr 1fr}.cat{grid-template-columns:1fr}.prod,.two{grid-template-columns:1fr}.steps3{grid-template-columns:1fr}}
 @media(max-width:760px){.ben .g{grid-template-columns:1fr}.hd{flex-wrap:wrap;gap:12px}.burger{display:block}.logo{margin-right:auto;font-size:1.25rem}.search{order:3;flex:1 1 100%;max-width:none}.tool span.lb{display:none}nav.main{display:none}nav.main.open{display:block}nav.main ul{flex-direction:column;align-items:stretch}.mega,.mega-s{position:static!important;box-shadow:none;border:0;padding:6px 0 10px 12px}nav.main>ul>li:hover>.mega{display:none}nav.main>ul>li.open>.mega,.simple.open .mega-s{display:block}.wafloat .wl{display:none}}
-@media(max-width:560px){.grid{grid-template-columns:repeat(2,1fr);gap:10px}.ben .g{grid-template-columns:1fr}.fg{grid-template-columns:1fr}.fr>div,.fr .c2,.fr .c3,.fr .c4{grid-column:span 6}}
+@media(max-width:560px){.grid{grid-template-columns:repeat(2,1fr)!important;gap:10px}.ben .g{grid-template-columns:1fr}.fg{grid-template-columns:1fr}.fr>div,.fr .c2,.fr .c3,.fr .c4{grid-column:span 6}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 .tbl{overflow-x:auto}
 .s-prog{background:#ffe0b2;color:#8a4b00}.s-rota{background:#d1c4e9;color:#311b92}.s-falha{background:#ffcdd2;color:#b71c1c}
@@ -1048,7 +1048,7 @@ function pageHome(){
     const prods=LIVE().filter(p=>p.cat[0]===c);
     if(!prods.length)return '';
     const isLast=idx===cats.length-1;
-    return `<section class="cat-sec" id="cat-home-${idx}"><div class="wrap"><div class="cat-sec-titulo"><h2>${esc(c)}</h2><a onclick="nav('/cat/${encodeURIComponent(c)}')">Ver todos →</a></div><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">${prods.map(card).join('')}</div>${isLast?`<div style="text-align:center;padding:32px 0 16px"><button class="btn ghost" style="padding:.8em 2em" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Voltar ao topo</button></div>`:''}</div></section>`;
+    return `<section class="cat-sec" id="cat-home-${idx}"><div class="wrap"><div class="cat-sec-titulo"><h2>${esc(c)}</h2><a onclick="nav('/cat/${encodeURIComponent(c)}')">Ver todos →</a></div><div class="grid">${prods.map(card).join('')}</div>${isLast?`<div style="text-align:center;padding:32px 0 16px"><button class="btn ghost" style="padding:.8em 2em" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Voltar ao topo</button></div>`:''}</div></section>`;
   }).join('');
   // inicializa botão voltar ao topo + destaque de menu ao scroll
   const _catsRef=cats;
@@ -1102,7 +1102,7 @@ function pageCat(path){
   const bc=['<a onclick="nav(\'/\')">Início</a>'].concat(parts.map((x,i)=>`<a onclick="nav('/cat/${encodeURIComponent(parts.slice(0,i+1).join('/'))}')">${x}</a>`)).join(' / ');
   return `<div class="wrap pg"><div class="bc">${bc}</div><h1 class="t">${parts[parts.length-1]}</h1>
   <div class="cat">${Object.keys(tree).length?side:'<div></div>'}<div><div class="bar"><span style="color:var(--muted)">${list.length} produto${list.length!==1?'s':''}</span><select onchange="DB.set('sort',this.value);route()" aria-label="Ordenar"><option value="rel" ${sort==='rel'?'selected':''}>Ordenação padrão</option><option value="asc" ${sort==='asc'?'selected':''}>Menor preço</option><option value="desc" ${sort==='desc'?'selected':''}>Maior preço</option><option value="nome" ${sort==='nome'?'selected':''}>Nome</option></select></div>
-  ${list.length?`<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">${list.map(card).join('')}</div>`:'<div class="note">'+(dep==='Acompanhamento'?'Em breve por aqui.':'Nenhum produto cadastrado nesta categoria ainda.')+'</div>'}</div></div></div>`;
+  ${list.length?`<div class="grid">${list.map(card).join('')}</div>`:'<div class="note">'+(dep==='Acompanhamento'?'Em breve por aqui.':'Nenhum produto cadastrado nesta categoria ainda.')+'</div>'}</div></div></div>`;
 }
 function pageSearch(q){q=decodeURIComponent(q).toLowerCase();const list=LIVE().filter(p=>(p.n+' '+p.cat.join(' ')+' '+p.sku).toLowerCase().includes(q));
   return `<div class="wrap pg"><h1 class="t">Resultados para "${esc(q)}"</h1><p style="color:var(--muted)">${list.length} produto${list.length!==1?'s':''}</p>${list.length?`<div class="grid">${list.map(card).join('')}</div>`:'<div class="note">Nada encontrado. Tente outro termo.</div>'}</div>`}
