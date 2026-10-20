@@ -1008,7 +1008,7 @@ const ICOURL=n=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/publ
 const icoImg=(n,fb)=>`<img class="icoimg" src="${ICOURL(n)}" alt="" data-fb="${encodeURIComponent(fb)}" onerror="this.outerHTML=decodeURIComponent(this.dataset.fb)">`;
 const DIMG={'Ampolas':'ampola','Caixas':'caixa','Acompanhamento':'prancheta','Produtos injetáveis':'injecao'};
 function pageHome(){
-  const ben=[['Entrega rápida','Consulte prazo e regiões atendidas*','M2 6h11v10H2zM13 9h4l3 3v4h-7','caminhao'],['Pague na entrega','Link de pagamento enviado quando o pedido chega','M3 6h18v12H3zM3 10h18M7 15h4','cartao']];
+  const ben=[];
   const D0=Object.keys(TREE)[0];const deps=Object.keys(TREE).filter(d=>!['Ofertas','Produtos injetáveis','Acompanhamento'].includes(d));const dIc={'Medicamentos':'inj','Produtos injetáveis':'inj','Acessórios de aplicação':'needle','Caixas':'inj','Ampolas':'inj','Acompanhamento':'scale'};
   const DEST='Ampolas';const slides=SL();const mobHome=true;const SHF=shelf(DEST+' em destaque',LIVE().filter(p=>p.cat[0]===DEST),'/cat/'+encodeURIComponent(DEST));
   const slPic=s=>s.imgurl?`<picture class="slpic"><img src="${esc(s.imgurl)}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:s.img?`<picture class="slpic"><source media="(max-width:760px)" srcset="${BANURL(s.img,'mobile')}"><img src="${BANURL(s.img,'desktop')}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:'';
@@ -1017,7 +1017,8 @@ function pageHome(){
    <button class="arr l" onclick="slide(-1)" aria-label="Anterior"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m15 5-7 7 7 7"/></svg></button><button class="arr r" onclick="slide(1)" aria-label="Próximo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 5 7 7-7 7"/></svg></button>
    <div class="dots">${slides.map((s,i)=>`<button class="${i?'':'on'}" onclick="slide(${i}-sl)" aria-label="Banner ${i+1}"></button>`).join('')}</div></section>
   ${mobHome?SHF:''}
-  <section class="ben"><div class="wrap g">${ben.map(b=>`<div class="bi"><span class="ic">${icoImg(b[3],'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+b[2]+'"/></svg>')}</span><div><b>${b[0]}</b><small>${b[1]}</small></div></div>`).join('')}</div></section>
+  ${ben.length?`<section class="ben"><div class="wrap g">${ben.map(b=>`<div class="bi"><span class="ic">${icoImg(b[3],'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+b[2]+'"/></svg>')}</span><div><b>${b[0]}</b><small>${b[1]}</small></div></div>`).join('')}</div></section>`:''}
+
   ${mobHome?'':SHF}
   <section class="sec"><div class="wrap"><div class="sh"><h2>Compre por departamento</h2></div><div class="deps">${deps.map(d=>`<div class="dep" onclick="nav('/cat/${encodeURIComponent(d)}')"><span>${DIMG[d]?icoImg(DIMG[d],svg(dIc[d]||'cross',46)):svg(dIc[d]||'cross',46)}</span>${d}</div>`).join('')}</div></div></section>
   ${CAMPVIS.amigo?`<section class="amigoban"><div class="wrap g"><div><h2>Amigo Emagrece Amigo${amOn()?': '+AM.pct+'% de desconto':''}</h2><p>Indique a ${esc(CFG.brand)} para um amigo. Ele ganha desconto na primeira compra e você ganha desconto a cada amigo que comprar.</p></div><button class="btn" style="padding:1em 2em" onclick="nav('/amigo')">Quero indicar</button></div></section>`:''}` ;

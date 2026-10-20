@@ -4585,8 +4585,12 @@ function freteHtmlAdm(o){const f=freteDoPedido(o);if(f==null)return '';return `<
 
 /* mensagem de pagamento (antes e depois da entrega), já com o frete */
 function pagVars(o){
-  const en=o.entrega||{};const nome=String(en.nome||'').split(' ')[0];const fr=freteDoPedido(o);const base=pedTotal(o);
-  return {nome:nome||'cliente',pedido:codPed(o),valor:brl(base),frete:fr!=null?brl(fr)+' ('+freteNome(cidadeDe(o))+')':'',total:brl(base+(fr||0)),link:A9.link,forma:(PAGNOME[(o.pagamento||{}).preferencia]||'a combinar')};
+  const en=o.entrega||{};const nome=String(en.nome||'').split(' ')[0];
+  const cb=cobInfo(o);
+  const base=cb&&cb.valorProd!=null?cb.valorProd:pedTotal(o);
+  const fr=cb&&cb.valorFrete!=null?cb.valorFrete:(freteDoPedido(o)||0);
+  const cidade=cidadeDe(o);
+  return {nome:nome||'cliente',pedido:codPed(o),valor:brl(base),frete:brl(fr)+(cidade?' ('+freteNome(cidade)+')':''),total:brl(+(base+fr).toFixed(2)),link:A9.link,forma:(PAGNOME[(o.pagamento||{}).preferencia]||'a combinar')};
 }
 function admMsgPagamento(o){return nl(msgTxt(o.status==='entregue'?'pagamento_entregue':'pagamento',pagVars(o)))}
 
@@ -5292,13 +5296,29 @@ function cobParcDistrib(total,n){
 /* abre modal de configuração de cobrança */
 function cobModal(id){
   const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
-  const tot=cobTotal(o);const cb=cobInfo(o)||{modo:'imediato',parcelas:[{n:1,valor:tot,venc:'',link:'',status:'pendente'}]};
+  const cb=cobInfo(o)||{};
+  const frete=freteDoPedido(o)||0;
+  const prodDef=+(cb.valorProd!=null?cb.valorProd:pedTotal(o)).toFixed(2);
+  const freteDef=+(cb.valorFrete!=null?cb.valorFrete:frete).toFixed(2);
+  const tot=+(prodDef+freteDef).toFixed(2);
+  const cbInit=Object.assign({modo:'imediato',parcelas:[{n:1,valor:tot,venc:'',link:'',status:'pendente'}]},cb);
   const old=document.getElementById('cobbox');if(old)old.remove();
   const d=document.createElement('div');d.id='cobbox';
   d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px';
-  d.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:580px;width:100%;max-height:94vh;overflow:auto;padding:18px">
+  const cidade=cidadeDe(o)||'';
+  d.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:600px;width:100%;max-height:94vh;overflow:auto;padding:18px">
 <h3 style="margin:0 0 4px">Configurar cobrança</h3>
-<p style="margin:0 0 12px;color:#667085;font-size:.88rem">${esc(codPed(o))} · ${esc((o.entrega||{}).nome||'')} · Total: <b>${brl(tot)}</b></p>
+<p style="margin:0 0 12px;color:#667085;font-size:.88rem">${esc(codPed(o))} · ${esc((o.entrega||{}).nome||'')}${cidade?' · '+esc(cidade):''}</p>
+<div style="background:#f8fafc;border-radius:10px;padding:12px 14px;margin-bottom:14px">
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+    <div style="flex:1;min-width:130px"><label style="font-size:.82rem;color:#667085;margin-bottom:2px;display:block">Valor dos produtos (R$)</label>
+      <input id="cbProd" type="number" min="0" step="0.01" value="${prodDef}" style="width:100%" oninput="cobAtualizaTot()"></div>
+    <div style="flex:1;min-width:130px"><label style="font-size:.82rem;color:#667085;margin-bottom:2px;display:block">Frete${cidade?' ('+esc(cidade)+')':''} (R$)</label>
+      <input id="cbFrete" type="number" min="0" step="0.01" value="${freteDef}" style="width:100%" oninput="cobAtualizaTot()"></div>
+    <div style="min-width:110px"><label style="font-size:.82rem;color:#667085;margin-bottom:2px;display:block">Total a cobrar</label>
+      <div id="cbTotDisp" style="font-size:1.25rem;font-weight:800;color:#16a34a;padding:6px 0">${brl(tot)}</div></div>
+  </div>
+</div>
 <label>Modalidade</label>
 <div style="display:flex;gap:8px;margin:6px 0 14px;flex-wrap:wrap">
   <button id="cbM_imediato" class="btn ${cb.modo==='imediato'?'acc':'ghost'} sm" onclick="cobModo('imediato')">Imediato</button>
@@ -5315,8 +5335,19 @@ function cobModal(id){
 </div>`;
   document.body.appendChild(d);
   /* guarda estado temporário */
-  d._cobId=id;d._cobTot=tot;d._cobModo=cb.modo;d._cobParcelas=JSON.parse(JSON.stringify(cb.parcelas||[{n:1,valor:tot,venc:'',link:'',status:'pendente'}]));
-  cobModo(cb.modo);
+  d._cobId=id;d._cobTot=tot;d._cobModo=cbInit.modo;d._cobParcelas=JSON.parse(JSON.stringify(cbInit.parcelas||[{n:1,valor:tot,venc:'',link:'',status:'pendente'}]));
+  cobModo(cbInit.modo);
+}
+function cobAtualizaTot(){
+  const d=document.getElementById('cobbox');if(!d)return;
+  const prod=+(document.getElementById('cbProd')||{value:0}).value||0;
+  const fr=+(document.getElementById('cbFrete')||{value:0}).value||0;
+  const tot=+(prod+fr).toFixed(2);
+  d._cobTot=tot;
+  const el=document.getElementById('cbTotDisp');if(el)el.textContent=brl(tot);
+  /* redistribui parcelas se for parcelado */
+  if(d._cobModo==='parcelado'){const n=d._cobParcelas.length;const vals=cobParcDistrib(tot,n);d._cobParcelas.forEach((p,i)=>p.valor=vals[i]);cobModo('parcelado');}
+  else if(d._cobModo==='imediato'||d._cobModo==='programado'){if(d._cobParcelas[0])d._cobParcelas[0].valor=tot;}
 }
 function cobModo(m){
   const d=document.getElementById('cobbox');if(!d)return;
@@ -5387,7 +5418,9 @@ async function cobSalvar(id){
   const d=document.getElementById('cobbox');if(!d)return;
   const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
   const parcelas=cobLerLinhas();
-  const cb={modo:d._cobModo,habilitada:(cobInfo(o)||{}).habilitada||false,parcelas,totalCombinado:d._cobTot,criadoEm:(cobInfo(o)||{}).criadoEm||new Date().toISOString(),criadoPor:(cobInfo(o)||{}).criadoPor||ADMIN.nome,atualizadoEm:new Date().toISOString(),atualizadoPor:ADMIN.nome};
+  const valorProd=+(+(document.getElementById('cbProd')||{value:d._cobTot}).value||d._cobTot).toFixed(2);
+  const valorFrete=+(+(document.getElementById('cbFrete')||{value:0}).value||0).toFixed(2);
+  const cb={modo:d._cobModo,habilitada:(cobInfo(o)||{}).habilitada||false,parcelas,totalCombinado:d._cobTot,valorProd,valorFrete,criadoEm:(cobInfo(o)||{}).criadoEm||new Date().toISOString(),criadoPor:(cobInfo(o)||{}).criadoPor||ADMIN.nome,atualizadoEm:new Date().toISOString(),atualizadoPor:ADMIN.nome};
   const ex=Object.assign({},o.extra||{},{cobranca:cb});
   const r=await SB.from('pedidos').update({extra:ex}).eq('id',id);
   const msg=document.getElementById('cobMsg');
@@ -5402,7 +5435,9 @@ async function cobHabilitar(id){
   const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
   if(o.status!=='entregue'){const msg=document.getElementById('cobMsg');if(msg)msg.innerHTML='<span style="color:#d92d20">Habilite a cobrança somente após a entrega do pedido.</span>';return}
   const parcelas=cobLerLinhas();
-  const cb=Object.assign({},(cobInfo(o)||{}),{modo:d._cobModo,habilitada:true,parcelas,totalCombinado:d._cobTot,atualizadoEm:new Date().toISOString(),atualizadoPor:ADMIN.nome});
+  const valorProd=+(+(document.getElementById('cbProd')||{value:d._cobTot}).value||d._cobTot).toFixed(2);
+  const valorFrete=+(+(document.getElementById('cbFrete')||{value:0}).value||0).toFixed(2);
+  const cb=Object.assign({},(cobInfo(o)||{}),{modo:d._cobModo,habilitada:true,parcelas,totalCombinado:d._cobTot,valorProd,valorFrete,atualizadoEm:new Date().toISOString(),atualizadoPor:ADMIN.nome});
   if(!cb.criadoEm)cb.criadoEm=new Date().toISOString();if(!cb.criadoPor)cb.criadoPor=ADMIN.nome;
   const ex=Object.assign({},o.extra||{},{cobranca:cb});
   const r=await SB.from('pedidos').update({extra:ex}).eq('id',id);
