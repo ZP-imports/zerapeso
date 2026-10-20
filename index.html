@@ -972,7 +972,7 @@ const nav=p=>{location.hash='#'+p};
 // rola até uma seção de categoria na home (pelo índice)
 function homeCatScroll(idx){const el=document.getElementById('cat-home-'+idx);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});}}
 function menuNavOrScroll(link){
-  const CATS_HOME=['Tizerpatida','Retatrutida','Botox','Peptídeos'];
+  const CATS_HOME=['Tirzepatida','Retatrutida','Botox','Peptídeos'];
   const catIdx=CATS_HOME.findIndex(c=>link==='/cat/'+encodeURIComponent(c)||link==='/cat/'+c);
   if(catIdx>=0&&location.hash==='#/'){homeCatScroll(catIdx);return;}
   nav(link);
@@ -1033,7 +1033,7 @@ function pageHome(){
   const slides=SL();
   const slPic=s=>s.imgurl?`<picture class="slpic"><img src="${esc(s.imgurl)}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:s.img?`<picture class="slpic"><source media="(max-width:760px)" srcset="${BANURL(s.img,'mobile')}"><img src="${BANURL(s.img,'desktop')}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:'';
   // categorias fixas em ordem para scroll contínuo
-  const CATS_HOME=['Tizerpatida','Retatrutida','Botox','Peptídeos'];
+  const CATS_HOME=['Tirzepatida','Retatrutida','Botox','Peptídeos'];
   const slClick=s=>{
     if(s.l==='__appverif__')return'abrirPopupApp(event)';
     // se o link é uma categoria da home, rola até ela
