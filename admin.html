@@ -1003,7 +1003,7 @@ const ICOURL=n=>(typeof SB_URL!=='undefined'?SB_URL:'')+'/storage/v1/object/publ
 const icoImg=(n,fb)=>`<img class="icoimg" src="${ICOURL(n)}" alt="" data-fb="${encodeURIComponent(fb)}" onerror="this.outerHTML=decodeURIComponent(this.dataset.fb)">`;
 const DIMG={'Ampolas':'ampola','Caixas':'caixa','Acompanhamento':'prancheta','Produtos injetáveis':'injecao'};
 function pageHome(){
-  const ben=[['Entrega rápida','Consulte prazo e regiões atendidas*','M2 6h11v10H2zM13 9h4l3 3v4h-7','caminhao'],['Pague na entrega','Link de pagamento enviado quando o pedido sai para entrega','M3 6h18v12H3zM3 10h18M7 15h4','cartao'],['Equipe de saúde','Atendimento por profissionais','M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z','coracao']];
+  const ben=[['Entrega rápida','Consulte prazo e regiões atendidas*','M2 6h11v10H2zM13 9h4l3 3v4h-7','caminhao'],['Pague na entrega','Link de pagamento enviado quando o pedido chega','M3 6h18v12H3zM3 10h18M7 15h4','cartao']];
   const D0=Object.keys(TREE)[0];const deps=Object.keys(TREE).filter(d=>!['Ofertas','Produtos injetáveis','Acompanhamento'].includes(d));const dIc={'Medicamentos':'inj','Produtos injetáveis':'inj','Acessórios de aplicação':'needle','Caixas':'inj','Ampolas':'inj','Acompanhamento':'scale'};
   const DEST='Ampolas';const slides=SL();const mobHome=true;const SHF=shelf(DEST+' em destaque',LIVE().filter(p=>p.cat[0]===DEST),'/cat/'+encodeURIComponent(DEST));
   const slPic=s=>s.imgurl?`<picture class="slpic"><img src="${esc(s.imgurl)}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:s.img?`<picture class="slpic"><source media="(max-width:760px)" srcset="${BANURL(s.img,'mobile')}"><img src="${BANURL(s.img,'desktop')}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:'';
@@ -3404,6 +3404,7 @@ async function admCarregarPedidos(){
   A9.pedidos=r.error?[]:r.data;if(r.error){A9.msg='Não foi possível carregar os pedidos.';A9.erro=true}
   try{const ev=await SB.from('pedido_eventos').select('pedido_id').ilike('texto','Link de pagamento aberto%').limit(3000);A9.pagEnv=A9.pagEnv||{};(ev.data||[]).forEach(e=>{A9.pagEnv[e.pedido_id]=true})}catch(x){}
   route();
+  if(typeof cobPopVenc==='function')setTimeout(cobPopVenc,1200);
 }
 async function admAbrirPedido(id){
   const [r,ev,et]=await Promise.all([SB.from('pedidos').select('*').eq('id',id).single(),SB.from('pedido_eventos').select('*').eq('pedido_id',id).order('t'),SB.from('etiquetas').select('*').eq('pedido_id',id).order('v')]);
@@ -3640,17 +3641,18 @@ function tabConfig(){
   </div></div>`;
 }
 function admTab(t){A.tab=t;A9.ed=null;A9.po=null;A9.edE=null;A9.msg='';A9.cfgOk=false;A9.lg=null;A9.cx=null;A9.camp=null;A9.pagF=null;route()}
+function admTabPend(){_pendPopSessao=false;admTab('pendentes')}
 function pageOp(){
   syncAdmin();
   if(!ADMIN){
     if(me)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div class="note err">Esta conta não tem acesso à área administrativa.</div><p><button class="btn" onclick="admSair()">Sair</button></p></div></div>`;
     return '<div class="adlogin"><div class="adcard"><div class="adico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><h1>Acesso da equipe</h1><p class="adsub">Entre com o seu e-mail e senha para acessar o painel da loja.</p><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username" placeholder="voce@empresa.com"><label for="ap">Senha</label><div class="adsenha"><input id="ap" type="password" required autocomplete="current-password" placeholder="Sua senha"><button type="button" class="adver" onclick="admVerSenha(this)">Mostrar</button></div><button class="adbtn">Entrar</button></form><p class="adnota">Acesso restrito. Se você é cliente, <a href="./">volte para a loja</a>.</p></div></div>';
   }
-  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['clientes','Clientes'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
+  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['pendentes','Pagamentos pendentes'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['clientes','Clientes'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
   const EXTRA_T=['cartao','atrasados','clientes','campanhas','produtos','etiquetas','mensagens','config'];
   if(!tabs.some(t=>t[0]===A.tab))A.tab=tabs[0][0];
   msgGarante();
-  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,manual:tabManual,pagamentos:tabPagamentos,cartao:tabCartao,campanhas:tabCampanhas,logistica:tabLogistica,entregadores:tabEntregadores,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,mensagens:tabMensagens,config:tabConfig,clientes:tabClientes})[A.tab]();
+  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,manual:tabManual,pagamentos:tabPagamentos,pendentes:tabPendentes,cartao:tabCartao,campanhas:tabCampanhas,logistica:tabLogistica,entregadores:tabEntregadores,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,mensagens:tabMensagens,config:tabConfig,clientes:tabClientes})[A.tab]();
   return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="font-size:.85rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]}) · <a style="cursor:pointer" onclick="admSair()">Sair</a></div></div>
   ${abasHtml(tabs,EXTRA_T)}${body}</div>`;
 }
@@ -4604,7 +4606,7 @@ function tabPagamentos(){
   ${barraFiltros()}
   <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Produtos</th><th>Frete</th><th>Total</th><th>Forma</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const fr=freteDoPedido(o);const sp=temSP(o);const pago=(o.pagamento||{}).status==='pago';
    return `<tr data-sc style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${totAdm(o)}</td><td>${fr!=null?brl(fr):'<span style="color:var(--muted)">a combinar</span>'}</td><td><b>${sp?'A confirmar':brl(total(o))}</b></td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">Link aberto no WhatsApp</div>':''}</td>
-   <td style="white-space:nowrap">${pago?`<button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})">${A9.pagEnv[o.id]?'Reenviar link':'Enviar link de pagamento'}</button> <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar como pago</button> <button class="btn ghost sm" onclick="pagDia(${o.id})">Dia do pagamento</button>`} ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||'<tr><td colspan="8">Nenhum pedido nesta lista.</td></tr>'}</tbody></table></div></div>`;
+   <td style="white-space:nowrap">${pago?`<button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})">${A9.pagEnv[o.id]?'Reenviar link':'Enviar link de pagamento'}</button> <button class="btn acc sm" onclick="cobModal(${o.id})">Configurar cobrança</button> <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar como pago</button> <button class="btn ghost sm" onclick="pagDia(${o.id})">Dia do pagamento</button>`} ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||'<tr><td colspan="8">Nenhum pedido nesta lista.</td></tr>'}</tbody></table></div></div>`;
 }
 function pagEnviar(id){
   const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
@@ -4661,6 +4663,7 @@ function tabDash(){
    ${k('#0891b2','Entrega hoje',entH.length,'data desejada é hoje',"admIr('pedidos',{fq:'entrega-hoje'})")}
    ${k('#d92d20','Atrasados',atr.length,'data desejada vencida',"admIr('pedidos',{fq:'atrasados'})")}
    ${ADMIN.papel==='admin'?(()=>{const fp=fielPend(L);return fp.total?`<button class="kc ${fp.novos?'pulsa':''}" style="--c:#7c3aed" onclick="A9.cliF='fiel';admTab('clientes')"><div class="n">${fp.total}</div><div class="t"><b>Clientes fiéis (${CLI_META}+ pedidos)</b></div><div class="t">${fp.novos?fp.novos+' para oferecer cupom':'todos já receberam o convite'}</div></button>`:''})():''}
+   ${(()=>{const cp=typeof cobPendentes==='function'?cobPendentes():[];const cpU=cp.filter(x=>x.sit==='vencido'||x.sit==='hoje');return cp.length?`<button class="kc ${cpU.length?'pulsa':''}" style="--c:#7c2d12" onclick="admTab('pendentes')"><div class="n">${cp.length}</div><div class="t"><b>Pagamentos pendentes</b></div><div class="t">${cpU.length?cpU.length+' vencido(s) ou vencem hoje':'próximos vencimentos'} · ${brl(cp.reduce((s,x)=>s+x.p.valor,0))}</div></button>`:''})()}
    ${k('#d97706','Aguardando pagamento',pend.length,brl(pend.reduce((s,o)=>s+tot(o),0))+' a receber',"A9.pf='andamento';admTab('pagamentos')")}
    ${k('#be123c','A cobrar (entregues)',cobrar.length,brl(cobrar.reduce((s,o)=>s+tot(o),0)),"A9.pf='cobrar';admTab('pagamentos')")}
    ${k('#475569','Pedidos concluídos',L.filter(ENC).length,entregues.length+' entregue'+(entregues.length===1?'':'s')+' · '+L.filter(o=>o.status==='cancelado').length+' cancelado(s)',"A9.dashView='concluidos';A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';route()")}
@@ -4798,6 +4801,7 @@ async function admRefrescaQuieto(){
       A9.pedidos=r.data;
       if(ent.length)toast(ent.length===1?codPed(ent[0])+' foi entregue. Já está em Pagamentos, para enviar o link de pagamento.':ent.length+' pedidos foram entregues. Já estão em Pagamentos, para enviar o link de pagamento.');
       if(!emEdicao())route();
+      if(typeof cobPopVenc==='function')setTimeout(cobPopVenc,800);
     }
   }catch(x){}
   A9.refQ=false;
@@ -5259,6 +5263,243 @@ async function pagDiaSalvar(id){
   SB.from('pedido_eventos').insert({pedido_id:id,tipo:'pagamento',publico:false,texto:dia?'Pagamento previsto para '+dataBr(dia)+(ob?': '+ob:''):'Dia de pagamento removido',por:ADMIN.nome}).then(()=>{},()=>{});
   const d=document.getElementById('pdbox');if(d)d.remove();
   toast(dia?'Dia do pagamento salvo: '+dataBr(dia)+'.':'Dia do pagamento removido.');route();
+}
+
+/* ======================= COBRANÇA CONFIGURÁVEL: imediata / programada / parcelada ======================= */
+/*
+  Estrutura salva em pedido.extra.cobranca:
+  {
+    modo: 'imediato' | 'programado' | 'parcelado',
+    habilitada: true|false,        // admin clicou em "Habilitar cobrança"
+    parcelas: [                    // sempre array, mesmo quando parcela única
+      { n:1, valor:XX, venc:'YYYY-MM-DD', link:'', status:'pendente'|'pago', pagoEm:null, pagoPor:null }
+    ],
+    totalCombinado: XX,            // produtos + frete
+    criadoEm: ISO,
+    criadoPor: 'Nome'
+  }
+*/
+function cobTotal(o){return +(pedTotal(o)+(freteDoPedido(o)||0)).toFixed(2)}
+
+function cobInfo(o){return (o.extra||{}).cobranca||null}
+
+/* calcula parcelas de modo a não perder/duplicar centavo */
+function cobParcDistrib(total,n){
+  const base=Math.floor(total*100/n);let resto=Math.round(total*100-base*n);
+  return Array.from({length:n},(_,i)=>+((base+(i<resto?1:0))/100).toFixed(2));
+}
+
+/* abre modal de configuração de cobrança */
+function cobModal(id){
+  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
+  const tot=cobTotal(o);const cb=cobInfo(o)||{modo:'imediato',parcelas:[{n:1,valor:tot,venc:'',link:'',status:'pendente'}]};
+  const old=document.getElementById('cobbox');if(old)old.remove();
+  const d=document.createElement('div');d.id='cobbox';
+  d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px';
+  d.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:580px;width:100%;max-height:94vh;overflow:auto;padding:18px">
+<h3 style="margin:0 0 4px">Configurar cobrança</h3>
+<p style="margin:0 0 12px;color:#667085;font-size:.88rem">${esc(codPed(o))} · ${esc((o.entrega||{}).nome||'')} · Total: <b>${brl(tot)}</b></p>
+<label>Modalidade</label>
+<div style="display:flex;gap:8px;margin:6px 0 14px;flex-wrap:wrap">
+  <button id="cbM_imediato" class="btn ${cb.modo==='imediato'?'acc':'ghost'} sm" onclick="cobModo('imediato')">Imediato</button>
+  <button id="cbM_programado" class="btn ${cb.modo==='programado'?'acc':'ghost'} sm" onclick="cobModo('programado')">Programado</button>
+  <button id="cbM_parcelado" class="btn ${cb.modo==='parcelado'?'acc':'ghost'} sm" onclick="cobModo('parcelado')">Parcelado</button>
+</div>
+<div id="cobConteudo"></div>
+<div class="btns" style="margin-top:14px">
+  <button class="btn acc" onclick="cobSalvar(${id})">Salvar configuração</button>
+  <button class="btn wa" onclick="cobHabilitar(${id})">Habilitar e enviar agora</button>
+  <button class="btn ghost" onclick="document.getElementById('cobbox').remove()">Fechar</button>
+</div>
+<p id="cobMsg" style="margin:6px 0 0;font-size:.83rem"></p>
+</div>`;
+  document.body.appendChild(d);
+  /* guarda estado temporário */
+  d._cobId=id;d._cobTot=tot;d._cobModo=cb.modo;d._cobParcelas=JSON.parse(JSON.stringify(cb.parcelas||[{n:1,valor:tot,venc:'',link:'',status:'pendente'}]));
+  cobModo(cb.modo);
+}
+function cobModo(m){
+  const d=document.getElementById('cobbox');if(!d)return;
+  d._cobModo=m;
+  ['imediato','programado','parcelado'].forEach(x=>{const b=document.getElementById('cbM_'+x);if(b){b.className='btn '+(x===m?'acc':'ghost')+' sm'}});
+  const tot=d._cobTot;const cont=document.getElementById('cobConteudo');if(!cont)return;
+  if(m==='imediato'){
+    cont.innerHTML=`<p style="color:var(--muted);font-size:.88rem">Cobrança integral de <b>${brl(tot)}</b> liberada após a entrega. O link é enviado imediatamente ao habilitar.</p>
+<label>Link de pagamento (opcional — usa o cadastrado nas Config se vazio)</label>
+<input id="cbLink0" type="url" placeholder="https://..." value="${esc(d._cobParcelas[0]&&d._cobParcelas[0].link||'')}">`;
+  }else if(m==='programado'){
+    const venc=d._cobParcelas[0]&&d._cobParcelas[0].venc||'';
+    cont.innerHTML=`<p style="color:var(--muted);font-size:.88rem">Cobrança integral de <b>${brl(tot)}</b> com vencimento escolhido.</p>
+<label>Data de vencimento</label><input id="cbVenc0" type="date" value="${esc(venc)}">
+<label style="margin-top:8px">Link de pagamento (opcional)</label>
+<input id="cbLink0" type="url" placeholder="https://..." value="${esc(d._cobParcelas[0]&&d._cobParcelas[0].link||'')}">`;
+  }else{
+    const n=d._cobParcelas.length>1?d._cobParcelas.length:2;
+    let rows='';d._cobParcelas.forEach((p,i)=>{rows+=`<tr>
+<td style="padding:4px 6px">${i+1}ª</td>
+<td style="padding:4px 6px"><input type="number" id="cbVal${i}" min="0" step="0.01" value="${p.valor||''}" style="width:90px" oninput="cobAjustaTotal()"></td>
+<td style="padding:4px 6px"><input type="date" id="cbVenc${i}" value="${esc(p.venc||'')}"></td>
+<td style="padding:4px 6px"><input type="url" id="cbLink${i}" placeholder="https://..." value="${esc(p.link||'')}" style="min-width:160px"></td>
+</tr>`});
+    cont.innerHTML=`<label>Número de parcelas</label>
+<div style="display:flex;gap:8px;align-items:center;margin:6px 0 10px">
+  <input id="cbNPar" type="number" min="2" max="24" value="${n}" style="width:70px" oninput="cobGerarLinhas()">
+  <button class="btn ghost sm" onclick="cobGerarLinhas()">Distribuir igualmente</button>
+  <span id="cobSoma" style="font-size:.83rem;color:var(--muted)"></span>
+</div>
+<div class="tbl"><table><thead><tr><th>#</th><th>Valor</th><th>Vencimento</th><th>Link</th></tr></thead>
+<tbody id="cobParTbody">${rows}</tbody></table></div>`;
+    cobAjustaTotal();
+  }
+}
+function cobGerarLinhas(){
+  const d=document.getElementById('cobbox');if(!d)return;
+  const n=Math.max(2,Math.min(24,+(document.getElementById('cbNPar')||{value:2}).value||2));
+  const vals=cobParcDistrib(d._cobTot,n);
+  d._cobParcelas=vals.map((v,i)=>({n:i+1,valor:v,venc:d._cobParcelas[i]&&d._cobParcelas[i].venc||'',link:d._cobParcelas[i]&&d._cobParcelas[i].link||'',status:d._cobParcelas[i]&&d._cobParcelas[i].status||'pendente'}));
+  cobModo('parcelado');
+}
+function cobAjustaTotal(){
+  const d=document.getElementById('cobbox');if(!d)return;
+  const n=d._cobParcelas.length;let s=0;
+  for(let i=0;i<n;i++){s+=+(document.getElementById('cbVal'+i)||{value:0}).value||0}
+  const sp=document.getElementById('cobSoma');if(sp)sp.textContent='Soma: '+brl(+s.toFixed(2))+' / Total: '+brl(d._cobTot)+(Math.abs(s-d._cobTot)>0.01?' ⚠️ diferença de '+brl(Math.abs(s-d._cobTot)):'');
+}
+function cobLerLinhas(){
+  const d=document.getElementById('cobbox');if(!d)return[];
+  const m=d._cobModo;
+  if(m==='imediato'||m==='programado'){
+    const venc=m==='programado'?(document.getElementById('cbVenc0')||{}).value||'':'';
+    const link=(document.getElementById('cbLink0')||{}).value||'';
+    return [{n:1,valor:d._cobTot,venc,link,status:d._cobParcelas[0]&&d._cobParcelas[0].status||'pendente',pagoEm:d._cobParcelas[0]&&d._cobParcelas[0].pagoEm||null,pagoPor:d._cobParcelas[0]&&d._cobParcelas[0].pagoPor||null}];
+  }
+  const n=d._cobParcelas.length;return Array.from({length:n},(_,i)=>({
+    n:i+1,
+    valor:+(+(document.getElementById('cbVal'+i)||{value:0}).value||0).toFixed(2),
+    venc:(document.getElementById('cbVenc'+i)||{}).value||'',
+    link:(document.getElementById('cbLink'+i)||{}).value||'',
+    status:d._cobParcelas[i]&&d._cobParcelas[i].status||'pendente',
+    pagoEm:d._cobParcelas[i]&&d._cobParcelas[i].pagoEm||null,
+    pagoPor:d._cobParcelas[i]&&d._cobParcelas[i].pagoPor||null
+  }));
+}
+async function cobSalvar(id){
+  const d=document.getElementById('cobbox');if(!d)return;
+  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
+  const parcelas=cobLerLinhas();
+  const cb={modo:d._cobModo,habilitada:(cobInfo(o)||{}).habilitada||false,parcelas,totalCombinado:d._cobTot,criadoEm:(cobInfo(o)||{}).criadoEm||new Date().toISOString(),criadoPor:(cobInfo(o)||{}).criadoPor||ADMIN.nome,atualizadoEm:new Date().toISOString(),atualizadoPor:ADMIN.nome};
+  const ex=Object.assign({},o.extra||{},{cobranca:cb});
+  const r=await SB.from('pedidos').update({extra:ex}).eq('id',id);
+  const msg=document.getElementById('cobMsg');
+  if(r.error){if(msg)msg.innerHTML='<span style="color:#d92d20">Erro ao salvar: '+esc(r.error.message)+'</span>';return}
+  o.extra=ex;
+  SB.from('pedido_eventos').insert({pedido_id:id,tipo:'pagamento',publico:false,texto:'Cobrança configurada: '+cb.modo+(cb.modo==='parcelado'?' em '+parcelas.length+'x':'')+'.',por:ADMIN.nome}).then(()=>{},()=>{});
+  if(msg)msg.innerHTML='<span style="color:#16a34a">✓ Configuração salva.</span>';
+  route();
+}
+async function cobHabilitar(id){
+  const d=document.getElementById('cobbox');if(!d)return;
+  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
+  if(o.status!=='entregue'){const msg=document.getElementById('cobMsg');if(msg)msg.innerHTML='<span style="color:#d92d20">Habilite a cobrança somente após a entrega do pedido.</span>';return}
+  const parcelas=cobLerLinhas();
+  const cb=Object.assign({},(cobInfo(o)||{}),{modo:d._cobModo,habilitada:true,parcelas,totalCombinado:d._cobTot,atualizadoEm:new Date().toISOString(),atualizadoPor:ADMIN.nome});
+  if(!cb.criadoEm)cb.criadoEm=new Date().toISOString();if(!cb.criadoPor)cb.criadoPor=ADMIN.nome;
+  const ex=Object.assign({},o.extra||{},{cobranca:cb});
+  const r=await SB.from('pedidos').update({extra:ex}).eq('id',id);
+  if(r.error){const msg=document.getElementById('cobMsg');if(msg)msg.innerHTML='<span style="color:#d92d20">Erro: '+esc(r.error.message)+'</span>';return}
+  o.extra=ex;
+  SB.from('pedido_eventos').insert({pedido_id:id,tipo:'pagamento',publico:false,texto:'Cobrança habilitada: '+cb.modo+'.',por:ADMIN.nome}).then(()=>{},()=>{});
+  document.getElementById('cobbox').remove();
+  /* se imediato: abre WhatsApp com mensagem de cobrança */
+  if(cb.modo==='imediato'||cb.modo==='programado'){
+    const primeira=parcelas[0];if(primeira&&primeira.status!=='pago'){
+      const link=primeira.link||A9.link||CFG&&CFG.linkPag||'';
+      const fw=foneWa((o.entrega||{}).fone);
+      if(fw&&link){const msg=admMsgPagamento(o);pagPrevia(id);return}
+    }
+  }
+  toast('Cobrança habilitada. Use o botão Enviar link de pagamento para cobrar.');
+  route();
+}
+async function cobPagarParcela(pedId,parIdx){
+  const o=(A9.pedidos||[]).find(x=>x.id===pedId);if(!o)return;
+  const cb=cobInfo(o);if(!cb)return;
+  const par=cb.parcelas[parIdx];if(!par||par.status==='pago')return;
+  if(!confirm('Confirmar recebimento da parcela '+par.n+'ª ('+brl(par.valor)+')?\n\nResponsável: '+ADMIN.nome))return;
+  par.status='pago';par.pagoEm=new Date().toISOString();par.pagoPor=ADMIN.nome;
+  const todoPago=cb.parcelas.every(p=>p.status==='pago');
+  if(todoPago)cb.quitadoEm=new Date().toISOString();
+  const ex=Object.assign({},o.extra||{},{cobranca:cb});
+  /* se tudo pago, atualiza status do pagamento para 'pago' */
+  const upd={extra:ex};if(todoPago)upd.pagamento=Object.assign({},o.pagamento||{},{status:'pago',pagoEm:par.pagoEm});
+  const r=await SB.from('pedidos').update(upd).eq('id',pedId);
+  if(r.error){toast('Erro ao registrar parcela: '+r.error.message);return}
+  o.extra=ex;if(todoPago&&upd.pagamento)o.pagamento=upd.pagamento;
+  SB.from('pedido_eventos').insert({pedido_id:pedId,tipo:'pagamento',publico:false,texto:'Parcela '+par.n+' recebida: '+brl(par.valor)+(todoPago?' — pedido quitado!':''),por:ADMIN.nome}).then(()=>{},()=>{});
+  toast(todoPago?'Pedido quitado! Pagamento total confirmado.':'Parcela '+par.n+' registrada como recebida.');
+  A9.pedidos=null;route();
+}
+
+/* ======================= ABA PAGAMENTOS PENDENTES ======================= */
+var _pendPopSessao=false;
+function cobPendentes(){
+  const L=A9.pedidos||[];const hoje=hojeS();
+  const pend=[];
+  L.filter(o=>o.status==='entregue').forEach(o=>{
+    const cb=cobInfo(o);if(!cb||!cb.habilitada)return;
+    (cb.parcelas||[]).forEach((p,i)=>{
+      if(p.status==='pago')return;
+      let sit='';
+      if(!p.venc)sit='sem-data';
+      else if(p.venc<hoje)sit='vencido';
+      else if(p.venc===hoje)sit='hoje';
+      else sit='futuro';
+      pend.push({o,p,i,sit,venc:p.venc||'9999-12-31'});
+    });
+  });
+  return pend;
+}
+function tabPendentes(){
+  if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
+  const hoje=hojeS();
+  const all=cobPendentes();
+  const venc=all.filter(x=>x.sit==='vencido').sort((a,b)=>a.venc.localeCompare(b.venc));
+  const hoje_=all.filter(x=>x.sit==='hoje').sort((a,b)=>a.venc.localeCompare(b.venc));
+  const prox=all.filter(x=>x.sit==='futuro').sort((a,b)=>a.venc.localeCompare(b.venc));
+  const semD=all.filter(x=>x.sit==='sem-data');
+  const row=(x,cor)=>{const o=x.o,p=x.p,i=x.i;
+    return `<tr><td>${esc(codPed(o))}</td><td>${esc((o.entrega||{}).nome||'')}</td><td>${cobInfo(o).parcelas.length>1?p.n+'ª parcela':'única'}</td><td>${brl(p.valor)}</td><td>${p.venc?dataBr(p.venc):'<span style="color:var(--muted)">não definido</span>'}</td>
+<td><span class="stchip" style="--c:${cor}">${x.sit==='vencido'?'Vencida':x.sit==='hoje'?'Vence hoje':x.sit==='futuro'?'A vencer':'Sem data'}</span></td>
+<td style="white-space:nowrap"><button class="btn acc sm" onclick="cobPagarParcela(${o.id},${i})">Recebido</button> <button class="btn ghost sm" onclick="cobModal(${o.id})">Editar</button> <button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`};
+  const tbl=(rows,cor)=>rows.length?`<div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Parcela</th><th>Valor</th><th>Vencimento</th><th>Situação</th><th></th></tr></thead><tbody>${rows.map(x=>row(x,cor)).join('')}</tbody></table></div>`:'<p style="color:var(--muted)">Nenhum.</p>';
+  const tot=brl(all.reduce((s,x)=>s+x.p.valor,0));
+  return `<div class="box">${msgBox()}
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+<h2 style="margin:0">Pagamentos pendentes</h2>
+${all.length?`<span style="background:#fef2f2;color:#991b1b;border-radius:8px;padding:4px 12px;font-weight:700;font-size:.9rem">${all.length} pendente${all.length!==1?'s':''} · ${tot}</span>`:''}
+</div>
+${venc.length?`<div class="note err" style="margin-bottom:10px"><b>⚠️ Vencidos (${venc.length})</b> — cobranças que passaram da data sem receber</div>`:''}
+${hoje_.length?`<div class="note warn" style="margin-bottom:10px"><b>💰 Vencem hoje (${hoje_.length})</b></div>`:''}
+${venc.length?`<h3 style="color:#991b1b;margin:8px 0 6px">Vencidos</h3>${tbl(venc,'#d92d20')}`:''}
+${hoje_.length?`<h3 style="color:#b45309;margin:8px 0 6px">Vencem hoje</h3>${tbl(hoje_,'#d97706')}`:''}
+${prox.length?`<h3 style="margin:8px 0 6px">Próximos vencimentos</h3>${tbl(prox,'#2563eb')}`:''}
+${semD.length?`<h3 style="color:var(--muted);margin:8px 0 6px">Sem data definida</h3>${tbl(semD,'#667085')}`:''}
+${!all.length?'<p style="color:var(--muted)">Nenhum pagamento pendente com cobrança habilitada. 🎉</p>':''}
+</div>`;
+}
+
+/* pop-up de vencimento: uma vez por sessão, ao abrir o painel */
+function cobPopVenc(){
+  if(_pendPopSessao||!A9.pedidos)return;
+  const hoje=hojeS();const pend=cobPendentes();
+  const urg=pend.filter(x=>x.sit==='vencido'||x.sit==='hoje');if(!urg.length)return;
+  _pendPopSessao=true;
+  const d=document.createElement('div');d.id='cobpopvenc';
+  d.style.cssText='position:fixed;bottom:24px;right:24px;background:#fff;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,.18);padding:16px 20px;max-width:340px;z-index:9990;border-left:4px solid #d92d20';
+  d.innerHTML=`<b style="color:#d92d20">💰 Hoje há pagamento${urg.length>1?'s':''} pendente${urg.length>1?'s':''}</b>
+<p style="margin:4px 0 10px;font-size:.88rem;color:#667085">${urg.length} cobrança${urg.length>1?'s':''} vencida${urg.length>1?'s':''} ou com vencimento hoje.</p>
+<div style="display:flex;gap:8px"><button class="btn acc sm" onclick="admTab('pendentes');document.getElementById('cobpopvenc').remove()">Ver cobranças</button><button class="btn ghost sm" onclick="document.getElementById('cobpopvenc').remove()">Dispensar</button></div>`;
+  document.body.appendChild(d);
 }
 
 /* ======================= FOTO DA ENTREGA PARA O CLIENTE (Meus pedidos + link de acompanhamento) ======================= */
