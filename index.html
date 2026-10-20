@@ -689,7 +689,7 @@ function load(){
   BANS=DB.get('bans',null);
   MENU_ITENS=DB.get('menu_itens',null);LOGO_URL=DB.get('logo_url',null);
   FOOTVIS=Object.assign({atendimento:true,duvidas:true,comoComprar:true,pedidos:true,rastreio:true,cadastro:true,entregas:true,trocas:true,pagamento:true,privacidade:true,termos:true},DB.get('footvis',{}));
-  SITE=DB.get('site',{});LOG=Object.assign({},LOGDEF,DB.get('log',{}),{dias:[0,1,2,3,4,5,6]});PEDIT=DB.get('pedit',{});ROTAS=DB.get('rotas',{});SEEN=DB.get('seen',{});ADMIN=DB.get('adm',null);OFFSET=DB.get('offset',0);REV=DB.get('rev',0);ENTR=DB.get('entr',[]);ROTE=DB.get('rote',[]);RETIR=DB.get('ret',[]);
+  SITE=DB.get('site',{});LOG=Object.assign({},LOGDEF,DB.get('log',{}),{dias:[0,1,2,3,4,5,6],antecedencia:0});PEDIT=DB.get('pedit',{});ROTAS=DB.get('rotas',{});SEEN=DB.get('seen',{});ADMIN=DB.get('adm',null);OFFSET=DB.get('offset',0);REV=DB.get('rev',0);ENTR=DB.get('entr',[]);ROTE=DB.get('rote',[]);RETIR=DB.get('ret',[]);
   migrate();applySite();applyProd();
 }
 function save(){
