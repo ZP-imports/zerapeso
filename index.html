@@ -2887,12 +2887,11 @@ function route(fromHash){
    default:html=pageNF()}
   if(html==='')return;
   const y=window.scrollY;
-  const wasEditing=emEdicao();
   document.body.classList.toggle('mb-mode',a==='entrega');
   $('#app').innerHTML=html;updHead();
   if(a===''){slT=setInterval(()=>slide(1),slSeg())}
   $('#mainnav').classList.remove('open');
-  if(!wasEditing)window.scrollTo(0,0);else window.scrollTo(0,y);
+  if(fromHash)window.scrollTo(0,0);else window.scrollTo(0,y);
 }
 window.addEventListener('hashchange',()=>route(true));
 /* Atualização automática: qualquer mudança salva em outra aba chega aqui sem recarregar a página. */
@@ -3816,7 +3815,7 @@ function entDV(){
   return {d:d,m:MESES[m-1],y:y,txt:DSEMN[dt.getDay()]+', '+d+' de '+MESES[m-1].toLowerCase()+' de '+y};
 }
 function entDt(part,delta){
-  const base=addDias(hojeS(),LOG.antecedencia);
+  const base=hojeS();
   if(!ent.data){ent.data=base;route();return}
   let [y,m,d]=ent.data.split('-').map(Number);
   const dim=(yy,mm)=>new Date(yy,mm,0).getDate();
