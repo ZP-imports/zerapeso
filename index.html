@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>.pulsa{animation:pagpulsa 1s ease-in-out infinite}.selo{white-space:nowrap}.selo.gray{background:#e5e7eb;color:#374151}.kc.pulsa{box-shadow:0 0 0 3px rgba(124,58,237,.35)}
 .pagpulsa{display:inline-block;margin-top:4px;padding:5px 9px;border-radius:8px;background:#fee4e2;color:#b42318;font-weight:800;font-size:.78rem;cursor:pointer;animation:pagpulsa 1s ease-in-out infinite}@keyframes pagpulsa{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(1.05)}}
+.frete-alerta{background:#fef2f2;border:2px solid #ef4444;border-radius:12px;padding:14px 16px;color:#b91c1c;font-weight:700;margin:10px 0;animation:pagpulsa 1.2s ease-in-out infinite;font-size:.97rem}
 .otbox{background:#fff;border:2px solid #fed7aa;border-radius:14px;padding:14px;margin-top:12px}.otl{display:flex;flex-direction:column;gap:6px}.otr{display:flex;align-items:center;gap:10px;background:#fafafa;border:1px solid #e4e7ec;border-radius:10px;padding:8px 10px;cursor:grab}.otr.ov{outline:2px dashed #ea580c;background:#fff7ed}.otn{flex:none;width:28px;height:28px;border-radius:50%;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.9rem}.oth{color:#98a2b3;font-size:1.2rem;flex:none}.otx{flex:1;min-width:0;font-size:.92rem}.otm{color:#667085;font-size:.8rem}.otb{display:flex;gap:4px;flex:none}
 .cidf{position:relative;min-width:170px}.cidf summary{cursor:pointer;list-style:none;border:1px solid var(--line,#d0d5dd);border-radius:10px;padding:10px 12px;background:#fff;font-size:.95rem}.cidf summary::-webkit-details-marker{display:none}.cidf summary:after{content:" ▾";float:right}.cidl{position:absolute;z-index:30;left:0;top:100%;margin-top:4px;min-width:230px;max-height:300px;overflow:auto;background:#fff;border:1px solid #d0d5dd;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:6px}.cidl label{display:flex;align-items:center;gap:8px;padding:8px 10px;margin:0;cursor:pointer;border-radius:8px;font-weight:400}.cidl label:hover{background:#f2f4f7}.cidl input{width:auto;margin:0;flex:none}
 
@@ -590,7 +591,7 @@ let CFG=Object.assign({},CFG0);
 const AMDEF={ativa:true,nome:'Amigo Emagrece Amigo, campanha Out/Nov 2026',pct:10,inicio:'2026-10-01',fim:'2026-11-30',limite:10};
 const UFS=['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 const TURNOS={manha:'Manhã',tarde:'Tarde',noite:'Noite'};
-const LOGDEF={turnos:{manha:true,tarde:true,noite:true},antecedencia:0,janela:30,dias:[1,2,3,4,5,6],bloqueados:[],atrasoHoras:24,alertaAmarelo:12,alertaLaranja:20,fim:{manha:12,tarde:18,noite:22}};
+const LOGDEF={turnos:{manha:true,tarde:true,noite:true},antecedencia:0,janela:30,dias:[0,1,2,3,4,5,6],bloqueados:[],atrasoHoras:24,alertaAmarelo:12,alertaLaranja:20,fim:{manha:12,tarde:18,noite:22}};
 const ADMINS=[
   {email:'wesley@zpimports.com',  senha:'Wesley123',  nome:'Wesley',  papel:'admin'},
   {email:'bruna@zpimports.com',   senha:'Bruna123',   nome:'Bruna',   papel:'admin'},
@@ -783,7 +784,7 @@ const reagendados=o=>(o.eventos||[]).filter(e=>e.tipo==='reagendado').length;
 function validarEntrega(d,t){
   if(!d)return 'Escolha a data desejada para receber o pedido.';
   if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||isNaN(new Date(d+'T12:00')))return 'Data inválida.';
-  const min=addDias(hojeS(),LOG.antecedencia),max=addDias(hojeS(),LOG.janela);
+  const min=hojeS(),max=addDias(hojeS(),LOG.janela);
   if(d<min)return 'A data deve ser a partir de '+fmtDay(min)+'.';
   if(d>max)return 'A data deve ser até '+fmtDay(max)+'.';
   if(LOG.bloqueados.includes(d))return 'Não há entregas em '+fmtDay(d)+'. Escolha outra data.';
@@ -1687,7 +1688,7 @@ function pageRev(){
     ${d&&d.tipo==='indicacao'?`<div class="note">Código <b>${esc(d.code)}</b> aplicado: ${d.pct}% de desconto na sua primeira compra. <button class="btn ghost sm" onclick="rv.code='';rv.msg='';route()">Remover</button></div>`:`<label for="rvCode">Tem um código de indicação de um amigo?</label><div style="display:flex;gap:8px"><input id="rvCode" placeholder="Ex.: ZPMAR1234" value="${esc(rv.code)}"><button class="btn" onclick="applyCode()">Aplicar</button></div>${rv.msg?`<div class="note err">${esc(rv.msg)}</div>`:''}`}
     ${cr.avail>0&&!(d&&d.tipo==='indicacao')?`<p style="margin:12px 0 0"><label style="font-weight:500"><input type="checkbox" style="width:auto" ${rv.use?'checked':''} onchange="toggleCred(this.checked)"> Usar meu desconto de indicação (${cr.earned[cr.used].pct}%, você tem ${cr.avail} disponível${cr.avail>1?'s':''})</label></p>`:''}
     <p style="font-size:.8rem;color:var(--muted);margin:10px 0 0">Um desconto por pedido, não cumulativo. <a style="cursor:pointer" onclick="nav('/reg/amigo')">Ver regulamento</a></p></div>`}
-  const min=addDias(hojeS(),LOG.antecedencia),max=addDias(hojeS(),LOG.janela);
+  const min=hojeS(),max=addDias(hojeS(),LOG.janela);
   const verr=ent.data?validarEntrega(ent.data,ent.turno||'manha'):'';
   const pronto=!!(perfilOk()&&endOk()&&ent.data&&!verr&&ent.turno&&ent.pag);
   const turnos=Object.keys(TURNOS).filter(t=>LOG.turnos[t]);
@@ -1703,7 +1704,7 @@ function pageRev(){
   const pagInfo=`<h3 class="pref-h">Forma de pagamento</h3><div class="turnos3 pagos">${PAGS.map(x=>`<label class="turno3 ${ent.pag===x[0]?'on':''}" data-p="${x[0]}"><input type="radio" name="pag" value="${x[0]}" ${ent.pag===x[0]?'checked':''} onchange="ent.pag=this.value;route()">${x[1]}</label>`).join('')}</div><p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">O pagamento é combinado com a nossa equipe pelo WhatsApp.</p>`;
   return `<div class="wrap pg"><h1 class="t">Finalizar compra</h1><div class="two"><div class="box"><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td>${esc(p.n)} (${esc(i.opt)})</td><td>${i.qty}</td><td class="r">${precoTxt(i)}</td></tr>`}).join('')}</tbody></table></div>
   <div class="tot"><span>Subtotal dos produtos</span><span>${cartSP()?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span><span>Entrega</span><span>${freteLinha()}</span>${d?`<span class="dsc">${dLabel(d)} (${d.pct}%)</span><span class="dsc">- ${brl(d.valor)}</span>`:''}<span class="big">Total</span><span class="big">${cartSP()?(sub>0?brl(tot)+' + a confirmar':'A confirmar'):brl(tot)}</span></div>
-  ${freteNota()}${nota}${amigo}
+  ${freteNotaCliente()}${nota}${amigo}
   ${ckDados()}
   ${entrega}
   ${pagInfo}
@@ -2886,11 +2887,12 @@ function route(fromHash){
    default:html=pageNF()}
   if(html==='')return;
   const y=window.scrollY;
+  const wasEditing=emEdicao();
   document.body.classList.toggle('mb-mode',a==='entrega');
   $('#app').innerHTML=html;updHead();
   if(a===''){slT=setInterval(()=>slide(1),slSeg())}
   $('#mainnav').classList.remove('open');
-  window.scrollTo(0,0);
+  if(!wasEditing)window.scrollTo(0,0);else window.scrollTo(0,y);
 }
 window.addEventListener('hashchange',()=>route(true));
 /* Atualização automática: qualquer mudança salva em outra aba chega aqui sem recarregar a página. */
@@ -3128,6 +3130,13 @@ function firstEligible(){
 /* ---------- finalizar o pedido no banco ---------- */
 async function finish(){
   if(busy2)return;
+  if(!window._freteOk){
+    const f=freteTxtCli();
+    const fVal=f.v!=null?`Frete para <b>${esc(f.c)}: ${brl(f.v)}</b>`:`<b>Frete a confirmar com nossa equipe</b>`;
+    openModal(`<div style="text-align:center;padding:6px 0 12px"><div style="font-size:2.8rem">🚚</div><h3 style="margin:8px 0 4px">Lembrete de frete</h3><p style="color:var(--muted);margin:0 0 14px;font-size:.93rem">Antes de confirmar, fique ciente:</p><div class="frete-alerta" style="animation:none;text-align:left">${fVal} — este valor será pago juntamente com o pedido.</div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px"><button class="btn ghost" onclick="closeModal()">Voltar</button><button class="btn acc" onclick="window._freteOk=true;closeModal();finish()">Entendi, confirmar pedido</button></div>`);
+    return;
+  }
+  window._freteOk=false;
   if(!SB){ent.erros=[semConexao];route();return}
   const u=user(),er=[];
   if(!perfilOk())er.push('Complete seu nome e telefone no quadro Complete seus dados.');
@@ -4534,7 +4543,8 @@ function feitoHoje(o){return ymd(new Date(Date.parse(o.criado_em)))===hojeS()}
 /* frete no checkout do cliente */
 function freteTxtCli(){const u=user();const c=ent.sec?ent.s.cidade:((u&&u.end)||{}).cidade;return {c:freteNome(c),v:freteCidade(c)}}
 function freteLinha(){const f=freteTxtCli();return f.v!=null?brl(f.v)+' ('+esc(f.c)+')':esc(CFG.frete)}
-function freteNota(){const f=freteTxtCli();if(f.v==null)return '';return `<div class="note"><b>Frete para ${esc(f.c)}: ${brl(f.v)}.</b> ${esc(msgTxt('s_frete_obs',{valor:brl(f.v),cidade:f.c}))}</div>`}
+function freteNota(){const f=freteTxtCli();if(f.v==null)return '';return `<div class="frete-alerta">🚚 Frete para ${esc(f.c)}: <span style="font-size:1.15em">${brl(f.v)}</span> — será pago juntamente com o pedido.</div>`}
+function freteNotaCliente(){const f=freteTxtCli();if(f.v!=null)return freteNota();return `<div class="note">🚚 <b>Frete:</b> Este pedido terá um frete informado pela nossa equipe, pago juntamente com o valor dos produtos.</div>`}
 
 /* cores e selos */
 var STCOR={realizado:'#6b7280',confirmado:'#2563eb',preparacao:'#7c3aed',separacao:'#d97706','aguardando-programacao':'#0891b2',programada:'#0891b2','em-rota':'#ea580c',entregue:'#16a34a',tentativa:'#dc2626',cancelado:'#9ca3af'};
