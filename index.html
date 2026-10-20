@@ -982,7 +982,8 @@ const fotoHtml=p=>p.img?`<img src="${esc(p.img)}" alt="${esc(p.n)}" loading="laz
 function waProd(p){return waUrl(msgTxt('s_produto',{produto:p.n,sku:p.sku}))}
 function card(p){
   const left=p.consulta?1:stockLeft(p);
-  return `<div class="card">${p.sale?'<span class="sale">Oferta</span>':''}${left<=0?'<span class="out">Sem estoque</span>':''}
+  const centroSt=p.centro?'grid-column:1/-1;max-width:220px;margin:0 auto;width:100%':'';
+  return `<div class="card" style="${centroSt}">${p.sale?'<span class="sale">Oferta</span>':''}${left<=0?'<span class="out">Sem estoque</span>':''}
   <div class="pimg" style="background:${p.c}" onclick="nav('/produto/${p.id}')">${svg(p.ic,64)}${fotoHtml(p)}</div>
   <div class="pn" onclick="nav('/produto/${p.id}')">${esc(p.n)}</div>
   <div class="price">${p.consulta?'<span class="consulte">Consulte o preço</span>':(p.sale?`<del>${brl(p.p)}</del>`:'')+brl(unit(p))}</div>
@@ -2962,7 +2963,7 @@ async function bancoProdutos(){
   if(r.error)throw r.error;
   const rvar=await SB.from('produto_variacoes').select('*').eq('ativo',true).order('ordem');
   const dvar=rvar.error?[]:rvar.data;
-  const arr=r.data.map(x=>{const p={id:x.id,sku:x.sku,n:x.nome,d:x.descricao,p:x.preco!=null?+x.preco:0,consulta:false,img:x.imagem?(/^https?:/.test(x.imagem)?x.imagem:SB_URL+'/storage/v1/object/public/produtos/'+encodeURIComponent(x.imagem)):'',st:x.estoque,c:x.cor,ic:x.icone,cat:x.categoria,ativo:x.ativo};
+  const arr=r.data.map(x=>{const p={id:x.id,sku:x.sku,n:x.nome,d:x.descricao,p:x.preco!=null?+x.preco:0,consulta:false,img:x.imagem?(/^https?:/.test(x.imagem)?x.imagem:SB_URL+'/storage/v1/object/public/produtos/'+encodeURIComponent(x.imagem)):'',st:x.estoque,c:x.cor,ic:x.icone,cat:x.categoria,ativo:x.ativo,centro:!!x.centralizado};
     p.vars=dvar.filter(v=>v.produto_id===x.id).map(v=>({id:v.id,n:v.nome,un:v.unidades,p:v.preco!=null?+v.preco:0,sale:v.preco_promo!=null?+v.preco_promo:null,sp:v.preco==null}));
     p.consulta=!p.vars.length;p.semValor=!p.vars.some(v=>!v.sp);p.p=unit(p);
     return p});
@@ -3246,7 +3247,8 @@ function pageCart(){
 /* ---------- vitrine e página do produto ---------- */
 function card(p){
   const ok=p.consulta||stockLeft(p)>0;
-  return `<div class="card">${ok?'':'<span class="out">Sem estoque</span>'}
+  const centroSt=p.centro?'grid-column:1/-1;max-width:220px;margin:0 auto;width:100%':'';
+  return `<div class="card" style="${centroSt}">${ok?'':'<span class="out">Sem estoque</span>'}
   <div class="pimg" style="background:${p.c}" onclick="nav('/produto/${p.id}')">${svg(p.ic,64)}${fotoHtml(p)}</div>
   <div class="pn" onclick="nav('/produto/${p.id}')">${esc(p.n)}</div>
   <div class="price">${p.consulta||p.semValor?'<span class="consulte">Valor sob consulta</span>':'<small class="apart">A partir de</small> '+brl(unit(p))}</div>
@@ -3407,14 +3409,14 @@ function admDrop(e){
     route();
   })();
 }
-function admNovoProduto(){A9.ed={id:null,sku:'',nome:'',descricao:'',estoque:0,ativo:true,cat:'Produtos injetáveis',sub:'',imagem:'',vars:[{id:null,nome:'',unidades:1,preco:'',preco_promo:'',ativo:true}]};A9.msg='';A9.fotoArq=null;route()}
+function admNovoProduto(){A9.ed={id:null,sku:'',nome:'',descricao:'',estoque:0,ativo:true,centralizado:false,cat:'Produtos injetáveis',sub:'',imagem:'',vars:[{id:null,nome:'',unidades:1,preco:'',preco_promo:'',ativo:true}]};A9.msg='';A9.fotoArq=null;route()}
 function admEditar(id){
   const p=A9.prods.find(x=>x.id===id);if(!p)return;const c=p.categoria||[];
-  A9.ed={id:p.id,sku:p.sku,nome:p.nome,descricao:p.descricao||'',estoque:p.estoque,ativo:p.ativo,cat:c[0]||'',sub:c[1]||'',imagem:p.imagem||'',vars:p.vars.map(v=>({id:v.id,nome:v.nome,unidades:v.unidades,preco:v.preco==null?'':v.preco,preco_promo:v.preco_promo==null?'':v.preco_promo,ativo:v.ativo}))};
+  A9.ed={id:p.id,sku:p.sku,nome:p.nome,descricao:p.descricao||'',estoque:p.estoque,ativo:p.ativo,centralizado:!!p.centralizado,cat:c[0]||'',sub:c[1]||'',imagem:p.imagem||'',vars:p.vars.map(v=>({id:v.id,nome:v.nome,unidades:v.unidades,preco:v.preco==null?'':v.preco,preco_promo:v.preco_promo==null?'':v.preco_promo,ativo:v.ativo}))};
   A9.msg='';A9.fotoArq=null;route();
 }
 function admLerForm(){
-  const e=A9.ed;e.sku=v_('fSku').trim();e.nome=v_('fNome').trim();e.descricao=v_('fDesc').trim();e.estoque=parseInt(v_('fEst'),10);e.ativo=c_('fAtivo');e.cat=v_('fCat').trim();e.sub=v_('fSub').trim();
+  const e=A9.ed;e.sku=v_('fSku').trim();e.nome=v_('fNome').trim();e.descricao=v_('fDesc').trim();e.estoque=parseInt(v_('fEst'),10);e.ativo=c_('fAtivo');e.centralizado=c_('fCentro');e.cat=v_('fCat').trim();e.sub=v_('fSub').trim();
   e.vars.forEach((x,k)=>{x.nome=v_('vn'+k).trim();x.unidades=parseInt(v_('vu'+k),10);x.preco=v_('vp'+k).replace(',','.');x.preco_promo=v_('vq'+k).replace(',','.');x.ativo=c_('va'+k)});
 }
 function admAddVar(){admLerForm();A9.ed.vars.push({id:null,nome:'',unidades:1,preco:'',preco_promo:'',ativo:true});route()}
@@ -3429,7 +3431,8 @@ function admFormProduto(){
   <div class="c3"><label for="fCat">Categoria</label><input id="fCat" list="dlCat" value="${esc(e.cat)}"><datalist id="dlCat">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
   <div class="c3"><label for="fSub">Subcategoria</label><input id="fSub" list="dlSub" value="${esc(e.sub)}"><datalist id="dlSub">${subs.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
   <div class="c2"><label for="fEst">Estoque (em unidades)</label><input id="fEst" type="number" min="0" value="${isNaN(e.estoque)?0:e.estoque}"></div>
-  <div class="c2"><label style="margin-top:28px"><input id="fAtivo" type="checkbox" style="width:auto" ${e.ativo?'checked':''}> Ativo na loja</label></div></div>
+  <div class="c2"><label style="margin-top:28px"><input id="fAtivo" type="checkbox" style="width:auto" ${e.ativo?'checked':''}> Ativo na loja</label></div>
+  <div class="c2"><label style="margin-top:28px"><input id="fCentro" type="checkbox" style="width:auto" ${e.centralizado?'checked':''}> Centralizar na grade</label></div></div>
   <label for="fDesc">Descrição (opcional)</label><textarea id="fDesc" rows="3" maxlength="1500">${esc(e.descricao)}</textarea>
   <label>Foto do produto</label><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">${e.imagem?`<img src="${esc(admFotoUrl(e.imagem))}" alt="" style="width:64px;height:64px;object-fit:contain;border:1px solid var(--line);border-radius:8px;background:#fff" onerror="this.remove()">`:''}<input type="file" accept="image/jpeg,image/png,image/webp" onchange="admEscolheFoto(this)" style="width:auto"><span id="fFotoNome" style="color:var(--muted);font-size:.85rem"></span></div>
   <p style="color:var(--muted);font-size:.82rem;margin:4px 0 0">A foto é reduzida automaticamente para ficar leve na loja.</p>
@@ -3467,7 +3470,7 @@ async function admSalvar(){
       if(up.error)throw up.error;imagem=nome;
     }
     const cat=[e.cat].concat(e.sub?[e.sub]:[]);
-    const dados={sku:e.sku,nome:e.nome,descricao:e.descricao,preco:null,sob_consulta:false,estoque:e.estoque,ativo:e.ativo,categoria:cat,imagem};
+    const dados={sku:e.sku,nome:e.nome,descricao:e.descricao,preco:null,sob_consulta:false,estoque:e.estoque,ativo:e.ativo,categoria:cat,imagem,centralizado:!!e.centralizado};
     let pid=e.id;
     if(pid){const r=await SB.from('produtos').update(Object.assign(dados,{atualizado_em:new Date().toISOString()})).eq('id',pid);if(r.error)throw r.error}
     else{Object.assign(dados,{cor:'#0a6e5c',icone:'inj'});const r=await SB.from('produtos').insert(dados).select('id').single();if(r.error)throw r.error;pid=r.data.id}
