@@ -1149,7 +1149,7 @@ function ufSelect(id,val){return `<select id="${id}" required><option value="">U
 const endOk=()=>{const u=user();return !!(u&&u.end&&validarEnd(u.end).length===0)};
 
 /* ---------- revisão e finalização ---------- */
-let ent={sec:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:'',turno:'',pag:'',obs:'',erros:[]};
+let ent={sec:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:hojeS(),turno:'',pag:'',obs:'',erros:[]};
 const entSet=(k,v)=>{ent[k]=v};
 const entS=(k,v)=>{ent.s[k]=v};
 function applyCode(){rv.code=$('#rvCode').value.trim().toUpperCase();rv.use=false;const v=validateRef(rv.code);rv.msg=v.ok?'':v.err;if(!v.ok)rv.code='';route()}
@@ -2218,7 +2218,7 @@ function finish(){
     addEv(o,{tipo:'status',para:'realizado',publico:true,texto:'Recebemos o seu pedido.',por:'Cliente'});
     if(o.ref&&!user().refBy)user().refBy=d.owner;
     sessionStorage.removeItem('xp_ind');orders.push(o);gerarEtiquetas(o,'Pedido finalizado');cart=[];rv={code:'',use:false,msg:''};
-    ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:'',turno:'',obs:'',erros:[]};
+    ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:hojeS(),turno:'',obs:'',erros:[]};
     save();busy2=false;updHead();nav('/pedido/'+o.id);
   },500);
 }
@@ -3145,7 +3145,7 @@ async function finish(){
   busy2=false;
   if(r.error){ent.erros=[msgRpc(r.error)];try{await bancoProdutos()}catch(x){}route();return}
   cart=[];rv={code:'',use:false,msg:'',ref:null};
-  ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:'',turno:'',obs:'',erros:[]};
+  ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:hojeS(),turno:'',obs:'',erros:[]};
   sessionStorage.removeItem('xp_ind');
   try{await bancoPedidos();await bancoCreditos();await bancoProdutos()}catch(x){}
   save();updHead();nav('/pedido/'+r.data.id);
@@ -3339,7 +3339,7 @@ async function finish(){
     cliente:u.nome+' '+u.sobrenome+(u.fone?' ('+u.fone+')':''),obs:ent.obs.trim(),link:trackUrl(d.codigo,d.token),frete:(function(){const f=freteTxtCli();return f.v!=null?brl(f.v)+' ('+f.c+'), pago junto, na entrega':''})()}));
   const url=waUrl(msg);WA_P={id:d.id,url};
   cart=[];rv={code:'',use:false,msg:'',ref:null};
-  ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:'',turno:'',pag:'',obs:'',erros:[]};
+  ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:hojeS(),turno:'',pag:'',obs:'',erros:[]};
   sessionStorage.removeItem('xp_ind');
   try{await bancoPedidos();await bancoCreditos();await bancoProdutos()}catch(x){}
   save();updHead();
