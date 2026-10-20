@@ -82,8 +82,9 @@ nav.main>ul>li:hover>.mega{display:block}
 .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
 .card{border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;position:relative;background:#fff;transition:.2s;text-align:center}
 .card:hover{box-shadow:0 12px 30px rgba(0,0,0,.1);transform:translateY(-3px)}
-.pimg{aspect-ratio:1;border-radius:10px;display:grid;place-items:center;margin-bottom:10px;cursor:pointer;color:#fff}
-.pn{font-size:.9rem;font-weight:500;color:var(--ink);line-height:1.35;min-height:4em;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.pimg{height:180px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;cursor:pointer;color:#fff;overflow:hidden;flex-shrink:0}
+.pimg img{width:100%;height:100%;object-fit:contain;background:#fff}
+.pn{font-size:.9rem;font-weight:500;color:var(--ink);line-height:1.35;min-height:4em;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:1}
 .price{margin:8px 0;font-weight:700;font-size:1.1rem;color:var(--ink);text-align:center}.price del{display:block;color:var(--muted);font-weight:400;font-size:.8rem}
 .sale{position:absolute;top:10px;left:10px;background:var(--acc);color:#3b2a00;border-radius:999px;padding:.35em .9em;font-weight:700;font-size:.72rem;z-index:2}
 .out{position:absolute;top:10px;left:10px;background:#9aa5a0;color:#fff;border-radius:999px;padding:.35em .9em;font-weight:700;font-size:.72rem;z-index:2}
@@ -284,8 +285,8 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 .consulte{font-size:.95rem;color:var(--pd);font-weight:700}
 
 /* foto do produto */
-.pimg,.pbig{position:relative;overflow:hidden}
-.pimg img,.pbig img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
+.pbig{position:relative;overflow:hidden}
+.pbig img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
 
 /* página do produto: foto menor e variações */
 .prod{grid-template-columns:minmax(0,340px) 1fr;align-items:start}
@@ -300,7 +301,7 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 .vq{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.vl{font-size:.9rem;color:var(--ink2);font-weight:600}
 .ptot{display:flex;justify-content:space-between;align-items:center;margin:16px 0 10px;padding:12px 0;border-top:1px solid var(--line);font-size:.85rem;letter-spacing:.04em;color:var(--muted)}.ptot b{font-size:1.5rem;color:var(--ink);letter-spacing:0}
 .apart{font-size:.72rem;color:var(--muted);font-weight:500}
-.pimg img{max-width:100%}
+.pimg img{max-width:100%;max-height:100%}
 @media(max-width:760px){.prod{grid-template-columns:1fr}.pbig{max-width:260px}}
 
 /* layout de referência das variações */
@@ -2957,7 +2958,7 @@ function bancoTree(){
   TREE['Caixas']=TREE['Caixas']||{};TREE['Acompanhamento']={};TREE['Ofertas']={};
 }
 async function bancoProdutos(){
-  const r=await SB.from('produtos').select('*').order('id');
+  const r=await SB.from('produtos').select('*').order('ordem',{ascending:true,nullsFirst:false}).order('id');
   if(r.error)throw r.error;
   const rvar=await SB.from('produto_variacoes').select('*').eq('ativo',true).order('ordem');
   const dvar=rvar.error?[]:rvar.data;
@@ -3364,7 +3365,7 @@ async function admLogin(e){
 function admVerSenha(btn){const i=document.getElementById('ap');const ver=i.type==='password';i.type=ver?'text':'password';btn.textContent=ver?'Ocultar':'Mostrar'}
 function admSair(){sair()}
 async function admCarregarProdutos(){
-  const [a,b]=await Promise.all([SB.from('produtos').select('*').order('id'),SB.from('produto_variacoes').select('*').order('ordem')]);
+  const [a,b]=await Promise.all([SB.from('produtos').select('*').order('ordem',{ascending:true,nullsFirst:false}).order('id'),SB.from('produto_variacoes').select('*').order('ordem')]);
   if(a.error||b.error){A9.msg='Não foi possível carregar os produtos. Confirme que o arquivo 07 já foi rodado no Supabase.';A9.prods=[];route();return}
   A9.prods=a.data.map(p=>Object.assign({},p,{vars:b.data.filter(v=>v.produto_id===p.id)}));route();
 }
@@ -3375,8 +3376,36 @@ function tabProdutos(){
   if(!A9.prods){if(!A9.busy){A9.busy=true;admCarregarProdutos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando produtos...</div>'}
   if(A9.ed)return admFormProduto();
   const msg=A9.msg?`<div class="note ${/Não|Erro|erro/.test(A9.msg)?'err':''}">${esc(A9.msg)}</div>`:'';
-  return `<div class="box"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><p style="margin:0;color:var(--muted)">As mudanças valem na hora na loja. Produto sem variação cadastrada aparece como "sob consulta" (WhatsApp).</p><button class="btn acc" onclick="admNovoProduto()">Novo produto</button></div>${msg}
-  <div class="tbl"><table><thead><tr><th></th><th>SKU</th><th>Produto</th><th>Categoria</th><th>Variações</th><th>Estoque (un.)</th><th>Situação</th><th></th></tr></thead><tbody>${A9.prods.map(p=>`<tr><td>${p.imagem?`<img src="${esc(admFotoUrl(p.imagem))}" alt="" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#fff" onerror="this.remove()">`:''}</td><td>${esc(p.sku)}</td><td><b>${esc(p.nome)}</b></td><td>${esc((p.categoria||[]).join(' / '))}</td><td>${p.vars.length?p.vars.map(v=>esc(v.nome)+' '+(v.preco==null?'sem preço':brl(v.preco_promo!=null?v.preco_promo:v.preco))).join('<br>'):'<span style="color:var(--muted)">sob consulta</span>'}</td><td>${p.estoque}</td><td>${p.ativo?'Ativo':'Inativo'}</td><td><button class="btn ghost sm" onclick="admEditar(${p.id})">Editar</button></td></tr>`).join('')||'<tr><td colspan="8">Nenhum produto cadastrado.</td></tr>'}</tbody></table></div></div>`;
+  const rows=A9.prods.map((p,i)=>`<tr draggable="true" data-pid="${p.id}" data-idx="${i}" ondragstart="admDragStart(event)" ondragover="admDragOver(event)" ondrop="admDrop(event)" ondragend="admDragEnd(event)" style="cursor:grab;transition:opacity .15s"><td style="width:28px;text-align:center;color:#bbb;font-size:1.2rem;cursor:grab" title="Arrastar para reordenar">⠿</td><td>${p.imagem?`<img src="${esc(admFotoUrl(p.imagem))}" alt="" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#fff" onerror="this.remove()">`:''}</td><td>${esc(p.sku)}</td><td><b>${esc(p.nome)}</b></td><td>${esc((p.categoria||[]).join(' / '))}</td><td>${p.vars.length?p.vars.map(v=>esc(v.nome)+' '+(v.preco==null?'sem preço':brl(v.preco_promo!=null?v.preco_promo:v.preco))).join('<br>'):'<span style="color:var(--muted)">sob consulta</span>'}</td><td>${p.estoque}</td><td>${p.ativo?'Ativo':'Inativo'}</td><td><button class="btn ghost sm" onclick="admEditar(${p.id})">Editar</button></td></tr>`).join('');
+  setTimeout(()=>{A9._dragSrc=null},0);
+  return `<div class="box"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><p style="margin:0;color:var(--muted)">Arraste ⠿ para reordenar. A ordem aparece na loja automaticamente.</p><button class="btn acc" onclick="admNovoProduto()">Novo produto</button></div>${msg}
+  <div class="tbl"><table id="tblProd"><thead><tr><th></th><th></th><th>SKU</th><th>Produto</th><th>Categoria</th><th>Variações</th><th>Estoque</th><th>Situação</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="9">Nenhum produto cadastrado.</td></tr>'}</tbody></table></div>
+  ${A9._ordemSalva===false?`<div class="note err" style="margin-top:8px">Não foi possível salvar a nova ordem. Tente novamente.</div>`:A9._ordemSalva===true?`<div class="note" style="margin-top:8px;background:#f0fdf4;border-color:#86efac">Ordem salva na loja.</div>`:''}
+  </div>`;
+}
+var _admDragSrc=null;
+function admDragStart(e){_admDragSrc=e.currentTarget;e.currentTarget.style.opacity='.4';e.dataTransfer.effectAllowed='move';}
+function admDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';const rows=document.querySelectorAll('#tblProd tbody tr');rows.forEach(r=>r.style.borderTop='');const t=e.currentTarget;if(t&&t!==_admDragSrc)t.style.borderTop='2px solid var(--p)';}
+function admDragEnd(e){e.currentTarget.style.opacity='';document.querySelectorAll('#tblProd tbody tr').forEach(r=>r.style.borderTop='');}
+function admDrop(e){
+  e.preventDefault();
+  const target=e.currentTarget;
+  if(!_admDragSrc||_admDragSrc===target)return;
+  const fromIdx=+_admDragSrc.dataset.idx;
+  const toIdx=+target.dataset.idx;
+  const arr=A9.prods;
+  const [moved]=arr.splice(fromIdx,1);
+  arr.splice(toIdx,0,moved);
+  A9._ordemSalva=null;
+  route();
+  // salva no Supabase
+  (async()=>{
+    A9._ordemSalva=null;
+    const updates=A9.prods.map((p,i)=>SB.from('produtos').update({ordem:i+1}).eq('id',p.id));
+    const results=await Promise.all(updates);
+    A9._ordemSalva=results.every(r=>!r.error);
+    route();
+  })();
 }
 function admNovoProduto(){A9.ed={id:null,sku:'',nome:'',descricao:'',estoque:0,ativo:true,cat:'Produtos injetáveis',sub:'',imagem:'',vars:[{id:null,nome:'',unidades:1,preco:'',preco_promo:'',ativo:true}]};A9.msg='';A9.fotoArq=null;route()}
 function admEditar(id){
