@@ -36,7 +36,7 @@ img,svg{display:block}
 .cnt.bump{animation:bump .5s}
 @keyframes bump{30%{transform:scale(1.6)}100%{transform:scale(1)}}
 .burger{display:none;background:none;border:0;color:var(--p)}
-nav.main{background:#fff;border-top:1px solid var(--line);position:relative}
+nav.main{background:#fff;border-top:1px solid #f0f0f0;position:relative}
 nav.main ul{list-style:none;margin:0 auto;padding:0 20px;display:flex;flex-wrap:wrap;justify-content:center;max-width:1240px;align-items:center}
 nav.main>ul>li>a{display:flex;align-items:center;gap:4px;padding:14px 14px;font-weight:500;color:var(--ink);cursor:pointer;font-size:.93rem}
 nav.main>ul>li:hover>a{color:var(--p)}
@@ -887,7 +887,7 @@ function buildMenu(){
   /* Se houver menu manual configurado no painel, usa ele */
   if(MENU_ITENS&&MENU_ITENS.length){
     MENU_ITENS.filter(m=>m.ativo===true).forEach(m=>{
-      h+=`<li class=""><a onclick="nav('${esc(m.link)}')">${esc(m.nome)}</a></li>`;
+      h+=`<li class=""><a onclick="menuNavOrScroll('${esc(m.link)}')">${esc(m.nome)}</a></li>`;
     });
   } else {
     /* fallback: automático pelas categorias dos produtos */
@@ -971,6 +971,12 @@ function closeModal(){$('#modal').classList.remove('on');if(!$('#dw').classList.
 const nav=p=>{location.hash='#'+p};
 // rola até uma seção de categoria na home (pelo índice)
 function homeCatScroll(idx){const el=document.getElementById('cat-home-'+idx);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});}}
+function menuNavOrScroll(link){
+  const CATS_HOME=['Tizerpatida','Retatrutida','Botox','Peptídeos'];
+  const catIdx=CATS_HOME.findIndex(c=>link==='/cat/'+encodeURIComponent(c)||link==='/cat/'+c);
+  if(catIdx>=0&&location.hash==='#/'){homeCatScroll(catIdx);return;}
+  nav(link);
+}
 const fotoHtml=p=>p.img?`<img src="${esc(p.img)}" alt="${esc(p.n)}" loading="lazy" onerror="this.remove()">`:'';
 function waProd(p){return waUrl(msgTxt('s_produto',{produto:p.n,sku:p.sku}))}
 function card(p){
@@ -1043,6 +1049,7 @@ function pageHome(){
     return `<section class="cat-sec" id="cat-home-${idx}"><div class="wrap"><div class="cat-sec-titulo"><h2>${esc(c)}</h2><a onclick="nav('/cat/${encodeURIComponent(c)}')">Ver todos →</a></div><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">${prods.map(card).join('')}</div>${isLast?`<div style="text-align:center;padding:32px 0 16px"><button class="btn ghost" style="padding:.8em 2em" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Voltar ao topo</button></div>`:''}</div></section>`;
   }).join('');
   // inicializa botão voltar ao topo + destaque de menu ao scroll
+  const _catsRef=cats;
   setTimeout(()=>{
     const btn=document.getElementById('voltaTopo');
     if(btn){
@@ -1052,22 +1059,26 @@ function pageHome(){
       btn.onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
     }
     // destaque automático do menu conforme seção visível
-    const CATS_SCROLL=['Tizerpatida','Retatrutida','Botox','Peptídeos'];
-    const menuLinks=()=>document.querySelectorAll('#menu li a');
-    const highlight=()=>{
+    let _scrollCatAtual='';
+    const _catSecs=_catsRef.map((c,i)=>({c,el:document.getElementById('cat-home-'+i)})).filter(x=>x.el);
+    const _doHighlight=()=>{
       let atual='';
-      CATS_SCROLL.forEach((c,i)=>{
-        const el=document.getElementById('cat-home-'+i);
-        if(el&&el.getBoundingClientRect().top<=120)atual=c;
+      const hdrH=(document.querySelector('header')||{offsetHeight:100}).offsetHeight||100;
+      _catSecs.forEach(({c,el})=>{
+        if(el.getBoundingClientRect().top<=hdrH+20)atual=c;
       });
-      menuLinks().forEach(a=>{
+      if(atual===_scrollCatAtual)return;
+      _scrollCatAtual=atual;
+      document.querySelectorAll('#menu li>a').forEach(a=>{
         const txt=(a.textContent||'').trim();
-        a.style.color=CATS_SCROLL.includes(txt)&&txt===atual?'var(--p)':'';
-        a.style.fontWeight=CATS_SCROLL.includes(txt)&&txt===atual?'700':'';
+        const iscat=_catSecs.some(x=>x.c===txt);
+        if(!iscat){a.style.color='';a.style.fontWeight='';return;}
+        if(txt===atual){a.style.color='var(--p)';a.style.fontWeight='700';}
+        else{a.style.color='';a.style.fontWeight='';}
       });
     };
-    window.addEventListener('scroll',highlight,{passive:true});
-    highlight();
+    window.addEventListener('scroll',_doHighlight,{passive:true});
+    _doHighlight();
   },100);
   return `<section class="hero${BANS&&BANS.length?' custom-ban':''}" id="hero">${slides.map((s,i)=>`<div class="sl ${i?'':'on'}${(s.img||s.imgurl)?' wantimg':''}" style="background:${s.c}" onclick="${slClick(s)}">${slPic(s)}<div class="wrap"><span class="tag">${s.s}</span><strong>${s.t}</strong><u>${s.b}</u></div></div>`).join('')}
    <button class="arr l" onclick="slide(-1)" aria-label="Anterior"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m15 5-7 7 7 7"/></svg></button><button class="arr r" onclick="slide(1)" aria-label="Próximo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 5 7 7-7 7"/></svg></button>
