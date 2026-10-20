@@ -984,7 +984,7 @@ function card(p){
   const left=p.consulta?1:stockLeft(p);
   const centroSt=p.centro?'grid-column:1/-1;max-width:220px;margin:0 auto;width:100%':'';
   return `<div class="card" style="${centroSt}">${p.sale?'<span class="sale">Oferta</span>':''}${left<=0?'<span class="out">Sem estoque</span>':''}
-  <div class="pimg" style="background:${p.c}" onclick="nav('/produto/${p.id}')">${svg(p.ic,64)}${fotoHtml(p)}</div>
+  <div class="pimg" onclick="nav('/produto/${p.id}')">${fotoHtml(p)}</div>
   <div class="pn" onclick="nav('/produto/${p.id}')">${esc(p.n)}</div>
   <div class="price">${p.consulta?'<span class="consulte">Consulte o preço</span>':(p.sale?`<del>${brl(p.p)}</del>`:'')+brl(unit(p))}</div>
   ${p.consulta?`<a class="btn wa" href="${waProd(p)}" target="_blank" rel="noopener">Consultar no WhatsApp</a>`:left<=0?'<button class="btn" disabled>Indisponível</button>':p.opts?`<button class="btn" onclick="nav('/produto/${p.id}')">Escolher opção</button>`:`<button class="btn" onclick="addCart(${p.id},1,'',this)">Adicionar ao carrinho</button>`}</div>`;
@@ -3249,7 +3249,7 @@ function card(p){
   const ok=p.consulta||stockLeft(p)>0;
   const centroSt=p.centro?'grid-column:1/-1;max-width:220px;margin:0 auto;width:100%':'';
   return `<div class="card" style="${centroSt}">${ok?'':'<span class="out">Sem estoque</span>'}
-  <div class="pimg" style="background:${p.c}" onclick="nav('/produto/${p.id}')">${svg(p.ic,64)}${fotoHtml(p)}</div>
+  <div class="pimg" onclick="nav('/produto/${p.id}')">${fotoHtml(p)}</div>
   <div class="pn" onclick="nav('/produto/${p.id}')">${esc(p.n)}</div>
   <div class="price">${p.consulta||p.semValor?'<span class="consulte">Valor sob consulta</span>':'<small class="apart">A partir de</small> '+brl(unit(p))}</div>
   ${qaHtml(p)}</div>`;
