@@ -422,8 +422,6 @@ body:not(.pronto) #menu,body:not(.pronto) #faixa{visibility:hidden}
 .sl:not(.on){transition:opacity 0s linear .6s}
 
 /* ===== header inteligente: some ao rolar, volta ao subir ===== */
-header{transition:transform .28s ease,box-shadow .28s ease}
-header.hdr-hidden{transform:translateY(-100%);box-shadow:none!important}
 
 /* ===== mobile: carrinho maior e que se ajusta à tela ===== */
 @media(max-width:760px){
@@ -1059,23 +1057,6 @@ function pageHome(){
   // inicializa botão voltar ao topo + destaque de menu ao scroll
   const _catsRef=cats;
   setTimeout(()=>{
-    // header inteligente: some ao rolar pra baixo, volta ao subir
-    (()=>{
-      const hdr=document.querySelector('header');
-      if(!hdr)return;
-      let lastY=window.scrollY,ticking=false;
-      window.addEventListener('scroll',()=>{
-        if(ticking)return;
-        ticking=true;
-        requestAnimationFrame(()=>{
-          const y=window.scrollY;
-          if(y>lastY&&y>80)hdr.classList.add('hdr-hidden');
-          else hdr.classList.remove('hdr-hidden');
-          lastY=y;
-          ticking=false;
-        });
-      },{passive:true});
-    })();
     const btn=document.getElementById('voltaTopo');
     if(btn){
       const onScroll=()=>btn.classList.toggle('vis',window.scrollY>400);
