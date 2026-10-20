@@ -2730,7 +2730,28 @@ function tabAlertas(){
 
 /* ---------- produtos, site, regras, campanhas, etiquetas ---------- */
 function tabProdutos(){
-  return `<div class="box"><p style="margin-top:0;color:var(--muted)">As mudanças valem na hora na loja, sem republicar. Produto desativado some da loja.</p><div class="tbl"><table><thead><tr><th>SKU</th><th>Nome</th><th>Preço</th><th>Promo</th><th>Estoque</th><th>Ativo</th><th></th></tr></thead><tbody>${PRODUCTS.map(p=>`<tr><td>${p.sku}</td><td><input id="pn${p.id}" value="${esc(p.n)}"><textarea id="pd${p.id}" rows="2" style="margin-top:4px" placeholder="Descrição">${esc(p.d)}</textarea></td><td><input id="pp${p.id}" type="number" step="0.01" min="0" value="${p.p}" style="width:100px"></td><td><input id="ps${p.id}" type="number" step="0.01" min="0" value="${p.sale||''}" style="width:100px"></td><td><input id="pe${p.id}" type="number" min="0" value="${p.st}" style="width:80px"></td><td><input id="pa${p.id}" type="checkbox" style="width:auto" ${p.ativo!==false?'checked':''}></td><td><button class="btn sm" onclick="admProd(${p.id})">Salvar</button></td></tr>`).join('')}</tbody></table></div></div>`;
+  return `<div class="box"><p style="margin-top:0;color:var(--muted)">As mudanças valem na hora na loja, sem republicar. Produto desativado some da loja. Arraste pela alça <b>⠿</b> para reordenar.</p><div class="tbl"><table id="tbl-produtos"><thead><tr><th style="width:32px"></th><th>SKU</th><th>Nome</th><th>Preço</th><th>Promo</th><th>Estoque</th><th>Ativo</th><th></th></tr></thead><tbody id="tbody-produtos">${PRODUCTS.slice().sort((a,b)=>(a.ordem??9999)-(b.ordem??9999)).map(p=>`<tr id="drow-${p.id}" draggable="true" ondragstart="dndStart(event,${p.id})" ondragover="dndOver(event)" ondrop="dndDrop(event,${p.id})" ondragend="dndEnd(event)" style="cursor:default"><td style="cursor:grab;font-size:1.2rem;color:var(--muted);user-select:none;text-align:center" title="Arrastar para reordenar">⠿</td><td>${p.sku}</td><td><input id="pn${p.id}" value="${esc(p.n)}"><textarea id="pd${p.id}" rows="2" style="margin-top:4px" placeholder="Descrição">${esc(p.d)}</textarea></td><td><input id="pp${p.id}" type="number" step="0.01" min="0" value="${p.p}" style="width:100px"></td><td><input id="ps${p.id}" type="number" step="0.01" min="0" value="${p.sale||''}" style="width:100px"></td><td><input id="pe${p.id}" type="number" min="0" value="${p.st}" style="width:80px"></td><td><input id="pa${p.id}" type="checkbox" style="width:auto" ${p.ativo!==false?'checked':''}></td><td><button class="btn sm" onclick="admProd(${p.id})">Salvar</button></td></tr>`).join('')}</tbody></table></div></div>`;
+}
+let _dndSrc=null;
+function dndStart(e,id){_dndSrc=id;e.dataTransfer.effectAllowed='move';e.currentTarget.style.opacity='.4';}
+function dndOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';}
+function dndEnd(e){e.currentTarget.style.opacity='';}
+function dndDrop(e,targetId){
+  e.preventDefault();
+  if(_dndSrc===null||_dndSrc===targetId){_dndSrc=null;return;}
+  const tbody=document.getElementById('tbody-produtos');
+  const srcRow=document.getElementById('drow-'+_dndSrc);
+  const tgtRow=document.getElementById('drow-'+targetId);
+  if(!srcRow||!tgtRow){_dndSrc=null;return;}
+  const rows=[...tbody.querySelectorAll('tr')];
+  const si=rows.indexOf(srcRow),ti=rows.indexOf(tgtRow);
+  if(si<ti)tbody.insertBefore(srcRow,tgtRow.nextSibling);else tbody.insertBefore(srcRow,tgtRow);
+  srcRow.style.opacity='';
+  // rebuild PRODUCTS order and save to Supabase
+  const newOrder=[...tbody.querySelectorAll('tr')].map((r,i)=>{const id=+r.id.replace('drow-','');return{id,ordem:i+1};});
+  newOrder.forEach(({id,ordem})=>{const p=PRODUCTS.find(x=>x.id===id);if(p)p.ordem=ordem;});
+  Promise.all(newOrder.map(({id,ordem})=>SB.from('produtos').update({ordem}).eq('id',id))).then(()=>toast('Ordem salva.')).catch(()=>toast('Erro ao salvar ordem.'));
+  _dndSrc=null;
 }
 function admProd(id){
   const p=+v_('pp'+id),s=v_('ps'+id)===''?'':+v_('ps'+id),st=parseInt(v_('pe'+id),10);
