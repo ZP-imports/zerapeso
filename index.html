@@ -783,11 +783,6 @@ const reagendados=o=>(o.eventos||[]).filter(e=>e.tipo==='reagendado').length;
 /* ======================= VALIDAÇÕES ======================= */
 function validarEntrega(d,t){
   if(!d)return 'Escolha a data desejada para receber o pedido.';
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||isNaN(new Date(d+'T12:00')))return 'Data inválida.';
-  const min=hojeS(),max=addDias(hojeS(),LOG.janela);
-  if(d<min)return 'A data deve ser a partir de '+fmtDay(min)+'.';
-  if(d>max)return 'A data deve ser até '+fmtDay(max)+'.';
-  if(LOG.bloqueados.includes(d))return 'Não há entregas em '+fmtDay(d)+'. Escolha outra data.';
   if(!t)return 'Escolha o turno desejado.';
   if(!TURNOS[t]||!LOG.turnos[t])return 'Turno indisponível.';
   return '';
@@ -1688,7 +1683,6 @@ function pageRev(){
     ${d&&d.tipo==='indicacao'?`<div class="note">Código <b>${esc(d.code)}</b> aplicado: ${d.pct}% de desconto na sua primeira compra. <button class="btn ghost sm" onclick="rv.code='';rv.msg='';route()">Remover</button></div>`:`<label for="rvCode">Tem um código de indicação de um amigo?</label><div style="display:flex;gap:8px"><input id="rvCode" placeholder="Ex.: ZPMAR1234" value="${esc(rv.code)}"><button class="btn" onclick="applyCode()">Aplicar</button></div>${rv.msg?`<div class="note err">${esc(rv.msg)}</div>`:''}`}
     ${cr.avail>0&&!(d&&d.tipo==='indicacao')?`<p style="margin:12px 0 0"><label style="font-weight:500"><input type="checkbox" style="width:auto" ${rv.use?'checked':''} onchange="toggleCred(this.checked)"> Usar meu desconto de indicação (${cr.earned[cr.used].pct}%, você tem ${cr.avail} disponível${cr.avail>1?'s':''})</label></p>`:''}
     <p style="font-size:.8rem;color:var(--muted);margin:10px 0 0">Um desconto por pedido, não cumulativo. <a style="cursor:pointer" onclick="nav('/reg/amigo')">Ver regulamento</a></p></div>`}
-  const min=hojeS(),max=addDias(hojeS(),LOG.janela);
   const verr=ent.data?validarEntrega(ent.data,ent.turno||'manha'):'';
   const pronto=!!(perfilOk()&&endOk()&&ent.data&&!verr&&ent.turno&&ent.pag);
   const turnos=Object.keys(TURNOS).filter(t=>LOG.turnos[t]);
@@ -1699,7 +1693,7 @@ function pageRev(){
    ${ent.sec?`<div class="box" style="box-shadow:none"><div class="fr"><div class="c2"><label>CEP</label><input value="${sv('cep')}" oninput="entCep(this)" placeholder="00000-000" inputmode="numeric"></div><div class="c2"><label>Estado (UF)</label><select onchange="entS('uf',this.value)" ${ent.slock?'style="pointer-events:none;background:#eee"':''}><option value="">UF</option>${UFS.map(x=>`<option ${x===ent.s.uf?'selected':''}>${x}</option>`).join('')}</select></div><div class="c2"><label>Cidade</label><input value="${sv('cidade')}" oninput="entS('cidade',this.value)" ${ent.slock?'readonly':''}></div><div class="c3"><label>Bairro</label><input value="${sv('bairro')}" oninput="entS('bairro',this.value)"></div><div class="c4"><label>Rua</label><input value="${sv('rua')}" oninput="entS('rua',this.value)"></div><div class="c2"><label>Número do imóvel</label><input id="sNum" value="${sv('num')}" oninput="entS('num',this.value)"></div><div class="c4"><label>Complemento</label><input value="${sv('comp')}" oninput="entS('comp',this.value)"></div><div><label>Ponto de referência</label><input value="${sv('ref')}" oninput="entS('ref',this.value)"></div></div></div>`:''}
    ${prefHtml(turnos)}
    ${verr&&ent.data?`<div class="note err">${verr}</div>`:''}
-   <p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">Datas de ${fmtDay(min)} a ${fmtDay(max)}. A data é uma preferência: a loja confirma a programação e você acompanha tudo em Rastrear pedido.</p>
+   <p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">A data é uma preferência: a loja confirma a programação e você acompanha tudo em Rastrear pedido.</p>
    <label for="obs">Observações sobre o pedido ou a entrega (opcional)</label><textarea id="obs" rows="2" maxlength="500" oninput="ent.obs=this.value" placeholder="Ex.: portão azul, deixar com o porteiro">${esc(ent.obs)}</textarea>`;
   const pagInfo=`<h3 class="pref-h">Forma de pagamento</h3><div class="turnos3 pagos">${PAGS.map(x=>`<label class="turno3 ${ent.pag===x[0]?'on':''}" data-p="${x[0]}"><input type="radio" name="pag" value="${x[0]}" ${ent.pag===x[0]?'checked':''} onchange="ent.pag=this.value;route()">${x[1]}</label>`).join('')}</div><p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">O pagamento é combinado com a nossa equipe pelo WhatsApp.</p>`;
   return `<div class="wrap pg"><h1 class="t">Finalizar compra</h1><div class="two"><div class="box"><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td>${esc(p.n)} (${esc(i.opt)})</td><td>${i.qty}</td><td class="r">${precoTxt(i)}</td></tr>`}).join('')}</tbody></table></div>
