@@ -2,8 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="description" content="Cadastre seu endereço e finalize seu pedido."><meta property="og:site_name" content="ZP Imports"><meta property="og:locale" content="pt_BR"><meta property="og:type" content="website"><meta property="og:title" content="ZP Imports"><meta property="og:description" content="Cadastre seu endereço e finalize seu pedido."><meta property="og:url" content="https://zpimports.netlify.app/"><meta property="og:image" content="https://zpimports.netlify.app/banner-zp.jpg"><meta property="og:image:secure_url" content="https://zpimports.netlify.app/banner-zp.jpg"><meta property="og:image:type" content="image/jpeg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="ZP Imports: cadastre seu endereço e finalize seu pedido"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://zpimports.netlify.app/banner-zp.jpg">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Cadastre seu endereço e finalize seu pedido."><meta property="og:site_name" content="ZP Imports"><meta property="og:locale" content="pt_BR"><meta property="og:type" content="website"><meta property="og:title" content="ZP Imports"><meta property="og:description" content="Cadastre seu endereço e finalize seu pedido."><meta property="og:url" content="https://zpimports.netlify.app/"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%235b4fcf%22/%3E%3Ctext%20x%3D%2232%22%20y%3D%2245%22%20font-family%3D%22Arial%20Black%2CArial%22%20font-weight%3D%22900%22%20font-size%3D%2228%22%20fill%3D%22white%22%20text-anchor%3D%22middle%22%20letter-spacing%3D%22-1%22%3EZP%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%23ffb703%22%2F%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%3E%3Crect%20x%3D%2226%22%20y%3D%2212%22%20width%3D%2212%22%20height%3D%2240%22%20rx%3D%223%22%2F%3E%3Crect%20x%3D%2212%22%20y%3D%2226%22%20width%3D%2240%22%20height%3D%2212%22%20rx%3D%223%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
 <meta name="theme-color" content="#0a6e5c">
@@ -80,8 +79,8 @@ nav.main>ul>li:hover>.mega{display:block}
 .appart{justify-self:center;width:190px;height:190px;border-radius:50%;background:rgba(255,255,255,.12);display:grid;place-items:center;color:var(--acc)}
 .units{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.unit{border:1px solid var(--line);border-radius:var(--r);padding:18px}.unit small{color:var(--p);font-weight:600}.unit h3{margin:4px 0 6px;font-size:1rem;color:var(--ink)}.unit p{margin:0;color:var(--muted);font-size:.85rem}
 .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
-.card{border-radius:var(--r);padding:12px;display:flex;flex-direction:column;position:relative;background:#fff;transition:.2s;text-align:center}
-.card:hover{box-shadow:0 12px 30px rgba(0,0,0,.1);transform:translateY(-3px)}
+.card{border-radius:var(--r);padding:12px;display:flex;flex-direction:column;position:relative;background:#fff;transition:.2s;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.08);border:1px solid #e8e8e8}
+.card:hover{box-shadow:0 12px 30px rgba(0,0,0,.12);transform:translateY(-5px)}
 .pimg{height:180px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;cursor:pointer;color:#fff;overflow:hidden;flex-shrink:0}
 .pimg img{width:100%;height:100%;object-fit:contain;background:#fff}
 .pn{font-size:.9rem;font-weight:500;color:var(--ink);line-height:1.35;min-height:4em;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:1}
@@ -296,7 +295,7 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 .vars{display:grid;gap:12px;margin:14px 0}
 .vcard{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff}
 .vh{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.vst{font-size:.78rem;font-weight:600;border-radius:999px;padding:2px 10px}.vst.ok{background:var(--pl);color:var(--pd)}.vst.no{background:#fdecea;color:#8a1c14}
+.vst{font-size:.78rem;font-weight:600;border-radius:999px;padding:2px 10px}.vst.ok{background:var(--pl);color:var(--pd);animation:pagpulsa 1.4s ease-in-out infinite}.vst.no{background:#fdecea;color:#8a1c14}
 .vp{margin:8px 0;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;font-size:.95rem;color:var(--muted)}.vp b{font-size:1.3rem;color:var(--ink)}.vp del{color:#9a9a9a}
 .vq{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.vl{font-size:.9rem;color:var(--ink2);font-weight:600}
 .ptot{display:flex;justify-content:space-between;align-items:center;margin:16px 0 10px;padding:12px 0;border-top:1px solid var(--line);font-size:.85rem;letter-spacing:.04em;color:var(--muted)}.ptot b{font-size:1.5rem;color:var(--ink);letter-spacing:0}
@@ -336,9 +335,10 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 .cat-sec-titulo h2{margin:0;font-size:1.4rem;color:var(--ink)}
 .cat-sec-titulo a{color:var(--p);font-weight:500;font-size:.9rem;cursor:pointer}
 /* botão voltar ao topo */
-#voltaTopo{position:fixed;bottom:80px;right:18px;z-index:200;background:var(--p);color:#fff;border:0;border-radius:50%;width:46px;height:46px;display:none;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.22);cursor:pointer;transition:.2s}
+#voltaTopo{position:fixed;bottom:80px;right:18px;z-index:200;background:var(--p);color:#fff;border:0;border-radius:50%;width:50px;height:50px;display:none;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;transition:.2s}
 #voltaTopo.vis{display:flex}
 #voltaTopo:hover{background:var(--pd);transform:translateY(-2px)}
+@media(max-width:760px){#voltaTopo{bottom:90px;right:14px;width:46px;height:46px}}
 /* preferência de entrega */
 .pref-h{font-size:.85rem;letter-spacing:.14em;text-transform:uppercase;color:#5b6477;margin:20px 0 10px}
 .pf-l{font-size:.88rem;color:#5b6477;margin:6px 0}
@@ -421,11 +421,17 @@ body:not(.pronto) #menu,body:not(.pronto) #faixa{visibility:hidden}
 .sl{transition:opacity .6s}
 .sl:not(.on){transition:opacity 0s linear .6s}
 
+/* ===== header inteligente: some ao rolar, volta ao subir ===== */
+header{transition:transform .28s ease,box-shadow .28s ease}
+header.hdr-hidden{transform:translateY(-100%);box-shadow:none!important}
+
 /* ===== mobile: carrinho maior e que se ajusta à tela ===== */
 @media(max-width:760px){
   .hd{padding:12px 14px}
+  .pimg{height:140px}
+  .card{padding:8px}
   .tools{gap:12px}
-  #tCart{min-width:56px;min-height:56px;justify-content:center;padding:0}
+  #tCart{min-width:56px;min-height:56px;width:56px;height:56px;justify-content:center;padding:0;flex-shrink:0}
   #tCart svg{width:36px;height:36px}
   #tCart::before{width:64px;height:64px;margin:-32px 0 0 -32px}
   #tCart .cnt{min-width:26px;height:26px;font-size:.85rem;top:-2px;right:-4px}
@@ -1053,6 +1059,23 @@ function pageHome(){
   // inicializa botão voltar ao topo + destaque de menu ao scroll
   const _catsRef=cats;
   setTimeout(()=>{
+    // header inteligente: some ao rolar pra baixo, volta ao subir
+    (()=>{
+      const hdr=document.querySelector('header');
+      if(!hdr)return;
+      let lastY=window.scrollY,ticking=false;
+      window.addEventListener('scroll',()=>{
+        if(ticking)return;
+        ticking=true;
+        requestAnimationFrame(()=>{
+          const y=window.scrollY;
+          if(y>lastY&&y>80)hdr.classList.add('hdr-hidden');
+          else hdr.classList.remove('hdr-hidden');
+          lastY=y;
+          ticking=false;
+        });
+      },{passive:true});
+    })();
     const btn=document.getElementById('voltaTopo');
     if(btn){
       const onScroll=()=>btn.classList.toggle('vis',window.scrollY>400);
