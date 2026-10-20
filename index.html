@@ -3316,6 +3316,13 @@ var valMsg=d=>cartSP()?(d.subtotal>0?'\nSubtotal (itens com preço): '+brl(d.sub
 function dataBr(s){return s?s.split('-').reverse().join('/'):''}
 async function finish(){
   if(busy2)return;
+  if(!window._freteOk){
+    const f=freteTxtCli();
+    const fVal=f.v!=null?`Frete para <b>${esc(f.c)}: ${brl(f.v)}</b>`:`<b>Frete a confirmar com nossa equipe</b>`;
+    openModal(`<div style="text-align:center;padding:6px 0 12px"><div style="font-size:2.8rem">🚚</div><h3 style="margin:8px 0 4px">Lembrete de frete</h3><p style="color:var(--muted);margin:0 0 14px;font-size:.93rem">Antes de confirmar, fique ciente:</p><div class="frete-alerta" style="animation:none;text-align:left">${fVal} — este valor será pago juntamente com o pedido.</div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px"><button class="btn ghost" onclick="closeModal()">Voltar</button><button class="btn acc" onclick="window._freteOk=true;closeModal();finish()">Entendi, confirmar pedido</button></div>`);
+    return;
+  }
+  window._freteOk=false;
   if(!SB){ent.erros=[semConexao];route();return}
   const u=user(),er=[];
   if(!perfilOk())er.push('Complete seu nome e telefone no quadro Complete seus dados.');
