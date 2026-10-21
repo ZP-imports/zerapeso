@@ -5094,6 +5094,9 @@ function tabDash(){
   const amanha=addDias(hoje,1);
   const hojeN=L.filter(feitoHoje),entH=ab.filter(o=>(o.entrega||{}).data===hoje),entA=ab.filter(o=>(o.entrega||{}).data===amanha),atr=L.filter(emAtraso),rec=ab.filter(o=>+o.seq>=2);
   const cobrar=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!A9.pagEnv[o.id]),pend=L.filter(o=>aguardaPag(o)&&!cobrar.includes(o)),pagos=L.filter(o=>(o.pagamento||{}).status==='pago'),entregues=L.filter(o=>o.status==='entregue');
+  const temPrev=o=>(o.extra||{}).pag_prev;
+  const carteiraDash=L.filter(o=>aguardaPag(o)&&temPrev(o));
+  const aguardaDash=L.filter(o=>aguardaPag(o)&&temPrev(o)===hoje);
   const tot=o=>pedTotal(o)+(freteDoPedido(o)||0);
   const k=(c,t,n,sub,go)=>`<button class="kc" style="--c:${c}" onclick="${go}"><div class="n">${n}</div><div class="t"><b>${t}</b></div><div class="t">${sub}</div></button>`;
   const cid={};ab.forEach(o=>{const c=cidadeDe(o)||'Sem cidade';const key=grpCid(c)||'sem';const x=cid[key]=cid[key]||{nome:key==='sjc'?'São José dos Campos + Jacareí + Caçapava':c,fc:key==='sjc'?'São José dos Campos':c,t:0};x.t++;const tn=(o.entrega||{}).turno;x[tn]=(x[tn]||0)+1});
@@ -5110,8 +5113,8 @@ function tabDash(){
    ${k('#0d9488','Entrega amanhã',entA.length,'data desejada é amanhã',"admIr('pedidos',{fd:'"+amanha+"'})")}
    ${ADMIN.papel==='admin'?(()=>{const fp=fielPend(L);return fp.total?`<button class="kc ${fp.novos?'pulsa':''}" style="--c:#7c3aed" onclick="A9.cliF='fiel';admTab('clientes')"><div class="n">${fp.total}</div><div class="t"><b>Clientes fiéis (${CLI_META}+ pedidos)</b></div><div class="t">${fp.novos?fp.novos+' para oferecer cupom':'todos já receberam o convite'}</div></button>`:''})():''}
    ${(()=>{const cp=typeof cobPendentes==='function'?cobPendentes():[];const cpU=cp.filter(x=>x.sit==='vencido'||x.sit==='hoje');return cp.length?`<button class="kc ${cpU.length?'pulsa':''}" style="--c:#7c2d12" onclick="admTab('pendentes')"><div class="n">${cp.length}</div><div class="t"><b>Pagamentos pendentes</b></div><div class="t">${cpU.length?cpU.length+' vencido(s) ou vencem hoje':'próximos vencimentos'} · ${brl(cp.reduce((s,x)=>s+x.p.valor,0))}</div></button>`:''})()}
-   ${k('#d97706','Aguardando pagamento',pend.length,brl(pend.reduce((s,o)=>s+tot(o),0))+' a receber',"A9.pf='andamento';admTab('pagamentos')")}
-   ${k('#be123c','Carteira',cobrar.length,brl(cobrar.reduce((s,o)=>s+tot(o),0)),"A9.pf='cobrar';admTab('pagamentos')")}
+   ${aguardaDash.length?k('#d97706','Aguardando pagamento',aguardaDash.length,'pré-datados para hoje',"A9.pf='cobrar';admTab('pagamentos')"):''}
+   ${k('#be123c','Carteira',carteiraDash.length,brl(carteiraDash.reduce((s,o)=>s+tot(o),0))+' em pré-datados',"A9.pf='cobrar';admTab('pagamentos')")}
    ${k('#475569','Pedidos concluídos',L.filter(ENC).length,entregues.length+' entregue'+(entregues.length===1?'':'s')+' · '+L.filter(o=>o.status==='cancelado').length+' cancelado(s)',"A9.dashView='concluidos';A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';route()")}
   </div>
   <h3 style="margin-bottom:10px">Entregas por dia</h3>
