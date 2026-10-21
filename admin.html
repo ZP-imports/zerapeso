@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-21-2346 -->
+<!-- v2026-10-21-2355 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -4993,7 +4993,7 @@ function filtroExtra(o,f){
   if(f.fd&&e.data!==f.fd)return false;
   if(f.ft&&e.turno!==f.ft)return false;
   if(f.fq==='abertos'&&ENC(o))return false;
-  if(f.fq==='abertos'&&(o.extra||{}).pag_prev)return false;
+  if(f.fq==='abertos'){const _p=(o.extra||{}).pag_prev;if(_p&&(typeof _p==='string'?_p.length>0:Array.isArray(_p)?_p.length>0:false))return false;}
   if(f.fq==='feitos-hoje'&&!feitoHoje(o))return false;
   if(f.fq==='entrega-hoje'&&e.data!==hojeS())return false;
   if(f.fq==='entrega-amanha'&&e.data!==addDias(hojeS(),1))return false;
@@ -5089,17 +5089,19 @@ function tabPagamentos(){
      const prev=(o.extra||{}).pag_prev;
      if(prev)parcRow=`<div style="font-size:.78rem;color:#2563eb;font-weight:600">📅 ${prevStatusTxt(o)}</div>`;
    }
-   return `<tr data-sc${rowCls} style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${totAdm(o)}${parcRow}</td>${mF?`<td>${fr!=null?brl(fr).slice(3):'<span style="color:var(--muted)">a combinar</span>'}</td>`:'<td></td>'}<td><b>${sp?'A confirmar':brl(total(o))}</b></td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">✅ Link enviado no WhatsApp</div>':''}</td>
+   return `<tr data-sc${rowCls} style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${totAdm(o)}${parcRow}</td>${mF?`<td>${fr!=null?brl(fr).slice(3):'<span style="color:var(--muted)">a combinar</span>'}</td>`:''}<td><b>${sp?'A confirmar':brl(total(o))}</b></td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">✅ Link enviado no WhatsApp</div>':''}</td>
    <td style="white-space:nowrap">${pg?`<button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})">${A9.pagEnv[o.id]?'Reenviar link':'Enviar link'}</button> <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar pago total</button> <button class="btn ghost sm" onclick="pagDia(${o.id})">Programar</button>`} ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`;};
   const mostraFrete=A9.pagMostraFrete||false;
-  const thead=`<thead><tr><th>Pedido</th><th>Cliente</th><th>Produtos</th><th style="white-space:nowrap"><span style="display:flex;align-items:center;gap:6px">${mostraFrete?'Frete':''}<button class="btn ghost sm" title="${mostraFrete?'Ocultar fretes':'Mostrar fretes (R$)'}" onclick="A9.pagMostraFrete=${!mostraFrete};route()" style="padding:2px 7px;font-size:.78rem;opacity:.7">${mostraFrete?'👁 ocultar':'👁 fretes'}</button></span></th><th>Total</th><th>Forma</th><th>Situação</th><th></th></tr></thead>`;
+  const btnFrete=`<button class="btn ghost sm" onclick="A9.pagMostraFrete=${!mostraFrete};route()" style="font-size:.82rem">${mostraFrete?'🙈 Ocultar frete':'👁 Mostrar frete'}</button>`;
+  const thead=`<thead><tr><th>Pedido</th><th>Cliente</th><th>Produtos</th>${mostraFrete?'<th>Frete</th>':''}<th>Total</th><th>Forma</th><th>Situação</th><th></th></tr></thead>`;
   const vencHoje=carteira.filter(o=>prevVencendo(o));
   const bannerVenc=vencHoje.length?`<div class="note" style="background:#fef2f2;border-color:#fca5a5;color:#991b1b;animation:pagpulsa .9s ease-in-out infinite;margin-bottom:10px"><b>⚠️ ${vencHoje.length} parcela${vencHoje.length>1?'s':''} vencendo!</b> ${vencHoje.map(o=>esc((o.entrega||{}).nome||codPed(o))).join(', ')} — <button class="btn ghost sm" style="margin-left:8px" onclick="A9.pf='carteira';route()">Ver carteira</button></div>`:'';
   return `<div class="box">${msgBox()}${bannerVenc}${A9.link?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre em Mais opções > Configurações.</div>'}
   <p style="margin:0 0 10px;color:var(--muted)">Pedido entregue → <b>Pendentes</b>. Envia link → <b>Cobrança em andamento</b>. Programa data → <b>Carteira</b>. Pago → <b>Concluídos</b>.</p>
   <div class="kcards" style="margin-bottom:12px">${aba('cobrar','Pagamentos pendentes',pendentes,'#d92d20')}${aba('andamento','Cobrança em andamento',andamento,'#d97706')}${aba('carteira','<span style="font-size:.82em">Carteira · Pré-datados</span>',carteira,'#2563eb')}${aba('pagos','Concluídos (pagos)',pagos,'#16a34a')}</div>
   ${barraFiltros()}
-  <div class="tbl"><table>${thead}<tbody>${listaBase.map(o=>rowPag(o,mostraFrete)).join('')||'<tr><td colspan="8">Nenhum pedido nesta lista.</td></tr>'}</tbody></table></div>
+  <div style="margin-bottom:8px">${btnFrete}</div>
+  <div class="tbl"><table>${thead}<tbody>${listaBase.map(o=>rowPag(o,mostraFrete)).join('')||`<tr><td colspan="${mostraFrete?8:7}">Nenhum pedido nesta lista.</td></tr>`}</tbody></table></div>
   </div>`;
 }
 function pagEnviar(id){
@@ -5157,7 +5159,8 @@ function tabDash(){
     <p style="margin:0 0 10px;color:var(--muted)"><b>${lista.length}</b> pedido${lista.length===1?'':'s'} na lista.</p>
     <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Entrega</th><th>Pagamento</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const pg=o.pagamento||{};return `<tr data-sc style="--sc:${en.turno==='manha'?'#f59e0b':en.turno==='tarde'?'#dc2626':en.turno==='noite'?'#7c3aed':'#999'}"><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' · '+((en.dest||{}).cidade||''))}</div></td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td><td>${totAdm(o)}</td><td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td><td>${esc(PAGNOME[pg.preferencia]||'')}<div>${pagChipP(o)}</div></td><td>${stChip(o.status)}</td><td style="white-space:nowrap">${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||`<tr><td colspan="8">Nenhum pedido.</td></tr>`}</tbody></table></div></div>`;
   }
-  const L=A9.pedidos,hoje=hojeS(),ab=L.filter(o=>!ENC(o)&&!(o.extra||{}).pag_prev);
+  const temPrevVal=o=>{const p=(o.extra||{}).pag_prev;return p&&(typeof p==='string'?p.length>0:Array.isArray(p)?p.length>0:false)};
+  const L=A9.pedidos,hoje=hojeS(),ab=L.filter(o=>!ENC(o)&&!temPrevVal(o));
   const amanha=addDias(hoje,1);
   const hojeN=L.filter(feitoHoje),entH=ab.filter(o=>(o.entrega||{}).data===hoje),entA=ab.filter(o=>(o.entrega||{}).data===amanha),atr=L.filter(emAtraso),rec=ab.filter(o=>+o.seq>=2);
   const cobrar=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!A9.pagEnv[o.id]),pend=L.filter(o=>aguardaPag(o)&&!cobrar.includes(o)),pagos=L.filter(o=>(o.pagamento||{}).status==='pago'),entregues=L.filter(o=>o.status==='entregue');
