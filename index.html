@@ -664,6 +664,7 @@ function msgModelo(k){
 }
 function msgTxt(k,vars){return msgFill(msgModelo(k),vars||{})}
 const waUrl=msg=>'whatsapp://send?phone='+CFG.wa+'&text='+encodeURIComponent(msg||msgTxt('s_atend',{loja:CFG.brand}));
+function abrWa(url){const a=document.createElement('a');a.href=url;a.rel='noopener';document.body.appendChild(a);a.click();setTimeout(()=>document.body.removeChild(a),300);}
 const EXTRA=[{t:'Campanhas',go:'/amigo',sub:[['Amigo Emagrece Amigo','/amigo'],['Regulamento Amigo Emagrece Amigo','/reg/amigo'],['Desconto na primeira compra','/reg/primeira-compra']]},{t:'Atendimento',go:'wa:',sub:[['Falar com o atendimento','wa:'],['Dúvidas frequentes','/info/duvidas'],['Como comprar','/info/como-comprar'],['Entregas','/info/entregas'],['Formas de pagamento','/info/pagamento']]}];
 const PRODUCTS=[
 ];
@@ -1635,7 +1636,7 @@ async function etqCompartilhar(oid,v){
     if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],text:txt});logEtq(o,r.rec,'Compartilhamento iniciado pelo sistema do aparelho','externa');toast('Compartilhamento iniciado. O envio só vale quando você concluir no aplicativo.');route();return}
   }catch(e){if(e&&e.name==='AbortError')return}
   const a=document.createElement('a');a.href=blobUrl(bytes);a.download=nome;document.body.appendChild(a);a.click();a.remove();
-  window.open('whatsapp://send?phone=55'+digits(o.entrega.fone).replace(/^55/,'')+'&text='+encodeURIComponent(txt),'_blank');
+  abrWa('whatsapp://send?phone=55'+digits(o.entrega.fone).replace(/^55/,'')+'&text='+encodeURIComponent(txt));
   logEtq(o,r.rec,'WhatsApp aberto e PDF baixado para anexar (envio não confirmado)','externa');
   toast('O PDF foi baixado. Anexe-o na conversa do WhatsApp que abriu. O sistema não confirma o envio.');route();
 }
@@ -2178,7 +2179,7 @@ function enviarLinkCliente(id){
   const campo=document.getElementById('msgPagT'+id);const t=campo?campo.value:o.msgPag.texto;
   if(!t.trim()){toast('A mensagem está vazia.');return}
   o.msgPag.texto=t;
-  window.open('whatsapp://send?phone=55'+digits(o.entrega.fone).replace(/^55/,'')+'&text='+encodeURIComponent(t),'_blank');
+  abrWa('whatsapp://send?phone=55'+digits(o.entrega.fone).replace(/^55/,'')+'&text='+encodeURIComponent(t));
   if(o.pagamento.status==='pendente')o.pagamento.status='link';
   o.pagamento.linkEnviadoEm=now();
   addEv(o,{tipo:'whatsapp',publico:false,texto:'WhatsApp aberto com o link de pagamento (envio não confirmado pelo sistema)'});
@@ -2464,7 +2465,7 @@ function rotaMsg(r){
 function rotaEnviarWA(rid){
   const r=ROTE.find(x=>x.id===rid);if(!r)return;const en=ENTR.find(x=>x.id===r.entregadorId);if(!en){toast('Entregador não encontrado.');return}
   const campo=document.getElementById('rotaMsgT');const t=campo?campo.value:rotaMsg(r);if(!t.trim()){toast('A mensagem está vazia.');return}
-  window.open('whatsapp://send?phone=55'+digits(en.whats).replace(/^55/,'')+'&text='+encodeURIComponent(t),'_blank');
+  abrWa('whatsapp://send?phone=55'+digits(en.whats).replace(/^55/,'')+'&text='+encodeURIComponent(t));
   r.enviadaEm=now();r.orders.forEach(id=>{const o=orders.find(x=>x.id===id);if(o)addEv(o,{tipo:'whatsapp',publico:false,texto:'Rota '+rotaCod(r)+' enviada ao entregador '+en.nome+' (envio não confirmado pelo sistema)'})});
   save();toast('Conversa aberta com '+en.nome+'. O envio é feito por você no WhatsApp.');route();
 }
@@ -2714,7 +2715,7 @@ function admReag(id){
   save();toast('Entrega reagendada. O cliente foi avisado na área dele e a mensagem de WhatsApp está pronta.');route();
 }
 function admAbrirWA(id,tid,rot){const o=gO(id);const t=v_(tid);if(!t.trim()){toast('A mensagem está vazia.');return}
-  window.open('whatsapp://send?phone=55'+digits(o.entrega.fone).replace(/^55/,'')+'&text='+encodeURIComponent(t),'_blank');
+  abrWa('whatsapp://send?phone=55'+digits(o.entrega.fone).replace(/^55/,'')+'&text='+encodeURIComponent(t));
   addEv(o,{tipo:'whatsapp',publico:false,texto:'WhatsApp aberto com a mensagem: '+rot+' (envio não confirmado pelo sistema)'});save();toast('Conversa aberta. O envio é feito por você no WhatsApp.');route()}
 function admEditEntrega(id){
   const o=gO(id),e=o.entrega,d=e.dest;const mot=v_('eMot').trim();
@@ -4542,10 +4543,10 @@ function waMovel(){return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent||
 function waAbrir(fone,txt){
   const m=waModo();
   if(m==='link'){window.open(waUrlPara(fone,txt),'_blank');return}
-  if(m==='colar'){copiaTexto(txt,'Mensagem copiada. Na conversa que abriu, cole com Ctrl+V (ou segure e toque em Colar) e envie.');window.open('whatsapp://send?phone='+fone,'_blank');return}
+  if(m==='colar'){copiaTexto(txt,'Mensagem copiada. Na conversa que abriu, cole com Ctrl+V (ou segure e toque em Colar) e envie.');abrWa('whatsapp://send?phone='+fone);return}
   if(waMovel()){window.open(waUrlPara(fone,txt),'_blank');return}
   copiaTexto(txt,'Conversa do cliente aberta. Se algum emoji vier quebrado, apague o texto e cole com Ctrl+V: a mensagem já está copiada.');
-  window.open('https://web.whatsapp.com/send?phone='+fone+'&text='+encodeURIComponent(txt),'_blank');
+  abrWa(waUrlPara(fone,txt));
 }
 if(window.__ADMIN_APP)document.addEventListener('click',function(ev){
   if(waModo()==='link')return;
