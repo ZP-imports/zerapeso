@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-21-1700 -->
+<!-- v2026-10-21-1710 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5109,7 +5109,26 @@ function freteSalvar(){
 function tabDash(){
   if(A9.po)return admDetalhe();
   if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
-  if(A9.dashView==='concluidos')return `<div class="box" style="padding-bottom:6px"><a style="cursor:pointer;font-weight:600" onclick="A9.dashView='';route()">← Voltar à visão geral</a><h2 style="margin:8px 0 0">Pedidos concluídos</h2><p style="margin:4px 0 0;color:var(--muted)">Pedidos entregues ou cancelados. Aqui você confere, imprime etiquetas e acompanha o histórico.</p></div>`+listaPed(ENC,'Pedidos concluídos (entregues e cancelados).');
+  if(A9.dashView==='concluidos'){
+    if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
+    const hoje=hojeS();
+    let lista=A9.pedidos.filter(ENC);
+    if(A9.fc){const l=String(A9.fc).split('|').map(cidNorm);lista=lista.filter(o=>l.includes(cidNorm(cidadeDe(o))))}
+    if(A9.ft)lista=lista.filter(o=>(o.entrega||{}).turno===A9.ft);
+    if(A9.fd)lista=lista.filter(o=>(o.entrega||{}).data===A9.fd);
+    const turnoSel=A9.ft;
+    const corFT=turnoSel==='manha'?'#f59e0b':turnoSel==='tarde'?'#dc2626':turnoSel==='noite'?'#7c3aed':'';
+    return `<div class="box" style="padding-bottom:6px"><a style="cursor:pointer;font-weight:600" onclick="A9.dashView='';A9.fc='';A9.ft='';A9.fd='';route()">← Voltar à visão geral</a><h2 style="margin:8px 0 0">Pedidos concluídos</h2><p style="margin:4px 0 0;color:var(--muted)">Pedidos entregues ou cancelados.</p></div>
+    <div class="box"><div class="fbar" style="margin-bottom:12px">
+      <div><label>Cidade</label>${cidFlag('fC',A9.fc,"A9.fc=v_('fC');route()")}</div>
+      <div><label for="fTC">Horário</label><select id="fTC" onchange="A9.ft=this.value;route()" style="${corFT?'background:'+corFT+'22;color:'+corFT+';font-weight:700;border-color:'+corFT:''}"><option value="">Todos</option>${Object.keys(TURNOS).map(t=>`<option value="${t}" ${A9.ft===t?'selected':''}>${esc(TURNOS[t])}</option>`).join('')}</select></div>
+      <div><label for="fDC">Data de entrega</label><input id="fDC" type="date" value="${esc(A9.fd||'')}" onchange="A9.fd=this.value;route()" style="width:auto"></div>
+      <button class="btn ghost sm" onclick="A9.fd='${hoje}';A9.ft='';A9.fc='';route()" style="${A9.fd===hoje?'background:#e8f5e9;border-color:#16a34a;color:#16a34a;font-weight:700':''}">Concluídos hoje</button>
+      ${(A9.fc||A9.ft||A9.fd)?`<button class="btn ghost sm" onclick="A9.fc='';A9.ft='';A9.fd='';route()">Limpar filtros</button>`:''}
+    </div>
+    <p style="margin:0 0 10px;color:var(--muted)"><b>${lista.length}</b> pedido${lista.length===1?'':'s'} na lista.</p>
+    <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Entrega</th><th>Pagamento</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const pg=o.pagamento||{};return `<tr data-sc style="--sc:${en.turno==='manha'?'#f59e0b':en.turno==='tarde'?'#dc2626':en.turno==='noite'?'#7c3aed':'#999'}"><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' · '+((en.dest||{}).cidade||''))}</div></td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td><td>${totAdm(o)}</td><td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td><td>${esc(PAGNOME[pg.preferencia]||'')}<div>${pagChipP(o)}</div></td><td>${stChip(o.status)}</td><td style="white-space:nowrap">${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||`<tr><td colspan="8">Nenhum pedido.</td></tr>`}</tbody></table></div></div>`;
+  }
   const L=A9.pedidos,hoje=hojeS(),ab=L.filter(o=>!ENC(o));
   const amanha=addDias(hoje,1);
   const hojeN=L.filter(feitoHoje),entH=ab.filter(o=>(o.entrega||{}).data===hoje),entA=ab.filter(o=>(o.entrega||{}).data===amanha),atr=L.filter(emAtraso),rec=ab.filter(o=>+o.seq>=2);
