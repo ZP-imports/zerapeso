@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-21-1800 -->
+<!-- v2026-10-21-1810 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5116,13 +5116,13 @@ function tabDash(){
   if(A9.dashView==='concluidos'){
     if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
     const hoje=hojeS();
-    let lista=A9.pedidos.filter(ENC);
+    let lista=A9.pedidos.filter(o=>o.status==='entregue'&&(o.pagamento||{}).status==='pago');
     if(A9.fc){const l=String(A9.fc).split('|').map(cidNorm);lista=lista.filter(o=>l.includes(cidNorm(cidadeDe(o))))}
     if(A9.ft)lista=lista.filter(o=>(o.entrega||{}).turno===A9.ft);
     if(A9.fd)lista=lista.filter(o=>(o.entrega||{}).data===A9.fd);
     const turnoSel=A9.ft;
     const corFT=turnoSel==='manha'?'#f59e0b':turnoSel==='tarde'?'#dc2626':turnoSel==='noite'?'#7c3aed':'';
-    return `<div class="box" style="padding-bottom:6px"><a style="cursor:pointer;font-weight:600" onclick="A9.dashView='';A9.fc='';A9.ft='';A9.fd='';route()">← Voltar à visão geral</a><h2 style="margin:8px 0 0">Pedidos concluídos</h2><p style="margin:4px 0 0;color:var(--muted)">Pedidos entregues ou cancelados.</p></div>
+    return `<div class="box" style="padding-bottom:6px"><a style="cursor:pointer;font-weight:600" onclick="A9.dashView='';A9.fc='';A9.ft='';A9.fd='';route()">← Voltar à visão geral</a><h2 style="margin:8px 0 0">Pedidos concluídos</h2><p style="margin:4px 0 0;color:var(--muted)">Pedidos entregues e pagos — 100% finalizados.</p></div>
     <div class="box"><div class="fbar" style="margin-bottom:12px">
       <div><label>Cidade</label>${cidFlag('fC',A9.fc,"A9.fc=v_('fC');route()")}</div>
       <div><label for="fTC">Horário</label><select id="fTC" onchange="A9.ft=this.value;route()" style="${corFT?'background:'+corFT+'22;color:'+corFT+';font-weight:700;border-color:'+corFT:''}"><option value="">Todos</option>${Object.keys(TURNOS).map(t=>`<option value="${t}" ${A9.ft===t?'selected':''}>${esc(TURNOS[t])}</option>`).join('')}</select></div>
