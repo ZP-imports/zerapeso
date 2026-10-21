@@ -5097,7 +5097,7 @@ function tabDash(){
   const hojeN=L.filter(feitoHoje),entH=ab.filter(o=>(o.entrega||{}).data===hoje),entA=ab.filter(o=>(o.entrega||{}).data===amanha),atr=L.filter(emAtraso),rec=ab.filter(o=>+o.seq>=2);
   const cobrar=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!A9.pagEnv[o.id]),pend=L.filter(o=>aguardaPag(o)&&!cobrar.includes(o)),pagos=L.filter(o=>(o.pagamento||{}).status==='pago'),entregues=L.filter(o=>o.status==='entregue');
   const temPrev=o=>(o.extra||{}).pag_prev;
-  const carteiraDash=L.filter(o=>aguardaPag(o)&&temPrev(o));
+  const carteiraDash=L.filter(o=>temPrev(o)&&(o.pagamento||{}).status!=='pago');
   const aguardaDash=L.filter(o=>aguardaPag(o)&&temPrev(o)===hoje);
   const tot=o=>pedTotal(o)+(freteDoPedido(o)||0);
   const k=(c,t,n,sub,go)=>`<button class="kc" style="--c:${c}" onclick="${go}"><div class="n">${n}</div><div class="t"><b>${t}</b></div><div class="t">${sub}</div></button>`;
@@ -5124,16 +5124,16 @@ function tabDash(){
     const DIAS_ABREV=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
     const TC={manha:{c:'#f59e0b',bg:'#fff7e0',label:'M'},tarde:{c:'#2563eb',bg:'#e8f0fe',label:'T'},noite:{c:'#7c3aed',bg:'#f3e8ff',label:'N'}};
     return Array.from({length:9},(_,i)=>{
-      const d=addDias(hoje,i-1);
+      const d=addDias(hoje,i);
       const dow=new Date(d+'T12:00').getDay();
-      const isHoje=d===hoje,isOntem=i===0;
+      const isHoje=d===hoje,isOntem=false;
       const peds=ab.filter(o=>(o.entrega||{}).data===d);
       const byT={};peds.forEach(o=>{const t=(o.entrega||{}).turno||'';byT[t]=(byT[t]||0)+1});
       const chips=Object.entries(TC).map(([t,cfg])=>byT[t]?`<span style="display:inline-flex;align-items:center;gap:2px;background:${cfg.bg};color:${cfg.c};border:1px solid ${cfg.c};border-radius:6px;padding:1px 5px;font-size:.7rem;font-weight:700">${cfg.label} ${byT[t]}</span>`:'').join('');
-      const border=isHoje?'2px solid #2563eb':isOntem?'1px solid #ccc':'1px solid var(--line)';
+      const border=isHoje?'2px solid #2563eb':'1px solid var(--line)';
       const opacity=peds.length===0?'opacity:.45':'';
       return `<button onclick="admIr('pedidos',{fd:'${d}'})" style="cursor:pointer;${opacity};border:${border};border-radius:12px;padding:8px 10px;background:${isHoje?'#eff6ff':'#fff'};min-width:64px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
-        <span style="font-size:.7rem;color:var(--muted);font-weight:600">${isOntem?'Ontem':isHoje?'Hoje':DIAS_ABREV[dow]}</span>
+        <span style="font-size:.7rem;color:var(--muted);font-weight:600">${isHoje?'Hoje':DIAS_ABREV[dow]}</span>
         <span style="font-size:.68rem;color:var(--muted)">${d.slice(8)}/${d.slice(5,7)}</span>
         <span style="font-size:1.3rem;font-weight:800;line-height:1;color:${peds.length?'var(--ink)':'#bbb'}">${peds.length}</span>
         <div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:center">${chips}</div>
