@@ -145,6 +145,7 @@ address{font-style:normal;background:var(--bg);border-radius:12px;padding:12px 1
 .trk{background:var(--bg);border-radius:12px;padding:10px 12px;margin-top:6px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:.88rem}.trk code{background:#fff;border:1px solid var(--line);border-radius:8px;padding:.15em .6em;font-weight:600}
 .st{display:inline-block;border-radius:6px;padding:.15em .6em;font-size:.78rem;font-weight:600}
 .s-aguardando{background:#ffe9a8;color:#6b4c00}.s-confirmado{background:#c8e6c9;color:#1b5e20}.s-separacao{background:#bbdefb;color:#0d47a1}.s-enviado{background:#d1c4e9;color:#311b92}.s-entregue{background:#a5d6a7;color:#1b5e20}.s-cancelado{background:#e0e0e0;color:#424242}
+.badge{display:inline-block;padding:.22em .8em;border-radius:999px;font-size:.74rem;font-weight:700}.badge-n{background:#dbeafe;color:#1e40af}.badge-c{background:#dcfce7;color:#166534}.badge-er{background:#f3e8ff;color:#6b21a8}.badge-e{background:#d1fae5;color:#064e3b}.badge-x{background:#fee2e2;color:#991b1b}
 .olist button{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}.olist button.on{border-color:var(--p);box-shadow:0 0 0 3px var(--pl)}
 .stb{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.stb button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:.3em .9em;font-size:.84rem}.stb button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .hist{background:#f7faf7;border:1px solid var(--line);border-radius:12px;padding:14px}.hist .big{font-weight:700;color:var(--pd);font-size:1.1rem}
@@ -564,6 +565,7 @@ a[href*="netlify.com"],[class*="netlify" i],[id*="netlify" i]{display:none!impor
 
 <script>window.__ADMIN_APP=true;</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 window.__banco=typeof supabase!=='undefined';
 /* ======================= CONFIGURAÇÃO ======================= */
@@ -2800,6 +2802,337 @@ async function admLogo(inp){const f=inp.files&&inp.files[0];if(!f)return;if(f.si
   try{const l=await logoLoad(f);LBL.logo=l;LBL.logoKey=hashStr(l.data.slice(0,4000)+l.data.length);saveLbl();toast('Logomarca salva. As próximas etiquetas já usam a nova identidade.');route()}catch(e){toast('Não foi possível ler a imagem.')}}
 function admLogoRem(){LBL.logo=null;LBL.logoKey='';saveLbl();toast('Logomarca removida.');route()}
 
+/* ======================= REVENDEDORES ======================= */
+A9.revs=null;A9.revSel=null;A9.revAba='pendentes';A9.revEdit=null;A9.revPeds=null;
+
+async function admCarregarRevs(){
+  const [rv,pe,mo,av]=await Promise.all([
+    SB.from('revendedores').select('*').order('criado_em',{ascending:false}),
+    SB.from('pedidos_revendedor').select('*').order('criado_em',{ascending:false}),
+    SB.from('consignado_movimentos').select('*').order('criado_em',{ascending:false}),
+    SB.from('avisos_revendedores').select('*').order('criado_em',{ascending:false})
+  ]);
+  A9.revs={lista:rv.data||[],pedidos:pe.data||[],movimentos:mo.data||[],avisos:av.data||[]};
+  route();
+}
+
+function tabRevendedores(){
+  if(!A9.revs){if(!A9.busy){A9.busy=true;admCarregarRevs().finally(()=>{A9.busy=false})}return '<div class="box">Carregando revendedores...</div>'}
+  const {lista,pedidos,movimentos}=A9.revs;
+  const pendentes=lista.filter(r=>r.status==='pendente');
+  const ativos=lista.filter(r=>r.status==='ativo');
+  const bloqueados=lista.filter(r=>r.status==='bloqueado');
+
+  // Detail view
+  if(A9.revSel){
+    const rv=lista.find(r=>r.id===A9.revSel);
+    if(!rv)return '<div class="box"><button class="btn ghost sm" onclick="A9.revSel=null;route()">← Voltar</button><p>Revendedor não encontrado.</p></div>';
+    const rpeds=pedidos.filter(p=>p.revendedor_id===rv.id);
+    const rmovs=movimentos.filter(m=>m.revendedor_id===rv.id);
+    const saldo=rv.tipo==='consignado'?calcSaldoAdm(rmovs):null;
+    const ST={novo:'Novo',confirmado:'Confirmado',em_separacao:'Em separação',em_rota:'Em rota',entregue:'Entregue',cancelado:'Cancelado'};
+    const STCLS={novo:'badge-n',confirmado:'badge-c',em_separacao:'badge-c',em_rota:'badge-er',entregue:'badge-e',cancelado:'badge-x'};
+    return `<div class="wrap" style="padding-top:0">
+      <button class="btn ghost sm" style="margin:0 0 16px" onclick="A9.revSel=null;route()">← Voltar à lista</button>
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start">
+        <div>
+          <div class="box">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+              <div>
+                <h3 style="margin:0 0 4px">${esc(rv.nome)}</h3>
+                <div style="color:var(--muted);font-size:.88rem">${esc(rv.email)} · ${esc(rv.telefone||'—')}</div>
+                <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+                  <span class="badge ${rv.status==='ativo'?'badge-e':rv.status==='pendente'?'badge-n':'badge-x'}">${{ativo:'Ativo',pendente:'Aguardando aprovação',bloqueado:'Bloqueado'}[rv.status]||rv.status}</span>
+                  <span class="badge ${rv.tipo==='consignado'?'badge-er':'badge-c'}">${rv.tipo==='consignado'?'Consignado':'Comprador'}</span>
+                  ${rv.desconto_pct?`<span class="badge" style="background:#e0f2fe;color:#075985">${rv.desconto_pct}% de desconto</span>`:''}
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                ${rv.status==='pendente'?`<button class="btn acc sm" onclick="admRevAprovar('${rv.id}')">Aprovar</button>`:''}
+                ${rv.status==='ativo'?`<button class="btn ghost sm" onclick="admRevBloquear('${rv.id}')">Bloquear</button>`:''}
+                ${rv.status==='bloqueado'?`<button class="btn sm" onclick="admRevAtivar('${rv.id}')">Reativar</button>`:''}
+                <button class="btn ghost sm" onclick="A9.revEdit=Object.assign({},A9.revs.lista.find(r=>r.id==='${rv.id}'));route()">Editar</button>
+                ${rv.telefone?`<a class="btn wa sm" target="_blank" rel="noopener" href="https://wa.me/${rv.telefone.replace(/\D/g,'')}">WhatsApp</a>`:''}
+              </div>
+            </div>
+            ${A9.revEdit&&A9.revEdit.id===rv.id?`<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
+              <h4 style="margin:0 0 12px">Editar revendedor</h4>
+              <div class="fr">
+                <div class="c3"><label>Nome</label><input id="rv-nome" value="${esc(rv.nome)}"></div>
+                <div class="c3"><label>WhatsApp</label><input id="rv-tel" value="${esc(rv.telefone||'')}" inputmode="tel"></div>
+                <div class="c3"><label>Tipo</label><select id="rv-tipo" style="width:100%"><option value="comprador" ${rv.tipo==='comprador'?'selected':''}>Comprador (paga antes)</option><option value="consignado" ${rv.tipo==='consignado'?'selected':''}>Consignado (paga ao vender)</option></select></div>
+                <div class="c3"><label>Desconto % (preço ao revendedor)</label><input id="rv-desc" type="number" min="0" max="80" value="${rv.desconto_pct||0}"></div>
+                <div class="c6"><label>Observações internas</label><textarea id="rv-obs" rows="2">${esc(rv.obs||'')}</textarea></div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:12px">
+                <button class="btn acc" onclick="admRevSalvar('${rv.id}')">Salvar</button>
+                <button class="btn ghost" onclick="A9.revEdit=null;route()">Cancelar</button>
+              </div>
+            </div>`:''}
+          </div>
+
+          <h3 style="margin:20px 0 10px">Pedidos (${rpeds.length})</h3>
+          ${!rpeds.length?`<div class="note">Nenhum pedido ainda.</div>`:`<div class="box"><table>
+            <thead><tr><th>Data</th><th>Itens</th><th>Total</th><th>Tipo</th><th>Status</th><th></th></tr></thead>
+            <tbody>${rpeds.map(p=>`<tr>
+              <td style="font-size:.82rem">${fmtD(p.criado_em)}</td>
+              <td style="font-size:.82rem">${(p.itens||[]).map(x=>x.qty+'x '+x.nome).join(', ').slice(0,50)}${p.itens&&p.itens.length>2?'…':''}</td>
+              <td><b>${brl(p.subtotal)}</b></td>
+              <td><span class="badge ${p.tipo_pagamento==='consignado'?'badge-er':'badge-c'}">${p.tipo_pagamento==='consignado'?'Consig.':'À vista'}</span></td>
+              <td><span class="badge ${STCLS[p.status]||'badge-n'}">${ST[p.status]||p.status}</span></td>
+              <td><select onchange="admRevAtualizaStatus('${p.id}',this.value)" style="font-size:.8rem;padding:.3em .6em;border-radius:8px;width:auto">
+                ${Object.entries(ST).map(([k,v])=>`<option value="${k}" ${p.status===k?'selected':''}>${v}</option>`).join('')}
+              </select></td>
+            </tr>`).join('')}</tbody>
+          </table></div>`}
+
+          ${rv.tipo==='consignado'?`<h3 style="margin:20px 0 10px">Extrato consignado</h3>
+          <div style="background:linear-gradient(135deg,var(--p),var(--pd));color:#fff;border-radius:14px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div><div style="font-size:.8rem;opacity:.85">Saldo a repassar</div><div style="font-size:1.8rem;font-weight:700">${brl(saldo)}</div></div>
+            <button class="btn acc sm" onclick="admRevAddMov('${rv.id}','repasse')">Registrar repasse</button>
+          </div>
+          ${!rmovs.length?`<div class="note">Nenhuma movimentação registrada.</div>`:`<div class="box"><table>
+            <thead><tr><th>Data</th><th>Tipo</th><th>Produto</th><th>Qtd</th><th class="r">Valor</th></tr></thead>
+            <tbody>${rmovs.map(m=>`<tr>
+              <td style="font-size:.8rem">${fmtD(m.criado_em)}</td>
+              <td><span style="font-weight:600;color:${m.tipo==='saida'?'#dc2626':m.tipo==='venda'?'#166534':'var(--p)'}">${{saida:'📦 Saída',venda:'💰 Venda',repasse:'✅ Repasse',devolucao:'↩ Devolução'}[m.tipo]||m.tipo}</span></td>
+              <td style="font-size:.85rem">${esc(m.produto_nome||'—')}</td>
+              <td>${m.quantidade||'—'}</td>
+              <td class="r"><b>${brl(m.valor_total)}</b></td>
+            </tr>`).join('')}</tbody>
+          </table></div>`}`:``}
+        </div>
+
+        <div>
+          <div class="box">
+            <h4 style="margin:0 0 12px;color:var(--p)">Resumo da conta</h4>
+            <div style="font-size:.88rem;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Total de pedidos</span><b>${rpeds.length}</b></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Volume comprado</span><b>${brl(rpeds.filter(p=>p.status!=='cancelado').reduce((s,p)=>s+(p.subtotal||0),0))}</b></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Em aberto</span><b>${rpeds.filter(p=>!['entregue','cancelado'].includes(p.status)).length}</b></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Desconto</span><b>${rv.desconto_pct||0}%</b></div>
+              ${saldo!=null?`<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Saldo consig.</span><b style="color:var(--p)">${brl(saldo)}</b></div>`:''}
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Cadastrado em</span><b style="font-size:.8rem">${fmtD(rv.criado_em)}</b></div>
+              ${rv.aprovado_em?`<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Aprovado em</span><b style="font-size:.8rem">${fmtD(rv.aprovado_em)}</b></div>`:''}
+            </div>
+          </div>
+          ${rv.obs?`<div class="box" style="margin-top:12px"><h4 style="margin:0 0 8px">Obs. internas</h4><p style="font-size:.88rem;color:var(--muted);margin:0">${esc(rv.obs)}</p></div>`:''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // List view
+  const abaAtual=A9.revAba||'pendentes';
+  const avisos=A9.revs.avisos||[];
+
+  // Ranking view
+  if(abaAtual==='ranking'){
+    const agora=Date.now();
+    const ranking=ativos.map(rv=>{
+      const rpeds=pedidos.filter(p=>p.revendedor_id===rv.id&&p.status!=='cancelado');
+      const vol=rpeds.reduce((s,p)=>s+(p.subtotal||0),0);
+      const ultimo=rpeds.reduce((d,p)=>p.criado_em>d?p.criado_em:d,'');
+      const diasSemPedido=ultimo?Math.floor((agora-new Date(ultimo).getTime())/86400000):999;
+      return {rv,rpeds,vol,ultimo,diasSemPedido};
+    }).sort((a,b)=>b.vol-a.vol);
+    return `<div>
+      ${msgBox()}
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+        <h3 style="margin:0">Ranking de revendedores</h3>
+        <div style="display:flex;gap:8px">
+          <button class="btn ghost sm" onclick="A9.revAba='ativos';route()">← Lista</button>
+          <button class="btn sm" onclick="A9.revs=null;A9.busy=false;admCarregarRevs()">↻ Atualizar</button>
+        </div>
+      </div>
+      <div class="box">
+        ${!ranking.length?`<p style="color:var(--muted);text-align:center;padding:20px 0">Nenhum revendedor ativo.</p>`:`
+        <table>
+          <thead><tr><th>#</th><th>Revendedor</th><th>Tipo</th><th>Pedidos</th><th>Volume total</th><th>Último pedido</th><th>Atividade</th></tr></thead>
+          <tbody>${ranking.map(({rv,rpeds,vol,ultimo,diasSemPedido},i)=>`<tr>
+            <td><b style="color:var(--muted)">#${i+1}</b></td>
+            <td><b>${esc(rv.nome)}</b><br><small style="color:var(--muted)">${esc(rv.email)}</small></td>
+            <td><span class="badge ${rv.tipo==='consignado'?'badge-er':'badge-c'}">${rv.tipo==='consignado'?'Consig.':'Comprador'}</span></td>
+            <td style="font-size:.9rem">${rpeds.length}</td>
+            <td><b style="color:var(--p)">${brl(vol)}</b></td>
+            <td style="font-size:.82rem;color:var(--muted)">${ultimo?fmtD(ultimo).slice(0,10):'—'}</td>
+            <td>${diasSemPedido>60?`<span class="badge badge-x">Inativo ${diasSemPedido}d</span>`:diasSemPedido>30?`<span class="badge badge-n">${diasSemPedido}d sem pedido</span>`:`<span class="badge badge-e">Ativo</span>`}</td>
+          </tr>`).join('')}</tbody>
+        </table>`}
+      </div>
+      <div class="note" style="margin-top:14px;font-size:.85rem">
+        <b>Inativo</b> = sem pedido há mais de 60 dias. Considere entrar em contato para reativar.
+      </div>
+    </div>`;
+  }
+
+  // Avisos view
+  if(abaAtual==='avisos'){
+    return `<div>
+      ${msgBox()}
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+        <h3 style="margin:0">Avisos para revendedores</h3>
+        <div style="display:flex;gap:8px">
+          <button class="btn ghost sm" onclick="A9.revAba='ativos';route()">← Lista</button>
+          <button class="btn sm" onclick="A9.revs=null;A9.busy=false;admCarregarRevs()">↻ Atualizar</button>
+        </div>
+      </div>
+      <div class="box" style="margin-bottom:16px">
+        <h4 style="margin:0 0 12px">Novo aviso</h4>
+        <div class="fr">
+          <div style="grid-column:span 4"><label>Título</label><input id="av-titulo" placeholder="Ex: Novos produtos disponíveis"></div>
+          <div style="grid-column:span 2"><label>Tipo</label><select id="av-tipo" style="width:100%"><option value="info">ℹ️ Informativo</option><option value="atencao">⚠️ Atenção</option><option value="urgente">🚨 Urgente</option></select></div>
+          <div style="grid-column:span 6"><label>Mensagem</label><textarea id="av-msg" rows="3" placeholder="Escreva o aviso que os revendedores verão no portal..."></textarea></div>
+        </div>
+        <button class="btn acc" style="margin-top:10px" onclick="admEnviarAviso()">Publicar aviso</button>
+        <p style="color:var(--muted);font-size:.82rem;margin:8px 0 0">O aviso ficará visível para todos os revendedores ativos no portal.</p>
+      </div>
+      <h4 style="margin:0 0 10px">Avisos publicados (${avisos.length})</h4>
+      ${!avisos.length?`<div class="note">Nenhum aviso publicado ainda.</div>`:`
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${avisos.map(av=>{
+          const tipoBg={info:'#e0f2fe',atencao:'#fff4d6',urgente:'#fdecea'};
+          const tipoColor={info:'#0c4a6e',atencao:'#6b4c00',urgente:'#8a1c14'};
+          return `<div style="background:${tipoBg[av.tipo]||'#e0f2fe'};color:${tipoColor[av.tipo]||'#0c4a6e'};border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+            <div style="flex:1">
+              <div style="font-weight:700;margin-bottom:4px">${esc(av.titulo)}</div>
+              <div style="font-size:.88rem;opacity:.85">${esc(av.mensagem)}</div>
+              <div style="font-size:.78rem;margin-top:6px;opacity:.65">${fmtD(av.criado_em)} · ${av.ativo?'<b>Visível</b>':'Oculto'}</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button class="btn ghost sm" onclick="admToggleAviso('${av.id}',${!av.ativo})">${av.ativo?'Ocultar':'Mostrar'}</button>
+              <button class="btn danger sm" onclick="admExcluirAviso('${av.id}')">✕</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`}
+    </div>`;
+  }
+
+  const listaVis=abaAtual==='pendentes'?pendentes:abaAtual==='ativos'?ativos:bloqueados;
+  return `<div>
+    ${msgBox()}
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+      <h3 style="margin:0">Gestão de revendedores</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn ghost sm" onclick="A9.revAba='ranking';route()">📊 Ranking</button>
+        <button class="btn ghost sm" onclick="A9.revAba='avisos';route()">📢 Avisos${avisos.filter(a=>a.ativo).length?` <b style="color:var(--p)">(${avisos.filter(a=>a.ativo).length})</b>`:''}</button>
+        <button class="btn sm" onclick="A9.revs=null;A9.busy=false;admCarregarRevs()">↻ Atualizar</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+      <div class="box" style="cursor:pointer;border:2px solid ${abaAtual==='pendentes'?'var(--acc)':'var(--line)'}" onclick="A9.revAba='pendentes';route()">
+        <div style="font-size:.8rem;color:var(--muted)">Aguardando aprovação</div>
+        <div style="font-size:1.8rem;font-weight:700;color:${pendentes.length?'#d97706':'var(--ink)'}">${pendentes.length}</div>
+      </div>
+      <div class="box" style="cursor:pointer;border:2px solid ${abaAtual==='ativos'?'var(--p)':'var(--line)'}" onclick="A9.revAba='ativos';route()">
+        <div style="font-size:.8rem;color:var(--muted)">Revendedores ativos</div>
+        <div style="font-size:1.8rem;font-weight:700;color:var(--p)">${ativos.length}</div>
+      </div>
+      <div class="box" style="cursor:pointer;border:2px solid ${abaAtual==='bloqueados'?'#dc2626':'var(--line)'}" onclick="A9.revAba='bloqueados';route()">
+        <div style="font-size:.8rem;color:var(--muted)">Bloqueados</div>
+        <div style="font-size:1.8rem;font-weight:700;color:${bloqueados.length?'#dc2626':'var(--ink)'}">${bloqueados.length}</div>
+      </div>
+    </div>
+
+    ${abaAtual==='pendentes'&&pendentes.length?`<div class="note warn" style="margin-bottom:16px">⚠️ ${pendentes.length} cadastro${pendentes.length>1?'s aguardando':' aguardando'} sua aprovação.</div>`:''}
+
+    <div class="box">
+      ${!listaVis.length?`<p style="color:var(--muted);text-align:center;padding:20px 0">${abaAtual==='pendentes'?'Nenhum cadastro pendente.':abaAtual==='ativos'?'Nenhum revendedor ativo ainda.':'Nenhum revendedor bloqueado.'}</p>`:`
+      <table>
+        <thead><tr><th>Nome</th><th>Contato</th><th>Tipo</th><th>Pedidos</th><th>Desconto</th><th>Status</th><th></th></tr></thead>
+        <tbody>${listaVis.map(rv=>{
+          const rpeds=pedidos.filter(p=>p.revendedor_id===rv.id);
+          const saldo=rv.tipo==='consignado'?calcSaldoAdm(movimentos.filter(m=>m.revendedor_id===rv.id)):null;
+          return `<tr>
+            <td><b>${esc(rv.nome)}</b>${rv.tipo==='consignado'?'<br><small style="color:var(--p)">Consignado</small>':'<br><small style="color:#166534">Comprador</small>'}</td>
+            <td style="font-size:.82rem">${esc(rv.email)}<br>${esc(rv.telefone||'—')}</td>
+            <td><span class="badge ${rv.tipo==='consignado'?'badge-er':'badge-c'}">${rv.tipo==='consignado'?'Consignado':'Comprador'}</span></td>
+            <td style="font-size:.88rem">${rpeds.length} pedidos${saldo!=null?`<br><b style="color:var(--p);font-size:.82rem">Saldo: ${brl(saldo)}</b>`:''}</td>
+            <td>${rv.desconto_pct||0}%</td>
+            <td><span class="badge ${rv.status==='ativo'?'badge-e':rv.status==='pendente'?'badge-n':'badge-x'}">${{ativo:'Ativo',pendente:'Pendente',bloqueado:'Bloqueado'}[rv.status]||rv.status}</span></td>
+            <td style="white-space:nowrap">
+              <button class="btn ghost sm" onclick="A9.revSel='${rv.id}';route()">Ver</button>
+              ${rv.status==='pendente'?`<button class="btn acc sm" style="margin-left:4px" onclick="admRevAprovar('${rv.id}')">Aprovar</button>`:''}
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`}
+    </div>
+
+    <div class="note" style="margin-top:16px">
+      <b>Portal do revendedor:</b> <code style="background:rgba(0,0,0,.06);border-radius:4px;padding:2px 6px">revenda.html</code> — onde os revendedores fazem login, consultam o catálogo e fazem pedidos. Os pedidos chegam aqui com o flag de revendedor.
+    </div>
+  </div>`;
+}
+
+function calcSaldoAdm(movs){
+  const saidas=(movs||[]).filter(m=>m.tipo==='saida').reduce((s,m)=>s+(m.valor_total||0),0);
+  const repasses=(movs||[]).filter(m=>['repasse','devolucao'].includes(m.tipo)).reduce((s,m)=>s+(m.valor_total||0),0);
+  return Math.max(0,saidas-repasses);
+}
+async function admRevAprovar(id){
+  const {error}=await SB.from('revendedores').update({status:'ativo',aprovado_em:new Date().toISOString()}).eq('id',id);
+  if(error){A9.msg='Erro ao aprovar.';A9.erro=true}else{A9.msg='Revendedor aprovado e ativado.';A9.erro=false;A9.revs=null}
+  route();
+}
+async function admRevBloquear(id){
+  if(!confirm('Bloquear este revendedor?'))return;
+  const {error}=await SB.from('revendedores').update({status:'bloqueado'}).eq('id',id);
+  if(error){A9.msg='Erro ao bloquear.';A9.erro=true}else{A9.msg='Revendedor bloqueado.';A9.erro=false;A9.revs=null}
+  route();
+}
+async function admRevAtivar(id){
+  const {error}=await SB.from('revendedores').update({status:'ativo'}).eq('id',id);
+  if(error){A9.msg='Erro ao ativar.';A9.erro=true}else{A9.msg='Revendedor reativado.';A9.erro=false;A9.revs=null}
+  route();
+}
+async function admRevSalvar(id){
+  const nome=document.getElementById('rv-nome')&&document.getElementById('rv-nome').value.trim();
+  const tel=document.getElementById('rv-tel')&&document.getElementById('rv-tel').value.trim();
+  const tipo=document.getElementById('rv-tipo')&&document.getElementById('rv-tipo').value;
+  const desc=parseInt(document.getElementById('rv-desc')&&document.getElementById('rv-desc').value)||0;
+  const obs=document.getElementById('rv-obs')&&document.getElementById('rv-obs').value.trim();
+  const {error}=await SB.from('revendedores').update({nome,telefone:tel,tipo,desconto_pct:desc,obs}).eq('id',id);
+  if(error){A9.msg='Erro ao salvar.';A9.erro=true}else{A9.msg='Dados salvos.';A9.erro=false;A9.revEdit=null;A9.revs=null}
+  route();
+}
+async function admRevAtualizaStatus(pedidoId,status){
+  await SB.from('pedidos_revendedor').update({status}).eq('id',pedidoId);
+  A9.revs=null;route();
+}
+async function admRevAddMov(revendedorId,tipo){
+  const val=prompt('Valor do repasse (ex: 150.00):');
+  if(!val)return;
+  const v=parseFloat(val.replace(',','.'));
+  if(isNaN(v)||v<=0){alert('Valor inválido.');return}
+  await SB.from('consignado_movimentos').insert([{revendedor_id:revendedorId,tipo,valor_total:v,valor_unitario:v,quantidade:1,produto_nome:'Repasse manual',criado_em:new Date().toISOString()}]);
+  A9.revs=null;route();
+}
+async function admEnviarAviso(){
+  const titulo=(document.getElementById('av-titulo')||{}).value||'';
+  const msg=(document.getElementById('av-msg')||{}).value||'';
+  const tipo=(document.getElementById('av-tipo')||{}).value||'info';
+  if(!titulo.trim()||!msg.trim()){A9.msg='Preencha título e mensagem.';A9.erro=true;route();return}
+  const btn=document.querySelector('[onclick="admEnviarAviso()"]');
+  if(btn){btn.disabled=true;btn.textContent='Publicando...'}
+  const {error}=await SB.from('avisos_revendedores').insert([{titulo:titulo.trim(),mensagem:msg.trim(),tipo,ativo:true}]);
+  if(error){A9.msg='Erro ao publicar aviso.';A9.erro=true}else{A9.msg='Aviso publicado com sucesso!';A9.erro=false;A9.revs=null}
+  route();
+}
+async function admToggleAviso(id,novoAtivo){
+  const {error}=await SB.from('avisos_revendedores').update({ativo:novoAtivo}).eq('id',id);
+  if(error){A9.msg='Erro ao atualizar aviso.';A9.erro=true}else{A9.revs=null}
+  route();
+}
+async function admExcluirAviso(id){
+  if(!confirm('Excluir este aviso permanentemente?'))return;
+  const {error}=await SB.from('avisos_revendedores').delete().eq('id',id);
+  if(error){A9.msg='Erro ao excluir aviso.';A9.erro=true}else{A9.msg='Aviso excluído.';A9.erro=false;A9.revs=null}
+  route();
+}
+
 
 /* ======================= ROTAS, SINCRONIZAÇÃO E INÍCIO ======================= */
 function route(fromHash){
@@ -3670,11 +4003,11 @@ function pageOp(){
     if(me)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div class="note err">Esta conta não tem acesso à área administrativa.</div><p><button class="btn" onclick="admSair()">Sair</button></p></div></div>`;
     return '<div class="adlogin"><div class="adcard"><div class="adico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><h1>Acesso da equipe</h1><p class="adsub">Entre com o seu e-mail e senha para acessar o painel da loja.</p><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username" placeholder="voce@empresa.com"><label for="ap">Senha</label><div class="adsenha"><input id="ap" type="password" required autocomplete="current-password" placeholder="Sua senha"><button type="button" class="adver" onclick="admVerSenha(this)">Mostrar</button></div><button class="adbtn">Entrar</button></form><p class="adnota">Acesso restrito. Se você é cliente, <a href="./">volte para a loja</a>.</p></div></div>';
   }
-  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['pendentes','Pagamentos pendentes'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['clientes','Clientes'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
-  const EXTRA_T=['cartao','atrasados','clientes','campanhas','produtos','etiquetas','mensagens','config'];
+  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['pendentes','Pagamentos pendentes'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['clientes','Clientes'],['revendedores','Revendedores'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
+  const EXTRA_T=['cartao','atrasados','clientes','revendedores','campanhas','produtos','etiquetas','mensagens','config'];
   if(!tabs.some(t=>t[0]===A.tab))A.tab=tabs[0][0];
   msgGarante();
-  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,manual:tabManual,pagamentos:tabPagamentos,pendentes:tabPendentes,cartao:tabCartao,campanhas:tabCampanhas,logistica:tabLogistica,entregadores:tabEntregadores,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,mensagens:tabMensagens,config:tabConfig,clientes:tabClientes})[A.tab]();
+  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,manual:tabManual,pagamentos:tabPagamentos,pendentes:tabPendentes,cartao:tabCartao,campanhas:tabCampanhas,logistica:tabLogistica,entregadores:tabEntregadores,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,mensagens:tabMensagens,config:tabConfig,clientes:tabClientes,revendedores:tabRevendedores})[A.tab]();
   return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="font-size:.85rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]}) · <a style="cursor:pointer" onclick="admSair()">Sair</a></div></div>
   ${abasHtml(tabs,EXTRA_T)}${body}</div>`;
 }
@@ -4089,7 +4422,7 @@ async function admCarregarCartaoCfg(){const r=await SB.from('configuracao').sele
 function admPago(v){
   if(!v){admRpc('desfazer_recebimento',{p_pedido:A9.po.id},'Registro de pagamento desfeito.');return}
   const o=A9.po,c=A9.cartaoCfg||CXDEF;const f=(o.pagamento||{}).preferencia||'pix';
-  A9.pagF={forma:f,parc:1,bruto:temSP(o)?'':pedTotal(o)};
+  A9.pagF={forma:f,parc:1,bruto:temSP(o)?'':+(pedTotal(o)+(freteDoPedido(o)||0)).toFixed(2)};
   route();
 }
 function pagDef(f){const c=A9.cartaoCfg||CXDEF;const m={credito:[c.taxaCredito,c.prazoCredito],debito:[c.taxaDebito,c.prazoDebito],pix:[c.taxaPix,c.prazoPix],outro:[0,0]}[f]||[0,0];return {taxa:m[0],prev:addDias(hojeS(),m[1])}}
@@ -4104,7 +4437,7 @@ function pagFormHtml(o){
   <div class="c2"><label for="pgB">Valor recebido (R$)</label><input id="pgB" inputmode="decimal" value="${esc(F.bruto)}"></div>
   <div class="c2"><label for="pgT">Taxa do provedor (%)</label><input id="pgT" inputmode="decimal" value="${d.taxa}"></div>
   <div class="c2"><label for="pgD">Previsão de repasse</label><input id="pgD" type="date" value="${d.prev}"></div></div>
-  ${temSP(o)?'<p style="font-size:.8rem;color:var(--muted);margin:6px 0">O pedido tem itens sem preço: informe o valor combinado com o cliente.</p>':''}
+  <p style="font-size:.8rem;color:var(--muted);margin:6px 0">${temSP(o)?'O pedido tem itens sem preço: informe o valor acordado com o cliente (produtos + frete).':'Valor pré-preenchido com produtos + frete. Ajuste se o valor acordado for diferente.'}</p>
   <p style="display:flex;gap:8px;margin:10px 0 0"><button class="btn acc sm" onclick="admPagSalvar()">Registrar</button><button class="btn ghost sm" onclick="A9.pagF=null;route()">Cancelar</button></p></div>`;
 }
 function admPagSalvar(){
@@ -4180,7 +4513,7 @@ function tabCartao(){
   const sel=rows.filter(o=>A9.cxSel[o.id]&&pagoP(o)&&!o.pagamento.repassado);
   const c=L.cfg;
   return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
-   ${card(brl(soma(aReceber,pedTotal)),'A receber do cliente',aReceber.length+' pedido'+(aReceber.length===1?'':'s')+' sem pagamento registrado')}
+   ${card(brl(soma(aReceber,o=>pedTotal(o)+(freteDoPedido(o)||0))),'A receber do cliente',aReceber.length+' pedido'+(aReceber.length===1?'':'s')+' sem pagamento registrado')}
    ${card(brl(soma(pagos,o=>o.pagamento.bruto)),'Recebido no período',pagos.length+' pagamento'+(pagos.length===1?'':'s'))}
    ${card(brl(soma(pagos,o=>o.pagamento.taxaValor)),'Taxas do provedor','no período')}
    ${card(brl(soma(aRepassar,o=>o.pagamento.liquido)),'A repassar (líquido)',aRepassar.length+' pagamento'+(aRepassar.length===1?'':'s')+' ainda não retirados')}
@@ -5601,9 +5934,81 @@ async function admCarregarClientes(){
       const pg=(o.pagamento||{}).preferencia||(o.pagamento||{}).metodo;if(pg)c.pag[pg]=(c.pag[pg]||0)+1;
       if(!c.ult||o.criado_em>c.ult)c.ult=o.criado_em;
     });
+    // dedup por telefone
+    const normF0=f=>String(f||'').replace(/\D/g,'');
+    const foneIndex={};
+    Object.values(M).forEach(c=>{const fn=normF0(c.fone);if(!fn)return;if(!foneIndex[fn]){foneIndex[fn]=c.k;return}
+      const principal=M[foneIndex[fn]];const outro=c;
+      if(!principal.nome&&outro.nome)principal.nome=outro.nome;
+      if(!principal.email&&outro.email)principal.email=outro.email;
+      if(!principal.cidade&&outro.cidade)principal.cidade=outro.cidade;
+      if(!principal.cad&&outro.cad)principal.cad=outro.cad;
+      principal.n+=outro.n;principal.ent+=outro.ent;principal.tot+=outro.tot;
+      Object.entries(outro.pag||{}).forEach(([pg,v])=>{principal.pag[pg]=(principal.pag[pg]||0)+v});
+      if(outro.ult&&(!principal.ult||outro.ult>principal.ult))principal.ult=outro.ult;
+      delete M[outro.k];
+    });
+    // mesclar clientes importados
+    try{
+      const imp=await SB.from('clientes_importados').select('*').limit(5000);
+      const normF=f=>String(f||'').replace(/\D/g,'');
+      (imp.data||[]).forEach(p=>{
+        const fNorm=normF(p.fone||'');
+        const existeK=fNorm&&Object.values(M).find(c=>c.fone&&normF(c.fone)===fNorm);
+        if(existeK){
+          if(!existeK.email&&p.email)existeK.email=p.email;
+          if(!existeK.cidade&&p.cidade)existeK.cidade=p.cidade;
+        } else {
+          const k='imp_'+p.id;
+          M[k]={k,nome:p.nome||'',fone:p.fone||'',email:p.email||'',cidade:p.cidade||'',cad:p.criado_em,n:0,ent:0,tot:0,pag:{},ult:null,importado:true};
+        }
+      });
+    }catch(xi){}
     A9.clientes=Object.values(M);
   }catch(x){A9.clientes=[];A9.cliErro='Não foi possível carregar os clientes agora.'}
   A9.cliBusy=false;route();
+}
+function admImportarClientes(){
+  const inp=document.getElementById('cliXlsxInput');if(inp)inp.click();
+}
+async function admProcessarPlanilha(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!rows.length){toast('Planilha vazia ou formato inválido.');return}
+      const norm=f=>String(f||'').replace(/\D/g,'');
+      let jaSalvos=[];
+      if(SB){const r=await SB.from('clientes_importados').select('fone,nome');jaSalvos=r.data||[];}
+      const normDB=jaSalvos.map(c=>norm(c.fone||''));
+      let toInsert=[],skip=0;
+      rows.forEach(row=>{
+        const keys=Object.keys(row);
+        const get=(...names)=>{for(const n of names){const k=keys.find(k=>k.toLowerCase().includes(n.toLowerCase()));if(k&&row[k])return String(row[k]).trim()}return ''};
+        const nome=get('nome','name','cliente');
+        const foneRaw=get('fone','telefone','phone','whatsapp','cel');
+        const foneNorm=norm(foneRaw);
+        const email=get('email','e-mail');
+        const cidade=get('cidade','city','municipio');
+        if(!nome&&!foneNorm){skip++;return}
+        const existePed=(A9.clientes||[]).find(c=>(foneNorm&&norm(c.fone)===foneNorm)||(nome&&c.nome&&c.nome.toLowerCase()===nome.toLowerCase()));
+        const existeDB=normDB.includes(foneNorm)||(nome&&jaSalvos.some(c=>c.nome&&c.nome.toLowerCase()===nome.toLowerCase()));
+        if(existePed||existeDB){skip++;return}
+        toInsert.push({nome,fone:foneRaw,email,cidade});
+        normDB.push(foneNorm);
+      });
+      if(!toInsert.length){toast(`Nenhum cliente novo. ${skip} já existiam.`);return}
+      if(!SB){toast('Sem conexão com o banco.');return}
+      const r=await SB.from('clientes_importados').insert(toInsert);
+      if(r.error){toast('Erro ao salvar: '+r.error.message);return}
+      toast(`${toInsert.length} cliente${toInsert.length===1?'':'s'} salvo${toInsert.length===1?'':'s'} no banco. ${skip} já existiam.`);
+      A9.clientes=null;route();
+    }catch(x){toast('Erro ao ler planilha: '+x.message);}
+  };
+  reader.readAsArrayBuffer(file);
 }
 function cliPagTop(c){const e=Object.entries(c.pag).sort((a,b)=>b[1]-a[1])[0];return e?((PAGNOME[e[0]]||e[0])+' ('+e[1]+'x)'):'—'}
 function tabClientes(){
@@ -5613,8 +6018,9 @@ function tabClientes(){
   L.sort((a,b)=>b.n-a.n||String(b.ult||'').localeCompare(String(a.ult||'')));
   const fiel=A9.clientes.filter(c=>c.n>=CLI_META).length,m=cupomMarcas();
   return `<div class="box"><h2 style="margin:0 0 4px">Clientes cadastrados</h2><p style="margin:0 0 10px;color:var(--muted)">${A9.clientes.length} cliente${A9.clientes.length===1?'':'s'} · ${fiel} com ${CLI_META} pedidos ou mais. Pedidos cancelados não contam.</p>${A9.cliErro?'<div class="note err">'+esc(A9.cliErro)+'</div>':''}
-  <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" onkeydown="if(event.key==='Enter'){A9.cliQ=this.value;route()}" onchange="A9.cliQ=this.value;route()"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button></div>
-  <div class="tbl"><table><thead><tr><th>Cliente</th><th>Contato</th><th>Cidade</th><th>Pedidos</th><th>Entregues</th><th>Total comprado</th><th>Pagamento mais usado</th><th>Último pedido</th><th>Cadastro</th><th></th></tr></thead><tbody>${L.map(c=>`<tr><td><b>${esc(c.nome||'Sem nome')}</b></td><td>${esc(c.fone||'')}${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${esc(cliPagTop(c))}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td>${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div></div>`;
+  <input type="file" id="cliXlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="admProcessarPlanilha(this.files[0]);this.value=''">
+  <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" onkeydown="if(event.key==='Enter'){A9.cliQ=this.value;route()}" onchange="A9.cliQ=this.value;route()"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button><button class="btn ghost sm" onclick="admImportarClientes()" title="Importar clientes de planilha Excel ou CSV">Importar planilha</button></div>
+  <div class="tbl"><table><thead><tr><th>Cliente</th><th>Contato</th><th>Cidade</th><th>Pedidos</th><th>Entregues</th><th>Total comprado</th><th>Último pedido</th><th>Cadastro</th><th></th></tr></thead><tbody>${L.map(c=>`<tr><td><b>${esc(c.nome||'Sem nome')}</b>${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" target="_blank" rel="noopener" style="color:inherit">${esc(c.fone)}</a>`:''} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td>${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="9">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div></div>`;
 }
 var CUPOM_TXT='Olá, {nome}, tudo bem? 😊\nPassando para agradecer de coração: você já fez {pedidos} pedidos com a gente e isso é muito especial para nós!\nComo agradecimento pela sua fidelidade, preparamos um cupom exclusivo para você: *{cupom}*.\nÉ só avisar no seu próximo pedido. Obrigado pela confiança! 💜';
 function cupomAbrir(k){
