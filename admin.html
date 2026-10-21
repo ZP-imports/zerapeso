@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-21-1640 -->
+<!-- v2026-10-21-1650 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -4066,7 +4066,7 @@ async function admAtivaEntregador(id,ativo){
   A9.lg=null;route();
 }
 /* logística */
-var PODE_ROTA=o=>o.status==='aguardando-programacao'&&!o.rota_id;
+var PODE_ROTA=o=>(['aguardando-programacao','confirmado'].includes(o.status))&&!o.rota_id;
 function admSel(id,on){if(on)A9.sel[id]=true;else delete A9.sel[id];route()}
 function admCriaRota(){
   const ids=Object.keys(A9.sel).map(Number);
@@ -4098,7 +4098,7 @@ function admTirarRota(pid){
   (async()=>{
     const r1=await SB.from('pedidos').update({rota_id:null,entregador_id:null}).eq('id',pid);
     if(r1.error){A9.msg=msgRpc(r1.error);A9.erro=true;route();return}
-    admLgRpc('alterar_status_pedido',{p_pedido:pid,p_status:'aguardando-programacao',p_motivo:null},'Pedido removido da rota e voltou para pedidos pendentes.');
+    admLgRpc('alterar_status_pedido',{p_pedido:pid,p_status:'confirmado',p_motivo:null},'Pedido removido da rota e voltou para pedidos pendentes.');
   })();
 }
 async function admEnviouRota(id){await SB.from('rotas').update({enviada_em:new Date().toISOString()}).eq('id',id)}
