@@ -5105,17 +5105,14 @@ function tabDash(){
   const cidFrete=Object.values(todasCid).sort((a,b)=>a.localeCompare(b));
   return `<div class="box">${msgBox()}<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="margin:0">Visão geral</h2><div><span style="color:var(--muted);font-size:.82rem">Atualiza sozinha a cada 20 segundos. </span><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar agora</button></div></div>
   <div class="kcards" style="margin-top:14px">
-   ${k('#2563eb','Pedidos de hoje',hojeN.length,'feitos hoje',"admIr('pedidos',{fq:'feitos-hoje'})")}
    ${k('#ea580c','Em aberto',ab.length,'não entregues',"admIr('pedidos',{fq:'abertos'})")}
-   ${k('#0891b2','Entrega hoje',entH.length,'data desejada é hoje',"admIr('pedidos',{fq:'entrega-hoje'})")}
-   ${k('#0d9488','Entrega amanhã',entA.length,'data desejada é amanhã',"admIr('pedidos',{fq:'entrega-amanha'})")}
-   ${k('#d92d20','Atrasados',atr.length,'data desejada vencida',"admIr('pedidos',{fq:'atrasados'})")}
+   ${k('#0891b2','Entrega hoje',entH.length,'data desejada é hoje',"admIr('pedidos',{fd:'"+hoje+"'})")}
+   ${k('#0d9488','Entrega amanhã',entA.length,'data desejada é amanhã',"admIr('pedidos',{fd:'"+amanha+"'})")}
    ${ADMIN.papel==='admin'?(()=>{const fp=fielPend(L);return fp.total?`<button class="kc ${fp.novos?'pulsa':''}" style="--c:#7c3aed" onclick="A9.cliF='fiel';admTab('clientes')"><div class="n">${fp.total}</div><div class="t"><b>Clientes fiéis (${CLI_META}+ pedidos)</b></div><div class="t">${fp.novos?fp.novos+' para oferecer cupom':'todos já receberam o convite'}</div></button>`:''})():''}
    ${(()=>{const cp=typeof cobPendentes==='function'?cobPendentes():[];const cpU=cp.filter(x=>x.sit==='vencido'||x.sit==='hoje');return cp.length?`<button class="kc ${cpU.length?'pulsa':''}" style="--c:#7c2d12" onclick="admTab('pendentes')"><div class="n">${cp.length}</div><div class="t"><b>Pagamentos pendentes</b></div><div class="t">${cpU.length?cpU.length+' vencido(s) ou vencem hoje':'próximos vencimentos'} · ${brl(cp.reduce((s,x)=>s+x.p.valor,0))}</div></button>`:''})()}
    ${k('#d97706','Aguardando pagamento',pend.length,brl(pend.reduce((s,o)=>s+tot(o),0))+' a receber',"A9.pf='andamento';admTab('pagamentos')")}
    ${k('#be123c','Carteira',cobrar.length,brl(cobrar.reduce((s,o)=>s+tot(o),0)),"A9.pf='cobrar';admTab('pagamentos')")}
    ${k('#475569','Pedidos concluídos',L.filter(ENC).length,entregues.length+' entregue'+(entregues.length===1?'':'s')+' · '+L.filter(o=>o.status==='cancelado').length+' cancelado(s)',"A9.dashView='concluidos';A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';route()")}
-   ${k('#16a34a','Recebido',brl(pagos.reduce((s,o)=>s+tot(o),0)),pagos.length+' pago'+(pagos.length===1?'':'s')+' · '+entregues.length+' entregue'+(entregues.length===1?'':'s'),"A9.pf='pagos';admTab('pagamentos')")}
   </div>
   <h3 style="margin-bottom:10px">Entregas por dia</h3>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">${(()=>{
