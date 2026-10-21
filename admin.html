@@ -2803,7 +2803,6 @@ async function admLogo(inp){const f=inp.files&&inp.files[0];if(!f)return;if(f.si
 function admLogoRem(){LBL.logo=null;LBL.logoKey='';saveLbl();toast('Logomarca removida.');route()}
 
 /* ======================= REVENDEDORES ======================= */
-A9.revs=null;A9.revSel=null;A9.revAba='pendentes';A9.revEdit=null;A9.revPeds=null;
 
 async function admCarregarRevs(){
   const [rv,pe,mo,av]=await Promise.all([
@@ -3628,7 +3627,7 @@ function pageOrder(id){
 }
 
 /* ---------- painel administrativo (conta do Supabase com papel de equipe) ---------- */
-var A9={prods:null,pedidos:null,ed:null,msg:'',busy:false,fotoArq:null};
+var A9={prods:null,pedidos:null,ed:null,msg:'',busy:false,fotoArq:null,revs:null,revSel:null,revAba:'pendentes',revEdit:null,revPeds:null};
 function syncAdmin(){
   const u=me&&users[me];
   ADMIN=u&&['admin','logistica','separador'].includes(u.papel)?{email:me,nome:u.nome||me,papel:u.papel}:null;
