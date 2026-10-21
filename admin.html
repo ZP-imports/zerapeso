@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-21-1750 -->
+<!-- v2026-10-21-1800 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5140,6 +5140,8 @@ function tabDash(){
   const temPrev=o=>(o.extra||{}).pag_prev;
   const carteiraDash=L.filter(o=>temPrev(o)&&(o.pagamento||{}).status!=='pago');
   const aguardaDash=L.filter(o=>aguardaPag(o)&&temPrev(o)===hoje);
+  const concluidos100=L.filter(o=>o.status==='entregue'&&(o.pagamento||{}).status==='pago');
+  const pendSemData=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!temPrev(o));
   const tot=o=>pedTotal(o)+(freteDoPedido(o)||0);
   const k=(c,t,n,sub,go)=>`<button class="kc" style="--c:${c}" onclick="${go}"><div class="n">${n}</div><div class="t"><b>${t}</b></div><div class="t">${sub}</div></button>`;
   const cid={};ab.forEach(o=>{const c=cidadeDe(o)||'Sem cidade';const key=grpCid(c)||'sem';const x=cid[key]=cid[key]||{nome:key==='sjc'?'São José dos Campos + Jacareí + Caçapava':c,fc:key==='sjc'?'São José dos Campos':c,t:0};x.t++;const tn=(o.entrega||{}).turno;x[tn]=(x[tn]||0)+1});
@@ -5155,9 +5157,9 @@ function tabDash(){
    ${k('#0891b2','Entrega hoje',entH.length,'data desejada é hoje',"admIr('pedidos',{fd:'"+hoje+"'})")}
    ${k('#0d9488','Entrega amanhã',entA.length,'data desejada é amanhã',"admIr('pedidos',{fd:'"+amanha+"'})")}
    ${ADMIN.papel==='admin'?(()=>{const fp=fielPend(L);return fp.total?`<button class="kc ${fp.novos?'pulsa':''}" style="--c:#7c3aed" onclick="A9.cliF='fiel';admTab('clientes')"><div class="n">${fp.total}</div><div class="t"><b>Clientes fiéis (${CLI_META}+ pedidos)</b></div><div class="t">${fp.novos?fp.novos+' para oferecer cupom':'todos já receberam o convite'}</div></button>`:''})():''}
-   ${(()=>{const cp=typeof cobPendentes==='function'?cobPendentes():[];const cpH=cp.filter(x=>x.sit==='vencido'||x.sit==='hoje');return cpH.length?`<button class="kc pulsa" style="--c:#7c2d12" onclick="admTab('pendentes')"><div class="n">${cpH.length}</div><div class="t"><b>Pagamentos pendentes hoje</b></div><div class="t">${brl(cpH.reduce((s,x)=>s+x.p.valor,0))} a receber hoje</div></button>`:''})()}
-   ${(()=>{const cd=carteiraDash;if(!cd.length)return '';const porDia={};cd.forEach(o=>{const d=(o.extra||{}).pag_prev||'';porDia[d]=(porDia[d]||0)+1});const dias=Object.keys(porDia).sort();const sub=dias.slice(0,3).map(d=>dataBr(d)+': '+porDia[d]).join(' · ')+(dias.length>3?' …':'');return `<button class="kc" style="--c:#be123c" onclick="A9.pf='cobrar';admTab('pagamentos')"><div class="n">${cd.length}</div><div class="t"><b>Carteira (programados)</b></div><div class="t">${sub||brl(cd.reduce((s,o)=>s+tot(o),0))}</div></button>`})()}
-   ${k('#475569','Pedidos concluídos',L.filter(ENC).length,entregues.length+' entregue'+(entregues.length===1?'':'s')+' · '+L.filter(o=>o.status==='cancelado').length+' cancelado(s)',"A9.dashView='concluidos';A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';route()")}
+   ${pendSemData.length?`<button class="kc${pendSemData.length?' pulsa':''}" style="--c:#7c2d12" onclick="admTab('pendentes')"><div class="n">${pendSemData.length}</div><div class="t"><b>Pagamentos pendentes</b></div><div class="t">Entregues sem data de pagamento · ${brl(pendSemData.reduce((s,o)=>s+tot(o),0))}</div></button>`:''}
+   ${(()=>{const cd=carteiraDash;if(!cd.length)return '';const porDia={};cd.forEach(o=>{const d=(o.extra||{}).pag_prev||'';porDia[d]=(porDia[d]||0)+1});const dias=Object.keys(porDia).sort();const sub=dias.slice(0,3).map(d=>dataBr(d)+': '+porDia[d]).join(' · ')+(dias.length>3?' …':'');return `<button class="kc" style="--c:#be123c" onclick="A9.pf='cobrar';admTab('pagamentos')"><div class="n">${cd.length}</div><div class="t"><b>Carteira (pré-datados)</b></div><div class="t">${sub||brl(cd.reduce((s,o)=>s+tot(o),0))}</div></button>`})()}
+   ${k('#16a34a','Pedidos concluídos',concluidos100.length,'entregues e pagos',"A9.dashView='concluidos';A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';route()")}
   </div>
   <h3 style="margin-bottom:10px">Entregas por dia</h3>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">${(()=>{
