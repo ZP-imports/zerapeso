@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-21-2345 -->
+<!-- v2026-10-21-2346 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5089,7 +5089,7 @@ function tabPagamentos(){
      const prev=(o.extra||{}).pag_prev;
      if(prev)parcRow=`<div style="font-size:.78rem;color:#2563eb;font-weight:600">📅 ${prevStatusTxt(o)}</div>`;
    }
-   return `<tr data-sc${rowCls} style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${totAdm(o)}${parcRow}</td>${mF?`<td>${fr!=null?brl(fr):'<span style="color:var(--muted)">a combinar</span>'}</td>`:'<td></td>'}<td><b>${sp?'A confirmar':brl(total(o))}</b></td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">✅ Link enviado no WhatsApp</div>':''}</td>
+   return `<tr data-sc${rowCls} style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${totAdm(o)}${parcRow}</td>${mF?`<td>${fr!=null?brl(fr).slice(3):'<span style="color:var(--muted)">a combinar</span>'}</td>`:'<td></td>'}<td><b>${sp?'A confirmar':brl(total(o))}</b></td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">✅ Link enviado no WhatsApp</div>':''}</td>
    <td style="white-space:nowrap">${pg?`<button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})">${A9.pagEnv[o.id]?'Reenviar link':'Enviar link'}</button> <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar pago total</button> <button class="btn ghost sm" onclick="pagDia(${o.id})">Programar</button>`} ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`;};
   const mostraFrete=A9.pagMostraFrete||false;
   const thead=`<thead><tr><th>Pedido</th><th>Cliente</th><th>Produtos</th><th style="white-space:nowrap"><span style="display:flex;align-items:center;gap:6px">${mostraFrete?'Frete':''}<button class="btn ghost sm" title="${mostraFrete?'Ocultar fretes':'Mostrar fretes (R$)'}" onclick="A9.pagMostraFrete=${!mostraFrete};route()" style="padding:2px 7px;font-size:.78rem;opacity:.7">${mostraFrete?'👁 ocultar':'👁 fretes'}</button></span></th><th>Total</th><th>Forma</th><th>Situação</th><th></th></tr></thead>`;
