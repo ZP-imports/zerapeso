@@ -715,6 +715,7 @@ function migrate(){
   if(ch)DB.set('orders',orders.filter(o=>!o.real));
 }
 load();
+OFFSET=0; // admin sempre usa data real, sem desvio
 
 /* ======================= TEMPO E DATAS ======================= */
 const pad=n=>String(n).padStart(2,'0');
