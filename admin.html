@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-21-1810 -->
+<!-- v2026-10-21-1900 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5116,7 +5116,7 @@ function tabDash(){
   if(A9.dashView==='concluidos'){
     if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
     const hoje=hojeS();
-    let lista=A9.pedidos.filter(o=>o.status==='entregue'&&(o.pagamento||{}).status==='pago');
+    let lista=A9.pedidos.filter(o=>o.status==='entregue'&&(o.pagamento||{}).status==='pago').sort((a,b)=>b.id-a.id);
     if(A9.fc){const l=String(A9.fc).split('|').map(cidNorm);lista=lista.filter(o=>l.includes(cidNorm(cidadeDe(o))))}
     if(A9.ft)lista=lista.filter(o=>(o.entrega||{}).turno===A9.ft);
     if(A9.fd)lista=lista.filter(o=>(o.entrega||{}).data===A9.fd);
@@ -6007,28 +6007,27 @@ function tabPendentes(){
   if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
   const hoje=hojeS();
   const all=cobPendentes();
-  const venc=all.filter(x=>x.sit==='vencido').sort((a,b)=>a.venc.localeCompare(b.venc));
-  const hoje_=all.filter(x=>x.sit==='hoje').sort((a,b)=>a.venc.localeCompare(b.venc));
-  const prox=all.filter(x=>x.sit==='futuro').sort((a,b)=>a.venc.localeCompare(b.venc));
-  const semD=all.filter(x=>x.sit==='sem-data');
+  const allPend=all.filter(x=>x.sit!=='futuro'); // futuro = pré-datados → vão para Carteira
+  const venc=allPend.filter(x=>x.sit==='vencido').sort((a,b)=>a.venc.localeCompare(b.venc));
+  const hoje_=allPend.filter(x=>x.sit==='hoje').sort((a,b)=>a.venc.localeCompare(b.venc));
+  const semD=allPend.filter(x=>x.sit==='sem-data');
   const row=(x,cor)=>{const o=x.o,p=x.p,i=x.i;
     return `<tr><td>${esc(codPed(o))}</td><td>${esc((o.entrega||{}).nome||'')}</td><td>${cobInfo(o).parcelas.length>1?p.n+'ª parcela':'única'}</td><td>${brl(p.valor)}</td><td>${p.venc?dataBr(p.venc):'<span style="color:var(--muted)">não definido</span>'}</td>
 <td><span class="stchip" style="--c:${cor}">${x.sit==='vencido'?'Vencida':x.sit==='hoje'?'Vence hoje':x.sit==='futuro'?'A vencer':'Sem data'}</span></td>
 <td style="white-space:nowrap"><button class="btn acc sm" onclick="cobPagarParcela(${o.id},${i})">Recebido</button> <button class="btn ghost sm" onclick="cobModal(${o.id})">Editar</button> <button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`};
   const tbl=(rows,cor)=>rows.length?`<div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Parcela</th><th>Valor</th><th>Vencimento</th><th>Situação</th><th></th></tr></thead><tbody>${rows.map(x=>row(x,cor)).join('')}</tbody></table></div>`:'<p style="color:var(--muted)">Nenhum.</p>';
-  const tot=brl(all.reduce((s,x)=>s+x.p.valor,0));
+  const tot=brl(allPend.reduce((s,x)=>s+x.p.valor,0));
   return `<div class="box">${msgBox()}
 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
 <h2 style="margin:0">Pagamentos pendentes</h2>
-${all.length?`<span style="background:#fef2f2;color:#991b1b;border-radius:8px;padding:4px 12px;font-weight:700;font-size:.9rem">${all.length} pendente${all.length!==1?'s':''} · ${tot}</span>`:''}
+${allPend.length?`<span style="background:#fef2f2;color:#991b1b;border-radius:8px;padding:4px 12px;font-weight:700;font-size:.9rem">${allPend.length} pendente${allPend.length!==1?'s':''} · ${tot}</span>`:''}
 </div>
 ${venc.length?`<div class="note err" style="margin-bottom:10px"><b>⚠️ Vencidos (${venc.length})</b> — cobranças que passaram da data sem receber</div>`:''}
 ${hoje_.length?`<div class="note warn" style="margin-bottom:10px"><b>💰 Vencem hoje (${hoje_.length})</b></div>`:''}
 ${venc.length?`<h3 style="color:#991b1b;margin:8px 0 6px">Vencidos</h3>${tbl(venc,'#d92d20')}`:''}
 ${hoje_.length?`<h3 style="color:#b45309;margin:8px 0 6px">Vencem hoje</h3>${tbl(hoje_,'#d97706')}`:''}
-${prox.length?`<h3 style="margin:8px 0 6px">Próximos vencimentos</h3>${tbl(prox,'#2563eb')}`:''}
 ${semD.length?`<h3 style="color:var(--muted);margin:8px 0 6px">Sem data definida</h3>${tbl(semD,'#667085')}`:''}
-${!all.length?'<p style="color:var(--muted)">Nenhum pagamento pendente com cobrança habilitada. 🎉</p>':''}
+${!allPend.length?'<p style="color:var(--muted)">Nenhum pagamento pendente com cobrança habilitada. 🎉</p>':''}
 </div>`;
 }
 
