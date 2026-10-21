@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-21-1530 -->
+<!-- v2026-10-21-1550 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -1315,6 +1315,7 @@ function drawBarcode(pg,S,cfg,y,hh){
   return y+hh+cfg.fs*0.45+3;
 }
 const DSEM=['dom','seg','ter','qua','qui','sex','sáb'];
+const DSEM_LONG=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 const dataLonga=(d)=>d?DSEM[new Date(d+'T12:00').getDay()]+', '+fmtDay(d):'';
 /* QR Code (modo byte, correção L, versões 1 a 6) */
 function qrMatrix(text){
@@ -1458,11 +1459,12 @@ function etiquetaInterna(S,cfg,logo){
     pg.text(m,ly,'Tel.: '+S.fone,L-0.5,false);ly+=st;
     pg.rect(bx,top,33,13.5,'S',0.35);
     pg.text(bx+16.5,top+3.8,'Pedido Recebido',6.5,false,{align:'center'});pg.text(bx+16.5,top+8.3,dt,fs+1.5,true,{align:'center'});pg.text(bx+16.5,top+11.8,hr,6.5,false,{align:'center'});
-    pg.rect(bx,top+15,33,15,'S',0.35);
-    pg.text(bx+16.5,top+18.8,'Data Entrega · '+(S.data?DSEM[new Date(S.data+'T12:00').getDay()]:''),6.5,false,{align:'center'});
-    pg.text(bx+16.5,top+23.6,fmtDay(S.data),fs+1.5,true,{align:'center'});
-    pg.text(bx+16.5,top+28,turnoNome(S.turno)+(S.janela?' · '+S.janela:''),6.8,true,{align:'center'});
-    y=Math.max(ly,top+30)+1;
+    pg.rect(bx,top+15,33,18,'S',0.35);
+    pg.text(bx+16.5,top+18.8,'Data de Entrega',6,false,{align:'center'});
+    pg.text(bx+16.5,top+23.2,(S.data?DSEM_LONG[new Date(S.data+'T12:00').getDay()]:''),fs+2.5,true,{align:'center'});
+    pg.text(bx+16.5,top+27,fmtDay(S.data).slice(0,5),fs+1,true,{align:'center'});
+    pg.text(bx+16.5,top+30,turnoNome(S.turno)+(S.janela?' · '+S.janela:''),6.8,true,{align:'center'});
+    y=Math.max(ly,top+33)+1;
     const notas=[];if(S.obsEntregador||S.obs)notas.push('Obs. do pedido: '+(S.obsEntregador||S.obs));if(S.obsSep||S.obsInt)notas.push('Obs. internas: '+[S.obsSep,S.obsInt].filter(Boolean).join(' | '));if(cfg.obsPadrao)notas.push(cfg.obsPadrao);
     if(notas.length)y=pg.para(m,y+2.4,notas.join('\n'),fs-1.5,false,mw,2,(fs-1.5)*0.45)+0.5;
     etqLV(pg,m,y+3.2,'Forma de pagamento: ',S.pag.metodo,fs,mw);y+=6;
@@ -1472,11 +1474,13 @@ function etiquetaInterna(S,cfg,logo){
     pg.text(m+1,y,'OK',6,true,{gray:0.4});pg.text(m+9,y,'QTD',6,true,{gray:0.4});pg.text(m+19,y,'CONTEÚDO',6,true,{gray:0.4});return y+2};
   let {pg,y}=novo(false);y=cab(pg,y);
   const reservado=20,limite=H-m-reservado;
-  const alt=(it,sz)=>{const n=wrapTxt(it.nome,sz,false,mw-21).length+(it.opt?1:0);return Math.max(sz*0.45+1.9,n*sz*0.44+2.2)};
-  let rowFs=Math.max(6.5,fs-1);
+  const alt=(it,sz)=>{const optS=it.opt?(it.opt.split(/ por | com /i)[0].trim()):'';const desc=it.nome+(optS?' - '+optS:'');const n=wrapTxt(desc,sz,false,mw-21).length;return Math.max(sz*0.45+1.9,n*sz*0.44+2.2)};
+  let rowFs=Math.max(8,fs);
   while(rowFs>5&&y+S.itens.reduce((s,it)=>s+alt(it,rowFs),0)>limite)rowFs-=0.25;
   S.itens.forEach(it=>{
-    const lines=wrapTxt(it.nome,rowFs,false,mw-21);if(it.opt)lines.push('Apresentação: '+it.opt);const hh=alt(it,rowFs);
+    const optSimples=it.opt?(it.opt.split(/ por | com /i)[0].trim()):'';
+    const desc=it.nome+(optSimples?' - '+optSimples:'');
+    const lines=wrapTxt(desc,rowFs,false,mw-21);const hh=alt(it,rowFs);
     if(y+hh>limite){const n=novo(true);pg=n.pg;y=cab(pg,n.y)}
     const bx=Math.min(3.8,hh-1.6);pg.rect(m+1,y+0.9,bx,bx,'S',0.35);
     pg.text(m+9,y+rowFs*0.42+1.6,String(it.qtd)+'×',rowFs+1,true);
