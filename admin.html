@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-21-1900 -->
+<!-- v2026-10-21-2000 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -542,7 +542,7 @@ a[href*="netlify.com"],[class*="netlify" i],[id*="netlify" i]{display:none!impor
 <header>
   <div class="hd">
     <button class="burger" id="burger" aria-label="Abrir menu" aria-expanded="false"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-    <div class="logo" onclick="nav('/')"><span class="mark"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="18" rx="1.5"/><rect x="3" y="9" width="18" height="6" rx="1.5"/></svg></span><span id="brand"></span></div>
+    <div class="logo" onclick="window.__ADMIN_APP?admTab('dash'):nav('/')"><span class="mark"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="18" rx="1.5"/><rect x="3" y="9" width="18" height="6" rx="1.5"/></svg></span><span id="brand"></span></div>
     <form class="search" id="sf" role="search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="Buscar medicamentos, agulhas, álcool..." aria-label="Buscar"></form>
     <div class="tools">
       <button class="tool" id="tAcc"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span class="lb" id="accLb">Entre ou cadastre-se</span></button>
@@ -4010,7 +4010,7 @@ function pageOp(){
     if(me)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div class="note err">Esta conta não tem acesso à área administrativa.</div><p><button class="btn" onclick="admSair()">Sair</button></p></div></div>`;
     return '<div class="adlogin"><div class="adcard"><div class="adico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><h1>Acesso da equipe</h1><p class="adsub">Entre com o seu e-mail e senha para acessar o painel da loja.</p><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username" placeholder="voce@empresa.com"><label for="ap">Senha</label><div class="adsenha"><input id="ap" type="password" required autocomplete="current-password" placeholder="Sua senha"><button type="button" class="adver" onclick="admVerSenha(this)">Mostrar</button></div><button class="adbtn">Entrar</button></form><p class="adnota">Acesso restrito. Se você é cliente, <a href="./">volte para a loja</a>.</p></div></div>';
   }
-  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['pendentes','Pagamentos pendentes'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['clientes','Clientes'],['revendedores','Revendedores'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
+  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['clientes','Clientes'],['revendedores','Revendedores'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
   const EXTRA_T=['cartao','atrasados','clientes','revendedores','campanhas','produtos','etiquetas','mensagens','config'];
   if(!tabs.some(t=>t[0]===A.tab))A.tab=tabs[0][0];
   msgGarante();
@@ -4570,7 +4570,6 @@ function colBtn(){
   const cols=[['itens','Itens'],['total','Total'],['entrega','Entrega'],['pagamento','Pagamento']];
   const open=A9.colDropOpen;
   return `<div style="position:relative;display:inline-block">
-    <button class="btn ghost sm" onclick="A9.colDropOpen=!A9.colDropOpen;route()">⚙ Colunas</button>
     ${open?`<div style="position:absolute;right:0;top:32px;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 16px #0002;padding:8px;z-index:50;min-width:170px">
       ${cols.map(([k,l])=>`<label style="display:flex;align-items:center;gap:8px;padding:5px 4px;cursor:pointer;white-space:nowrap">
         <input type="checkbox" ${!A9.colHide[k]?'checked':''} onchange="colToggle('${k}')" style="width:16px;height:16px"> ${l}
@@ -4969,7 +4968,6 @@ function selos(o){
   if(emAtraso(o))h+='<span class="selo red" title="A data de entrega desejada já passou">Atrasado</span>';
   if(o.extra&&o.extra.manual)h+='<span class="selo orange" title="Pedido registrado pela equipe">Manual</span>';
   if(feitoHoje(o)){const tc=(o.entrega||{}).turno;const tcor=tc==='manha'?'#f59e0b':tc==='tarde'?'#dc2626':tc==='noite'?'#7c3aed':'#2563eb';const tn=tc?TURNOS[tc]:'';h+=`<span class="selo" style="background:${tcor}22;color:${tcor};border:1px solid ${tcor}66" title="Pedido feito hoje">Hoje${tn?' · '+tn:''}</span>`}
-  if(o.extra&&o.extra.etq_em)h+='<span class="selo gray" title="Etiquetas já impressas">Etiqueta impressa</span>';
   return h;
 }
 function pagChipP(o){const p=o.pagamento||{};return p.status==='pago'?'<span class="stchip" style="--c:#16a34a">Pago</span>':'<span class="stchip" style="--c:#d97706">Pendente</span>'}
@@ -5001,7 +4999,7 @@ function filtroExtra(o,f){
 }
 function admIr(tab,f){f=f||{};A9.fc=f.fc||'';A9.ft=f.ft||'';A9.fq=f.fq||'';A9.fs=f.fs||'';A9.fe=f.fe||'';A9.fd=f.fd||'';A9.po=null;A9.msg='';A.tab=tab;route();window.scrollTo(0,0)}
 function cidadesPed(){const m={};(A9.pedidos||[]).forEach(o=>{const c=cidadeDe(o);if(c&&!m[cidNorm(c)])m[cidNorm(c)]=c});return Object.values(m).sort((a,b)=>a.localeCompare(b))}
-var QUANDO=[['','Todos'],['abertos','Em aberto (não entregues)'],['feitos-hoje','Feitos hoje'],['entrega-hoje','Entrega hoje'],['entrega-amanha','Entrega amanhã'],['atrasados','Atrasados']];
+var QUANDO=[['','Todos'],['abertos','Em aberto (não entregues)'],['feitos-hoje','Feitos hoje'],['entrega-hoje','Entrega hoje'],['entrega-amanha','Entrega amanhã']];
 function barraFiltros(){
   const sel=(v,arr,fn)=>arr.map(x=>`<option value="${esc(x[0])}" ${v===x[0]?'selected':''}>${esc(x[1])}</option>`).join('');
   const temF=A9.fc||A9.ft||A9.fq||A9.fe||A9.fd;
@@ -5025,7 +5023,7 @@ function listaPed(filtro,intro){
   const CH=A9.colHide||{};
   return `<div class="box"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><p style="margin:0;color:var(--muted)">${intro||'Pedidos mais recentes.'} <b>${lista.length}</b> na lista.</p><div style="display:flex;gap:8px;align-items:center"><select onchange="A9.fs=this.value;route()" style="width:auto"><option value="">Todos os status</option>${STSEQ.map(s=>`<option value="${s}" ${A9.fs===s?'selected':''}>${STLB[s]}</option>`).join('')}</select><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar</button>${colBtn()}</div></div>${msgBox()}
   ${barraFiltros()}
-  <div class="selbar"><button class="btn ghost sm" onclick="selTodosPed(true)">Selecionar todos</button><button class="btn ghost sm" onclick="selTodosPed(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><select id="etqTipo" style="width:auto" aria-label="Tipo de etiqueta"><option value="ambas">As duas etiquetas</option><option value="externa">Só externa</option><option value="interna">Só interna</option></select><button class="btn acc sm" onclick="pedConfirmarImprimir()" ${nSel?'':'disabled'} title="Baixa as etiquetas dos pedidos marcados e confirma os pedidos novos, avisando os clientes">Confirmar e imprimir etiquetas${nSel?' ('+nSel+')':''}</button>
+  <div class="selbar"><button class="btn ghost sm" onclick="selTodosPed(true)">Selecionar todos</button><button class="btn ghost sm" onclick="selTodosPed(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><select id="etqTipo" style="width:auto" aria-label="Tipo de etiqueta"><option value="ambas">As duas etiquetas</option><option value="externa">Só externa</option><option value="interna">Só interna</option></select><button class="btn ghost sm" onclick="pedSoConfirmar()" ${nSel?'':'disabled'} title="Confirma os pedidos selecionados e avisa os clientes">Confirmar selecionados${nSel?' ('+nSel+')':''}</button><button class="btn acc sm" onclick="pedSoImprimir()" ${nSel?'':'disabled'} title="Baixa as etiquetas dos pedidos selecionados em PDF">Imprimir etiquetas${nSel?' ('+nSel+')':''}</button>
   <select id="bkE" style="width:auto" onchange="A9.bkE=this.value" aria-label="Entregador">${A9.lg?'<option value="">Entregador...</option>'+A9.lg.ent.filter(x=>x.ativo).map(x=>`<option value="${x.id}" ${A9.bkE===x.id?'selected':''}>${esc(x.nome)}</option>`).join(''):'<option value="">Carregando entregadores...</option>'}</select><input id="bkD" type="date" value="${esc(A9.bkD||hojeS())}" onchange="A9.bkD=this.value" style="width:auto" aria-label="Data da rota"><button class="btn wa sm" onclick="pedEnviarEntregador()" ${nSel?'':'disabled'}>Enviar para entregador${nSel?' ('+nSel+')':''}</button><input id="avNome" placeholder="Rota avulsa: nome de quem entrega" style="width:auto;min-width:190px" aria-label="Nome de quem vai entregar"><button class="btn ghost sm" onclick="rotaAvulsa()" ${nSel?'':'disabled'} title="Gera uma etiqueta simples com a rota, para um motoboy que não está cadastrado">Imprimir rota avulsa${nSel?' ('+nSel+')':''}</button>${admin?`<button class="btn ghost sm danger" onclick="pedExcluir()" ${nSel?'':'disabled'}>Excluir selecionados${nSel?' ('+nSel+')':''}</button>`:''}</div>
   <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${lista.length&&nSel===lista.length?'checked':''} onchange="selTodosPed(this.checked)"></th><th>Pedido</th><th>Cliente</th>${CH.itens?'':'<th>Itens</th>'}${CH.total?'':'<th>Total</th>'}${CH.entrega?'':'<th>Entrega desejada</th>'}${CH.pagamento?'':'<th>Pagamento</th>'}<th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const pg=o.pagamento||{};return `<tr class="${emAtraso(o)?'rowatr':''}" data-sc style="--sc:${((o.entrega||{}).turno==='manha'?'#f59e0b':(o.entrega||{}).turno==='tarde'?'#dc2626':(o.entrega||{}).turno==='noite'?'#7c3aed':'#999')}"><td><input type="checkbox" class="selck" aria-label="Selecionar ${codPed(o)}" ${A9.selP[o.id]?'checked':''} onchange="selPed(${o.id},this.checked)"></td><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' · '+((en.dest||{}).cidade||''))}</div></td>${CH.itens?'':`<td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td>`}${CH.total?'':`<td>${totAdm(o)}</td>`}${CH.entrega?'':`<td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td>`}${CH.pagamento?'':`<td>${esc(PAGNOME[pg.preferencia]||'')}<div>${pagChipP(o)}</div></td>`}<td>${stChip(o.status)}</td><td style="white-space:nowrap"><button class="btn ghost sm etqbtn" title="Gerar etiquetas e abrir o PDF" aria-label="Gerar etiquetas do pedido ${codPed(o)}" onclick="etqRapida(${o.id})">${ICO_DOC}</button> ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||`<tr><td colspan="${6-Object.values(CH).filter(Boolean).length+3}">Nenhum pedido.</td></tr>`}</tbody></table></div></div>`;
 }
@@ -5057,25 +5055,25 @@ function tabPagamentos(){
   if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
   if(!A9.linkCarregado){if(!A9.busyL){A9.busyL=true;admCarregarLink().finally(()=>{A9.busyL=false;A9.linkCarregado=true;route()})}return '<div class="box">Carregando...</div>'}
   const L=A9.pedidos,total=o=>pedTotal(o)+(freteDoPedido(o)||0);
-  const cobrar=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!A9.pagEnv[o.id]),andam=L.filter(o=>aguardaPag(o)&&!cobrar.includes(o)),pagos=L.filter(o=>(o.pagamento||{}).status==='pago');
-  const f=A9.pf||'cobrar';
-  const listaBase=(f==='cobrar'?cobrar:f==='andamento'?andam:pagos).filter(o=>filtroExtra(o)).sort(f==='pagos'?(()=>0):pagOrdem);
-  // separar pré-datados (têm data de pagamento futura ou de hoje)
   const temPrev=o=>(o.extra||{}).pag_prev;
-  const predatados=f==='cobrar'?listaBase.filter(temPrev).sort((a,b)=>((a.extra||{}).pag_prev||'').localeCompare((b.extra||{}).pag_prev||'')):[];
-  const semData=f==='cobrar'?listaBase.filter(o=>!temPrev(o)):listaBase;
+  // 4 seções: pendentes → andamento → carteira → pagos
+  const pendentes=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!A9.pagEnv[o.id]&&!temPrev(o));
+  const carteira=L.filter(o=>aguardaPag(o)&&temPrev(o));
+  const andamento=L.filter(o=>aguardaPag(o)&&(A9.pagEnv[o.id]||false)&&!temPrev(o));
+  const pagos=L.filter(o=>(o.pagamento||{}).status==='pago');
+  const f=A9.pf||'cobrar';
+  const listaBase=(f==='cobrar'?pendentes:f==='andamento'?andamento:f==='carteira'?carteira:pagos).filter(o=>filtroExtra(o)).sort(f==='pagos'?(()=>0):pagOrdem);
   const soma=a=>brl(a.reduce((s,o)=>s+total(o),0));
   const aba=(k,t,a,c)=>`<button class="kc ${f===k?'sel':''}" style="--c:${c}" onclick="A9.pf='${k}';route()"><div class="n">${a.length}</div><div class="t">${t}</div><div class="t">${soma(a)}</div></button>`;
-  const rowPag=o=>{const en=o.entrega||{};const fr=freteDoPedido(o);const sp=temSP(o);const pago=(o.pagamento||{}).status==='pago';
-   return `<tr data-sc style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${totAdm(o)}</td><td>${fr!=null?brl(fr):'<span style="color:var(--muted)">a combinar</span>'}</td><td><b>${sp?'A confirmar':brl(total(o))}</b></td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">Link aberto no WhatsApp</div>':''}${temPrev(o)?`<div style="font-size:.78rem;color:#2563eb;font-weight:600">📅 Paga em: ${dataBr((o.extra||{}).pag_prev)}</div>`:''}</td>
-   <td style="white-space:nowrap">${pago?`<button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})">${A9.pagEnv[o.id]?'Reenviar link':'Enviar link de pagamento'}</button> <button class="btn acc sm" onclick="cobModal(${o.id})">Configurar cobrança</button> <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar como pago</button> <button class="btn ghost sm" onclick="pagDia(${o.id})">Dia do pagamento</button>`} ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`;};
+  const rowPag=o=>{const en=o.entrega||{};const fr=freteDoPedido(o);const sp=temSP(o);const pg=(o.pagamento||{}).status==='pago';const prev=(o.extra||{}).pag_prev;
+   return `<tr data-sc style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${totAdm(o)}</td><td>${fr!=null?brl(fr):'<span style="color:var(--muted)">a combinar</span>'}</td><td><b>${sp?'A confirmar':brl(total(o))}</b></td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">✅ Link enviado no WhatsApp</div>':''}${prev?`<div style="font-size:.78rem;color:#2563eb;font-weight:600">📅 Programado para: ${dataBr(prev)}</div>`:''}</td>
+   <td style="white-space:nowrap">${pg?`<button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})">${A9.pagEnv[o.id]?'Reenviar link':'Enviar link'}</button> <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar como pago</button> <button class="btn ghost sm" onclick="pagDia(${o.id})">Programar data</button>`} ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`;};
   const thead='<thead><tr><th>Pedido</th><th>Cliente</th><th>Produtos</th><th>Frete</th><th>Total</th><th>Forma</th><th>Situação</th><th></th></tr></thead>';
   return `<div class="box">${msgBox()}${A9.link?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre em Mais opções > Configurações.</div>'}
-  <p style="margin:0 0 10px;color:var(--muted)">Pedido entregue cai na <b>Carteira</b>. Ao enviar o link, passa para <b>Cobrança em andamento</b>. Quando pagar, toque em <b>Marcar como pago</b> e vai para <b>Concluídos</b>.</p>
-  <div class="kcards" style="margin-bottom:12px">${aba('cobrar','Carteira (entregues, link não enviado)',cobrar,'#d92d20')}${aba('andamento','Cobrança em andamento (link enviado)',andam,'#d97706')}${aba('pagos','Concluídos (pagos)',pagos,'#16a34a')}</div>
+  <p style="margin:0 0 10px;color:var(--muted)">Pedido entregue → <b>Pendentes</b>. Envia link → <b>Cobrança em andamento</b>. Programa data → <b>Carteira</b>. Pago → <b>Concluídos</b>.</p>
+  <div class="kcards" style="margin-bottom:12px">${aba('cobrar','Pagamentos pendentes',pendentes,'#d92d20')}${aba('andamento','Cobrança em andamento',andamento,'#d97706')}${aba('carteira','Carteira (pré-datados)',carteira,'#2563eb')}${aba('pagos','Concluídos (pagos)',pagos,'#16a34a')}</div>
   ${barraFiltros()}
-  ${predatados.length?`<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:12px"><div style="font-weight:700;color:#1d4ed8;margin-bottom:6px">📅 Pré-datados (${predatados.length}) — pagamento agendado</div><div class="tbl"><table>${thead}<tbody>${predatados.map(rowPag).join('')}</tbody></table></div></div>`:''}
-  ${semData.length||!predatados.length?`<div class="tbl"><table>${thead}<tbody>${semData.map(rowPag).join('')||'<tr><td colspan="8">Nenhum pedido nesta lista.</td></tr>'}</tbody></table></div>`:''}
+  <div class="tbl"><table>${thead}<tbody>${listaBase.map(rowPag).join('')||'<tr><td colspan="8">Nenhum pedido nesta lista.</td></tr>'}</tbody></table></div>
   </div>`;
 }
 function pagEnviar(id){
@@ -5157,7 +5155,7 @@ function tabDash(){
    ${k('#0891b2','Entrega hoje',entH.length,'data desejada é hoje',"admIr('pedidos',{fd:'"+hoje+"'})")}
    ${k('#0d9488','Entrega amanhã',entA.length,'data desejada é amanhã',"admIr('pedidos',{fd:'"+amanha+"'})")}
    ${ADMIN.papel==='admin'?(()=>{const fp=fielPend(L);return fp.total?`<button class="kc ${fp.novos?'pulsa':''}" style="--c:#7c3aed" onclick="A9.cliF='fiel';admTab('clientes')"><div class="n">${fp.total}</div><div class="t"><b>Clientes fiéis (${CLI_META}+ pedidos)</b></div><div class="t">${fp.novos?fp.novos+' para oferecer cupom':'todos já receberam o convite'}</div></button>`:''})():''}
-   ${pendSemData.length?`<button class="kc${pendSemData.length?' pulsa':''}" style="--c:#7c2d12" onclick="admTab('pendentes')"><div class="n">${pendSemData.length}</div><div class="t"><b>Pagamentos pendentes</b></div><div class="t">Entregues sem data de pagamento · ${brl(pendSemData.reduce((s,o)=>s+tot(o),0))}</div></button>`:''}
+   ${pendSemData.length?`<button class="kc${pendSemData.length?' pulsa':''}" style="--c:#7c2d12" onclick="A9.pf='cobrar';admTab('pagamentos')"><div class="n">${pendSemData.length}</div><div class="t"><b>Pagamentos pendentes</b></div><div class="t">Entregues sem link enviado · ${brl(pendSemData.reduce((s,o)=>s+tot(o),0))}</div></button>`:''}
    ${(()=>{const cd=carteiraDash;if(!cd.length)return '';const porDia={};cd.forEach(o=>{const d=(o.extra||{}).pag_prev||'';porDia[d]=(porDia[d]||0)+1});const dias=Object.keys(porDia).sort();const sub=dias.slice(0,3).map(d=>dataBr(d)+': '+porDia[d]).join(' · ')+(dias.length>3?' …':'');return `<button class="kc" style="--c:#be123c" onclick="A9.pf='cobrar';admTab('pagamentos')"><div class="n">${cd.length}</div><div class="t"><b>Carteira (pré-datados)</b></div><div class="t">${sub||brl(cd.reduce((s,o)=>s+tot(o),0))}</div></button>`})()}
    ${k('#16a34a','Pedidos concluídos',concluidos100.length,'entregues e pagos',"A9.dashView='concluidos';A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';route()")}
   </div>
@@ -5286,6 +5284,35 @@ async function pedConfirmarImprimir(){
   A9.busy=false;A9.pedidos=null;
   A9.msg='Etiquetas baixadas'+(conf?' e '+conf+' pedido'+(conf>1?'s':'')+' confirmado'+(conf>1?'s':'')+' (clientes avisados)':'')+'.'+(falhas?' '+falhas+' não puderam ser confirmados.':'');
   A9.erro=false;route();
+}
+async function pedSoConfirmar(){
+  if(A9.busy)return;
+  const ids=(A9.lastLista||[]).filter(id=>A9.selP[id]);
+  if(!ids.length){toast('Marque pelo menos um pedido.');return}
+  A9.busy=true;A9.erro=false;A9.msg='';
+  const rows=(A9.pedidos||[]).filter(o=>ids.includes(o.id));
+  let conf=0,falhas=0;
+  for(const o of rows){
+    if(o.status==='realizado'){const r=await SB.rpc('alterar_status_pedido',{p_pedido:o.id,p_status:'confirmado',p_motivo:null});if(r.error)falhas++;else conf++}
+  }
+  A9.busy=false;A9.pedidos=null;
+  A9.msg=conf?conf+' pedido'+(conf>1?'s':'')+' confirmado'+(conf>1?'s':'')+' (clientes avisados).':'Nenhum pedido com status para confirmar.';
+  A9.erro=!!falhas;if(falhas)A9.msg+=' '+falhas+' falhou.';
+  route();
+}
+async function pedSoImprimir(){
+  if(A9.busy)return;
+  const ids=(A9.lastLista||[]).filter(id=>A9.selP[id]);
+  if(!ids.length){toast('Marque pelo menos um pedido.');return}
+  A9.erro=false;A9.msg='';
+  await etqLote();
+  if(A9.erro)return;
+  A9.busy=true;
+  const rows=(A9.pedidos||[]).filter(o=>ids.includes(o.id));
+  const agora=new Date().toISOString();
+  for(const o of rows){await SB.from('pedidos').update({extra:Object.assign({},o.extra||{},{etq_em:agora})}).eq('id',o.id)}
+  A9.busy=false;A9.pedidos=null;
+  A9.msg='Etiquetas baixadas.';A9.erro=false;route();
 }
 async function pedEnviarEntregador(){
   if(A9.busy)return;
@@ -6041,7 +6068,7 @@ function cobPopVenc(){
   d.style.cssText='position:fixed;bottom:24px;right:24px;background:#fff;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,.18);padding:16px 20px;max-width:340px;z-index:9990;border-left:4px solid #d92d20';
   d.innerHTML=`<b style="color:#d92d20">💰 Hoje há pagamento${urg.length>1?'s':''} pendente${urg.length>1?'s':''}</b>
 <p style="margin:4px 0 10px;font-size:.88rem;color:#667085">${urg.length} cobrança${urg.length>1?'s':''} vencida${urg.length>1?'s':''} ou com vencimento hoje.</p>
-<div style="display:flex;gap:8px"><button class="btn acc sm" onclick="admTab('pendentes');document.getElementById('cobpopvenc').remove()">Ver cobranças</button><button class="btn ghost sm" onclick="document.getElementById('cobpopvenc').remove()">Dispensar</button></div>`;
+<div style="display:flex;gap:8px"><button class="btn acc sm" onclick="A9.pf='cobrar';admTab('pagamentos');document.getElementById('cobpopvenc').remove()">Ver pagamentos</button><button class="btn ghost sm" onclick="document.getElementById('cobpopvenc').remove()">Dispensar</button></div>`;
   document.body.appendChild(d);
 }
 
