@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-21-1400 -->
+<!-- v2026-10-21-1500 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -3765,7 +3765,7 @@ async function admCarregarPedidos(){
 async function admAbrirPedido(id){
   const [r,ev,et]=await Promise.all([SB.from('pedidos').select('*').eq('id',id).single(),SB.from('pedido_eventos').select('*').eq('pedido_id',id).order('t'),SB.from('etiquetas').select('*').eq('pedido_id',id).order('v')]);
   if(r.error){A9.msg='Não foi possível abrir o pedido.';A9.erro=true;route();return}
-  await admCarregarLink();if(!A9.cartaoCfg){try{await admCarregarCartaoCfg()}catch(x){}}A9.pagF=null;A9.addQ={};A9.addBusca='';
+  await admCarregarLink();if(!A9.cartaoCfg){try{await admCarregarCartaoCfg()}catch(x){}}A9.pagF=null;A9.addQ={};A9.addBusca='';A9.editOpen=false;
   if(!A9.prods){try{await admCarregarProdutos()}catch(x){}}
   A9.po=Object.assign({},r.data,{eventos:ev.data||[],etiquetas:et.data||[]});
   if(r.data.entregador_id){const en2=await SB.from('entregadores').select('nome').eq('id',r.data.entregador_id).maybeSingle();A9.po.entregadorNome=en2.data&&en2.data.nome||''}route();window.scrollTo(0,0);
@@ -4461,7 +4461,7 @@ function editHtml(o){
   if(['entregue','cancelado'].includes(o.status))return '';
   const en=o.entrega||{},d=en.dest||{};const itensOk=!['em-rota','tentativa'].includes(o.status);
   const pago=(o.pagamento||{}).status==='pago';
-  return `<details class="editbox"><summary>Editar pedido (itens e endereço)</summary>
+  return `<details class="editbox" ${A9.editOpen?'open':''} ontoggle="A9.editOpen=this.open"><summary>Editar pedido (itens e endereço)</summary>
   <h4>Itens</h4>${itensOk?`<div class="tbl"><table><thead><tr><th>Produto</th><th>Quantidade</th></tr></thead><tbody>${(o.itens||[]).map((i,k)=>`<tr><td>${esc(i.name)}</td><td><input id="eq${k}" type="number" min="0" max="99" value="${i.qty}" style="width:90px"></td></tr>`).join('')}</tbody></table></div>
   <p style="font-size:.82rem;color:var(--muted);margin:4px 0">Quantidade 0 remove o item. O estoque é ajustado e o desconto recalculado.${pago?' <b>Pedido já pago: se o total mudar, acerte a diferença com o cliente.</b>':''}</p>
   <label for="eqM">Motivo (o cliente vê este texto)</label><input id="eqM" maxlength="200" placeholder="Ex.: cliente pediu para trocar a quantidade"><p><button class="btn sm" onclick="admSalvaItens()">Salvar itens</button></p>`:'<div class="note warn">Os itens não podem mais ser alterados depois que o pedido saiu para entrega.</div>'}
