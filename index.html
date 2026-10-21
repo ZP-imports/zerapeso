@@ -926,7 +926,7 @@ function buildFoot(){
   $('#foot').innerHTML=`<div class="fg"><div><h3>Informações</h3>${FOOTVIS.atendimento?`<a ${wa}>Central de Atendimento</a>`:''} ${FOOTVIS.duvidas?`<a onclick="nav('/info/duvidas')">Dúvidas Frequentes</a>`:''} ${FOOTVIS.comoComprar?`<a onclick="nav('/info/como-comprar')">Como comprar</a>`:''} ${CAMPVIS.amigo?`<a onclick="nav('/amigo')">Amigo Emagrece Amigo</a><a onclick="nav('/reg/amigo')">Regulamento: Amigo Emagrece Amigo</a>`:''} ${CAMPVIS.primeira?`<a onclick="nav('/reg/primeira-compra')">Regulamento: Desconto na Primeira Compra</a>`:''}</div>
   <div><h3>Acesso rápido</h3>${FOOTVIS.pedidos?`<a onclick="nav('/conta')">Minha Conta</a><a onclick="nav('/pedidos')">Meus Pedidos e Rastreio</a>`:''} ${FOOTVIS.rastreio?`<a onclick="nav('/acompanhar')">Acompanhar pelo código</a>`:''} ${FOOTVIS.cadastro?`<a onclick="tab='cad';nav('/conta')">Cadastre-se</a>`:''}</div>
   <div><h3>Políticas</h3>${FOOTVIS.entregas?`<a onclick="nav('/info/entregas')">Entregas</a>`:''} ${FOOTVIS.trocas?`<a onclick="nav('/info/trocas')">Troca e Devolução</a>`:''} ${FOOTVIS.pagamento?`<a onclick="nav('/info/pagamento')">Formas de Pagamento</a>`:''} ${FOOTVIS.privacidade?`<a onclick="nav('/info/privacidade')">Política de Privacidade</a>`:''} ${FOOTVIS.termos?`<a onclick="nav('/info/termos')">Termos de uso</a>`:''}</div>
-  <div><h3>Formas de pagamento</h3><span>Débito, Pix e Cartão de Crédito.</span><span style="font-size:.85rem;color:var(--muted)">O pagamento é combinado com a nossa equipe pelo WhatsApp.</span>${payLogos()}</div></div>
+  <div><h3>Formas de pagamento</h3><span>Débito, Pix e Cartão de Crédito.</span>${payLogos()}</div></div>
   <div class="fb"><div class="wrap"><p>${esc(CFG.aviso)}</p></div></div>`;
 }
 $('#burger').onclick=()=>{const n=$('#mainnav');const o=n.classList.toggle('open');$('#burger').setAttribute('aria-expanded',o)};
@@ -1698,7 +1698,7 @@ function pageRev(){
    ${verr&&ent.data?`<div class="note err">${verr}</div>`:''}
    <p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">A data é uma preferência: a loja confirma a programação e você acompanha tudo em Rastrear pedido.</p>
    <label for="obs">Observações sobre o pedido ou a entrega (opcional)</label><textarea id="obs" rows="2" maxlength="500" oninput="ent.obs=this.value" placeholder="Ex.: portão azul, deixar com o porteiro">${esc(ent.obs)}</textarea>`;
-  const pagInfo=`<h3 class="pref-h">Forma de pagamento</h3><div class="turnos3 pagos">${PAGS.map(x=>`<label class="turno3 ${ent.pag===x[0]?'on':''}" data-p="${x[0]}"><input type="radio" name="pag" value="${x[0]}" ${ent.pag===x[0]?'checked':''} onchange="ent.pag=this.value;route()">${x[1]}</label>`).join('')}</div><p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">O pagamento é combinado com a nossa equipe pelo WhatsApp.</p>`;
+  const pagInfo=`<h3 class="pref-h">Forma de pagamento</h3><div class="turnos3 pagos">${PAGS.map(x=>`<label class="turno3 ${ent.pag===x[0]?'on':''}" data-p="${x[0]}"><input type="radio" name="pag" value="${x[0]}" ${ent.pag===x[0]?'checked':''} onchange="ent.pag=this.value;route()">${x[1]}</label>`).join('')}</div>`;
   return `<div class="wrap pg"><h1 class="t">Finalizar compra</h1><div class="two"><div class="box"><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td>${esc(p.n)} (${esc(i.opt)})</td><td>${i.qty}</td><td class="r">${precoTxt(i)}</td></tr>`}).join('')}</tbody></table></div>
   <div class="tot"><span>Subtotal dos produtos</span><span>${cartSP()?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span><span>Entrega</span><span>${freteLinha()}</span>${d?`<span class="dsc">${dLabel(d)} (${d.pct}%)</span><span class="dsc">- ${brl(d.valor)}</span>`:''}<span class="big">Total</span><span class="big">${cartSP()?(sub>0?brl(tot)+' + a confirmar':'A confirmar'):brl(tot)}</span></div>
   ${freteNotaCliente()}${nota}${amigo}
@@ -3591,6 +3591,7 @@ function admDetalhe(){
   <h3>Rastreio</h3>
   <p>${fone?`<a class="btn ghost sm" href="${waUrlPara(fone,msgRastreio(o))}" target="_blank" rel="noopener">Enviar link de rastreio ao cliente</a>`:'<span style="color:var(--muted)">Sem telefone do cliente.</span>'}</p>
   <h3>Pagamento</h3>
+  ${(()=>{const fr=freteDoPedido(o);const base=pedTotal(o);const sp=temSP(o);return `<div style="margin:4px 0 10px;font-size:.9rem;line-height:1.7">Produtos: <b>${sp?(base>0?brl(base)+' + a confirmar':'a confirmar'):brl(base)}</b><br>Frete: <b>${fr!=null?brl(fr):'<span style="color:var(--muted)">a combinar</span>'}</b><br>Total a cobrar: <b>${sp?'a confirmar':fr!=null?brl(base+fr):'a combinar'}</b></div>`})()}
   ${A9.link?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre em Configurações.</div>'}
   <p style="display:flex;gap:8px;flex-wrap:wrap">${linkOk?`<a class="btn wa" href="${waUrlPara(fone,admMsgPagamento(o))}" target="_blank" rel="noopener">Enviar link de pagamento no WhatsApp</a>`:''}${o.status==='cancelado'?'':pg.status==='pago'?'<button class="btn ghost" onclick="admPago(false)">Voltar para pendente</button>':'<button class="btn" onclick="admPago(true)">Marcar como pago</button>'}</p>
   ${pagResumoHtml(o)}${A9.pagF?pagFormHtml(o):''}
@@ -4128,7 +4129,7 @@ async function admCarregarCartaoCfg(){const r=await SB.from('configuracao').sele
 function admPago(v){
   if(!v){admRpc('desfazer_recebimento',{p_pedido:A9.po.id},'Registro de pagamento desfeito.');return}
   const o=A9.po,c=A9.cartaoCfg||CXDEF;const f=(o.pagamento||{}).preferencia||'pix';
-  A9.pagF={forma:f,parc:1,bruto:temSP(o)?'':pedTotal(o)};
+  A9.pagF={forma:f,parc:1,bruto:temSP(o)?'':+(pedTotal(o)+(freteDoPedido(o)||0)).toFixed(2)};
   route();
 }
 function pagDef(f){const c=A9.cartaoCfg||CXDEF;const m={credito:[c.taxaCredito,c.prazoCredito],debito:[c.taxaDebito,c.prazoDebito],pix:[c.taxaPix,c.prazoPix],outro:[0,0]}[f]||[0,0];return {taxa:m[0],prev:addDias(hojeS(),m[1])}}
@@ -4143,7 +4144,7 @@ function pagFormHtml(o){
   <div class="c2"><label for="pgB">Valor recebido (R$)</label><input id="pgB" inputmode="decimal" value="${esc(F.bruto)}"></div>
   <div class="c2"><label for="pgT">Taxa do provedor (%)</label><input id="pgT" inputmode="decimal" value="${d.taxa}"></div>
   <div class="c2"><label for="pgD">Previsão de repasse</label><input id="pgD" type="date" value="${d.prev}"></div></div>
-  ${temSP(o)?'<p style="font-size:.8rem;color:var(--muted);margin:6px 0">O pedido tem itens sem preço: informe o valor combinado com o cliente.</p>':''}
+  <p style="font-size:.8rem;color:var(--muted);margin:6px 0">${temSP(o)?'O pedido tem itens sem preço: informe o valor acordado com o cliente (produtos + frete).':'Valor pré-preenchido com produtos + frete. Ajuste se o valor acordado for diferente.'}</p>
   <p style="display:flex;gap:8px;margin:10px 0 0"><button class="btn acc sm" onclick="admPagSalvar()">Registrar</button><button class="btn ghost sm" onclick="A9.pagF=null;route()">Cancelar</button></p></div>`;
 }
 function admPagSalvar(){
@@ -4219,7 +4220,7 @@ function tabCartao(){
   const sel=rows.filter(o=>A9.cxSel[o.id]&&pagoP(o)&&!o.pagamento.repassado);
   const c=L.cfg;
   return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
-   ${card(brl(soma(aReceber,pedTotal)),'A receber do cliente',aReceber.length+' pedido'+(aReceber.length===1?'':'s')+' sem pagamento registrado')}
+   ${card(brl(soma(aReceber,o=>pedTotal(o)+(freteDoPedido(o)||0))),'A receber do cliente',aReceber.length+' pedido'+(aReceber.length===1?'':'s')+' sem pagamento registrado')}
    ${card(brl(soma(pagos,o=>o.pagamento.bruto)),'Recebido no período',pagos.length+' pagamento'+(pagos.length===1?'':'s'))}
    ${card(brl(soma(pagos,o=>o.pagamento.taxaValor)),'Taxas do provedor','no período')}
    ${card(brl(soma(aRepassar,o=>o.pagamento.liquido)),'A repassar (líquido)',aRepassar.length+' pagamento'+(aRepassar.length===1?'':'s')+' ainda não retirados')}
@@ -5366,6 +5367,21 @@ async function admCarregarClientes(){
       try{c.tot+=pedTotal(o)+(freteDoPedido(o)||0)}catch(x){}
       const pg=(o.pagamento||{}).preferencia||(o.pagamento||{}).metodo;if(pg)c.pag[pg]=(c.pag[pg]||0)+1;
       if(!c.ult||o.criado_em>c.ult)c.ult=o.criado_em;
+    });
+    // dedup por telefone: mesclar entradas com mesmo número (ex: pedido guest + perfil cadastrado)
+    const normF0=f=>String(f||'').replace(/\D/g,'');
+    const foneIndex={};// fone → key principal
+    Object.values(M).forEach(c=>{const fn=normF0(c.fone);if(!fn)return;if(!foneIndex[fn]){foneIndex[fn]=c.k;return}
+      // já existe outro com o mesmo fone: mesclar neste, remover o outro
+      const principal=M[foneIndex[fn]];const outro=c;
+      if(!principal.nome&&outro.nome)principal.nome=outro.nome;
+      if(!principal.email&&outro.email)principal.email=outro.email;
+      if(!principal.cidade&&outro.cidade)principal.cidade=outro.cidade;
+      if(!principal.cad&&outro.cad)principal.cad=outro.cad;
+      principal.n+=outro.n;principal.ent+=outro.ent;principal.tot+=outro.tot;
+      Object.entries(outro.pag||{}).forEach(([pg,v])=>{principal.pag[pg]=(principal.pag[pg]||0)+v});
+      if(outro.ult&&(!principal.ult||outro.ult>principal.ult))principal.ult=outro.ult;
+      delete M[outro.k];
     });
     // mesclar clientes importados do banco
     try{
