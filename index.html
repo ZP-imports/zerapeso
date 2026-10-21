@@ -1530,11 +1530,11 @@ function etiquetaInterna(S,cfg,logo){
     pg.text(m,ly,'Tel.: '+S.fone,L-0.5,false);ly+=st;
     pg.rect(bx,top,33,13.5,'S',0.35);
     pg.text(bx+16.5,top+3.8,'Pedido Recebido',6.5,false,{align:'center'});pg.text(bx+16.5,top+8.3,dt,fs+1.5,true,{align:'center'});pg.text(bx+16.5,top+11.8,hr,6.5,false,{align:'center'});
-    pg.rect(bx,top+15,33,15,'S',0.35);
-    pg.text(bx+16.5,top+18.8,'Data Entrega · '+(S.data?DSEM[new Date(S.data+'T12:00').getDay()]:''),6.5,false,{align:'center'});
-    pg.text(bx+16.5,top+23.6,fmtDay(S.data),fs+1.5,true,{align:'center'});
-    pg.text(bx+16.5,top+28,turnoNome(S.turno)+(S.janela?' · '+S.janela:''),6.8,true,{align:'center'});
-    y=Math.max(ly,top+30)+1;
+    pg.rect(bx,top+15,33,20,'S',0.35);
+    pg.text(bx+16.5,top+19.5,'Data Entrega · '+(S.data?DSEM[new Date(S.data+'T12:00').getDay()]:''),8,false,{align:'center'});
+    pg.text(bx+16.5,top+25.5,fmtDay(S.data),fs+5,true,{align:'center'});
+    pg.text(bx+16.5,top+32.5,turnoNome(S.turno)+(S.janela?' · '+S.janela:''),8.5,true,{align:'center'});
+    y=Math.max(ly,top+35)+1;
     const notas=[];if(S.obsEntregador||S.obs)notas.push('Obs. do pedido: '+(S.obsEntregador||S.obs));if(S.obsSep||S.obsInt)notas.push('Obs. internas: '+[S.obsSep,S.obsInt].filter(Boolean).join(' | '));if(cfg.obsPadrao)notas.push(cfg.obsPadrao);
     if(notas.length)y=pg.para(m,y+2.4,notas.join('\n'),fs-1.5,false,mw,2,(fs-1.5)*0.45)+0.5;
     etqLV(pg,m,y+3.2,'Forma de pagamento: ',S.pag.metodo,fs,mw);y+=6;

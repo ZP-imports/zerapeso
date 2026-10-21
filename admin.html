@@ -3627,7 +3627,7 @@ function pageOrder(id){
 }
 
 /* ---------- painel administrativo (conta do Supabase com papel de equipe) ---------- */
-var A9={prods:null,pedidos:null,ed:null,msg:'',busy:false,fotoArq:null,revs:null,revSel:null,revAba:'pendentes',revEdit:null,revPeds:null};
+var A9={prods:null,pedidos:null,ed:null,msg:'',busy:false,fotoArq:null,revs:null,revSel:null,revAba:'pendentes',revEdit:null,revPeds:null,fd:'',addQ:{},addBusca:'',colHide:{}};
 function syncAdmin(){
   const u=me&&users[me];
   ADMIN=u&&['admin','logistica','separador'].includes(u.papel)?{email:me,nome:u.nome||me,papel:u.papel}:null;
@@ -3763,7 +3763,8 @@ async function admCarregarPedidos(){
 async function admAbrirPedido(id){
   const [r,ev,et]=await Promise.all([SB.from('pedidos').select('*').eq('id',id).single(),SB.from('pedido_eventos').select('*').eq('pedido_id',id).order('t'),SB.from('etiquetas').select('*').eq('pedido_id',id).order('v')]);
   if(r.error){A9.msg='Não foi possível abrir o pedido.';A9.erro=true;route();return}
-  await admCarregarLink();if(!A9.cartaoCfg){try{await admCarregarCartaoCfg()}catch(x){}}A9.pagF=null;
+  await admCarregarLink();if(!A9.cartaoCfg){try{await admCarregarCartaoCfg()}catch(x){}}A9.pagF=null;A9.addQ={};A9.addBusca='';
+  if(!A9.prods){try{await admCarregarProdutos()}catch(x){}}
   A9.po=Object.assign({},r.data,{eventos:ev.data||[],etiquetas:et.data||[]});
   if(r.data.entregador_id){const en2=await SB.from('entregadores').select('nome').eq('id',r.data.entregador_id).maybeSingle();A9.po.entregadorNome=en2.data&&en2.data.nome||''}route();window.scrollTo(0,0);
 }
@@ -4462,6 +4463,12 @@ function editHtml(o){
   <h4>Itens</h4>${itensOk?`<div class="tbl"><table><thead><tr><th>Produto</th><th>Quantidade</th></tr></thead><tbody>${(o.itens||[]).map((i,k)=>`<tr><td>${esc(i.name)}</td><td><input id="eq${k}" type="number" min="0" max="99" value="${i.qty}" style="width:90px"></td></tr>`).join('')}</tbody></table></div>
   <p style="font-size:.82rem;color:var(--muted);margin:4px 0">Quantidade 0 remove o item. O estoque é ajustado e o desconto recalculado.${pago?' <b>Pedido já pago: se o total mudar, acerte a diferença com o cliente.</b>':''}</p>
   <label for="eqM">Motivo (o cliente vê este texto)</label><input id="eqM" maxlength="200" placeholder="Ex.: cliente pediu para trocar a quantidade"><p><button class="btn sm" onclick="admSalvaItens()">Salvar itens</button></p>`:'<div class="note warn">Os itens não podem mais ser alterados depois que o pedido saiu para entrega.</div>'}
+  <h4>Adicionar produto ao pedido</h4>
+  ${itensOk?`<div id="addProdBox">
+  <input id="addBusca" placeholder="Buscar produto..." value="${esc(A9.addBusca||'')}" oninput="A9.addBusca=this.value;admAddRefresh()" style="margin-bottom:8px">
+  <div id="addProdsLista" style="max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:6px">${admAddProdsHtml()}</div>
+  ${Object.values(A9.addQ).some(q=>q>0)?`<div style="margin-top:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px"><b>Selecionados para adicionar:</b><ul style="margin:6px 0 0;padding-left:18px">${admAddSelecionados()}</ul></div>`:''}<div style="margin-top:8px;display:flex;gap:8px;align-items:center"><label for="addMot" style="margin:0;font-weight:600">Motivo</label><input id="addMot" placeholder="Ex.: cliente pediu para adicionar" style="flex:1"><button class="btn sm acc" onclick="admSalvaAddItens()">Adicionar ao pedido</button></div>
+  </div>`:'<div class="note warn">Itens não podem ser adicionados depois que o pedido saiu para entrega.</div>'}
   <h4>Endereço de entrega</h4><div class="fr"><div class="c2"><label for="edCep">CEP</label><input id="edCep" value="${esc(d.cep||'')}"></div><div class="c2"><label for="edUf">UF</label><input id="edUf" maxlength="2" value="${esc(d.uf||'')}"></div><div class="c2"><label for="edCid">Cidade</label><input id="edCid" value="${esc(d.cidade||'')}"></div><div class="c3"><label for="edBai">Bairro</label><input id="edBai" value="${esc(d.bairro||'')}"></div><div class="c4"><label for="edRua">Rua</label><input id="edRua" value="${esc(d.rua||'')}"></div><div class="c2"><label for="edNum">Número</label><input id="edNum" value="${esc(d.num||'')}"></div><div class="c2"><label for="edCom">Complemento</label><input id="edCom" value="${esc(d.comp||'')}"></div><div class="c3"><label for="edRef">Referência</label><input id="edRef" value="${esc(d.ref||'')}"></div></div>
   <label for="edObs">Observação para o entregador</label><input id="edObs" maxlength="300" value="${esc(en.obsEntregador||'')}">
   <label for="edM">Motivo (o cliente vê este texto)</label><input id="edM" maxlength="200" placeholder="Ex.: cliente corrigiu o número da casa"><p><button class="btn sm" onclick="admSalvaEndereco()">Salvar endereço</button></p>
@@ -4478,6 +4485,74 @@ function admSalvaEndereco(){
   const dest={cep:v_('edCep').trim(),uf:v_('edUf').trim(),cidade:v_('edCid').trim(),bairro:v_('edBai').trim(),rua:v_('edRua').trim(),num:v_('edNum').trim(),comp:v_('edCom').trim(),ref:v_('edRef').trim()};
   if(!v_('edM').trim()){A9.msg='Informe o motivo da alteração.';A9.erro=true;route();return}
   admRpc('editar_endereco_pedido',{p_pedido:A9.po.id,p_dest:dest,p_obs_entregador:v_('edObs').trim(),p_motivo:v_('edM').trim()},'Endereço atualizado. O cliente foi avisado e a etiqueta ficou desatualizada.');
+}
+
+/* ======================= ADICIONAR ITENS AO PEDIDO ======================= */
+function admAddProdsHtml(){
+  const b=cidNorm(A9.addBusca||'');
+  const L=(A9.prods||[]).filter(p=>p.ativo!==false&&(p.vars||[]).some(v=>v.ativo!==false)&&(!b||cidNorm(p.nome+' '+(p.sku||'')).includes(b)));
+  if(!L.length)return '<div style="padding:10px;color:var(--muted);text-align:center">Nenhum produto encontrado.</div>';
+  return L.map(p=>{
+    const vs=(p.vars||[]).filter(v=>v.ativo!==false);
+    const rows=vs.map(v=>{
+      const q=A9.addQ[v.id]||0;
+      const pr=v.preco_promo!=null?v.preco_promo:(v.preco!=null?v.preco:null);
+      return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--line)">
+        <div style="flex:1;font-size:.88rem">${esc(v.nome||p.nome)} ${pr!=null?`<span style="color:var(--muted)">· ${brl(+pr)}</span>`:'<span style="color:var(--muted)">sob consulta</span>'}</div>
+        <button onclick="admAddQ(${v.id},-1)" style="width:26px;height:26px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;font-size:1rem">−</button>
+        <span id="addq_${v.id}" style="min-width:24px;text-align:center;font-weight:600">${q}</span>
+        <button onclick="admAddQ(${v.id},1)" style="width:26px;height:26px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;font-size:1rem">+</button>
+      </div>`;
+    }).join('');
+    return `<div style="padding:6px 4px"><div style="font-weight:700;margin-bottom:2px">${esc(p.nome)}</div>${rows}</div>`;
+  }).join('');
+}
+function admAddRefresh(){
+  const e=document.getElementById('addProdsLista');if(e)e.innerHTML=admAddProdsHtml();
+}
+function admAddQ(id,d){
+  A9.addQ[id]=Math.max(0,Math.min(99,(A9.addQ[id]||0)+d));
+  const e=document.getElementById('addq_'+id);if(e)e.textContent=A9.addQ[id];
+  // re-render só o bloco de selecionados
+  const box=document.getElementById('addProdBox');if(box){const old=box.querySelector('.addsel');if(old)old.remove();}
+  admAddSelUpdate();
+}
+function admAddSelUpdate(){
+  const box=document.getElementById('addProdBox');if(!box)return;
+  const itens=admAddSelecionadosArr();
+  let div=box.querySelector('.addsel');
+  if(!div&&itens.length){div=document.createElement('div');div.className='addsel';div.style.cssText='margin-top:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px';box.insertBefore(div,box.querySelector('[id=addMot]').parentElement);}
+  if(div){div.innerHTML=itens.length?`<b>Selecionados para adicionar:</b><ul style="margin:6px 0 0;padding-left:18px">${itens.map(x=>`<li>${esc(x.name)} x ${x.qty} ${x.unit!=null?'('+brl(x.unit*x.qty)+')':''}</li>`).join('')}</ul>`:'';if(!itens.length&&div)div.remove();}
+}
+function admAddSelecionadosArr(){
+  const out=[];(A9.prods||[]).forEach(p=>(p.vars||[]).forEach(v=>{const q=A9.addQ[v.id]||0;if(q>0){const pr=v.preco_promo!=null?+v.preco_promo:(v.preco!=null?+v.preco:null);out.push({id:v.id,name:(v.nome||p.nome),qty:q,unit:pr});}}));return out;
+}
+function admAddSelecionados(){
+  return admAddSelecionadosArr().map(x=>`<li>${esc(x.name)} x ${x.qty}${x.unit!=null?' ('+brl(x.unit*x.qty)+')':''}</li>`).join('');
+}
+async function admSalvaAddItens(){
+  const itens=admAddSelecionadosArr();
+  if(!itens.length){A9.msg='Selecione pelo menos um produto para adicionar.';A9.erro=true;route();return}
+  const mot=v_('addMot').trim();
+  if(!mot){A9.msg='Informe o motivo da adição.';A9.erro=true;route();return}
+  const p_itens=itens.map(x=>({var_id:x.id,qty:x.qty}));
+  admRpc('adicionar_itens_pedido',{p_pedido:A9.po.id,p_itens:p_itens,p_motivo:mot},'Itens adicionados ao pedido.');
+  A9.addQ={};A9.addBusca='';
+}
+
+/* ======================= OCULTAR COLUNAS ======================= */
+function colToggle(k){A9.colHide[k]=!A9.colHide[k];route()}
+function colBtn(){
+  const cols=[['itens','Itens'],['total','Total'],['entrega','Entrega'],['pagamento','Pagamento']];
+  const open=A9.colDropOpen;
+  return `<div style="position:relative;display:inline-block">
+    <button class="btn ghost sm" onclick="A9.colDropOpen=!A9.colDropOpen;route()">⚙ Colunas</button>
+    ${open?`<div style="position:absolute;right:0;top:32px;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 16px #0002;padding:8px;z-index:50;min-width:170px">
+      ${cols.map(([k,l])=>`<label style="display:flex;align-items:center;gap:8px;padding:5px 4px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" ${!A9.colHide[k]?'checked':''} onchange="colToggle('${k}')" style="width:16px;height:16px"> ${l}
+      </label>`).join('')}
+    </div>`:''}
+  </div>`;
 }
 
 /* ======================= CARTÃO E RETIRADAS ======================= */
@@ -4886,28 +4961,31 @@ function cidMark(id){const ck=[...document.querySelectorAll('input[data-cf="'+id
 function cidTodas(id){document.querySelectorAll('input[data-cf="'+id+'"]').forEach(i=>i.checked=false);cidMark(id)}
 
 function filtroExtra(o,f){
-  f=f||{fc:A9.fc,ft:A9.ft,fq:A9.fq,fe:A9.fe};const e=o.entrega||{};
+  f=f||{fc:A9.fc,ft:A9.ft,fq:A9.fq,fe:A9.fe,fd:A9.fd};const e=o.entrega||{};
   if(f.fe==='fin'&&!(o.extra&&o.extra.etq_em))return false;
   if(f.fe==='pend'&&(o.extra&&o.extra.etq_em))return false;
   if(f.fc){const l=String(f.fc).split('|').map(cidNorm);if(!l.includes(cidNorm(cidadeDe(o))))return false}
+  if(f.fd&&e.data!==f.fd)return false;
   if(f.ft&&e.turno!==f.ft)return false;
   if(f.fq==='abertos'&&ENC(o))return false;
   if(f.fq==='feitos-hoje'&&!feitoHoje(o))return false;
   if(f.fq==='entrega-hoje'&&e.data!==hojeS())return false;
+  if(f.fq==='entrega-amanha'&&e.data!==addDias(hojeS(),1))return false;
   if(f.fq==='atrasados'&&!emAtraso(o))return false;
   if(f.fq==='recorrentes'&&!(+o.seq>=2))return false;
   return true;
 }
-function admIr(tab,f){f=f||{};A9.fc=f.fc||'';A9.ft=f.ft||'';A9.fq=f.fq||'';A9.fs=f.fs||'';A9.fe=f.fe||'';A9.po=null;A9.msg='';A.tab=tab;route();window.scrollTo(0,0)}
+function admIr(tab,f){f=f||{};A9.fc=f.fc||'';A9.ft=f.ft||'';A9.fq=f.fq||'';A9.fs=f.fs||'';A9.fe=f.fe||'';A9.fd=f.fd||'';A9.po=null;A9.msg='';A.tab=tab;route();window.scrollTo(0,0)}
 function cidadesPed(){const m={};(A9.pedidos||[]).forEach(o=>{const c=cidadeDe(o);if(c&&!m[cidNorm(c)])m[cidNorm(c)]=c});return Object.values(m).sort((a,b)=>a.localeCompare(b))}
-var QUANDO=[['','Todos'],['abertos','Em aberto (não entregues)'],['feitos-hoje','Feitos hoje'],['entrega-hoje','Entrega hoje'],['atrasados','Atrasados']];
+var QUANDO=[['','Todos'],['abertos','Em aberto (não entregues)'],['feitos-hoje','Feitos hoje'],['entrega-hoje','Entrega hoje'],['entrega-amanha','Entrega amanhã'],['atrasados','Atrasados']];
 function barraFiltros(){
   const sel=(v,arr,fn)=>arr.map(x=>`<option value="${esc(x[0])}" ${v===x[0]?'selected':''}>${esc(x[1])}</option>`).join('');
-  const temF=A9.fc||A9.ft||A9.fq||A9.fe;
+  const temF=A9.fc||A9.ft||A9.fq||A9.fe||A9.fd;
   return `<div class="fbar"><div><label>Cidades</label>${cidFlag('fC',A9.fc,"A9.fc=v_('fC');route()")}</div>
   <div><label for="fT">Horário</label><select id="fT" onchange="A9.ft=this.value;route()"><option value="">Todos</option>${Object.keys(TURNOS).map(t=>`<option value="${t}" ${A9.ft===t?'selected':''}>${esc(TURNOS[t])}</option>`).join('')}</select></div>
   <div><label for="fQ">Quando</label><select id="fQ" onchange="A9.fq=this.value;route()">${sel(A9.fq,QUANDO)}</select></div>
   <div><label for="fE">Etiquetas</label><select id="fE" onchange="A9.fe=this.value;route()"><option value="">Todas</option><option value="pend" ${A9.fe==='pend'?'selected':''}>Pendentes</option><option value="fin" ${A9.fe==='fin'?'selected':''}>Finalizadas (impressas)</option></select></div>
+  ${A9.fd?`<span style="background:#e8f0fe;color:#2563eb;border:1px solid #2563eb;border-radius:8px;padding:3px 10px;font-size:.82rem;font-weight:600">📅 ${A9.fd.slice(8)}/${A9.fd.slice(5,7)}</span>`:''}
   ${temF?'<button class="btn ghost sm" onclick="admIr(A.tab,{})">Limpar filtros</button>':''}</div>`;
 }
 
@@ -4920,11 +4998,12 @@ function listaPed(filtro,intro){
   const lista=A9.pedidos.filter(o=>(!filtro||filtro(o))&&(!A9.fs||o.status===A9.fs)&&filtroExtra(o));
   A9.lastLista=lista.map(o=>o.id);const nSel=lista.filter(o=>A9.selP[o.id]).length;
   const admin=ADMIN.papel==='admin';
-  return `<div class="box"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><p style="margin:0;color:var(--muted)">${intro||'Pedidos mais recentes.'} <b>${lista.length}</b> na lista.</p><div style="display:flex;gap:8px"><select onchange="A9.fs=this.value;route()" style="width:auto"><option value="">Todos os status</option>${STSEQ.map(s=>`<option value="${s}" ${A9.fs===s?'selected':''}>${STLB[s]}</option>`).join('')}</select><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar</button></div></div>${msgBox()}
+  const CH=A9.colHide||{};
+  return `<div class="box"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><p style="margin:0;color:var(--muted)">${intro||'Pedidos mais recentes.'} <b>${lista.length}</b> na lista.</p><div style="display:flex;gap:8px;align-items:center"><select onchange="A9.fs=this.value;route()" style="width:auto"><option value="">Todos os status</option>${STSEQ.map(s=>`<option value="${s}" ${A9.fs===s?'selected':''}>${STLB[s]}</option>`).join('')}</select><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar</button>${colBtn()}</div></div>${msgBox()}
   ${barraFiltros()}
   <div class="selbar"><button class="btn ghost sm" onclick="selTodosPed(true)">Selecionar todos</button><button class="btn ghost sm" onclick="selTodosPed(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><select id="etqTipo" style="width:auto" aria-label="Tipo de etiqueta"><option value="ambas">As duas etiquetas</option><option value="externa">Só externa</option><option value="interna">Só interna</option></select><button class="btn acc sm" onclick="pedConfirmarImprimir()" ${nSel?'':'disabled'} title="Baixa as etiquetas dos pedidos marcados e confirma os pedidos novos, avisando os clientes">Confirmar e imprimir etiquetas${nSel?' ('+nSel+')':''}</button>
   <select id="bkE" style="width:auto" onchange="A9.bkE=this.value" aria-label="Entregador">${A9.lg?'<option value="">Entregador...</option>'+A9.lg.ent.filter(x=>x.ativo).map(x=>`<option value="${x.id}" ${A9.bkE===x.id?'selected':''}>${esc(x.nome)}</option>`).join(''):'<option value="">Carregando entregadores...</option>'}</select><input id="bkD" type="date" value="${esc(A9.bkD||hojeS())}" onchange="A9.bkD=this.value" style="width:auto" aria-label="Data da rota"><button class="btn wa sm" onclick="pedEnviarEntregador()" ${nSel?'':'disabled'}>Enviar para entregador${nSel?' ('+nSel+')':''}</button><input id="avNome" placeholder="Rota avulsa: nome de quem entrega" style="width:auto;min-width:190px" aria-label="Nome de quem vai entregar"><button class="btn ghost sm" onclick="rotaAvulsa()" ${nSel?'':'disabled'} title="Gera uma etiqueta simples com a rota, para um motoboy que não está cadastrado">Imprimir rota avulsa${nSel?' ('+nSel+')':''}</button>${admin?`<button class="btn ghost sm danger" onclick="pedExcluir()" ${nSel?'':'disabled'}>Excluir selecionados${nSel?' ('+nSel+')':''}</button>`:''}</div>
-  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${lista.length&&nSel===lista.length?'checked':''} onchange="selTodosPed(this.checked)"></th><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Entrega desejada</th><th>Pagamento</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const pg=o.pagamento||{};return `<tr class="${emAtraso(o)?'rowatr':''}" data-sc style="--sc:${STCOR[o.status]||'#999'}"><td><input type="checkbox" class="selck" aria-label="Selecionar ${codPed(o)}" ${A9.selP[o.id]?'checked':''} onchange="selPed(${o.id},this.checked)"></td><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' · '+((en.dest||{}).cidade||''))}</div></td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td><td>${totAdm(o)}</td><td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td><td>${esc(PAGNOME[pg.preferencia]||'')}<div>${pagChipP(o)}</div></td><td>${stChip(o.status)}</td><td style="white-space:nowrap"><button class="btn ghost sm etqbtn" title="Gerar etiquetas e abrir o PDF" aria-label="Gerar etiquetas do pedido ${codPed(o)}" onclick="etqRapida(${o.id})">${ICO_DOC}</button> ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||'<tr><td colspan="9">Nenhum pedido.</td></tr>'}</tbody></table></div></div>`;
+  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${lista.length&&nSel===lista.length?'checked':''} onchange="selTodosPed(this.checked)"></th><th>Pedido</th><th>Cliente</th>${CH.itens?'':'<th>Itens</th>'}${CH.total?'':'<th>Total</th>'}${CH.entrega?'':'<th>Entrega desejada</th>'}${CH.pagamento?'':'<th>Pagamento</th>'}<th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const pg=o.pagamento||{};return `<tr class="${emAtraso(o)?'rowatr':''}" data-sc style="--sc:${STCOR[o.status]||'#999'}"><td><input type="checkbox" class="selck" aria-label="Selecionar ${codPed(o)}" ${A9.selP[o.id]?'checked':''} onchange="selPed(${o.id},this.checked)"></td><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' · '+((en.dest||{}).cidade||''))}</div></td>${CH.itens?'':`<td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td>`}${CH.total?'':`<td>${totAdm(o)}</td>`}${CH.entrega?'':`<td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td>`}${CH.pagamento?'':`<td>${esc(PAGNOME[pg.preferencia]||'')}<div>${pagChipP(o)}</div></td>`}<td>${stChip(o.status)}</td><td style="white-space:nowrap"><button class="btn ghost sm etqbtn" title="Gerar etiquetas e abrir o PDF" aria-label="Gerar etiquetas do pedido ${codPed(o)}" onclick="etqRapida(${o.id})">${ICO_DOC}</button> ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||`<tr><td colspan="${6-Object.values(CH).filter(Boolean).length+3}">Nenhum pedido.</td></tr>`}</tbody></table></div></div>`;
 }
 async function pedExcluir(){
   const ids=(A9.lastLista||[]).filter(id=>A9.selP[id]);if(!ids.length)return;
@@ -4955,16 +5034,25 @@ function tabPagamentos(){
   if(!A9.linkCarregado){if(!A9.busyL){A9.busyL=true;admCarregarLink().finally(()=>{A9.busyL=false;A9.linkCarregado=true;route()})}return '<div class="box">Carregando...</div>'}
   const L=A9.pedidos,total=o=>pedTotal(o)+(freteDoPedido(o)||0);
   const cobrar=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!A9.pagEnv[o.id]),andam=L.filter(o=>aguardaPag(o)&&!cobrar.includes(o)),pagos=L.filter(o=>(o.pagamento||{}).status==='pago');
-  const f=A9.pf||'cobrar';const lista=(f==='cobrar'?cobrar:f==='andamento'?andam:pagos).filter(o=>filtroExtra(o)).sort(f==='pagos'?(()=>0):pagOrdem);
+  const f=A9.pf||'cobrar';
+  const listaBase=(f==='cobrar'?cobrar:f==='andamento'?andam:pagos).filter(o=>filtroExtra(o)).sort(f==='pagos'?(()=>0):pagOrdem);
+  // separar pré-datados (têm data de pagamento futura ou de hoje)
+  const temPrev=o=>(o.extra||{}).pag_prev;
+  const predatados=f==='cobrar'?listaBase.filter(temPrev).sort((a,b)=>((a.extra||{}).pag_prev||'').localeCompare((b.extra||{}).pag_prev||'')):[];
+  const semData=f==='cobrar'?listaBase.filter(o=>!temPrev(o)):listaBase;
   const soma=a=>brl(a.reduce((s,o)=>s+total(o),0));
   const aba=(k,t,a,c)=>`<button class="kc ${f===k?'sel':''}" style="--c:${c}" onclick="A9.pf='${k}';route()"><div class="n">${a.length}</div><div class="t">${t}</div><div class="t">${soma(a)}</div></button>`;
+  const rowPag=o=>{const en=o.entrega||{};const fr=freteDoPedido(o);const sp=temSP(o);const pago=(o.pagamento||{}).status==='pago';
+   return `<tr data-sc style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${totAdm(o)}</td><td>${fr!=null?brl(fr):'<span style="color:var(--muted)">a combinar</span>'}</td><td><b>${sp?'A confirmar':brl(total(o))}</b></td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">Link aberto no WhatsApp</div>':''}${temPrev(o)?`<div style="font-size:.78rem;color:#2563eb;font-weight:600">📅 Paga em: ${dataBr((o.extra||{}).pag_prev)}</div>`:''}</td>
+   <td style="white-space:nowrap">${pago?`<button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})">${A9.pagEnv[o.id]?'Reenviar link':'Enviar link de pagamento'}</button> <button class="btn acc sm" onclick="cobModal(${o.id})">Configurar cobrança</button> <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar como pago</button> <button class="btn ghost sm" onclick="pagDia(${o.id})">Dia do pagamento</button>`} ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`;};
+  const thead='<thead><tr><th>Pedido</th><th>Cliente</th><th>Produtos</th><th>Frete</th><th>Total</th><th>Forma</th><th>Situação</th><th></th></tr></thead>';
   return `<div class="box">${msgBox()}${A9.link?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre em Mais opções > Configurações.</div>'}
-  <p style="margin:0 0 10px;color:var(--muted)">Pedido entregue aparece em <b>A cobrar</b>. Ao enviar o link de pagamento, ele passa para <b>Pendentes</b>. Quando o cliente pagar, toque em <b>Marcar como pago</b> e ele vai para <b>Pagos</b>.</p>
-  <div class="kcards" style="margin-bottom:12px">${aba('cobrar','A cobrar (entregues, link não enviado)',cobrar,'#d92d20')}${aba('andamento','Pendentes (link enviado ou pedido em andamento)',andam,'#d97706')}${aba('pagos','Pagos',pagos,'#16a34a')}</div>
+  <p style="margin:0 0 10px;color:var(--muted)">Pedido entregue cai na <b>Carteira</b>. Ao enviar o link, passa para <b>Cobrança em andamento</b>. Quando pagar, toque em <b>Marcar como pago</b> e vai para <b>Concluídos</b>.</p>
+  <div class="kcards" style="margin-bottom:12px">${aba('cobrar','Carteira (entregues, link não enviado)',cobrar,'#d92d20')}${aba('andamento','Cobrança em andamento (link enviado)',andam,'#d97706')}${aba('pagos','Concluídos (pagos)',pagos,'#16a34a')}</div>
   ${barraFiltros()}
-  <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Produtos</th><th>Frete</th><th>Total</th><th>Forma</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const fr=freteDoPedido(o);const sp=temSP(o);const pago=(o.pagamento||{}).status==='pago';
-   return `<tr data-sc style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${totAdm(o)}</td><td>${fr!=null?brl(fr):'<span style="color:var(--muted)">a combinar</span>'}</td><td><b>${sp?'A confirmar':brl(total(o))}</b></td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">Link aberto no WhatsApp</div>':''}</td>
-   <td style="white-space:nowrap">${pago?`<button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})">${A9.pagEnv[o.id]?'Reenviar link':'Enviar link de pagamento'}</button> <button class="btn acc sm" onclick="cobModal(${o.id})">Configurar cobrança</button> <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar como pago</button> <button class="btn ghost sm" onclick="pagDia(${o.id})">Dia do pagamento</button>`} ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||'<tr><td colspan="8">Nenhum pedido nesta lista.</td></tr>'}</tbody></table></div></div>`;
+  ${predatados.length?`<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:12px"><div style="font-weight:700;color:#1d4ed8;margin-bottom:6px">📅 Pré-datados (${predatados.length}) — pagamento agendado</div><div class="tbl"><table>${thead}<tbody>${predatados.map(rowPag).join('')}</tbody></table></div></div>`:''}
+  ${semData.length||!predatados.length?`<div class="tbl"><table>${thead}<tbody>${semData.map(rowPag).join('')||'<tr><td colspan="8">Nenhum pedido nesta lista.</td></tr>'}</tbody></table></div>`:''}
+  </div>`;
 }
 function pagEnviar(id){
   const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
@@ -5003,7 +5091,8 @@ function tabDash(){
   if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
   if(A9.dashView==='concluidos')return `<div class="box" style="padding-bottom:6px"><a style="cursor:pointer;font-weight:600" onclick="A9.dashView='';route()">← Voltar à visão geral</a><h2 style="margin:8px 0 0">Pedidos concluídos</h2><p style="margin:4px 0 0;color:var(--muted)">Pedidos entregues ou cancelados. Aqui você confere, imprime etiquetas e acompanha o histórico.</p></div>`+listaPed(ENC,'Pedidos concluídos (entregues e cancelados).');
   const L=A9.pedidos,hoje=hojeS(),ab=L.filter(o=>!ENC(o));
-  const hojeN=L.filter(feitoHoje),entH=ab.filter(o=>(o.entrega||{}).data===hoje),atr=L.filter(emAtraso),rec=ab.filter(o=>+o.seq>=2);
+  const amanha=addDias(hoje,1);
+  const hojeN=L.filter(feitoHoje),entH=ab.filter(o=>(o.entrega||{}).data===hoje),entA=ab.filter(o=>(o.entrega||{}).data===amanha),atr=L.filter(emAtraso),rec=ab.filter(o=>+o.seq>=2);
   const cobrar=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!A9.pagEnv[o.id]),pend=L.filter(o=>aguardaPag(o)&&!cobrar.includes(o)),pagos=L.filter(o=>(o.pagamento||{}).status==='pago'),entregues=L.filter(o=>o.status==='entregue');
   const tot=o=>pedTotal(o)+(freteDoPedido(o)||0);
   const k=(c,t,n,sub,go)=>`<button class="kc" style="--c:${c}" onclick="${go}"><div class="n">${n}</div><div class="t"><b>${t}</b></div><div class="t">${sub}</div></button>`;
@@ -5019,14 +5108,36 @@ function tabDash(){
    ${k('#2563eb','Pedidos de hoje',hojeN.length,'feitos hoje',"admIr('pedidos',{fq:'feitos-hoje'})")}
    ${k('#ea580c','Em aberto',ab.length,'não entregues',"admIr('pedidos',{fq:'abertos'})")}
    ${k('#0891b2','Entrega hoje',entH.length,'data desejada é hoje',"admIr('pedidos',{fq:'entrega-hoje'})")}
+   ${k('#0d9488','Entrega amanhã',entA.length,'data desejada é amanhã',"admIr('pedidos',{fq:'entrega-amanha'})")}
    ${k('#d92d20','Atrasados',atr.length,'data desejada vencida',"admIr('pedidos',{fq:'atrasados'})")}
    ${ADMIN.papel==='admin'?(()=>{const fp=fielPend(L);return fp.total?`<button class="kc ${fp.novos?'pulsa':''}" style="--c:#7c3aed" onclick="A9.cliF='fiel';admTab('clientes')"><div class="n">${fp.total}</div><div class="t"><b>Clientes fiéis (${CLI_META}+ pedidos)</b></div><div class="t">${fp.novos?fp.novos+' para oferecer cupom':'todos já receberam o convite'}</div></button>`:''})():''}
    ${(()=>{const cp=typeof cobPendentes==='function'?cobPendentes():[];const cpU=cp.filter(x=>x.sit==='vencido'||x.sit==='hoje');return cp.length?`<button class="kc ${cpU.length?'pulsa':''}" style="--c:#7c2d12" onclick="admTab('pendentes')"><div class="n">${cp.length}</div><div class="t"><b>Pagamentos pendentes</b></div><div class="t">${cpU.length?cpU.length+' vencido(s) ou vencem hoje':'próximos vencimentos'} · ${brl(cp.reduce((s,x)=>s+x.p.valor,0))}</div></button>`:''})()}
    ${k('#d97706','Aguardando pagamento',pend.length,brl(pend.reduce((s,o)=>s+tot(o),0))+' a receber',"A9.pf='andamento';admTab('pagamentos')")}
-   ${k('#be123c','A cobrar (entregues)',cobrar.length,brl(cobrar.reduce((s,o)=>s+tot(o),0)),"A9.pf='cobrar';admTab('pagamentos')")}
+   ${k('#be123c','Carteira',cobrar.length,brl(cobrar.reduce((s,o)=>s+tot(o),0)),"A9.pf='cobrar';admTab('pagamentos')")}
    ${k('#475569','Pedidos concluídos',L.filter(ENC).length,entregues.length+' entregue'+(entregues.length===1?'':'s')+' · '+L.filter(o=>o.status==='cancelado').length+' cancelado(s)',"A9.dashView='concluidos';A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';route()")}
    ${k('#16a34a','Recebido',brl(pagos.reduce((s,o)=>s+tot(o),0)),pagos.length+' pago'+(pagos.length===1?'':'s')+' · '+entregues.length+' entregue'+(entregues.length===1?'':'s'),"A9.pf='pagos';admTab('pagamentos')")}
   </div>
+  <h3 style="margin-bottom:10px">Entregas por dia</h3>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">${(()=>{
+    const DIAS_ABREV=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const TC={manha:{c:'#f59e0b',bg:'#fff7e0',label:'M'},tarde:{c:'#2563eb',bg:'#e8f0fe',label:'T'},noite:{c:'#7c3aed',bg:'#f3e8ff',label:'N'}};
+    return Array.from({length:9},(_,i)=>{
+      const d=addDias(hoje,i-1);
+      const dow=new Date(d+'T12:00').getDay();
+      const isHoje=d===hoje,isOntem=i===0;
+      const peds=ab.filter(o=>(o.entrega||{}).data===d);
+      const byT={};peds.forEach(o=>{const t=(o.entrega||{}).turno||'';byT[t]=(byT[t]||0)+1});
+      const chips=Object.entries(TC).map(([t,cfg])=>byT[t]?`<span style="display:inline-flex;align-items:center;gap:2px;background:${cfg.bg};color:${cfg.c};border:1px solid ${cfg.c};border-radius:6px;padding:1px 5px;font-size:.7rem;font-weight:700">${cfg.label} ${byT[t]}</span>`:'').join('');
+      const border=isHoje?'2px solid #2563eb':isOntem?'1px solid #ccc':'1px solid var(--line)';
+      const opacity=peds.length===0?'opacity:.45':'';
+      return `<button onclick="admIr('pedidos',{fd:'${d}'})" style="cursor:pointer;${opacity};border:${border};border-radius:12px;padding:8px 10px;background:${isHoje?'#eff6ff':'#fff'};min-width:64px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
+        <span style="font-size:.7rem;color:var(--muted);font-weight:600">${isOntem?'Ontem':isHoje?'Hoje':DIAS_ABREV[dow]}</span>
+        <span style="font-size:.68rem;color:var(--muted)">${d.slice(8)}/${d.slice(5,7)}</span>
+        <span style="font-size:1.3rem;font-weight:800;line-height:1;color:${peds.length?'var(--ink)':'#bbb'}">${peds.length}</span>
+        <div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:center">${chips}</div>
+      </button>`;
+    }).join('');
+  })()}</div>
   <h3>Filtro rápido</h3><p style="margin:0;color:var(--muted);font-size:.88rem">Ex.: todos os pedidos de São José da manhã que são para hoje.</p>
   <div class="fbar"><div><label>Cidades</label>${cidFlag('dC','',"dashCont()")}</div><div><label for="dT">Horário</label><select id="dT" onchange="dashCont()"><option value="">Todos</option>${Object.keys(TURNOS).map(t=>`<option value="${t}">${esc(TURNOS[t])}</option>`).join('')}</select></div><div><label for="dQ">Quando</label><select id="dQ" onchange="dashCont()">${QUANDO.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select></div><button class="btn acc" onclick="dashVer()">Ver estes pedidos</button><b id="dN" style="padding-bottom:10px">${ab.length} pedido${ab.length===1?'':'s'} em aberto</b></div>
   <div class="two" style="gap:18px;align-items:start"><div><h3 style="margin-top:0">Pedidos em aberto por cidade</h3>
