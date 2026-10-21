@@ -4501,9 +4501,9 @@ function admAddProdsHtml(){
       const pr=v.preco_promo!=null?v.preco_promo:(v.preco!=null?v.preco:null);
       return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--line)">
         <div style="flex:1;font-size:.88rem">${esc(v.nome||p.nome)} ${pr!=null?`<span style="color:var(--muted)">· ${brl(+pr)}</span>`:'<span style="color:var(--muted)">sob consulta</span>'}</div>
-        <button onclick="admAddQ(${v.id},-1)" style="width:26px;height:26px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;font-size:1rem">−</button>
+        <button onclick="admAddQ('${v.id}',-1)" style="width:26px;height:26px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;font-size:1rem">−</button>
         <span id="addq_${v.id}" style="min-width:24px;text-align:center;font-weight:600">${q}</span>
-        <button onclick="admAddQ(${v.id},1)" style="width:26px;height:26px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;font-size:1rem">+</button>
+        <button onclick="admAddQ('${v.id}',1)" style="width:26px;height:26px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;font-size:1rem">+</button>
       </div>`;
     }).join('');
     return `<div style="padding:6px 4px"><div style="font-weight:700;margin-bottom:2px">${esc(p.nome)}</div>${rows}</div>`;
