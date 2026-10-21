@@ -580,6 +580,7 @@ a[href*="netlify.com"],[class*="netlify" i],[id*="netlify" i]{display:none!impor
 <div class="modal" id="modal" role="dialog" aria-modal="true"><div id="modalb"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 window.__banco=typeof supabase!=='undefined';
 /* ======================= CONFIGURAÇÃO ======================= */
@@ -662,7 +663,7 @@ function msgModelo(k){
   return (raw!=null&&String(raw).trim()!=='')?String(raw):d.p;
 }
 function msgTxt(k,vars){return msgFill(msgModelo(k),vars||{})}
-const waUrl=msg=>'https://wa.me/'+CFG.wa+'?text='+encodeURIComponent(msg||msgTxt('s_atend',{loja:CFG.brand}));
+const waUrl=msg=>'whatsapp://send?phone='+CFG.wa+'&text='+encodeURIComponent(msg||msgTxt('s_atend',{loja:CFG.brand}));
 const EXTRA=[{t:'Campanhas',go:'/amigo',sub:[['Amigo Emagrece Amigo','/amigo'],['Regulamento Amigo Emagrece Amigo','/reg/amigo'],['Desconto na primeira compra','/reg/primeira-compra']]},{t:'Atendimento',go:'wa:',sub:[['Falar com o atendimento','wa:'],['Dúvidas frequentes','/info/duvidas'],['Como comprar','/info/como-comprar'],['Entregas','/info/entregas'],['Formas de pagamento','/info/pagamento']]}];
 const PRODUCTS=[
 ];
@@ -949,6 +950,7 @@ function addCart(id,qty=1,opt='',btn){
   if(btn){const o=btn.textContent;btn.classList.add('ok');btn.textContent='Adicionado';setTimeout(()=>{btn.classList.remove('ok');btn.textContent=o},1400)}
   toast('Produto adicionado ao carrinho.',['Ver carrinho','openCart()']);
   openCart();
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 const reRoute=()=>{if(/^#\/(carrinho|revisar)/.test(location.hash))route()};
 function setQty(id,opt,d){const i=cart.find(x=>x.id===id&&x.opt===opt);if(!i)return;const p=byId(id);const q=i.qty+d;
@@ -973,7 +975,7 @@ const nav=p=>{location.hash='#'+p};
 // rola até uma seção de categoria na home (pelo índice)
 function homeCatScroll(idx){const el=document.getElementById('cat-home-'+idx);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});}}
 function menuNavOrScroll(link){
-  const CATS_HOME=['Tirzepatida','Retatrutida','Botox','Peptídeos'];
+  const CATS_HOME=[...new Set(LIVE().map(p=>p.cat&&p.cat[0]).filter(Boolean))];
   const catIdx=CATS_HOME.findIndex(c=>link==='/cat/'+encodeURIComponent(c)||link==='/cat/'+c);
   if(catIdx>=0&&location.hash==='#/'){homeCatScroll(catIdx);return;}
   nav(link);
@@ -1034,8 +1036,8 @@ function pageHome(){
   const ben=[];
   const slides=SL();
   const slPic=s=>s.imgurl?`<picture class="slpic"><img src="${esc(s.imgurl)}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:s.img?`<picture class="slpic"><source media="(max-width:760px)" srcset="${BANURL(s.img,'mobile')}"><img src="${BANURL(s.img,'desktop')}" alt="${esc(s.t)}" onload="this.closest('.sl').classList.add('hasimg')" onerror="this.closest('.sl').classList.add('noimg');this.parentNode.remove()"></picture>`:'';
-  // categorias fixas em ordem para scroll contínuo
-  const CATS_HOME=['Tirzepatida','Retatrutida','Botox','Peptídeos'];
+  // categorias derivadas dos produtos ativos
+  const CATS_HOME=[...new Set(LIVE().map(p=>p.cat&&p.cat[0]).filter(Boolean))];
   const slClick=s=>{
     if(s.l==='__appverif__')return'abrirPopupApp(event)';
     // se o link é uma categoria da home, rola até ela
@@ -1149,7 +1151,7 @@ function ufSelect(id,val){return `<select id="${id}" required><option value="">U
 const endOk=()=>{const u=user();return !!(u&&u.end&&validarEnd(u.end).length===0)};
 
 /* ---------- revisão e finalização ---------- */
-let ent={sec:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:hojeS(),turno:'',pag:'',obs:'',erros:[]};
+let ent={sec:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:ymd(new Date()),turno:'',pag:'',obs:'',erros:[]};
 const entSet=(k,v)=>{ent[k]=v};
 const entS=(k,v)=>{ent.s[k]=v};
 function applyCode(){rv.code=$('#rvCode').value.trim().toUpperCase();rv.use=false;const v=validateRef(rv.code);rv.msg=v.ok?'':v.err;if(!v.ok)rv.code='';route()}
@@ -1633,7 +1635,7 @@ async function etqCompartilhar(oid,v){
     if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],text:txt});logEtq(o,r.rec,'Compartilhamento iniciado pelo sistema do aparelho','externa');toast('Compartilhamento iniciado. O envio só vale quando você concluir no aplicativo.');route();return}
   }catch(e){if(e&&e.name==='AbortError')return}
   const a=document.createElement('a');a.href=blobUrl(bytes);a.download=nome;document.body.appendChild(a);a.click();a.remove();
-  window.open('https://wa.me/55'+digits(o.entrega.fone).replace(/^55/,'')+'?text='+encodeURIComponent(txt),'_blank');
+  window.open('whatsapp://send?phone=55'+digits(o.entrega.fone).replace(/^55/,'')+'&text='+encodeURIComponent(txt),'_blank');
   logEtq(o,r.rec,'WhatsApp aberto e PDF baixado para anexar (envio não confirmado)','externa');
   toast('O PDF foi baixado. Anexe-o na conversa do WhatsApp que abriu. O sistema não confirma o envio.');route();
 }
@@ -2176,7 +2178,7 @@ function enviarLinkCliente(id){
   const campo=document.getElementById('msgPagT'+id);const t=campo?campo.value:o.msgPag.texto;
   if(!t.trim()){toast('A mensagem está vazia.');return}
   o.msgPag.texto=t;
-  window.open('https://wa.me/55'+digits(o.entrega.fone).replace(/^55/,'')+'?text='+encodeURIComponent(t),'_blank');
+  window.open('whatsapp://send?phone=55'+digits(o.entrega.fone).replace(/^55/,'')+'&text='+encodeURIComponent(t),'_blank');
   if(o.pagamento.status==='pendente')o.pagamento.status='link';
   o.pagamento.linkEnviadoEm=now();
   addEv(o,{tipo:'whatsapp',publico:false,texto:'WhatsApp aberto com o link de pagamento (envio não confirmado pelo sistema)'});
@@ -2218,7 +2220,7 @@ function finish(){
     addEv(o,{tipo:'status',para:'realizado',publico:true,texto:'Recebemos o seu pedido.',por:'Cliente'});
     if(o.ref&&!user().refBy)user().refBy=d.owner;
     sessionStorage.removeItem('xp_ind');orders.push(o);gerarEtiquetas(o,'Pedido finalizado');cart=[];rv={code:'',use:false,msg:''};
-    ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:hojeS(),turno:'',obs:'',erros:[]};
+    ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:ymd(new Date()),turno:'',obs:'',erros:[]};
     save();busy2=false;updHead();nav('/pedido/'+o.id);
   },500);
 }
@@ -2462,7 +2464,7 @@ function rotaMsg(r){
 function rotaEnviarWA(rid){
   const r=ROTE.find(x=>x.id===rid);if(!r)return;const en=ENTR.find(x=>x.id===r.entregadorId);if(!en){toast('Entregador não encontrado.');return}
   const campo=document.getElementById('rotaMsgT');const t=campo?campo.value:rotaMsg(r);if(!t.trim()){toast('A mensagem está vazia.');return}
-  window.open('https://wa.me/55'+digits(en.whats).replace(/^55/,'')+'?text='+encodeURIComponent(t),'_blank');
+  window.open('whatsapp://send?phone=55'+digits(en.whats).replace(/^55/,'')+'&text='+encodeURIComponent(t),'_blank');
   r.enviadaEm=now();r.orders.forEach(id=>{const o=orders.find(x=>x.id===id);if(o)addEv(o,{tipo:'whatsapp',publico:false,texto:'Rota '+rotaCod(r)+' enviada ao entregador '+en.nome+' (envio não confirmado pelo sistema)'})});
   save();toast('Conversa aberta com '+en.nome+'. O envio é feito por você no WhatsApp.');route();
 }
@@ -2477,6 +2479,26 @@ function rotaEntregue(oid){
   const o=orders.find(x=>x.id===oid);if(!o||!ADMIN||ADMIN.papel==='separador'||o.status!=='em-rota')return;
   setStatus(o,'entregue',{});toast(codigoPedido(o)+' entregue.'+(pago(o)?'':' O pagamento ainda não foi registrado.'));route();
 }
+function rotaReverterEntregue(oid){
+  if(!ADMIN||ADMIN.papel!=='admin')return;
+  const o=orders.find(x=>x.id===oid);if(!o||o.status!=='entregue')return;
+  openModal(`<h3 style="margin-top:0">Reverter entrega — ${codigoPedido(o)}</h3>
+  <p style="color:var(--muted);font-size:.9rem">Informe o motivo da reversão. Este registro ficará no histórico do pedido.</p>
+  <label for="rvMotivo">Motivo obrigatório</label>
+  <input id="rvMotivo" placeholder="Ex.: marcado por engano, cliente não estava presente" style="width:100%;margin:6px 0 12px">
+  <div style="display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn ghost" onclick="closeModal()">Cancelar</button>
+    <button class="btn danger" onclick="rotaReverterConfirmar(${oid})">Reverter</button>
+  </div>`);
+}
+function rotaReverterConfirmar(oid){
+  const o=orders.find(x=>x.id===oid);if(!o||o.status!=='entregue')return;
+  const mot=document.getElementById('rvMotivo')&&document.getElementById('rvMotivo').value.trim();
+  if(!mot){document.getElementById('rvMotivo')&&(document.getElementById('rvMotivo').style.border='2px solid var(--danger,#c0392b)');toast('Informe o motivo para reverter a entrega.');return}
+  closeModal();
+  setStatus(o,'em-rota',{motivo:mot,interno:'Entrega revertida pelo admin: '+mot});
+  toast(codigoPedido(o)+' revertido para "em rota".');route();
+}
 function rotaRemover(rid,oid){
   const r=ROTE.find(x=>x.id===rid);const o=orders.find(x=>x.id===oid);if(!r||!o||o.status!=='programada')return;
   r.orders=r.orders.filter(x=>x!==oid);delete o.rotaId;delete o.entregadorId;
@@ -2490,7 +2512,7 @@ function rotaDetalheHtml(r){
   return `<p><button class="btn ghost sm" onclick="rotaVoltar()">&larr; Voltar aos entregadores</button></p>
   <div class="box"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start"><div><h3 style="margin:0">Rota ${rotaCod(r)} <span class="st ${sit==='Concluída'?'s-confirmado':sit==='Em rota'?'s-rota':'s-prog'}">${sit}</span></h3><div style="color:var(--muted);font-size:.88rem">${fmtDay(r.data)} · Entregador: <b>${esc(en.nome)}</b> · ${esc(en.whats)}</div></div></div>
   <div class="pgrid"><div class="pbox"><small>Pedidos</small><b>${s.entregues} de ${s.qtd} entregues</b></div><div class="pbox"><small>Valor da rota</small><b>${brl(s.valor)}</b><div>Recebido ${brl(s.recebido)}</div></div><div class="pbox"><small>Taxas de entrega</small><b>${brl(s.taxas)}</b></div></div>
-  <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente e destino</th><th>Etapa</th><th>Pagamento</th><th class="r">Valor</th><th></th></tr></thead><tbody>${s.os.map(o=>{const d=o.entrega.dest;return `<tr><td><b>${codigoPedido(o)}</b></td><td>${esc(o.entrega.nome)}<div style="color:var(--muted);font-size:.8rem">${esc(d.bairro)}, ${esc(d.cidade)} · ${fmtDM(o.entrega.data)} ${turnoNome(o.entrega.turno)}</div></td><td><span class="st ${CLS[o.status]}">${LAB[o.status]}</span></td><td>${pagChip(o)}</td><td class="r">${brl(valorAcordado(o))}</td><td class="r" style="white-space:nowrap">${o.status==='em-rota'&&!pago(o)?`<button class="btn sm wa" onclick="rotaLinkCliente(${o.id})">Enviar link ao cliente</button> `:''}${o.status==='em-rota'?`<button class="btn sm" onclick="rotaEntregue(${o.id})">Entregue</button> `:''}${o.status==='programada'&&sit!=='Concluída'?`<button class="btn sm ghost" onclick="rotaRemover('${r.id}',${o.id})">Remover</button> `:''}<button class="btn sm ghost" onclick="admAbrir(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div></div>
+  <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente e destino</th><th>Etapa</th><th>Pagamento</th><th class="r">Valor</th><th></th></tr></thead><tbody>${s.os.map(o=>{const d=o.entrega.dest;return `<tr><td><b>${codigoPedido(o)}</b></td><td>${esc(o.entrega.nome)}<div style="color:var(--muted);font-size:.8rem">${esc(d.bairro)}, ${esc(d.cidade)} · ${fmtDM(o.entrega.data)} ${turnoNome(o.entrega.turno)}</div></td><td><span class="st ${CLS[o.status]}">${LAB[o.status]}</span></td><td>${pagChip(o)}</td><td class="r">${brl(valorAcordado(o))}</td><td class="r" style="white-space:nowrap">${o.status==='em-rota'&&!pago(o)?`<button class="btn sm wa" onclick="rotaLinkCliente(${o.id})">Enviar link ao cliente</button> `:''}${o.status==='em-rota'?`<button class="btn sm" onclick="rotaEntregue(${o.id})">Entregue</button> `:''}${o.status==='entregue'&&ADMIN&&ADMIN.papel==='admin'?`<button class="btn sm ghost" onclick="rotaReverterEntregue(${o.id})" style="color:var(--danger,#c0392b)">Reverter</button> `:''}${o.status==='programada'&&sit!=='Concluída'?`<button class="btn sm ghost" onclick="rotaRemover('${r.id}',${o.id})">Remover</button> `:''}<button class="btn sm ghost" onclick="admAbrir(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div></div>
   <div class="box" style="margin-top:12px"><h3 style="margin-top:0">Rota para o entregador</h3><p style="margin:0 0 6px;font-size:.85rem;color:var(--muted)">${r.enviadaEm?'WhatsApp aberto em '+fmtD(r.enviadaEm)+'. O sistema não confirma o envio.':'Confira o texto, edite se quiser e envie. O envio só acontece quando você enviar no WhatsApp.'}</p><textarea id="rotaMsgT" rows="12">${esc(rotaMsg(r))}</textarea><div class="btns" style="margin-top:8px"><button class="btn wa" onclick="rotaEnviarWA('${r.id}')">Enviar a rota para o WhatsApp de ${esc(en.nome)}</button>${podeIniciar?`<button class="btn acc" onclick="rotaIniciar('${r.id}')">Iniciar rota (saiu para entrega)</button>`:''}</div>${CFG.linkPag?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado na aba Site. Cadastre antes de iniciar a rota.</div>'}</div>`;
 }
 function tabEntregadores(){
@@ -2502,7 +2524,7 @@ function tabEntregadores(){
   const card=(v,t,s)=>`<div class="kpi"><b>${v}</b><span>${t}</span>${s?`<small>${s}</small>`:''}</div>`;
   return `<div class="kpis6">${card(ENTR.filter(e=>e.ativo!==false).length,'Entregadores ativos')}${card(ROTE.length,'Rotas montadas')}${card(tot.ent,'Pedidos entregues')}${card(brl(tot.val),'Valor total entregue','produtos mais taxas')}${card(brl(tot.tx),'Taxas de entrega','nos pedidos entregues')}${card(ROTE.filter(r=>rotaSit(r)!=='Concluída').length,'Rotas em aberto')}</div>
   <div class="box"><h3 style="margin-top:0">${ed?'Editar entregador':'Cadastrar entregador'}</h3><div class="fr"><div class="c3"><label for="enN">Nome</label><input id="enN" value="${esc(ed?ed.nome:'')}" autocomplete="off"></div><div class="c3"><label for="enW">WhatsApp</label>${foneCampo('enW',ed?ed.whats:'',ed?!!ed.sem9:false)}</div><div class="c2" style="align-self:start;margin-top:22px"><button class="btn acc" onclick="entSalvar()">${ed?'Salvar':'Cadastrar'}</button>${ed?` <button class="btn ghost" onclick="entCancelar()">Cancelar</button>`:''}</div></div></div>
-  <div class="box" style="margin-top:12px"><h3 style="margin-top:0">Entregadores</h3>${ENTR.length?`<div class="tbl"><table><thead><tr><th>Nome</th><th>WhatsApp</th><th class="r">Rotas</th><th class="r">Pedidos entregues</th><th class="r">Valor total entregue</th><th class="r">Taxas de entrega</th><th></th></tr></thead><tbody>${st.map(([e,s])=>`<tr class="${e.ativo===false?'inativo':''}"><td><b>${esc(e.nome)}</b>${e.ativo===false?' <span class="st s-cancelado">Inativo</span>':''}</td><td><a href="https://wa.me/55${digits(e.whats).replace(/^55/,'')}" target="_blank" rel="noopener">${esc(e.whats)}</a></td><td class="r">${s.rotas}</td><td class="r">${s.ent}</td><td class="r">${brl(s.val)}</td><td class="r">${brl(s.tx)}</td><td class="r" style="white-space:nowrap"><button class="btn sm ghost" onclick="entHist('${e.id}')">${E.hist===e.id?'Ocultar histórico':'Histórico'}</button> <button class="btn sm ghost" onclick="entEditar('${e.id}')">Editar</button> <button class="btn sm ghost" onclick="entToggle('${e.id}')">${e.ativo===false?'Ativar':'Desativar'}</button></td></tr>${E.hist===e.id?`<tr><td colspan="7" style="background:#f7faf7">${rotasTabela(ROTE.filter(r=>r.entregadorId===e.id))}</td></tr>`:''}`).join('')}</tbody></table></div>`:'<div class="note">Nenhum entregador cadastrado. Cadastre o primeiro acima.</div>'}</div>
+  <div class="box" style="margin-top:12px"><h3 style="margin-top:0">Entregadores</h3>${ENTR.length?`<div class="tbl"><table><thead><tr><th>Nome</th><th>WhatsApp</th><th class="r">Rotas</th><th class="r">Pedidos entregues</th><th class="r">Valor total entregue</th><th class="r">Taxas de entrega</th><th></th></tr></thead><tbody>${st.map(([e,s])=>`<tr class="${e.ativo===false?'inativo':''}"><td><b>${esc(e.nome)}</b>${e.ativo===false?' <span class="st s-cancelado">Inativo</span>':''}</td><td><a href="whatsapp://send?phone=55${digits(e.whats).replace(/^55/,'')}" target="_blank" rel="noopener">${esc(e.whats)}</a></td><td class="r">${s.rotas}</td><td class="r">${s.ent}</td><td class="r">${brl(s.val)}</td><td class="r">${brl(s.tx)}</td><td class="r" style="white-space:nowrap"><button class="btn sm ghost" onclick="entHist('${e.id}')">${E.hist===e.id?'Ocultar histórico':'Histórico'}</button> <button class="btn sm ghost" onclick="entEditar('${e.id}')">Editar</button> <button class="btn sm ghost" onclick="entToggle('${e.id}')">${e.ativo===false?'Ativar':'Desativar'}</button></td></tr>${E.hist===e.id?`<tr><td colspan="7" style="background:#f7faf7">${rotasTabela(ROTE.filter(r=>r.entregadorId===e.id))}</td></tr>`:''}`).join('')}</tbody></table></div>`:'<div class="note">Nenhum entregador cadastrado. Cadastre o primeiro acima.</div>'}</div>
   <div class="box" style="margin-top:12px"><h3 style="margin-top:0">Rotas e controle dos valores</h3>${rotasTabela(ROTE)}<p style="margin:8px 0 0;font-size:.82rem;color:var(--muted)">Para montar uma rota, vá em Logística, marque os pedidos e escolha o entregador. "Valor da rota" soma o valor combinado dos pedidos (produtos e taxa de entrega).</p></div>`;
 }
 function rotasTabela(L){
@@ -2625,7 +2647,7 @@ function pageOrdAdm(id){
    <div class="box" data-sec="entrega" style="margin-top:14px"><h3 style="margin-top:0">Entrega</h3>
     ${entregaAdmHtml(o)}
     <h4 style="margin:14px 0 6px">Reagendar entrega</h4>
-    <div class="fr"><div class="c2"><label for="rD">Nova data</label><input id="rD" type="date" min="${hojeS()}" value="${esc(e.data)}"></div><div class="c2"><label for="rT">Turno</label><select id="rT" style="width:100%">${Object.keys(TURNOS).map(t=>`<option value="${t}" ${e.turno===t?'selected':''}>${TURNOS[t]}</option>`).join('')}</select></div><div class="c2"><label for="rM">Motivo da alteração</label><input id="rM" placeholder="Ex.: ajuste na programação logística"></div></div>
+    <div class="fr"><div class="c2"><label for="rD">Nova data</label><input id="rD" type="date" value="${esc(e.data)}"></div><div class="c2"><label for="rT">Turno</label><select id="rT" style="width:100%">${Object.keys(TURNOS).map(t=>`<option value="${t}" ${e.turno===t?'selected':''}>${TURNOS[t]}</option>`).join('')}</select></div><div class="c2"><label for="rM">Motivo da alteração</label><input id="rM" placeholder="Ex.: ajuste na programação logística"></div></div>
     <p><button class="btn acc" onclick="admReag(${o.id})">Confirmar reagendamento</button></p>
     <h4 style="margin:16px 0 6px">Editar dados de entrega</h4>
     <div class="fr"><div class="c2"><label for="eF">Telefone</label><input id="eF" value="${esc(e.fone)}"></div><div class="c2"><label for="eCep">CEP</label><input id="eCep" value="${esc(d.cep)}" oninput="cepAuto(this,{uf:'eUF',cidade:'eCid',bairro:'eBai',rua:'eRua',num:'eNum'})"></div><div class="c2"><label for="eUF">UF</label><select id="eUF" style="width:100%">${UFS.map(x=>`<option ${x===String(d.uf).toUpperCase()?'selected':''}>${x}</option>`).join('')}</select></div><div class="c3"><label for="eCid">Cidade</label><input id="eCid" value="${esc(d.cidade)}"></div><div class="c3"><label for="eBai">Bairro</label><input id="eBai" value="${esc(d.bairro)}"></div><div class="c3"><label for="eRua">Rua</label><input id="eRua" value="${esc(d.rua)}"></div><div class="c3"><label for="eNum">Número</label><input id="eNum" value="${esc(d.num)}"></div><div class="c3"><label for="eCom">Complemento</label><input id="eCom" value="${esc(d.comp||'')}"></div><div class="c3"><label for="eRef">Ponto de referência</label><input id="eRef" value="${esc(d.ref||'')}"></div><div class="c3"><label for="eJan">Janela estimada (opcional)</label><input id="eJan" value="${esc(e.janela||'')}" placeholder="Ex.: 14h às 16h"></div><div class="c3"><label for="eObsE">Observação para o entregador</label><input id="eObsE" value="${esc(e.obsEntregador!=null?e.obsEntregador:(e.obs||''))}"></div><div class="c3"><label for="eMot">Motivo da alteração</label><input id="eMot"></div></div>
@@ -2669,6 +2691,7 @@ function admStatus(id){
   if(!ADMIN||ADMIN.papel!=='admin'){toast('Só o administrador altera o status manualmente.');return}
   const o=gO(id),s=v_('stN'),mot=v_('stM').trim();
   if(['tentativa','cancelado'].includes(s)&&!mot){toast('Informe o motivo para este status.');return}
+  if(o.status==='entregue'&&!mot){toast('Informe o motivo para reverter a entrega.');return}
   if(['programada','em-rota'].includes(s)&&(!o.entrega.data||!o.entrega.turno)){toast('Defina data e turno antes.');return}
   if(s===o.status){toast('O pedido já está neste status.');return}
   setStatus(o,s,{motivo:mot,texto:v_('stT').trim(),interno:v_('stI').trim()});toast('Status atualizado. O cliente já vê a mudança.');route();
@@ -2677,7 +2700,7 @@ function admInfo(id){const o=gO(id),t=v_('infT').trim();if(!t){toast('Escreva a 
   const ev=addEv(o,{tipo:'info',publico:true,texto:t});addAviso(o,'Informação sobre o seu pedido',t,{evId:ev.id});save();toast('Informação publicada.');route()}
 function admReag(id){
   const o=gO(id),d=v_('rD'),t=v_('rT'),mot=v_('rM').trim();
-  if(!d||!/^\d{4}-\d{2}-\d{2}$/.test(d)||d<hojeS()){toast('Informe uma nova data válida (hoje ou futura).');return}
+  if(!d||!/^\d{4}-\d{2}-\d{2}$/.test(d)){toast('Informe uma nova data válida.');return}
   if(!TURNOS[t]){toast('Turno inválido.');return}
   if(!mot){toast('Informe o motivo da alteração.');return}
   const de=fmtDM(o.entrega.data)+' ('+turnoNome(o.entrega.turno)+')',para=fmtDM(d)+' ('+turnoNome(t)+')';
@@ -2691,7 +2714,7 @@ function admReag(id){
   save();toast('Entrega reagendada. O cliente foi avisado na área dele e a mensagem de WhatsApp está pronta.');route();
 }
 function admAbrirWA(id,tid,rot){const o=gO(id);const t=v_(tid);if(!t.trim()){toast('A mensagem está vazia.');return}
-  window.open('https://wa.me/55'+digits(o.entrega.fone).replace(/^55/,'')+'?text='+encodeURIComponent(t),'_blank');
+  window.open('whatsapp://send?phone=55'+digits(o.entrega.fone).replace(/^55/,'')+'&text='+encodeURIComponent(t),'_blank');
   addEv(o,{tipo:'whatsapp',publico:false,texto:'WhatsApp aberto com a mensagem: '+rot+' (envio não confirmado pelo sistema)'});save();toast('Conversa aberta. O envio é feito por você no WhatsApp.');route()}
 function admEditEntrega(id){
   const o=gO(id),e=o.entrega,d=e.dest;const mot=v_('eMot').trim();
@@ -3145,7 +3168,7 @@ async function finish(){
   busy2=false;
   if(r.error){ent.erros=[msgRpc(r.error)];try{await bancoProdutos()}catch(x){}route();return}
   cart=[];rv={code:'',use:false,msg:'',ref:null};
-  ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:hojeS(),turno:'',obs:'',erros:[]};
+  ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:ymd(new Date()),turno:'',obs:'',erros:[]};
   sessionStorage.removeItem('xp_ind');
   try{await bancoPedidos();await bancoCreditos();await bancoProdutos()}catch(x){}
   save();updHead();nav('/pedido/'+r.data.id);
@@ -3346,7 +3369,7 @@ async function finish(){
     cliente:u.nome+' '+u.sobrenome+(u.fone?' ('+u.fone+')':''),obs:ent.obs.trim(),link:trackUrl(d.codigo,d.token),frete:(function(){const f=freteTxtCli();return f.v!=null?brl(f.v)+' ('+f.c+'), pago junto, na entrega':''})()}));
   const url=waUrl(msg);WA_P={id:d.id,url};
   cart=[];rv={code:'',use:false,msg:'',ref:null};
-  ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:hojeS(),turno:'',pag:'',obs:'',erros:[]};
+  ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:ymd(new Date()),turno:'',pag:'',obs:'',erros:[]};
   sessionStorage.removeItem('xp_ind');
   try{await bancoPedidos();await bancoCreditos();await bancoProdutos()}catch(x){}
   save();updHead();
@@ -3557,7 +3580,7 @@ function admDetalhe(){
   <h2 style="margin:0 0 4px">Pedido ${codPed(o)}</h2><div style="color:var(--muted);margin-bottom:12px">Feito em ${fmtD(Date.parse(o.criado_em))} · <b>${esc(ADM_LB[o.status]||STLB[o.status]||o.status)}</b> · Pagamento: <b>${pg.status==='pago'?'recebido':'pendente'}</b></div>
   <div class="two" style="gap:20px"><div>
   <h3 style="margin-top:0">Cliente e entrega</h3>
-  <p style="margin:0"><b>${esc(en.nome||'')}</b><br>${fone?`<a href="https://wa.me/${fone}" target="_blank" rel="noopener">${esc(en.fone)}</a>`:esc(en.fone||'')}</p>
+  <p style="margin:0"><b>${esc(en.nome||'')}</b><br>${fone?`<a href="whatsapp://send?phone=${fone}" target="_blank" rel="noopener">${esc(en.fone)}</a>`:esc(en.fone||'')}</p>
   <p>${esc(d.rua||'')}, ${esc(d.num||'')}${d.comp?', '+esc(d.comp):''}<br>${esc(d.bairro||'')}<br>${esc(d.cidade||'')}/${esc(d.uf||'')}, CEP ${esc(d.cep||'')}${d.ref?'<br>Referência: '+esc(d.ref):''}${en.secundario?'<br><i>Endereço secundário informado pelo cliente</i>':''}</p>
   <p style="margin:0">Entrega desejada: <b>${dataBr(en.data)} (${esc(TURNOS[en.turno]||'')})</b>${o.entregadorNome?'<br>Entregador: <b>'+esc(o.entregadorNome)+'</b>':''}<br>Forma de pagamento escolhida: <b>${esc(PAGNOME[pg.preferencia]||'não informada')}</b>${en.obs?'<br>Observação do cliente: '+esc(en.obs):''}</p>
   <h3>Itens</h3><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${(o.itens||[]).map(i=>`<tr><td>${esc(i.name)}<div style="color:var(--muted);font-size:.8rem">SKU ${esc(i.sku||'')}</div></td><td>${i.qty}</td><td class="r">${i.semPreco?'a confirmar':brl(i.unit*i.qty)}</td></tr>`).join('')}</tbody></table></div>
@@ -3576,7 +3599,7 @@ function admDetalhe(){
   ${etqHtml(o)}
   <h3>Histórico</h3><div class="tbl"><table><thead><tr><th>Quando</th><th>O que aconteceu</th><th>Por</th><th>Cliente vê</th></tr></thead><tbody>${o.eventos.map(e=>`<tr><td>${fmtD(Date.parse(e.t))}</td><td>${esc(e.texto||'')}${e.motivo?'<div style="color:var(--muted);font-size:.82rem">Motivo: '+esc(e.motivo)+'</div>':''}</td><td>${esc(e.por||'')}</td><td>${e.publico?'Sim':'Não'}</td></tr>`).join('')||'<tr><td colspan="4">Sem registros.</td></tr>'}</tbody></table></div></div>`;
 }
-function waUrlPara(fone,msg){return 'https://wa.me/'+fone+'?text='+encodeURIComponent(msg)}
+function waUrlPara(fone,msg){return 'whatsapp://send?phone='+fone+'&text='+encodeURIComponent(msg)}
 var ENC=o=>['entregue','cancelado'].includes(o.status);
 var emAtraso=o=>!ENC(o)&&(o.entrega||{}).data&&(o.entrega||{}).data<hojeS();
 var aguardaPag=o=>o.status!=='cancelado'&&(o.pagamento||{}).status!=='pago';
@@ -3677,7 +3700,7 @@ function tabEntregadores(){
   const quadro=x=>{const s=entStats(x);const ini=esc((x.nome||'?').trim().charAt(0).toUpperCase());
     return `<div class="entq${x.ativo?'':' off'}${A9.entSel[x.id]?' sel':''}" style="border-top:6px solid ${corEnt(x.id)}" onclick="entSelTog('${x.id}')" title="Clique para ver as rotas deste entregador"><div class="entq-h"><span class="entq-av" style="background:${corEnt(x.id)}">${ini}</span><div style="min-width:0"><b style="display:block;font-size:1.05rem">${esc(x.nome)}</b><span style="color:var(--muted);font-size:.85rem">${esc(x.whats)}</span></div><span class="entq-st ${x.ativo?'on':''}">${x.ativo?'Ativo':'Inativo'}</span></div>
     <div class="entq-n"><div><b>${s.rotas}</b><span>rotas</span></div><div><b>${s.and}</b><span>em andamento</span></div><div><b>${s.pend}</b><span>paradas abertas</span></div><div><b>${s.ok}</b><span>entregues</span></div></div>
-    <div class="entq-b" onclick="event.stopPropagation()"><button class="btn ghost sm" onclick="A9.edE=Object.assign({},A9.lg.ent.find(y=>y.id==='${x.id}'),{cor:corEnt('${x.id}')});route();window.scrollTo(0,0)">Editar</button><button class="btn ghost sm" onclick="admTab('logistica')">Ver rotas</button><a class="btn wa sm" target="_blank" rel="noopener" href="https://wa.me/${foneWa(x.whats)}">WhatsApp</a><button class="btn ghost sm" onclick="admAtivaEntregador('${x.id}',${!x.ativo})">${x.ativo?'Desativar':'Ativar'}</button></div></div>`};
+    <div class="entq-b" onclick="event.stopPropagation()"><button class="btn ghost sm" onclick="A9.edE=Object.assign({},A9.lg.ent.find(y=>y.id==='${x.id}'),{cor:corEnt('${x.id}')});route();window.scrollTo(0,0)">Editar</button><button class="btn ghost sm" onclick="admTab('logistica')">Ver rotas</button><a class="btn wa sm" target="_blank" rel="noopener" href="whatsapp://send?phone=${foneWa(x.whats)}">WhatsApp</a><button class="btn ghost sm" onclick="admAtivaEntregador('${x.id}',${!x.ativo})">${x.ativo?'Desativar':'Ativar'}</button></div></div>`};
   return `<div class="box">${msgBox()}<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><p style="margin:0;color:var(--muted)">Quem faz as entregas. O WhatsApp do entregador recebe a rota.</p><button class="btn acc" onclick="A9.edE={id:null,nome:'',whats:''};route()">Novo entregador</button></div>
   ${e?`<div class="box" style="box-shadow:none;background:#fafafa;margin-top:12px"><h3 style="margin-top:0">${e.id?'Editar entregador':'Novo entregador'}</h3><div class="fr"><div class="c3"><label for="enNome">Nome</label><input id="enNome" value="${esc(e.nome)}" maxlength="80"></div><div class="c3"><label for="enWh">WhatsApp (com DDD)</label><input id="enWh" value="${esc(e.whats)}" inputmode="tel" placeholder="(12) 9 9999-9999"></div>${corCampo(e)}</div><p style="display:flex;gap:8px"><button class="btn acc" onclick="admSalvaEntregador()">Salvar</button><button class="btn ghost" onclick="A9.edE=null;A9.msg='';route()">Cancelar</button></p></div>`:''}
   <div class="entgrid">${A9.lg.ent.map(quadro).join('')||'<p>Nenhum entregador cadastrado.</p>'}</div>${entRotas()}</div>`;
@@ -3816,7 +3839,7 @@ function entDV(){
   return {d:d,m:MESES[m-1],y:y,txt:DSEMN[dt.getDay()]+', '+d+' de '+MESES[m-1].toLowerCase()+' de '+y};
 }
 function entDt(part,delta){
-  const base=hojeS();
+  const base=ymd(new Date());
   if(!ent.data){ent.data=base;route();return}
   let [y,m,d]=ent.data.split('-').map(Number);
   const dim=(yy,mm)=>new Date(yy,mm,0).getDate();
@@ -4519,15 +4542,15 @@ function waMovel(){return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent||
 function waAbrir(fone,txt){
   const m=waModo();
   if(m==='link'){window.open(waUrlPara(fone,txt),'_blank');return}
-  if(m==='colar'){copiaTexto(txt,'Mensagem copiada. Na conversa que abriu, cole com Ctrl+V (ou segure e toque em Colar) e envie.');window.open('https://wa.me/'+fone,'_blank');return}
+  if(m==='colar'){copiaTexto(txt,'Mensagem copiada. Na conversa que abriu, cole com Ctrl+V (ou segure e toque em Colar) e envie.');window.open('whatsapp://send?phone='+fone,'_blank');return}
   if(waMovel()){window.open(waUrlPara(fone,txt),'_blank');return}
   copiaTexto(txt,'Conversa do cliente aberta. Se algum emoji vier quebrado, apague o texto e cole com Ctrl+V: a mensagem já está copiada.');
   window.open('https://web.whatsapp.com/send?phone='+fone+'&text='+encodeURIComponent(txt),'_blank');
 }
 if(window.__ADMIN_APP)document.addEventListener('click',function(ev){
   if(waModo()==='link')return;
-  const a=ev.target.closest&&ev.target.closest('a[href^="https://wa.me/"]');if(!a)return;
-  const m=a.getAttribute('href').match(/^https:\/\/wa\.me\/(\d+)\?text=(.*)$/);if(!m)return;
+  const a=ev.target.closest&&ev.target.closest('a[href^="whatsapp://send?phone="]');if(!a)return;
+  const m=a.getAttribute('href').match(/^whatsapp:\/\/send\?phone=(\d+)&text=(.*)$/);if(!m)return;
   ev.preventDefault();
   let t='';try{t=decodeURIComponent(m[2])}catch(x){return}
   waAbrir(m[1],t);
@@ -4930,7 +4953,7 @@ function tabManual(){
     <div class="box" id="mc_prod">${passo(2,'Produtos','Escolha as quantidades de cada opção')}
      <input id="mnBusca" placeholder="Buscar produto..." value="${esc(M.busca||'')}" oninput="manBusca(this.value)" style="margin-bottom:10px"><div id="manProds">${manProdsHtml()}</div></div>
     <div class="box" id="mc_ent">${passo(3,'Entrega e pagamento','Data, horário e forma de pagamento')}
-     <div class="fr"><div class="c2"><label for="mnData">Data de entrega</label><input id="mnData" type="date" min="${hojeS()}" value="${esc(f.mnData||hojeS())}"></div></div>
+     <div class="fr"><div class="c2"><label for="mnData">Data de entrega</label><input id="mnData" type="date" value="${esc(f.mnData||hojeS())}"></div></div>
      <div class="pf-l" style="margin-top:12px">Horário</div><div class="turnos3">${turnos.map(t=>`<label class="turno3 ${M.turno===t?'on':''}" data-t="${t}" data-mk="turno" data-mv="${t}" onclick="manSel('turno','${t}')"><input type="radio" name="mnt">${TURNOS[t]}</label>`).join('')}</div>
      <div class="pf-l" style="margin-top:12px">Forma de pagamento</div><div class="turnos3 pagos">${PAGS.map(x=>`<label class="turno3 ${M.pag===x[0]?'on':''}" data-p="${x[0]}" data-mk="pag" data-mv="${x[0]}" onclick="manSel('pag','${x[0]}')"><input type="radio" name="mnp">${x[1]}</label>`).join('')}</div>
      <label for="mnObs" style="margin-top:12px">Observações (opcional)</label><textarea id="mnObs" rows="2" maxlength="500" placeholder="Ex.: portão azul, deixar com o porteiro">${esc(f.mnObs||'')}</textarea></div>
@@ -5343,11 +5366,72 @@ async function admCarregarClientes(){
       const pg=(o.pagamento||{}).preferencia||(o.pagamento||{}).metodo;if(pg)c.pag[pg]=(c.pag[pg]||0)+1;
       if(!c.ult||o.criado_em>c.ult)c.ult=o.criado_em;
     });
+    // mesclar clientes importados do banco
+    try{
+      const imp=await SB.from('clientes_importados').select('*').limit(5000);
+      const normF=f=>String(f||'').replace(/\D/g,'');
+      (imp.data||[]).forEach(p=>{
+        const fNorm=normF(p.fone||'');
+        const existeK=fNorm&&Object.values(M).find(c=>c.fone&&normF(c.fone)===fNorm);
+        if(existeK){
+          if(!existeK.email&&p.email)existeK.email=p.email;
+          if(!existeK.cidade&&p.cidade)existeK.cidade=p.cidade;
+        } else {
+          const k='imp_'+p.id;
+          M[k]={k,nome:p.nome||'',fone:p.fone||'',email:p.email||'',cidade:p.cidade||'',cad:p.criado_em,n:0,ent:0,tot:0,pag:{},ult:null,importado:true};
+        }
+      });
+    }catch(xi){}
     A9.clientes=Object.values(M);
   }catch(x){A9.clientes=[];A9.cliErro='Não foi possível carregar os clientes agora.'}
   A9.cliBusy=false;route();
 }
 function cliPagTop(c){const e=Object.entries(c.pag).sort((a,b)=>b[1]-a[1])[0];return e?((PAGNOME[e[0]]||e[0])+' ('+e[1]+'x)'):'—'}
+function admImportarClientes(){
+  const inp=document.getElementById('cliXlsxInput');if(inp)inp.click();
+}
+function admProcessarPlanilha(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!rows.length){toast('Planilha vazia ou formato inválido.');return}
+      const norm=f=>String(f||'').replace(/\D/g,'');
+      // carregar já existentes no banco para dedup
+      let jaSalvos=[];
+      if(SB){const r=await SB.from('clientes_importados').select('fone,nome');jaSalvos=r.data||[];}
+      const normDB=jaSalvos.map(c=>norm(c.fone||''));
+      let toInsert=[],skip=0;
+      rows.forEach(row=>{
+        const keys=Object.keys(row);
+        const get=(...names)=>{for(const n of names){const k=keys.find(k=>k.toLowerCase().includes(n.toLowerCase()));if(k&&row[k])return String(row[k]).trim()}return ''};
+        const nome=get('nome','name','cliente');
+        const foneRaw=get('fone','telefone','phone','whatsapp','cel');
+        const foneNorm=norm(foneRaw);
+        const email=get('email','e-mail');
+        const cidade=get('cidade','city','municipio');
+        if(!nome&&!foneNorm){skip++;return}
+        // dedup contra pedidos já carregados
+        const existePed=(A9.clientes||[]).find(c=>(foneNorm&&norm(c.fone)===foneNorm)||(nome&&c.nome&&c.nome.toLowerCase()===nome.toLowerCase()));
+        // dedup contra já importados no banco
+        const existeDB=normDB.includes(foneNorm)||(nome&&jaSalvos.some(c=>c.nome&&c.nome.toLowerCase()===nome.toLowerCase()));
+        if(existePed||existeDB){skip++;return}
+        toInsert.push({nome,fone:foneRaw,email,cidade});
+        normDB.push(foneNorm);// evita duplicar dentro da mesma planilha
+      });
+      if(!toInsert.length){toast(`Nenhum cliente novo. ${skip} já existiam.`);return}
+      if(!SB){toast('Sem conexão com o banco.');return}
+      const r=await SB.from('clientes_importados').insert(toInsert);
+      if(r.error){toast('Erro ao salvar: '+r.error.message);return}
+      toast(`${toInsert.length} cliente${toInsert.length===1?'':'s'} salvo${toInsert.length===1?'':'s'} no banco. ${skip} já existiam.`);
+      A9.clientes=null;route();// recarrega lista
+    }catch(x){toast('Erro ao ler planilha: '+x.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
 function tabClientes(){
   if(!A9.clientes){if(!A9.cliBusy)admCarregarClientes();return '<div class="box">Carregando clientes...</div>'}
   const q=String(A9.cliQ||'').toLowerCase(),f=A9.cliF||'';
@@ -5355,8 +5439,9 @@ function tabClientes(){
   L.sort((a,b)=>b.n-a.n||String(b.ult||'').localeCompare(String(a.ult||'')));
   const fiel=A9.clientes.filter(c=>c.n>=CLI_META).length,m=cupomMarcas();
   return `<div class="box"><h2 style="margin:0 0 4px">Clientes cadastrados</h2><p style="margin:0 0 10px;color:var(--muted)">${A9.clientes.length} cliente${A9.clientes.length===1?'':'s'} · ${fiel} com ${CLI_META} pedidos ou mais. Pedidos cancelados não contam.</p>${A9.cliErro?'<div class="note err">'+esc(A9.cliErro)+'</div>':''}
-  <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" onkeydown="if(event.key==='Enter'){A9.cliQ=this.value;route()}" onchange="A9.cliQ=this.value;route()"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button></div>
-  <div class="tbl"><table><thead><tr><th>Cliente</th><th>Contato</th><th>Cidade</th><th>Pedidos</th><th>Entregues</th><th>Total comprado</th><th>Pagamento mais usado</th><th>Último pedido</th><th>Cadastro</th><th></th></tr></thead><tbody>${L.map(c=>`<tr><td><b>${esc(c.nome||'Sem nome')}</b></td><td>${esc(c.fone||'')}${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${esc(cliPagTop(c))}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td>${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div></div>`;
+  <input type="file" id="cliXlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="admProcessarPlanilha(this.files[0]);this.value=''">
+  <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" onkeydown="if(event.key==='Enter'){A9.cliQ=this.value;route()}" onchange="A9.cliQ=this.value;route()"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button><button class="btn ghost sm" onclick="admImportarClientes()" title="Importar clientes de planilha Excel ou CSV">Importar planilha</button></div>
+  <div class="tbl"><table><thead><tr><th>Cliente</th><th>Contato</th><th>Cidade</th><th>Pedidos</th><th>Entregues</th><th>Total comprado</th><th>Pagamento mais usado</th><th>Último pedido</th><th>Cadastro</th><th></th></tr></thead><tbody>${L.map(c=>`<tr><td><span style="color:var(--muted);font-size:.8rem;margin-right:4px">${c.n}x</span><b>${esc(c.nome||'Sem nome')}</b>${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" target="_blank" rel="noopener" style="color:inherit">${esc(c.fone)}</a>`:''} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${esc(cliPagTop(c))}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td>${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="11">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div></div>`;
 }
 var CUPOM_TXT='Olá, {nome}, tudo bem? 😊\nPassando para agradecer de coração: você já fez {pedidos} pedidos com a gente e isso é muito especial para nós!\nComo agradecimento pela sua fidelidade, preparamos um cupom exclusivo para você: *{cupom}*.\nÉ só avisar no seu próximo pedido. Obrigado pela confiança! 💜';
 function cupomAbrir(k){
