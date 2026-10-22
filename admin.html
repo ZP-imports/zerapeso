@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-21-2403 -->
+<!-- v2026-10-21-2404 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5088,10 +5088,10 @@ function tabPagamentos(){
      rowCls=atrs?' class="parc-atrs"':venc?' class="parc-venc"':'';
      if(ps.length===1){
        const p=ps[0];
-       parcRow=`<div style="font-size:.8rem;margin-top:4px">${p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':atrs?'<span class="parc-chip parc-pend" style="animation:pagpulsa .9s ease-in-out infinite">⚠️ VENCIDA '+dataBr(p.data)+'</span>':venc?'<span class="parc-chip parc-pend" style="animation:pagpulsa .9s ease-in-out infinite">⚠️ Vence '+dataBr(p.data)+'</span>':`<span class="parc-chip parc-ok">📅 ${dataBr(p.data)}</span>`}${!p.pago?`<button class="btn ghost sm" style="margin-left:6px;padding:1px 7px;font-size:.75rem" onclick="prevMarcar(${o.id},0,true)">Marcar pago</button>`:''}</div>`;
+       parcRow=`<div style="font-size:.8rem;margin-top:4px">${p.valor?`<b>${esc(brl(p.valor))}</b> `:''}${p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':atrs?'<span class="parc-chip parc-pend" style="animation:pagpulsa .9s ease-in-out infinite">⚠️ VENCIDA '+dataBr(p.data)+'</span>':venc?'<span class="parc-chip parc-pend" style="animation:pagpulsa .9s ease-in-out infinite">⚠️ Vence '+dataBr(p.data)+'</span>':`<span class="parc-chip parc-ok">📅 ${dataBr(p.data)}</span>`}${!p.pago?`<button class="btn ghost sm" style="margin-left:6px;padding:1px 7px;font-size:.75rem" onclick="prevMarcar(${o.id},0,true)">Marcar pago</button>`:''}</div>`;
      }else{
        const pagas=ps.filter(p=>p.pago).length;
-       parcRow=`<details style="margin-top:4px"><summary style="cursor:pointer;font-size:.8rem;font-weight:600;color:${atrs?'#dc2626':venc?'#c2410c':'#2563eb'}">${prevStatusTxt(o)} ${atrs?'⚠️':venc?'🔔':''}</summary><table style="margin-top:6px;font-size:.78rem;border-collapse:collapse">${ps.map((p,i)=>`<tr><td style="padding:2px 8px 2px 0;font-weight:600">${i+1}ª</td><td style="padding:2px 8px 2px 0">${dataBr(p.data)}</td><td style="padding:2px 8px 2px 0">${p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':'<span class="parc-chip parc-pend">pendente</span>'}</td><td>${p.pago?`<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar(${o.id},${i},false)">↩ desfazer</button>`:`<button class="btn acc" style="padding:0 6px;font-size:.72rem;background:#16a34a;color:#fff;border:none" onclick="prevMarcar(${o.id},${i},true)">Marcar pago</button>`}</td></tr>`).join('')}</table></details>`;
+       parcRow=`<details style="margin-top:4px"><summary style="cursor:pointer;font-size:.8rem;font-weight:600;color:${atrs?'#dc2626':venc?'#c2410c':'#2563eb'}">${prevStatusTxt(o)} ${atrs?'⚠️':venc?'🔔':''}</summary><table style="margin-top:6px;font-size:.78rem;border-collapse:collapse">${ps.map((p,i)=>`<tr><td style="padding:2px 8px 2px 0;font-weight:600">${p.entrada?'Entrada':(i+1-(ps[0].entrada?1:0))+'ª'}</td><td style="padding:2px 8px 2px 0">${dataBr(p.data)}</td><td style="padding:2px 8px 2px 0">${p.valor?esc(brl(p.valor)):''}</td><td style="padding:2px 8px 2px 0">${p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':'<span class="parc-chip parc-pend">pendente</span>'}</td><td>${p.pago?`<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar(${o.id},${i},false)">↩ desfazer</button>`:`<button class="btn acc" style="padding:0 6px;font-size:.72rem;background:#16a34a;color:#fff;border:none" onclick="prevMarcar(${o.id},${i},true)">Marcar pago</button>`}</td></tr>`).join('')}</table></details>`;
      }
    }else{
      const prev=(o.extra||{}).pag_prev;
@@ -5832,27 +5832,38 @@ function prevVencendo(o){const p=prevProxima(o);return !!(p&&p.data&&p.data<=hoj
 function prevVencida(o){const p=prevProxima(o);return !!(p&&p.data&&p.data<hojeS())}
 function prevStatusTxt(o){const ps=prevParcelas(o);if(!ps.length)return'';const pagas=ps.filter(p=>p.pago).length;if(ps.length===1){return ps[0].pago?'✅ pago':'📅 '+dataBr(ps[0].data);}if(pagas===0){const pr=prevProxima(o);return`${ps.length}x · próx. ${pr?dataBr(pr.data):'?'}`;}if(pagas===ps.length)return`✅ ${ps.length}x todas pagas`;return`${ps.length}x · ${pagas}/${ps.length} pagas`;}
 
+function pdNum(s){s=String(s==null?'':s).trim();if(!s)return 0;if(s.indexOf(',')>-1)s=s.replace(/\./g,'').replace(',','.');const v=parseFloat(s);return isFinite(v)&&v>0?Math.round(v*100)/100:0}
+function pdMoeda(v){return v>0?v.toFixed(2).replace('.',','):''}
+function prevForma(ps){return ps.length===1&&!ps[0].pago&&!ps[0].valor&&!ps[0].entrada?ps[0].data:ps}
 function pagDia(id){
   const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
-  const ps=prevParcelas(o);const nAtual=ps.length||1;const obs=(o.extra||{}).pag_obs||'';
+  const ps=prevParcelas(o);const obs=(o.extra||{}).pag_obs||'';
+  const ent=ps.find(p=>p.entrada)||null;const regulares=ps.filter(p=>!p.entrada);
+  const nAtual=regulares.length||1;const total=pedTotal(o)+(freteDoPedido(o)||0);
   const old=document.getElementById('pdbox');if(old)old.remove();
   const d=document.createElement('div');d.id='pdbox';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto';
-  d.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:94vh;overflow:auto;padding:18px">
+  d.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:94vh;overflow:auto;padding:18px">
 <h3 style="margin:0 0 4px">Programar pagamento</h3>
-<p style="margin:0 0 12px;color:#667085;font-size:.88rem">${esc(codPed(o))} · ${esc((o.entrega||{}).nome||'')}</p>
+<p style="margin:0 0 12px;color:#667085;font-size:.88rem">${esc(codPed(o))} · ${esc((o.entrega||{}).nome||'')} · Total do pedido: <b>${total>0?esc(brl(total)):'a confirmar'}</b></p>
 <div style="display:flex;gap:10px;margin-bottom:12px;align-items:flex-end;flex-wrap:wrap">
-  <div style="flex:1;min-width:120px"><label style="font-size:.82rem">Nº de parcelas</label><input id="pdN" type="number" min="1" max="36" value="${nAtual}" style="width:100%" oninput="pdGerarLinhas()"></div>
-  <div style="flex:2;min-width:140px"><label style="font-size:.82rem">Data da 1ª parcela</label><input id="pdD1" type="date" value="${esc(ps[0]&&ps[0].data||'')}" oninput="pdGerarLinhas()"></div>
+  <div style="flex:1;min-width:120px"><label style="font-size:.82rem">Entrada (R$)</label><input id="pdEnt" inputmode="decimal" placeholder="0,00 (sem entrada)" value="${ent&&ent.valor?esc(pdMoeda(ent.valor)):''}" style="width:100%" oninput="pdGerarLinhas()"></div>
+  <div style="flex:1;min-width:140px"><label style="font-size:.82rem">Data da entrada</label><input id="pdEntD" type="date" value="${esc(ent&&ent.data||hojeS())}" oninput="pdGerarLinhas()"></div>
+</div>
+<div style="display:flex;gap:10px;margin-bottom:12px;align-items:flex-end;flex-wrap:wrap">
+  <div style="flex:1;min-width:100px"><label style="font-size:.82rem">Nº de parcelas</label><input id="pdN" type="number" min="1" max="36" value="${nAtual}" style="width:100%" oninput="pdGerarLinhas()"></div>
+  <div style="flex:2;min-width:140px"><label style="font-size:.82rem">Data da 1ª parcela</label><input id="pdD1" type="date" value="${esc(regulares[0]&&regulares[0].data||'')}" oninput="pdGerarLinhas()"></div>
   <div style="flex:2;min-width:140px"><label style="font-size:.82rem">Repetir a cada</label><select id="pdFreq" onchange="pdGerarLinhas()" style="width:100%"><option value="M">Mesmo dia, todo mês</option><option value="30">30 dias (mensal)</option><option value="7">7 dias (semanal)</option><option value="15">15 dias (quinzenal)</option><option value="0">Manual (defino cada data)</option></select></div>
 </div>
 <div id="pdLinhas"></div>
+<p id="pdResumo" style="font-size:.84rem;margin:6px 0 0"></p>
 <label style="margin-top:10px;font-size:.82rem">Observação</label><input id="pdO" maxlength="160" placeholder="Ex.: recebe dia 30, paga no Pix" value="${esc(obs)}">
 <div class="btns" style="margin-top:12px"><button class="btn acc" onclick="pagDiaSalvar(${id})">Salvar</button><button class="btn ghost" onclick="pagDiaRemover(${id})">Remover programação</button><button class="btn ghost" onclick="document.getElementById('pdbox').remove()">Fechar</button></div>
 <p id="pdMsg" style="font-size:.82rem;margin:6px 0 0"></p>
 </div>`;
   document.body.appendChild(d);
-  /* guarda parcelas existentes para preservar status de pagamento */
-  d._pdPs=ps;
+  d._pdO=o;d._pdTotal=total;
+  /* estado das linhas: guarda datas, valores e quem já pagou (os valores digitados à mão não são recalculados) */
+  d._pdRows=ps.map(p=>({entrada:!!p.entrada,data:p.data||'',valor:+p.valor||0,pago:!!p.pago,pago_em:p.pago_em||null,man:!!p.valor}));
   pdGerarLinhas();
 }
 function pdAddDias(dateStr,n){
@@ -5864,43 +5875,83 @@ function pdAddMeses(dateStr,n){
   alvo.setDate(Math.min(dia,ult));
   return alvo.getFullYear()+'-'+String(alvo.getMonth()+1).padStart(2,'0')+'-'+String(alvo.getDate()).padStart(2,'0');
 }
+/* lê o que está na tela (ou o último estado guardado) */
+function pdLerLinhas(){
+  const d=document.getElementById('pdbox');if(!d)return[];
+  return (d._pdRows||[]).map((r,i)=>{
+    const dt=document.getElementById('pdDate'+i),vl=document.getElementById('pdVal'+i),pg=document.getElementById('pdPago'+i);
+    const pago=pg?pg.checked:r.pago;
+    return {entrada:r.entrada,data:dt?dt.value:r.data,valor:vl?pdNum(vl.value):r.valor,man:vl?vl.dataset.man==='1':r.man,pago,pago_em:pago?(r.pago_em||hojeS()):null};
+  });
+}
 function pdGerarLinhas(){
   const d=document.getElementById('pdbox');if(!d)return;
+  const antigas=pdLerLinhas();const antE=antigas.find(r=>r.entrada)||null,antP=antigas.filter(r=>!r.entrada);
   const n=Math.max(1,Math.min(36,+(document.getElementById('pdN')||{value:1}).value||1));
   const d1=(document.getElementById('pdD1')||{value:''}).value||'';
   const fv=(document.getElementById('pdFreq')||{value:'M'}).value;
   const mensalFixo=fv==='M';const freq=mensalFixo?0:+fv;
   const manual=!mensalFixo&&freq===0;
-  const ps=d._pdPs||[];
-  /* gerar datas */
+  const entV=pdNum((document.getElementById('pdEnt')||{value:''}).value);
+  const entD=(document.getElementById('pdEntD')||{value:''}).value||hojeS();
   let datas=[];
   if(!manual&&d1){for(let i=0;i<n;i++){datas.push(i===0?d1:mensalFixo?pdAddMeses(d1,i):pdAddDias(d1,freq*i));}}
-  else{for(let i=0;i<n;i++){datas.push(ps[i]&&ps[i].data||'');}}
-  const cont=document.getElementById('pdLinhas');if(!cont)return;
-  if(n===1){cont.innerHTML=`<label style="font-size:.82rem">Data do pagamento</label><input id="pdDate0" type="date" value="${esc(datas[0]||'')}">`;return;}
-  let rows='';
-  for(let i=0;i<n;i++){const pago=ps[i]&&ps[i].pago;rows+=`<tr><td style="padding:4px 6px;font-weight:600">${i+1}ª</td><td style="padding:4px 6px"><input type="date" id="pdDate${i}" value="${esc(datas[i]||'')}"${manual?'':' readonly style="background:#f8fafc"'}></td><td style="padding:4px 6px"><span class="parc-chip ${pago?'parc-paga':'parc-pend'}">${pago?'paga':'pendente'}</span></td></tr>`;
+  else{for(let i=0;i<n;i++){datas.push(antP[i]&&antP[i].data||'');}}
+  const resto=Math.max(0,(d._pdTotal||0)-entV);
+  /* parcelas com valor digitado à mão ficam como estão; o resto é dividido igualmente entre as outras */
+  const fx=[];for(let i=0;i<n;i++){const a=antP[i]||{};fx.push(!!(a.man&&a.valor))}
+  const somaFix=fx.reduce((s,x,i)=>s+(x?antP[i].valor:0),0);
+  const nAuto=fx.filter(x=>!x).length;const restoAuto=Math.max(0,resto-somaFix);
+  const base=nAuto?Math.floor(restoAuto/nAuto*100)/100:0;
+  const ultAuto=fx.lastIndexOf(false);
+  const rows=[];
+  if(entV>0)rows.push({entrada:true,data:entD,valor:entV,pago:!!(antE&&antE.pago),pago_em:antE&&antE.pago_em||null,man:true});
+  for(let i=0;i<n;i++){
+    const a=antP[i]||{};const auto=i===ultAuto?Math.round((restoAuto-base*(nAuto-1))*100)/100:base;
+    const fixo=fx[i];
+    rows.push({entrada:false,data:datas[i]||'',valor:fixo?a.valor:auto,pago:!!a.pago,pago_em:a.pago_em||null,man:fixo});
   }
-  cont.innerHTML=`<div class="tbl" style="margin:8px 0"><table><thead><tr><th>#</th><th>Data</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  d._pdRows=rows;
+  const cont=document.getElementById('pdLinhas');if(!cont)return;
+  let k=0;
+  const trs=rows.map((r,i)=>{
+    const rot=r.entrada?'Entrada':(++k)+'ª';
+    const dataRO=(manual&&!r.entrada)?'':' readonly style="background:#f8fafc"';
+    return `<tr><td style="padding:4px 6px;font-weight:600">${rot}</td><td style="padding:4px 6px"><input type="date" id="pdDate${i}" value="${esc(r.data)}"${r.entrada?' oninput="pdGerarLinhas()"':dataRO}></td><td style="padding:4px 6px"><input id="pdVal${i}" inputmode="decimal" placeholder="0,00" value="${esc(pdMoeda(r.valor))}" data-man="${r.man?1:0}" ${r.entrada?'readonly style="max-width:110px;background:#f8fafc"':'style="max-width:110px" oninput="this.dataset.man=\'1\';pdResumo()"'}></td><td style="padding:4px 6px;white-space:nowrap"><label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:600"><input type="checkbox" id="pdPago${i}" ${r.pago?'checked':''} onchange="pdResumo()" style="width:20px;height:20px"> pago</label></td></tr>`;
+  }).join('');
+  cont.innerHTML=`<div class="tbl" style="margin:8px 0"><table><thead><tr><th>#</th><th>Data</th><th>Valor (R$)</th><th>Recebido</th></tr></thead><tbody>${trs}</tbody></table></div>`;
+  pdResumo();
+}
+function pdResumo(){
+  const el=document.getElementById('pdResumo'),d=document.getElementById('pdbox');if(!el||!d)return;
+  const rs=pdLerLinhas();const soma=rs.reduce((s,r)=>s+(r.valor||0),0),rec=rs.filter(r=>r.pago).reduce((s,r)=>s+(r.valor||0),0);
+  const tot=d._pdTotal||0;const dif=tot>0&&Math.abs(soma-tot)>0.009;
+  el.innerHTML=`Soma das parcelas: <b>${esc(brl(soma))}</b>${tot>0?` de <b>${esc(brl(tot))}</b>`:''} · Já recebido: <b style="color:#16a34a">${esc(brl(rec))}</b>${dif?`<br><span style="color:#d92d20">Atenção: a soma não bate com o total do pedido (diferença de ${esc(brl(Math.abs(tot-soma)))}).</span>`:''}`;
 }
 async function pagDiaSalvar(id){
   const d=document.getElementById('pdbox');if(!d)return;
   const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
-  const n=Math.max(1,Math.min(36,+(document.getElementById('pdN')||{value:1}).value||1));
-  const ps=d._pdPs||[];
+  const rs=pdLerLinhas();const msg=document.getElementById('pdMsg');
   const parcelas=[];
-  for(let i=0;i<n;i++){
-    const inp=document.getElementById('pdDate'+i);const data=inp?inp.value:'';
-    if(!data){const msg=document.getElementById('pdMsg');if(msg)msg.innerHTML=`<span style="color:#d92d20">Preencha a data da ${i+1}ª parcela.</span>`;return;}
-    parcelas.push({data,pago:ps[i]&&ps[i].pago||false,pago_em:ps[i]&&ps[i].pago_em||null});
+  for(let i=0;i<rs.length;i++){
+    const r=rs[i];
+    if(!r.data){if(msg)msg.innerHTML=`<span style="color:#d92d20">Preencha a data ${r.entrada?'da entrada':'da '+(i+1-(rs[0].entrada?1:0))+'ª parcela'}.</span>`;return;}
+    const p={data:r.data,pago:!!r.pago,pago_em:r.pago?(r.pago_em||hojeS()):null};
+    if(r.valor>0)p.valor=r.valor;
+    if(r.entrada)p.entrada=true;
+    parcelas.push(p);
   }
   const ob=(document.getElementById('pdO')||{value:''}).value.trim();
-  const ex=Object.assign({},o.extra||{},{pag_prev:parcelas.length===1?parcelas[0].data:parcelas,pag_obs:ob||null});
+  const ex=Object.assign({},o.extra||{},{pag_prev:prevForma(parcelas),pag_obs:ob||null});
   if(!ex.pag_base)ex.pag_base=new Date(Date.parse(o.chegou_em||o.atualizado_em||o.criado_em)||Date.now()).toISOString();
-  const r=await SB.from('pedidos').update({extra:ex}).eq('id',id);
-  if(r.error){const msg=document.getElementById('pdMsg');if(msg)msg.innerHTML=`<span style="color:#d92d20">Erro: ${esc(r.error.message)}</span>`;return;}
-  o.extra=ex;
-  const txt=parcelas.length===1?`Pagamento programado para ${dataBr(parcelas[0].data)}`:`Pagamento parcelado em ${parcelas.length}x — 1ª parcela em ${dataBr(parcelas[0].data)}`;
+  const upd={extra:ex};
+  if(parcelas.every(p=>p.pago)&&(o.pagamento||{}).status!=='pago')upd.pagamento=Object.assign({},o.pagamento||{},{status:'pago',pago_em:new Date().toISOString()});
+  const r=await SB.from('pedidos').update(upd).eq('id',id);
+  if(r.error){if(msg)msg.innerHTML=`<span style="color:#d92d20">Erro: ${esc(r.error.message)}</span>`;return;}
+  o.extra=ex;if(upd.pagamento)o.pagamento=upd.pagamento;
+  const nPagas=parcelas.filter(p=>p.pago).length;
+  const temE=parcelas.some(p=>p.entrada);
+  const txt=parcelas.length===1&&!temE?`Pagamento programado para ${dataBr(parcelas[0].data)}`:`Pagamento parcelado${temE?' com entrada':''} em ${parcelas.length-(temE?1:0)}x — ${nPagas}/${parcelas.length} recebidas`;
   SB.from('pedido_eventos').insert({pedido_id:id,tipo:'pagamento',publico:false,texto:txt+(ob?' · '+ob:''),por:ADMIN.nome}).then(()=>{},()=>{});
   const el=document.getElementById('pdbox');if(el)el.remove();
   toast(txt+'.');route();
@@ -5922,7 +5973,7 @@ async function prevMarcar(id,idx,pago){
   if(!ps[idx])return;
   ps[idx]={...ps[idx],pago,pago_em:pago?hojeS():null};
   const todasPagas=ps.every(p=>p.pago);
-  const ex=Object.assign({},o.extra||{},{pag_prev:ps.length===1?ps[0].data:ps});
+  const ex=Object.assign({},o.extra||{},{pag_prev:prevForma(ps)});
   const pagStatus=todasPagas?'pago':(o.pagamento||{}).status==='pago'?'pago':undefined;
   const upd={extra:ex};if(pagStatus)upd.pagamento=Object.assign({},o.pagamento||{},{status:'pago',pago_em:new Date().toISOString()});
   const r=await SB.from('pedidos').update(upd).eq('id',id);
