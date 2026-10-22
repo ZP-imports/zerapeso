@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-22-2412 -->
+<!-- v2026-10-22-2413 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -4092,8 +4092,8 @@ function admCriaRota(){
     const r=await SB.rpc('criar_rota',{p_data:d,p_entregador:en,p_pedidos:ids});A9.busy=false;
     if(r.error){A9.msg=msgRpc(r.error);A9.erro=true;route();return}
     const sr=await SB.rpc('saiu_rota',{p_rota:r.data});
-    A9.sel={};A9.pedidos=null;A9.lg=null;A.tab='entregadores';A9.entSel={};A9.entSel[en]=true;A9.otAuto=en;A9.otim=null;
-    A9.msg='Rota criada e já em andamento: os clientes foram avisados de que saiu para entrega'+(sr.error?' (falhou ao marcar a saída: use Saiu para entrega)':'')+'. Agora arraste as paradas na ordem da rota e envie ao entregador.';A9.erro=false;route();window.scrollTo(0,0)})();
+    const uberRota=ehUber(((A9.lg||{}).ent||[]).find(x=>x.id===en));A9.sel={};A9.pedidos=null;A9.lg=null;A.tab='entregadores';A9.entSel={};A9.entSel[en]=true;A9.otAuto=uberRota?null:en;A9.otim=null;
+    A9.msg='Rota criada e já em andamento: os clientes foram avisados de que saiu para entrega'+(sr.error?' (falhou ao marcar a saída: use Saiu para entrega)':'')+'.'+(uberRota?' Use o botão Chamar Uber em cada pedido para abrir o aplicativo já com o endereço.':' Agora arraste as paradas na ordem da rota e envie ao entregador.');A9.erro=false;route();window.scrollTo(0,0)})();
 }
 function admSaiuRota(id){if(confirm('Marcar que a rota saiu? Os pedidos passam para "Em rota" e os clientes são avisados.'))admLgRpc('saiu_rota',{p_rota:id},'Rota em andamento. Clientes avisados.')}
 function admDesfazRota(id){if(confirm('Desfazer esta rota? Os pedidos voltam para "Aguardando programação".'))admLgRpc('desfazer_rota',{p_rota:id},'Rota desfeita.')}
@@ -4148,7 +4148,7 @@ function tabLogistica(){
   const andamento=rotas.filter(r=>!r.pedidos.map(id=>L.peds[id]).filter(Boolean).every(ENC));
   const concluidas=rotas.filter(r=>!andamento.includes(r));
   return `<div class="box">${msgBox()}<h3 style="margin-top:0">Selecione os pedidos e envie para o motoboy</h3>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><button class="btn ghost sm" onclick="admLgRecarrega()">Atualizar</button></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><button class="btn ghost sm" onclick="admLgRecarrega()">Atualizar</button>${L.ent.some(ehUber)?'':'<button class="btn acc sm" onclick="uberAtivar()">🚗 Ativar opção Uber</button>'}</div>
   <div class="tbl"><table><thead><tr><th></th><th>Pedido</th><th>Cliente</th><th>Bairro / cidade</th><th>Data desejada</th><th>Itens</th></tr></thead><tbody>${elegiveis.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td><input type="checkbox" style="width:auto" ${A9.sel[o.id]?'checked':''} onchange="admSel(${o.id},this.checked)"></td><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${esc(STLB[o.status]||o.status)}</div></td><td>${esc(e.nome||'')}</td><td>${esc((d.bairro||'')+' / '+(d.cidade||''))}</td><td>${dataBr(e.data)} ${esc(TURNOS[e.turno]||'')}${e.data&&e.data<hoje?' <b style="color:#b3261e">atrasado</b>':''}</td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td></tr>`}).join('')||'<tr><td colspan="6">Nenhum pedido encaminhado pela loja ainda. Na aba Pedidos, abra o pedido e clique em Encaminhar para entregador.</td></tr>'}</tbody></table></div>
   ${ativos.length?`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:12px"><div><label for="lgE">Entregador</label><select id="lgE" style="width:auto"><option value="">Escolha</option>${ativos.map(x=>`<option value="${x.id}" ${A9.lgE===x.id?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></div><div><label for="lgD">Data da rota</label><input id="lgD" type="date" value="${esc(A9.lgD||hoje)}" style="width:auto"></div><button class="btn acc" onclick="admCriaRota()">Criar rota com ${nSel} pedido${nSel===1?'':'s'}</button></div>`:'<div class="note warn">Cadastre um entregador na aba Entregadores para criar rotas.</div>'}
   <h3>Rotas por entregador</h3><p style="margin:0 0 8px;color:var(--muted);font-size:.88rem">Clique em um ou mais entregadores para ver todas as rotas dele. Sem seleção, aparecem as rotas em andamento.</p>
@@ -4679,6 +4679,16 @@ function endTxt(d){
 }
 var mapsDest=t=>'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(t)+'&travelmode=driving';
 var wazeDest=t=>'https://waze.com/ul?q='+encodeURIComponent(t)+'&navigate=yes';
+/* Uber: é um "entregador" chamado Uber. O botão abre o app (ou o site, no computador) com o endereço do cliente como destino */
+var ehUber=x=>/uber/i.test(String((x||{}).nome||''));
+function uberUrl(o){const e=o.entrega||{};return 'https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[nickname]='+encodeURIComponent(e.nome||'Cliente')+'&dropoff[formatted_address]='+encodeURIComponent(endTxt(e.dest))}
+async function uberAtivar(){
+  if(A9.busy)return;A9.busy=true;
+  const r=await SB.from('entregadores').insert({nome:'Uber',whats:'00000000000'}).select('id').single();
+  A9.busy=false;
+  if(r.error){A9.msg=r.error.code==='23505'?'Não foi possível ativar o Uber: já existe um entregador com o WhatsApp 00000000000. Cadastre um entregador chamado Uber na aba Entregadores.':'Não foi possível ativar o Uber: '+r.error.message;A9.erro=true;route();return}
+  A9.lg=null;A9.msg='Uber ativado. Ele aparece na lista de entregadores: escolha Uber para chamar a corrida.';A9.erro=false;route();
+}
 /* rota com várias paradas: o Maps aceita até 10 (9 intermediárias + o destino) e segue a ordem da lista */
 function mapsRota(lista){
   const L=(lista||[]).filter(Boolean).slice(0,10);
@@ -5293,10 +5303,10 @@ function stAvanca(s){
 /* rota (cartão reaproveitado na Logística e nos Entregadores) */
 function rotaHtmlG(r){const L=A9.lg;
 const en=L.ent.find(x=>x.id===r.entregador_id)||{nome:'?',whats:''};const ps=r.pedidos.map(id=>L.peds[id]).filter(Boolean);
-    const fim=ps.length&&ps.every(o=>ENC(o));const fw=foneWa(en.whats);
+    const fim=ps.length&&ps.every(o=>ENC(o));const uber=ehUber(en);const fw=uber?'':foneWa(en.whats);
     const cr=corEnt(r.entregador_id);return `<div class="box" style="box-shadow:none;background:#fafafa;margin-top:12px;border-left:8px solid ${cr}"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div><b>Rota ${r.n}</b> · ${dataBr(r.data)} · <span class="entdot" style="background:${cr}"></span><b style="color:${cr}">${esc(en.nome)}</b><div style="color:var(--muted);font-size:.82rem">${r.saiu_em?'Saiu em '+fmtD(Date.parse(r.saiu_em)):'Ainda não saiu'}${fim?' · Concluída':''}</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">${!fim?`<button class="btn wa sm" onclick="avAbrir('${r.id}')">Avisar clientes</button>`:''}${fw&&!fim?`<a class="btn wa sm" href="${waUrlPara(fw,msgRota(r))}" target="_blank" rel="noopener" onclick="admEnviouRota('${r.id}')">Enviar rota ao entregador</a>`:''}${!r.saiu_em?`<button class="btn acc sm" onclick="admSaiuRota('${r.id}')">Saiu para entrega</button>`:''}${!fim?`<button class="btn ghost sm" onclick="entCopiarLink('${r.id}')">Copiar link do entregador</button><button class="btn ghost sm" onclick="rotaCopiar('${r.id}')">Copiar mensagem da rota</button>`:''}${!r.saiu_em?`<button class="btn ghost sm" onclick="admDesfazRota('${r.id}')">Desfazer rota</button>`:''}${ADMIN.papel==='admin'?`<button class="btn ghost sm danger" onclick="rotaExcluir('${r.id}')">Excluir rota</button>`:''}</div></div>
-    <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Endereço</th><th>Horário</th><th>Situação</th><th></th></tr></thead><tbody>${ps.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td style="box-shadow:inset 5px 0 0 ${cr}"><b>${codPed(o)}</b></td><td>${esc(e.nome||'')}${e.fone?`<div style="color:var(--muted);font-size:.8rem">${esc(e.fone)}</div>`:''}</td><td>${esc((d.rua||'')+', '+(d.num||'')+' - '+(d.bairro||'')+', '+(d.cidade||''))}</td><td>${esc(TURNOS[e.turno]||'')}</td><td>${esc(ADM_LB[o.status]||STLB[o.status]||o.status)}${o.chegou_em?'<div style="color:var(--muted);font-size:.78rem">Chegou às '+horaBr(o.chegou_em)+'</div>':''}</td><td style="white-space:nowrap">${['em-rota','tentativa'].includes(o.status)?`<button class="btn sm" onclick="admResultado(${o.id},'entregue')">Entregue</button> `:''}${o.status==='em-rota'?`<button class="btn ghost sm" onclick="admResultado(${o.id},'tentativa')">Tentativa</button> `:''}${o.status==='tentativa'?`<button class="btn ghost sm" onclick="admVoltarRota(${o.id},'em-rota')">Voltar p/ em rota</button> <button class="btn ghost sm" onclick="admVoltarRota(${o.id},'confirmado')">Voltar p/ confirmado</button> `:''}${!['entregue','cancelado'].includes(o.status)?`<button class="btn ghost sm" onclick="admTirarRota(${o.id})">Tirar da rota</button> `:''}${o.chegou_em?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">Ver foto</button> `:''}<button class="btn ghost sm" onclick="A9.po=null;A.tab='pedidos';admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div>${A9.av&&A9.av.rota===r.id?avPanel(r,ps):''}</div>`
+    <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Endereço</th><th>Horário</th><th>Situação</th><th></th></tr></thead><tbody>${ps.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td style="box-shadow:inset 5px 0 0 ${cr}"><b>${codPed(o)}</b></td><td>${esc(e.nome||'')}${e.fone?`<div style="color:var(--muted);font-size:.8rem">${esc(e.fone)}</div>`:''}</td><td>${esc((d.rua||'')+', '+(d.num||'')+' - '+(d.bairro||'')+', '+(d.cidade||''))}</td><td>${esc(TURNOS[e.turno]||'')}</td><td>${esc(ADM_LB[o.status]||STLB[o.status]||o.status)}${o.chegou_em?'<div style="color:var(--muted);font-size:.78rem">Chegou às '+horaBr(o.chegou_em)+'</div>':''}</td><td style="white-space:nowrap">${uber&&!['entregue','cancelado'].includes(o.status)?`<a class="btn wa sm" href="${uberUrl(o)}" target="_blank" rel="noopener">🚗 Chamar Uber</a> `:''}${['em-rota','tentativa'].includes(o.status)?`<button class="btn sm" onclick="admResultado(${o.id},'entregue')">Entregue</button> `:''}${o.status==='em-rota'?`<button class="btn ghost sm" onclick="admResultado(${o.id},'tentativa')">Tentativa</button> `:''}${o.status==='tentativa'?`<button class="btn ghost sm" onclick="admVoltarRota(${o.id},'em-rota')">Voltar p/ em rota</button> <button class="btn ghost sm" onclick="admVoltarRota(${o.id},'confirmado')">Voltar p/ confirmado</button> `:''}${!['entregue','cancelado'].includes(o.status)?`<button class="btn ghost sm" onclick="admTirarRota(${o.id})">Tirar da rota</button> `:''}${o.chegou_em?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">Ver foto</button> `:''}<button class="btn ghost sm" onclick="A9.po=null;A.tab='pedidos';admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div>${A9.av&&A9.av.rota===r.id?avPanel(r,ps):''}</div>`
 }
 async function rotaExcluir(rid){
   if(!confirm('Excluir esta rota?\n\nOs pedidos que ainda não foram entregues voltam para a fila da Logística. Pedidos já entregues continuam entregues.'))return;
@@ -5377,9 +5387,10 @@ async function pedEnviarEntregador(){
   A9.busy=false;
   if(r.error){A9.msg=msgRpc(r.error);A9.erro=true;route();return}
   const sr=await SB.rpc('saiu_rota',{p_rota:r.data});
+  const uberRota=ehUber((A9.lg&&A9.lg.ent.find(x=>x.id===en))||{});
   const nome=((A9.lg&&A9.lg.ent.find(x=>x.id===en))||{}).nome||'o entregador';
-  A9.selP={};A9.pedidos=null;A9.lg=null;A9.lgE=en;A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';A9.po=null;A.tab='entregadores';A9.entSel={};A9.entSel[en]=true;A9.otAuto=en;A9.otim=null;
-  A9.msg='Rota criada com '+ids.length+' pedido'+(ids.length>1?'s':'')+' para '+nome+'. Os clientes já foram avisados de que saiu para entrega'+(sr.error?' (falhou ao marcar a saída: use Saiu para entrega na Logística)':'')+'. Agora arraste as paradas na ordem da rota e envie ao entregador.';A9.erro=false;route();window.scrollTo(0,0);
+  A9.selP={};A9.pedidos=null;A9.lg=null;A9.lgE=en;A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';A9.po=null;A.tab='entregadores';A9.entSel={};A9.entSel[en]=true;A9.otAuto=uberRota?null:en;A9.otim=null;
+  A9.msg='Rota criada com '+ids.length+' pedido'+(ids.length>1?'s':'')+' para '+nome+'. Os clientes já foram avisados de que saiu para entrega'+(sr.error?' (falhou ao marcar a saída: use Saiu para entrega na Logística)':'')+'.'+(uberRota?' Use o botão Chamar Uber em cada pedido para abrir o aplicativo já com o endereço.':' Agora arraste as paradas na ordem da rota e envie ao entregador.');A9.erro=false;route();window.scrollTo(0,0);
 }
 
 /* ======================= ATUALIZAÇÃO AUTOMÁTICA: o motoboy entrega, o painel já mostra e libera a cobrança ======================= */
