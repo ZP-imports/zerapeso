@@ -726,6 +726,18 @@ function pageClientes(){
   </div>`;
 }
 function usarCliente(id){CLIENTE_SEL=id;rPage(CART.length?'checkout':'catalogo')}
+/* digitou o CEP: preenche rua, bairro e cidade (ViaCEP), sem apagar o que o revendedor já escreveu */
+async function cepRev(el){
+  const d=el.value.replace(/\D/g,'').slice(0,8);
+  el.value=d.length>5?d.slice(0,5)+'-'+d.slice(5):d;
+  if(d.length!==8)return;
+  try{
+    const r=await fetch('https://viacep.com.br/ws/'+d+'/json/');const j=await r.json();if(!j||j.erro)return;
+    const set=(id,v)=>{const e=document.getElementById(id);if(e&&v&&!e.value.trim())e.value=v};
+    set('cl-endereco',j.logradouro);set('cl-bairro',j.bairro);set('cl-cidade',j.localidade);
+    const n=document.getElementById('cl-numero');if(n)n.focus();
+  }catch(e){}
+}
 function formCliente(id){
   const c=CLIENTES.find(x=>x.id===id)||{};
   const f=(k,l,ph,cls)=>`<div class="${cls||'c3'}"><label for="cl-${k}">${l}</label><input id="cl-${k}" value="${esc(c[k]||'')}" placeholder="${ph||''}"></div>`;
@@ -735,7 +747,7 @@ function formCliente(id){
       <div class="fr">
         ${f('nome','Nome do cliente *','Nome completo','c4')}
         ${f('telefone','WhatsApp','(11) 99999-9999','c2')}
-        ${f('cep','CEP','00000-000','c2')}
+        <div class="c2"><label for="cl-cep">CEP</label><input id="cl-cep" value="${esc(c.cep||'')}" placeholder="00000-000" inputmode="numeric" maxlength="9" oninput="cepRev(this)"></div>
         ${f('endereco','Rua / Avenida','','c4')}
         ${f('numero','Número','','c2')}
         ${f('complemento','Complemento','Apto, bloco...','c2')}
