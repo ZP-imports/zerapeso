@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-22-2421 -->
+<!-- v2026-10-22-2422 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -2814,13 +2814,16 @@ function admLogoRem(){LBL.logo=null;LBL.logoKey='';saveLbl();toast('Logomarca re
 /* ======================= REVENDEDORES ======================= */
 
 async function admCarregarRevs(){
-  const [rv,pe,mo,av]=await Promise.all([
+  const [rv,pe,mo,av,pz,pr,cl]=await Promise.all([
     SB.from('revendedores').select('*').order('criado_em',{ascending:false}),
     SB.from('pedidos_revendedor').select('*').order('criado_em',{ascending:false}),
     SB.from('consignado_movimentos').select('*').order('criado_em',{ascending:false}),
-    SB.from('avisos_revendedores').select('*').order('criado_em',{ascending:false})
+    SB.from('avisos_revendedores').select('*').order('criado_em',{ascending:false}),
+    SB.from('revendedor_precos').select('revendedor_id,produto_id,preco'),
+    SB.from('produtos').select('id,nome,preco,consulta,ativo').eq('ativo',true).order('nome'),
+    SB.from('revendedor_clientes').select('id,revendedor_id,nome')
   ]);
-  A9.revs={lista:rv.data||[],pedidos:pe.data||[],movimentos:mo.data||[],avisos:av.data||[]};
+  A9.revs={lista:rv.data||[],pedidos:pe.data||[],movimentos:mo.data||[],avisos:av.data||[],precos:pz.data||[],produtos:pr.data||[],clientes:cl.data||[]};
   route();
 }
 
@@ -2871,6 +2874,7 @@ function tabRevendedores(){
                 <div class="c3"><label>CPF</label><input id="rv-cpf" value="${esc(cpfFmt(rv.cpf||''))}" inputmode="numeric"></div>
                 <div class="c3"><label>E-mail</label><input id="rv-email" value="${esc(rv.email||'')}"></div>
                 <div class="c3"><label>Cidade</label><input id="rv-cid" value="${esc(rv.cidade||'')}"></div>
+                <div class="c3"><label>Nova senha de acesso</label><input id="rv-senha" autocomplete="off" placeholder="Deixe vazio para manter"></div>
                 <div class="c3"><label>Tipo</label><select id="rv-tipo" style="width:100%"><option value="comprador" ${rv.tipo==='comprador'?'selected':''}>Comprador (paga antes)</option><option value="consignado" ${rv.tipo==='consignado'?'selected':''}>Consignado (paga ao vender)</option></select></div>
                 <div class="c3"><label>Desconto % (preço ao revendedor)</label><input id="rv-desc" type="number" min="0" max="80" value="${rv.desconto_pct||0}"></div>
                 <div class="c6"><label>Observações internas</label><textarea id="rv-obs" rows="2">${esc(rv.obs||'')}</textarea></div>
@@ -2882,13 +2886,30 @@ function tabRevendedores(){
             </div>`:''}
           </div>
 
+          ${(()=>{
+            const prods=(A9.revs.produtos||[]).filter(p=>!p.consulta&&p.preco);
+            const mapa={};(A9.revs.precos||[]).filter(x=>x.revendedor_id===rv.id).forEach(x=>{mapa[x.produto_id]=+x.preco});
+            const desc=rv.desconto_pct||0;
+            return `<h3 style="margin:20px 0 4px">Tabela de preços exclusiva (${Object.keys(mapa).length} de ${prods.length})</h3>
+            <p style="margin:0 0 10px;color:var(--muted);font-size:.85rem">Preço que este revendedor paga. Em branco = preço de venda com o desconto padrão (${desc}%). Salva ao sair do campo.</p>
+            <div class="box" style="max-height:420px;overflow:auto"><table>
+              <thead><tr><th>Produto</th><th>Preço loja</th><th>Padrão (${desc}%)</th><th style="width:150px">Preço exclusivo</th></tr></thead>
+              <tbody>${prods.map(p=>`<tr>
+                <td>${esc(p.nome)}</td>
+                <td>${brl(p.preco)}</td>
+                <td style="color:var(--muted)">${brl(p.preco*(1-desc/100))}</td>
+                <td><input inputmode="decimal" style="width:120px;text-align:right" value="${mapa[p.id]!=null?mapa[p.id].toFixed(2).replace('.',','):''}" placeholder="—" onchange="admRevPreco('${rv.id}',${p.id},this.value)"></td>
+              </tr>`).join('')}</tbody>
+            </table></div>`;
+          })()}
+
           <h3 style="margin:20px 0 10px">Pedidos (${rpeds.length})</h3>
           ${!rpeds.length?`<div class="note">Nenhum pedido ainda.</div>`:`<div class="box"><table>
             <thead><tr><th>Data</th><th>Itens</th><th>Total</th><th>Tipo</th><th>Status</th><th></th></tr></thead>
             <tbody>${rpeds.map(p=>`<tr>
               <td style="font-size:.82rem">${fmtD(p.criado_em)}</td>
-              <td style="font-size:.82rem">${(p.itens||[]).map(x=>x.qty+'x '+x.nome).join(', ').slice(0,50)}${p.itens&&p.itens.length>2?'…':''}</td>
-              <td><b>${brl(p.subtotal)}</b></td>
+              <td style="font-size:.82rem">${(p.itens||[]).map(x=>x.qty+'x '+x.nome).join(', ').slice(0,50)}${p.itens&&p.itens.length>2?'…':''}${p.entrega?`<br><small style="color:var(--p)">📍 Entregar a ${esc(p.entrega.nome)} — ${esc([p.entrega.endereco,p.entrega.numero,p.entrega.bairro,p.entrega.cidade].filter(Boolean).join(', '))}${p.entrega.telefone?' · '+esc(p.entrega.telefone):''}</small>`:''}</td>
+              <td><b>${brl(p.subtotal)}</b>${p.venda_total!=null?`<br><small style="color:var(--muted)">venda ${brl(p.venda_total)}</small>`:''}</td>
               <td><span class="badge ${p.tipo_pagamento==='consignado'?'badge-er':'badge-c'}">${p.tipo_pagamento==='consignado'?'Consig.':'À vista'}</span></td>
               <td><span class="badge ${STCLS[p.status]||'badge-n'}">${ST[p.status]||p.status}</span></td>
               <td><select onchange="admRevAtualizaStatus('${p.id}',this.value)" style="font-size:.8rem;padding:.3em .6em;border-radius:8px;width:auto">
@@ -3110,8 +3131,24 @@ async function admRevSalvar(id){
   const basico={nome,telefone:tel,tipo,desconto_pct:desc,obs};
   let {error}=await SB.from('revendedores').update(Object.assign({},basico,{cpf:cpf||null,cidade:cidade||null},email?{email}:{})).eq('id',id);
   if(error&&/cpf|cidade|column|schema/i.test(error.message||''))({error}=await SB.from('revendedores').update(basico).eq('id',id));
-  if(error){A9.msg='Erro ao salvar.';A9.erro=true}else{A9.msg='Dados salvos.';A9.erro=false;A9.revEdit=null;A9.revs=null}
+  const sn=rvv('rv-senha');
+  if(!error&&sn){const rs=await SB.rpc('admin_definir_senha_revendedor',{p_id:id,p_senha:sn});if(rs.error)error=rs.error}
+  if(error){A9.msg=sn&&/senha|funct|schema/i.test(error.message||'')?'Dados salvos, mas a senha não foi definida: '+error.message+' (rode o arquivo 24 no Supabase).':'Erro ao salvar.';A9.erro=true}else{A9.msg='Dados salvos.'+(sn?' Senha de acesso definida.':'');A9.erro=false;A9.revEdit=null;A9.revs=null}
   route();
+}
+async function admRevPreco(revId,prodId,txt){
+  txt=(txt||'').trim();
+  let error;
+  if(!txt){({error}=await SB.from('revendedor_precos').delete().eq('revendedor_id',revId).eq('produto_id',prodId))}
+  else{
+    const v=parseFloat(txt.replace(/\./g,'').replace(',','.'));
+    if(isNaN(v)||v<0){toast('Preço inválido.');return}
+    ({error}=await SB.from('revendedor_precos').upsert([{revendedor_id:revId,produto_id:prodId,preco:v,atualizado_em:new Date().toISOString()}],{onConflict:'revendedor_id,produto_id'}));
+  }
+  if(error){toast('Não foi possível salvar o preço.');return}
+  const lst=A9.revs.precos.filter(x=>!(x.revendedor_id===revId&&x.produto_id===prodId));
+  if(txt)lst.push({revendedor_id:revId,produto_id:prodId,preco:parseFloat(txt.replace(/\./g,'').replace(',','.'))});
+  A9.revs.precos=lst;toast('Preço salvo.');
 }
 async function admRevAtualizaStatus(pedidoId,status){
   await SB.from('pedidos_revendedor').update({status}).eq('id',pedidoId);
@@ -6824,7 +6861,7 @@ function revForm(b){
    +'<h3 style="margin:0 0 4px">⭐ Tornar revendedor</h3><p style="margin:0 0 12px;color:#667085;font-size:.88rem">Os dados do cliente já vêm preenchidos. Ele continua na lista de Clientes, com uma estrelinha, e passa a aparecer em Revendedores.</p>'
    +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+campo('rvNome','Nome completo',b.nome)+campo('rvCpf','CPF',cpfFmt(b.cpf),'000.000.000-00',160)+'</div>'
    +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+campo('rvEmail','E-mail',b.email)+campo('rvFone','WhatsApp',b.fone,'(12) 99999-9999',160)+'</div>'
-   +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+campo('rvCidade','Cidade',b.cidade,'',160)
+   +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+campo('rvSenha','Senha de acesso ao portal (opcional, mínimo 6)','','',200)+campo('rvCidade','Cidade',b.cidade,'',160)
    +'<div style="flex:1;min-width:200px"><label style="font-size:.82rem" for="rvTipo">Tipo</label><select id="rvTipo" style="width:100%"><option value="comprador">Comprador (paga antes)</option><option value="consignado">Consignado (paga ao vender)</option></select></div>'
    +'<div style="flex:1;min-width:120px"><label style="font-size:.82rem" for="rvDesc">Desconto %</label><input id="rvDesc" type="number" min="0" max="80" value="0" style="width:100%"></div></div>'
    +'<label style="font-size:.82rem" for="rvObs">Observações internas (opcional)</label><textarea id="rvObs" rows="2" style="width:100%"></textarea>'
@@ -6841,11 +6878,14 @@ async function revSalvar(){
   if(cpf&&cpf.length!==11){erro('O CPF precisa ter 11 números.');return}
   if(email&&!/^\S+@\S+\.\S+$/.test(email)){erro('E-mail inválido.');return}
   if(!email&&!cliNormFone(fone)){erro('Informe o WhatsApp ou o e-mail.');return}
+  const sn=v('rvSenha');if(sn&&sn.length<6){erro('A senha precisa ter pelo menos 6 caracteres.');return}
+  if(sn&&!email){erro('Para definir senha, informe o e-mail (é com ele que o revendedor entra).');return}
   A9.busy=true;
   const r=await SB.rpc('criar_revendedor',{p_nome:nome,p_cpf:cpf,p_email:email,p_telefone:fone,p_cidade:v('rvCidade'),p_tipo:v('rvTipo')||'comprador',p_desconto:parseInt(v('rvDesc'),10)||0,p_obs:v('rvObs')});
   A9.busy=false;
   if(r.error){erro(/criar_revendedor|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 23_revendedor_do_cliente.sql no Supabase.':'Não foi possível salvar: '+r.error.message);return}
   const el=document.getElementById('rvbox');if(el)el.remove();
+  if(sn&&r.data){const rs=await SB.rpc('admin_definir_senha_revendedor',{p_id:r.data,p_senha:sn});if(rs.error)toast('Revendedor criado, mas a senha não foi definida: '+rs.error.message)}
   A9.revs=null;A9.cliRev=null;toast(nome+' agora é revendedor. Ele aparece em Revendedores e fica com ⭐ em Clientes.');route();
 }
 /* na aba Revendedores: escolhe um cliente da base e abre o mesmo cadastro */
