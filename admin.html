@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-22-2424 -->
+<!-- v2026-10-22-2425 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -2950,7 +2950,8 @@ function tabRevendedores(){
           })()}
 
           <div class="box" style="margin:20px 0 0"><h3 style="margin:0 0 8px">Clientes e mensagens</h3>
-            <label style="display:flex;gap:8px;align-items:center;cursor:pointer;margin-bottom:12px"><input type="checkbox" style="width:auto" ${(rv.config||{}).clientes_ativo!==false?'checked':''} onchange="admRevClientes('${rv.id}',this.checked)"> Pode cadastrar clientes para entrega direta (aba Meus clientes)</label>
+            <label style="display:flex;gap:8px;align-items:center;cursor:pointer;margin-bottom:8px"><input type="checkbox" style="width:auto" ${(rv.config||{}).clientes_ativo!==false?'checked':''} onchange="admRevClientes('${rv.id}',this.checked)"> Pode cadastrar clientes para entrega direta (aba Meus clientes)</label>
+            <label style="display:flex;gap:8px;align-items:center;cursor:pointer;margin-bottom:12px"><input type="checkbox" style="width:auto" ${(rv.config||{}).mostrar_desconto===true?'checked':''} onchange="admRevDesconto('${rv.id}',this.checked)"> Mostrar o desconto para ele (preço da loja riscado e % OFF no catálogo)</label>
             <label for="rvmT" style="font-size:.85rem">Mensagem direta para o perfil deste revendedor</label>
             <input id="rvmT" maxlength="80" placeholder="Título" style="width:100%;margin:4px 0 6px">
             <textarea id="rvmM" rows="2" maxlength="500" placeholder="Escreva a mensagem. Ela aparece em Avisos no portal dele." style="width:100%"></textarea>
@@ -3209,6 +3210,13 @@ async function admRevClientes(revId,on){
   const {error}=await SB.from('revendedores').update({config:cfg}).eq('id',revId);
   if(error){toast('Não foi possível salvar.');route();return}
   rv.config=cfg;toast(on?'Cadastro de clientes liberado para este revendedor.':'Cadastro de clientes bloqueado para este revendedor.');
+}
+async function admRevDesconto(revId,on){
+  const rv=(A9.revs.lista||[]).find(r=>r.id===revId);if(!rv)return;
+  const cfg=Object.assign({},rv.config||{},{mostrar_desconto:!!on});
+  const {error}=await SB.from('revendedores').update({config:cfg}).eq('id',revId);
+  if(error){toast('Não foi possível salvar.');route();return}
+  rv.config=cfg;toast(on?'O revendedor passa a ver o desconto no catálogo.':'O revendedor vê só o preço dele, sem o desconto.');
 }
 async function admRevMensagem(revId){
   const t=v_('rvmT').trim(),m=v_('rvmM').trim();

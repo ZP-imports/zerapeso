@@ -112,6 +112,7 @@ select{width:auto}
 .pn{font-size:.88rem;font-weight:500;color:var(--ink);line-height:1.3;min-height:3em}
 .price-rev{font-size:1.05rem;font-weight:700;color:var(--p);margin:6px 0 2px}
 .price-orig{font-size:.78rem;color:var(--muted);text-decoration:line-through}
+.vrow{display:block;padding:10px 0;border-top:1px dashed var(--line)}.vtx{min-width:0}.vnm{display:block;font-size:.88rem;font-weight:600;color:var(--ink);line-height:1.3}.vpr{display:block;margin-top:2px}.vpr b{color:var(--p);font-size:1.12rem}.vpr s{color:var(--muted);font-size:.8rem;margin-left:4px}.vrow .marg-hint{display:block;background:none;padding:0;margin:3px 0 0;font-size:.74rem;color:var(--muted);width:auto}.vac{margin-top:8px}.vac .btn{width:100%}.vac .qty-ctrl{justify-content:center}.mvrow{border-top:1px dashed var(--line);padding:10px 0}.vpv{color:var(--p);margin-left:6px;font-size:1.05rem}.grid.gp{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
 .desc-badge{display:inline-block;background:var(--pl);color:var(--p);font-size:.7rem;font-weight:700;border-radius:6px;padding:1px 6px;margin-bottom:4px}
 .qty-ctrl{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:999px;width:fit-content;margin:8px 0}
 .qty-ctrl button{border:0;background:none;width:32px;height:32px;font-size:1.1rem;color:var(--p)}
@@ -550,40 +551,48 @@ function pageDashboard(){
   </div>`;
 }
 
+/* cada produto é um quadrado só, com as variações dentro (igual ao catálogo da loja): caixa, ampola... cada uma com o seu valor */
+function gruposProdutos(lista){
+  const g={},ord=[];
+  lista.forEach(p=>{
+    if(!g[p.produto_id]){g[p.produto_id]={id:p.produto_id,nome:p.nome_produto||p.nome,imagem:p.imagem,estoque:p.estoque,categoria:p.categoria,vars:[]};ord.push(p.produto_id)}
+    g[p.produto_id].vars.push(p);
+  });
+  return ord.map(k=>g[k]);
+}
+/* o Wesley decide, por revendedor, se aparece o "de tanto para tanto" (preço da loja riscado e % OFF) */
+function mostraDesconto(){const c=(REV_USER&&REV_USER.config)||{};return c.mostrar_desconto===true}
+function imgProduto(g){
+  return g.imagem?`<img src="${esc(g.imagem)}" alt="${esc(g.nome)}" loading="lazy">`:`<svg width="40" height="40" fill="none" stroke="#0a6e5c" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`;
+}
+function linhaVariacao(v,md){
+  const pr=precoRev(v),item=CART.find(i=>i.id===v.id),sem=v.estoque<=0;
+  return `<div class="vrow"><div class="vtx"><span class="vnm">${esc(v.nome_var||v.nome)}</span><span class="vpr"><b>${brl(pr)}</b>${md&&v.preco&&pr<v.preco?` <s>${brl(v.preco)}</s>`:''}</span><small class="marg-hint">Venda a ${brl(pr*(1+MARGEM_PCT/100))} → +${brl(pr*MARGEM_PCT/100)}</small></div>
+    <div class="vac">${sem?'<span style="color:#b91c1c;font-size:.78rem">Sem estoque</span>':item
+      ?`<div class="qty-ctrl"><button onclick="cartSet('${v.id}',${item.qty-1})">−</button><span>${item.qty}</span><button onclick="cartSet('${v.id}',${item.qty+1})">+</button></div>`
+      :`<button class="btn sm" onclick="cartAdd(${JSON.stringify(v).replace(/"/g,'&quot;')})">Adicionar</button>`}</div></div>`;
+}
 function pageCatalogo(){
   if(!PRODUTOS.length)return `<div class="pg"><div class="note">Nenhum produto disponível no momento. Entre em contato com a ZP Imports.</div></div>`;
-  const desc=REV_USER.desconto_pct||0;
+  const desc=REV_USER.desconto_pct||0,md=mostraDesconto();
   return `<div class="pg">
     <h2 style="margin:0 0 16px;font-size:1.4rem;color:var(--ink)">Catálogo de Produtos</h2>
-    ${Object.keys(PRECOS).length?`<div class="note rev" style="margin-bottom:10px">🎯 Você tem uma <b>tabela de preços exclusiva</b> (${Object.keys(PRECOS).length} produto${Object.keys(PRECOS).length>1?'s':''})${desc>0?` e <b>${desc}%</b> de desconto nos demais`:''}.</div>`:desc>0?`<div class="note rev" style="margin-bottom:10px">🎯 Desconto de <b>${desc}%</b> já aplicado nos preços abaixo.</div>`:''}
     <div class="box marg-box">
       <span class="marg-label">Simulador de margem:</span>
       <div class="marg-ctrl">
         <input type="range" min="5" max="150" value="${MARGEM_PCT}" class="marg-range" oninput="MARGEM_PCT=+this.value;render()">
         <span class="marg-pct">${MARGEM_PCT}%</span>
       </div>
-      <span class="marg-desc">O lucro estimado aparece em cada produto</span>
+      <span class="marg-desc">O lucro estimado aparece em cada variação</span>
     </div>
-    <div class="grid">
-      ${PRODUTOS.map(p=>{
-        const pr=precoRev(p);
-        const item=CART.find(i=>i.id===p.id);
-        const sem=p.estoque<=0;
+    <div class="grid gp">
+      ${gruposProdutos(PRODUTOS).map(g=>{
+        const exc=md&&g.vars.some(temExclusivo);
         return `<div class="card">
-          <div class="pimg" style="background:${p.cor||'#e5f3ef'}">
-            ${p.imagem?`<img src="${esc(p.imagem)}" alt="${esc(p.nome)}" loading="lazy">`:`<svg width="40" height="40" fill="none" stroke="#0a6e5c" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`}
-          </div>
-          ${temExclusivo(p)?`<span class="desc-badge">Preço exclusivo</span>`:desc>0?`<span class="desc-badge">${desc}% OFF</span>`:''}
-          <div class="pn">${esc(p.nome)}</div>
-          <div class="price-rev">${p.consulta?'Sob consulta':brl(pr)}</div>
-          ${pr<p.preco&&p.preco?`<div class="price-orig">${brl(p.preco)}</div>`:''}
-          ${!p.consulta&&pr?`<div class="marg-hint">Venda a ${brl(pr*(1+MARGEM_PCT/100))} → +${brl(pr*MARGEM_PCT/100)}/un.</div>`:''}
-          ${sem?`<div style="color:#b91c1c;font-size:.8rem;margin:4px 0">Sem estoque</div>`:''}
-          ${!sem&&!p.consulta?item
-            ?`<div class="qty-ctrl"><button onclick="cartSet('${p.id}',${item.qty-1})">−</button><span>${item.qty}</span><button onclick="cartSet('${p.id}',${item.qty+1})">+</button></div>`
-            :`<button class="btn full sm" onclick="cartAdd(${JSON.stringify(p).replace(/"/g,'&quot;')})">Adicionar</button>`
-          :''}
-          ${p.consulta?`<button class="btn full sm ghost" onclick="alert('Entre em contato com a ZP Imports para consultar o valor e disponibilidade.')">Consultar</button>`:''}
+          <div class="pimg" style="background:#fff">${imgProduto(g)}</div>
+          ${md&&(exc||desc>0)?`<span class="desc-badge">${exc?'Preço exclusivo':desc+'% OFF'}</span>`:''}
+          <div class="pn">${esc(g.nome)}</div>
+          ${g.vars.map(v=>linhaVariacao(v,md)).join('')}
         </div>`;
       }).join('')}
     </div>
@@ -591,8 +600,6 @@ function pageCatalogo(){
   </div>`;
 }
 
-function enderecoCli(c){return [[c.endereco,c.numero].filter(Boolean).join(', '),c.complemento,c.bairro,c.cidade,c.cep].filter(Boolean).join(' · ')||'Endereço não informado'}
-/* ============================= MEU CATÁLOGO ============================= */
 function pageMeuCatalogo(){
   const lista=PRODUTOS.filter(p=>!p.consulta&&precoRev(p)>0);
   if(!lista.length)return `<div class="pg"><div class="note">Nenhum produto disponível para montar o catálogo.</div></div>`;
@@ -615,26 +622,27 @@ function pageMeuCatalogo(){
         <input type="range" min="5" max="150" value="${MARGEM_PCT}" class="marg-range" onchange="MARGEM_PCT=+this.value;render()" oninput="this.nextElementSibling.textContent=this.value+'%'">
         <span class="marg-pct">${MARGEM_PCT}%</span>
       </div>
-      <span class="marg-desc">${defs} produto${defs!==1?'s':''} sem preço próprio</span>
+      <span class="marg-desc">${defs} variaç${defs!==1?'ões':'ão'} sem preço próprio</span>
     </div>
-    <div class="grid cat-print">
-      ${lista.map(p=>{
-        const custo=precoRev(p),pv=precoVenda(p.id,custo),prop=VENDA[p.id]!=null;
-        return `<div class="card">
-          <div class="pimg">
-            ${p.imagem?`<img src="${esc(p.imagem)}" alt="${esc(p.nome)}" loading="lazy">`:`<svg width="40" height="40" fill="none" stroke="#0a6e5c" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`}
-            <span class="tag" id="tg-${p.id}">${brl(pv)}</span>
-          </div>
-          <div class="pn">${esc(p.nome)}</div>
-          <div class="no-print" style="font-size:.78rem;color:var(--muted)">Seu custo: <b>${brl(custo)}</b></div>
-          <div class="vinp"><span>Vender a R$</span><input id="vp-${p.id}" inputmode="decimal" value="${prop?pv.toFixed(2).replace('.',','):''}" placeholder="${pv.toFixed(2).replace('.',',')}" onchange="salvarVenda('${p.id}',this.value)"></div>
-          <div class="lucro no-print" id="lc-${p.id}">Lucro: ${brl(pv-custo)}/un.${prop?'':' (sugerido)'}</div>
-          <button class="btn ghost sm no-print" style="margin-top:8px" onclick="baixarImagemProduto('${p.id}')">⬇ Baixar imagem</button>
-        </div>`;
-      }).join('')}
+    <div class="grid gp cat-print">
+      ${gruposProdutos(lista).map(g=>`<div class="card">
+        <div class="pimg" style="background:#fff">${imgProduto(g)}</div>
+        <div class="pn">${esc(g.nome)}</div>
+        ${g.vars.map(v=>{
+          const custo=precoRev(v),pv=precoVenda(v.id,custo),prop=VENDA[v.id]!=null;
+          return `<div class="mvrow">
+            <div class="vnm">${esc(v.nome_var||v.nome)} <b class="vpv" id="tg-${v.id}">${brl(pv)}</b></div>
+            <div class="no-print" style="font-size:.76rem;color:var(--muted)">Seu custo: <b>${brl(custo)}</b></div>
+            <div class="vinp"><span>Vender a R$</span><input id="vp-${v.id}" inputmode="decimal" value="${prop?pv.toFixed(2).replace('.',','):''}" placeholder="${pv.toFixed(2).replace('.',',')}" onchange="salvarVenda('${v.id}',this.value)"></div>
+            <div class="lucro no-print" id="lc-${v.id}">Lucro: ${brl(pv-custo)}/un.${prop?'':' (sugerido)'}</div>
+            <button class="btn ghost sm no-print" style="margin-top:6px" onclick="baixarImagemProduto('${v.id}')">⬇ Baixar imagem</button>
+          </div>`;
+        }).join('')}
+      </div>`).join('')}
     </div>
   </div>`;
 }
+
 function atualizaVendaUI(id){
   const p=PRODUTOS.find(x=>x.id===id);if(!p)return;
   const custo=precoRev(p),pv=precoVenda(id,custo),prop=VENDA[id]!=null;
