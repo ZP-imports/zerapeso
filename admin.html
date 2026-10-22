@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-22-2409 -->
+<!-- v2026-10-22-2410 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -6431,6 +6431,17 @@ async function admProcessarPlanilha(file){
           if(!Object.keys(novo).length){skip++;return}
           Object.assign(db.ref,novo);
           if(db.id)toUpdate.push({id:db.id,novo});
+          return;
+        }
+        /* cadastro importado antes sem telefone e com o mesmo nome: recebe o telefone em vez de criar outro */
+        const semFone=jaSalvos.find(c=>c.id&&!norm(c.fone||'')&&c.nome&&c.nome.toLowerCase()===nome.toLowerCase());
+        if(semFone){
+          const novo={fone:foneRaw};
+          if(!semFone.email&&email)novo.email=email;
+          if(!semFone.cidade&&cidade)novo.cidade=cidade;
+          Object.assign(semFone,novo);
+          toUpdate.push({id:semFone.id,novo});
+          porFone[foneNorm]={id:semFone.id,ref:semFone};
           return;
         }
         const ped=(A9.clientes||[]).find(c=>!c.importado&&norm(c.fone)===foneNorm);
