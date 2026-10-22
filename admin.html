@@ -6341,7 +6341,7 @@ async function admProcessarPlanilha(file){
       const ws=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
       if(!rows.length){toast('Planilha vazia ou formato inválido.');return}
-      const norm=f=>String(f||'').replace(/\D/g,'');
+      const norm=f=>{let d=String(f||'').replace(/\D/g,'');if(d.length>11&&d.startsWith('55'))d=d.slice(2);return d};
       let jaSalvos=[];
       if(SB){const r=await SB.from('clientes_importados').select('fone,nome');jaSalvos=r.data||[];}
       const normDB=jaSalvos.map(c=>norm(c.fone||''));
@@ -6350,13 +6350,14 @@ async function admProcessarPlanilha(file){
         const keys=Object.keys(row);
         const get=(...names)=>{for(const n of names){const k=keys.find(k=>k.toLowerCase().includes(n.toLowerCase()));if(k&&row[k])return String(row[k]).trim()}return ''};
         const nome=get('nome','name','cliente');
-        const foneRaw=get('fone','telefone','phone','whatsapp','cel');
+        const foneRaw=get('fone','telefone','contato','phone','whatsapp','cel');
         const foneNorm=norm(foneRaw);
         const email=get('email','e-mail');
         const cidade=get('cidade','city','municipio');
         if(!nome&&!foneNorm){skip++;return}
-        const existePed=(A9.clientes||[]).find(c=>(foneNorm&&norm(c.fone)===foneNorm)||(nome&&c.nome&&c.nome.toLowerCase()===nome.toLowerCase()));
-        const existeDB=normDB.includes(foneNorm)||(nome&&jaSalvos.some(c=>c.nome&&c.nome.toLowerCase()===nome.toLowerCase()));
+        /* com telefone, só o telefone identifica o cliente; sem telefone, vale o nome */
+        const existePed=(A9.clientes||[]).find(c=>foneNorm?norm(c.fone)===foneNorm:(nome&&c.nome&&c.nome.toLowerCase()===nome.toLowerCase()));
+        const existeDB=foneNorm?normDB.includes(foneNorm):(nome&&jaSalvos.some(c=>c.nome&&c.nome.toLowerCase()===nome.toLowerCase()));
         if(existePed||existeDB){skip++;return}
         toInsert.push({nome,fone:foneRaw,email,cidade});
         normDB.push(foneNorm);
