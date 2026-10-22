@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-22-2407 -->
+<!-- v2026-10-22-2408 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -6402,9 +6402,11 @@ async function admProcessarPlanilha(file){
       if(!rows.length){toast('Planilha vazia ou formato inválido.');return}
       const norm=f=>{let d=String(f||'').replace(/\D/g,'');if(d.length>11&&d.startsWith('55'))d=d.slice(2);return d};
       let jaSalvos=[];
-      if(SB){const r=await SB.from('clientes_importados').select('fone,nome');jaSalvos=r.data||[];}
-      const normDB=jaSalvos.map(c=>norm(c.fone||''));
-      let toInsert=[],skip=0;
+      if(SB){const r=await SB.from('clientes_importados').select('id,fone,nome,email,cidade');jaSalvos=r.data||[];}
+      /* um cadastro por telefone: se o telefone já existe, o cadastro que tem menos informações recebe as que faltam */
+      const porFone={};
+      jaSalvos.forEach(c=>{const f=norm(c.fone||'');if(f&&!porFone[f])porFone[f]={id:c.id,ref:c}});
+      let toInsert=[],toUpdate=[],skip=0;
       rows.forEach(row=>{
         const keys=Object.keys(row);
         const get=(...names)=>{for(const n of names){const k=keys.find(k=>k.toLowerCase().includes(n.toLowerCase()));if(k&&row[k])return String(row[k]).trim()}return ''};
@@ -6414,18 +6416,34 @@ async function admProcessarPlanilha(file){
         const email=get('email','e-mail');
         const cidade=get('cidade','city','municipio');
         if(!nome&&!foneNorm){skip++;return}
-        /* com telefone, só o telefone identifica o cliente; sem telefone, vale o nome */
-        const existePed=(A9.clientes||[]).find(c=>foneNorm?norm(c.fone)===foneNorm:(nome&&c.nome&&c.nome.toLowerCase()===nome.toLowerCase()));
-        const existeDB=foneNorm?normDB.includes(foneNorm):(nome&&jaSalvos.some(c=>c.nome&&c.nome.toLowerCase()===nome.toLowerCase()));
-        if(existePed||existeDB){skip++;return}
-        toInsert.push({nome,fone:foneRaw,email,cidade});
-        normDB.push(foneNorm);
+        if(!foneNorm){
+          /* sem telefone: só o nome identifica o cliente */
+          const existe=(A9.clientes||[]).some(c=>c.nome&&c.nome.toLowerCase()===nome.toLowerCase())||jaSalvos.some(c=>c.nome&&c.nome.toLowerCase()===nome.toLowerCase())||toInsert.some(c=>c.nome&&c.nome.toLowerCase()===nome.toLowerCase());
+          if(existe){skip++;return}
+          toInsert.push({nome,fone:foneRaw,email,cidade});return;
+        }
+        const db=porFone[foneNorm];
+        if(db){
+          const novo={};
+          if(!db.ref.nome&&nome)novo.nome=nome;
+          if(!db.ref.email&&email)novo.email=email;
+          if(!db.ref.cidade&&cidade)novo.cidade=cidade;
+          if(!Object.keys(novo).length){skip++;return}
+          Object.assign(db.ref,novo);
+          if(db.id)toUpdate.push({id:db.id,novo});
+          return;
+        }
+        const ped=(A9.clientes||[]).find(c=>!c.importado&&norm(c.fone)===foneNorm);
+        if(ped&&!((email&&!ped.email)||(cidade&&!ped.cidade)||(nome&&!ped.nome))){skip++;return}
+        const rec={nome,fone:foneRaw,email,cidade};
+        toInsert.push(rec);porFone[foneNorm]={id:null,ref:rec};
       });
-      if(!toInsert.length){toast(`Nenhum cliente novo. ${skip} já existiam.`);return}
+      if(!toInsert.length&&!toUpdate.length){toast(`Nenhum cliente novo. ${skip} já existiam.`);return}
       if(!SB){toast('Sem conexão com o banco.');return}
-      const r=await SB.from('clientes_importados').insert(toInsert);
-      if(r.error){toast('Erro ao salvar: '+r.error.message);return}
-      toast(`${toInsert.length} cliente${toInsert.length===1?'':'s'} salvo${toInsert.length===1?'':'s'} no banco. ${skip} já existiam.`);
+      let falhas=0;
+      if(toInsert.length){const r=await SB.from('clientes_importados').insert(toInsert);if(r.error){toast('Erro ao salvar: '+r.error.message);return}}
+      for(const u of toUpdate){const r=await SB.from('clientes_importados').update(u.novo).eq('id',u.id);if(r.error)falhas++}
+      toast(`${toInsert.length} cliente${toInsert.length===1?'':'s'} novo${toInsert.length===1?'':'s'}, ${toUpdate.length-falhas} atualizado${toUpdate.length-falhas===1?'':'s'} com dados que faltavam, ${skip} já existiam.${falhas?' '+falhas+' não puderam ser atualizados.':''}`);
       A9.clientes=null;route();
     }catch(x){toast('Erro ao ler planilha: '+x.message);}
   };
