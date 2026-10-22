@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-22-2418 -->
+<!-- v2026-10-22-2419 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -6396,13 +6396,13 @@ function catalogoHtml(itens,op){
   const auto='<script>(function(){function ajusta(){[].forEach.call(document.querySelectorAll(".card"),function(c){var f=c.querySelector(".foto"),i=c.querySelector(".corpo"),h=32;while(i.scrollHeight>i.clientHeight+1&&h>12){h-=1;f.style.height=h+"mm"}})}var im=[].slice.call(document.images).filter(function(i){return !i.complete});var f=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();Promise.all([f].concat(im.map(function(i){return new Promise(function(r){i.onload=i.onerror=r})}))).then(function(){ajusta();'+(op.imprimir?'setTimeout(function(){window.print()},400);':'')+'})})()<\/script>';
   return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+catEsc(titulo)+' - '+catEsc(marca)+'</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>'+css+'@media screen{body{background:#e9edeb;padding:8mm 0}.pag{margin:0 auto 8mm;box-shadow:0 2px 16px rgba(0,0,0,.18)}}</style></head><body>'+corpo+auto+'</body></html>';
 }
-/* ---- tela "Gerar catálogo" na aba Produtos: escolhe categoria, produtos, variações, valores e desconto, e abre o PDF ---- */
+/* ---- tela "Gerar catálogo" na aba Produtos: escolhe categoria, produtos, variações, nomes, valores e desconto, e abre o PDF ---- */
 A9.catOpen=false;A9.cat=null;
 function catAbrir(){
   if(!A9.prods){toast('Carregando produtos... tente de novo em instantes.');return}
   const sel={},vsel={};
   A9.prods.filter(p=>p.ativo!==false).forEach(p=>{sel[p.id]=true;(p.vars||[]).forEach(v=>{if(v.ativo!==false)vsel[v.id]=true})});
-  A9.cat={sel,vsel,titulo:'Catálogo de Produtos',cat:'',valores:true,detalhes:false,desc:false,pct:'',vpromo:{}};A9.catOpen=true;route();window.scrollTo(0,0);
+  A9.cat={sel,vsel,titulo:'Catálogo de Produtos',cat:'',valores:true,detalhes:false,desc:false,pct:'',vpromo:{},vnome:{},vval:{},pnome:{}};A9.catOpen=true;route();window.scrollTo(0,0);
 }
 function catFechar(){A9.catOpen=false;route()}
 function catLista(){const C=A9.cat;return A9.prods.filter(p=>p.ativo!==false&&(!C.cat||(p.categoria||[])[0]===C.cat)).sort((a,b)=>(a.ordem??9999)-(b.ordem??9999))}
@@ -6420,19 +6420,26 @@ function catTela(){
   const C=A9.cat,lista=catLista();
   const cats=[...new Set(A9.prods.map(p=>(p.categoria||[])[0]||'').filter(Boolean))];
   const nSel=lista.filter(p=>C.sel[p.id]).length;
+  const inp='padding:4px 8px';
   const linhas=lista.map(p=>{
     const vs=(p.vars||[]).filter(v=>v.ativo!==false);
-    return `<div class="box" style="box-shadow:none;border:1px solid var(--line);margin:8px 0 0;padding:10px 12px"><label style="display:flex;gap:8px;align-items:center;font-weight:700;cursor:pointer"><input type="checkbox" style="width:auto" ${C.sel[p.id]?'checked':''} onchange="catSelP('${p.id}',this.checked)"> ${esc(p.nome)}${p.sku?` <span style="color:var(--muted);font-weight:400;font-size:.8rem">${esc(p.sku)}</span>`:''}${(p.categoria||[])[0]?` <span class="selo">${esc(p.categoria[0])}</span>`:''}</label>
-    <div style="margin:6px 0 0 26px;display:flex;flex-direction:column;gap:6px">${vs.map(v=>`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label style="display:flex;gap:6px;align-items:center;font-size:.88rem;cursor:pointer;min-width:260px"><input type="checkbox" style="width:auto" ${C.vsel[v.id]?'checked':''} onchange="catSelV('${v.id}',this.checked)"> ${esc(v.nome)} · ${v.preco==null||v.preco===''?'sem valor':brl(v.preco)}</label>${C.valores&&C.vsel[v.id]&&v.preco!=null&&v.preco!==''?`<input inputmode="decimal" placeholder="Com desconto: R$ (opcional)" value="${esc(C.vpromo[v.id]||'')}" oninput="A9.cat.vpromo['${v.id}']=this.value" title="Opcional. Se preencher, o catálogo mostra o valor de ${esc(brl(v.preco))} riscado e este valor ao lado." style="width:200px;padding:4px 8px">`:''}</div>`).join('')||'<span style="color:var(--muted);font-size:.85rem">Sem variações cadastradas.</span>'}</div></div>`;
+    const nomeP=C.pnome[p.id]!=null?C.pnome[p.id]:p.nome;
+    const vlinhas=vs.map(v=>{
+      const on=!!C.vsel[v.id],nomeV=C.vnome[v.id]!=null?C.vnome[v.id]:v.nome;
+      const reg=(v.preco!=null&&v.preco!=='')?pdMoeda(+v.preco):'',valV=C.vval[v.id]!=null?C.vval[v.id]:reg;
+      return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="checkbox" style="width:auto" ${on?'checked':''} onchange="catSelV('${v.id}',this.checked)" aria-label="Incluir variação"><input value="${esc(nomeV)}" oninput="A9.cat.vnome['${v.id}']=this.value" placeholder="Nome da variação no catálogo" style="width:250px;${inp}">${C.valores?`<input inputmode="decimal" value="${esc(valV)}" oninput="A9.cat.vval['${v.id}']=this.value" placeholder="Valor R$" style="width:110px;${inp}">`:''}${C.valores&&on?`<input inputmode="decimal" value="${esc(C.vpromo[v.id]||'')}" oninput="A9.cat.vpromo['${v.id}']=this.value" placeholder="Com desconto R$ (opcional)" style="width:200px;${inp}">`:''}</div>`;
+    }).join('');
+    return `<div class="box" style="box-shadow:none;border:1px solid var(--line);margin:8px 0 0;padding:10px 12px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="checkbox" style="width:auto" ${C.sel[p.id]?'checked':''} onchange="catSelP('${p.id}',this.checked)" aria-label="Incluir produto"><input value="${esc(nomeP)}" oninput="A9.cat.pnome['${p.id}']=this.value" placeholder="Nome do produto no catálogo" style="width:300px;font-weight:700;${inp}">${p.sku?` <span style="color:var(--muted);font-size:.8rem">${esc(p.sku)}</span>`:''}${(p.categoria||[])[0]?` <span class="selo">${esc(p.categoria[0])}</span>`:''}</div>
+    <div style="margin:8px 0 0 26px;display:flex;flex-direction:column;gap:6px">${vlinhas||'<span style="color:var(--muted);font-size:.85rem">Sem variações cadastradas.</span>'}</div></div>`;
   }).join('');
-  return `<div class="box"><p style="margin:0 0 6px"><a style="cursor:pointer;font-weight:600" onclick="catFechar()">← Voltar para os produtos</a></p><h2 style="margin:0 0 4px">Gerar catálogo</h2><p style="margin:0 0 12px;color:var(--muted)">Escolha a categoria, os produtos e as variações que entram no catálogo. No final, abre o PDF para salvar ou imprimir.</p>
+  return `<div class="box"><p style="margin:0 0 6px"><a style="cursor:pointer;font-weight:600" onclick="catFechar()">← Voltar para os produtos</a></p><h2 style="margin:0 0 4px">Gerar catálogo</h2><p style="margin:0 0 12px;color:var(--muted)">Escolha a categoria, os produtos e as variações que entram no catálogo. Você pode editar o nome e o valor de cada variação só para este catálogo (o cadastro do produto não muda). No final, abre o PDF para salvar ou imprimir.</p>
   <div class="fbar" style="align-items:flex-end">
     <div><label for="catTit">Título</label><input id="catTit" value="${esc(C.titulo)}" oninput="A9.cat.titulo=this.value" style="min-width:220px"></div>
     <div><label for="catCat">Categoria</label><select id="catCat" onchange="A9.cat.cat=this.value;route()"><option value="">Todas (cada uma numa página)</option>${cats.map(c=>`<option value="${esc(c)}" ${C.cat===c?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
   </div>
   <div style="display:flex;gap:6px 22px;flex-wrap:wrap;align-items:center;margin:4px 0 10px">
     <label style="display:flex;gap:6px;align-items:center;cursor:pointer;font-weight:600"><input type="checkbox" style="width:auto" ${C.valores?'checked':''} onchange="A9.cat.valores=this.checked;route()"> Mostrar valores</label>
-    ${C.valores?`<label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" style="width:auto" ${C.desc?'checked':''} onchange="A9.cat.desc=this.checked;route()"> Desconto em tudo (preço antigo riscado)</label>${C.desc?`<input id="catPct" inputmode="decimal" placeholder="% (vazio = preço promocional cadastrado)" value="${esc(C.pct)}" oninput="A9.cat.pct=this.value" style="width:280px;padding:4px 8px">`:''}`:''}
+    ${C.valores?`<label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" style="width:auto" ${C.desc?'checked':''} onchange="A9.cat.desc=this.checked;route()"> Desconto em tudo (preço antigo riscado)</label>${C.desc?`<input id="catPct" inputmode="decimal" placeholder="% (vazio = preço promocional cadastrado)" value="${esc(C.pct)}" oninput="A9.cat.pct=this.value" style="width:280px;${inp}">`:''}`:''}
     <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" style="width:auto" ${C.detalhes?'checked':''} onchange="A9.cat.detalhes=this.checked;route()"> Mostrar código e descrição</label>
   </div>
   <div class="selbar"><button class="btn ghost sm" onclick="catTodos(true)">Selecionar todos</button><button class="btn ghost sm" onclick="catTodos(false)">Limpar</button><span class="selcnt">${nSel} produto${nSel===1?'':'s'}</span>
@@ -6444,22 +6451,25 @@ function catGerar(){
   const C=A9.cat,lista=catLista().filter(p=>C.sel[p.id]);
   if(!lista.length){toast('Marque pelo menos um produto.');return}
   const pct=C.valores&&C.desc?(parseFloat(String(C.pct||'').replace(',','.'))||0):0;
-  const itens=[];
+  const itens=[];let faltam=0;
   lista.forEach(p=>{
     const todas=(p.vars||[]).filter(v=>v.ativo!==false),vs=todas.filter(v=>C.vsel[v.id]);
     if(todas.length&&!vs.length)return;
-    itens.push({nome:p.nome,sku:p.sku,descricao:p.descricao,cat:(p.categoria||[])[0]||'',foto:admFotoUrl(p.imagem),vars:vs.map(v=>{
-      const base=(v.preco===''||v.preco==null)?null:+v.preco;
+    itens.push({nome:String(C.pnome[p.id]||'').trim()||p.nome,sku:p.sku,descricao:p.descricao,cat:(p.categoria||[])[0]||'',foto:admFotoUrl(p.imagem),vars:vs.map(v=>{
+      let base=(v.preco===''||v.preco==null)?null:+v.preco;
+      if(C.vval[v.id]!=null){const n=pdNum(C.vval[v.id]);base=n>0?n:null}
+      if(C.valores&&base==null)faltam++;
       let promo=null;
       if(C.valores&&base!=null){
         const ind=pdNum(C.vpromo[v.id]);
         if(ind>0&&ind<base)promo=ind;
-        else if(C.desc)promo=pct>0?Math.round(base*(100-pct))/100:((v.preco_promo!=null&&v.preco_promo!=='')?+v.preco_promo:null);
+        else if(C.desc)promo=pct>0?Math.round(base*(100-pct))/100:((v.preco_promo!=null&&v.preco_promo!==''&&C.vval[v.id]==null)?+v.preco_promo:null);
       }
-      return {nome:v.nome,unidades:v.unidades,preco:C.valores?base:null,preco_promo:promo};
+      return {nome:String(C.vnome[v.id]||'').trim()||v.nome,unidades:v.unidades,preco:C.valores?base:null,preco_promo:promo};
     })});
   });
   if(!itens.length){toast('Nenhum produto com as variações marcadas.');return}
+  if(C.valores&&faltam&&!confirm('Faltam valores em '+faltam+' variaç'+(faltam===1?'ão':'ões')+'. '+(faltam===1?'Ela vai':'Elas vão')+' aparecer só com o nome, sem valor.\n\nClique em Cancelar para voltar e adicionar o valor, ou em OK para gerar assim mesmo.'))return;
   const d=String((typeof CFG!=='undefined'&&CFG.wa)||'').replace(/\D/g,''),dd=d.length>11&&d.startsWith('55')?d.slice(2):d;
   const html=catalogoHtml(itens,{titulo:(C.titulo||'').trim()||'Catálogo de Produtos',marca:(typeof CFG!=='undefined'&&CFG.brand)||'ZP Imports',fone:dd?fmtFone(dd,dd.length===10):'',valores:C.valores,detalhes:C.detalhes,imprimir:true});
   const w=window.open('','_blank');
