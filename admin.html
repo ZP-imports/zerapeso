@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-22-2406 -->
+<!-- v2026-10-22-2407 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -6432,16 +6432,78 @@ async function admProcessarPlanilha(file){
   reader.readAsArrayBuffer(file);
 }
 function cliPagTop(c){const e=Object.entries(c.pag).sort((a,b)=>b[1]-a[1])[0];return e?((PAGNOME[e[0]]||e[0])+' ('+e[1]+'x)'):'—'}
+/* ---- cobrança em lote: marca os clientes na lista, informa o valor de cada um e gera tudo de uma vez ---- */
+A9.cliSel=A9.cliSel||{};
+function cliSelUm(k,on){if(on)A9.cliSel[k]=true;else delete A9.cliSel[k];route()}
+function cliSelTodos(on){(A9.cliLista||[]).forEach(k=>{if(on)A9.cliSel[k]=true;else delete A9.cliSel[k]});route()}
+function cobLote(){
+  const cs=(A9.clientes||[]).filter(c=>A9.cliSel[c.k]);if(!cs.length)return;
+  A9.cobLoteCs=cs;
+  const old=document.getElementById('cobbox');if(old)old.remove();
+  const d=document.createElement('div');d.id='cobbox';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto';
+  const linhas=cs.map((c,i)=>'<tr><td style="padding:4px 6px"><b>'+esc(c.nome||'(sem nome)')+'</b><div style="color:#667085;font-size:.78rem">'+esc(c.fone||'sem telefone')+(c.cidade?' · '+esc(c.cidade):'')+'</div></td><td style="padding:4px 6px"><input id="clv'+i+'" inputmode="decimal" placeholder="0,00" style="max-width:110px"></td></tr>').join('');
+  d.innerHTML='<div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:94vh;overflow:auto;padding:18px">'
+   +'<h3 style="margin:0 0 4px">Gerar cobrança</h3><p style="margin:0 0 12px;color:#667085;font-size:.88rem">'+cs.length+' cliente'+(cs.length===1?'':'s')+' selecionado'+(cs.length===1?'':'s')+'. Não cria pedido.</p>'
+   +'<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px"><div style="flex:1;min-width:150px"><label style="font-size:.82rem" for="clTodos">Mesmo valor para todos (R$)</label><input id="clTodos" inputmode="decimal" placeholder="0,00" style="width:100%"></div><button type="button" class="btn ghost sm" onclick="cobLoteAplicar()">Aplicar a todos</button></div>'
+   +'<div class="tbl" style="margin:6px 0"><table><thead><tr><th>Cliente</th><th>Valor (R$)</th></tr></thead><tbody>'+linhas+'</tbody></table></div>'
+   +'<label style="font-size:.82rem" for="clDesc">Descrição</label><input id="clDesc" maxlength="80" placeholder="Cobrança" style="width:100%;margin-bottom:10px">'
+   +'<div class="pf-l">Quando cobrar</div>'
+   +'<label style="display:flex;gap:8px;align-items:center;margin:4px 0;cursor:pointer"><input type="radio" name="clQuando" id="clAgora" checked> Cobrar agora (vai para Pagamentos pendentes)</label>'
+   +'<label style="display:flex;gap:8px;align-items:center;margin:4px 0;flex-wrap:wrap;cursor:pointer"><input type="radio" name="clQuando" id="clProg"> Pré-datado (vai para a Carteira) — dia: <input id="clData" type="date" min="'+hojeS()+'" onfocus="document.getElementById(\'clProg\').checked=true" style="width:auto"></label>'
+   +'<div class="btns" style="margin-top:14px"><button class="btn acc" id="clBtn" onclick="cobLoteCriar()">Gerar cobranças</button><button class="btn ghost" onclick="document.getElementById(\'cobbox\').remove()">Fechar</button></div>'
+   +'<p id="clMsg" style="font-size:.82rem;margin:8px 0 0"></p></div>';
+  document.body.appendChild(d);
+}
+function cobLoteAplicar(){
+  const v=(document.getElementById('clTodos')||{}).value||'';
+  (A9.cobLoteCs||[]).forEach((c,i)=>{const e=document.getElementById('clv'+i);if(e)e.value=v});
+}
+async function cobLoteCriar(){
+  const msg=document.getElementById('clMsg');const erro=t=>{if(msg)msg.innerHTML='<span style="color:#d92d20">'+esc(t)+'</span>'};
+  const cs=A9.cobLoteCs||[];if(!cs.length||A9.busy)return;
+  const prog=!!(document.getElementById('clProg')||{}).checked;
+  const data=(document.getElementById('clData')||{}).value||'';
+  if(prog&&!data){erro('Escolha o dia do pagamento pré-datado.');return}
+  const itens=cs.map((c,i)=>({c,valor:pdNum((document.getElementById('clv'+i)||{}).value)}));
+  const validos=itens.filter(x=>x.valor>0),semValor=itens.length-validos.length;
+  if(!validos.length){erro('Informe o valor de pelo menos um cliente.');return}
+  if(semValor&&!confirm(semValor+' cliente'+(semValor===1?' está':'s estão')+' sem valor e '+(semValor===1?'não será gerado':'não serão gerados')+'. Continuar?'))return;
+  const desc=((document.getElementById('clDesc')||{}).value||'').trim();
+  A9.busy=true;const btn=document.getElementById('clBtn');if(btn)btn.disabled=true;
+  let ok=0;const falhas=[];
+  for(let i=0;i<validos.length;i++){
+    const {c,valor}=validos[i];
+    if(msg)msg.textContent='Gerando '+(i+1)+' de '+validos.length+'...';
+    const r=await SB.rpc('criar_cobranca',{p_nome:c.nome||'',p_fone:c.fone||'',p_cidade:c.cidade||'',p_descricao:desc,p_valor:valor});
+    if(r.error){
+      if(/criar_cobranca|schema cache|function/i.test(r.error.message||'')){A9.busy=false;if(btn)btn.disabled=false;erro('Falta rodar o arquivo 20_cobranca_avulsa.sql no Supabase.');return}
+      falhas.push(c.nome||'(sem nome)');continue;
+    }
+    if(prog){
+      const u=await SB.from('pedidos').update({extra:{cobranca:true,pag_prev:data,pag_base:new Date().toISOString()}}).eq('id',r.data);
+      if(u.error){falhas.push((c.nome||'(sem nome)')+' (criada, mas sem data)');continue}
+    }
+    ok++;
+  }
+  A9.busy=false;
+  const el=document.getElementById('cobbox');if(el)el.remove();
+  A9.cliSel={};A9.pf=prog?'carteira':'cobrar';A9.pedidos=null;A9.busy=true;
+  try{await admCarregarPedidos()}finally{A9.busy=false}
+  toast(ok+' cobrança'+(ok===1?'':'s')+' gerada'+(ok===1?'':'s')+(prog?' na Carteira':' em Pagamentos pendentes')+(falhas.length?'. Falharam: '+falhas.join(', '):'')+'.');
+  admTab('pagamentos');
+}
 function tabClientes(){
   if(!A9.clientes){if(!A9.cliBusy)admCarregarClientes();return '<div class="box">Carregando clientes...</div>'}
   const q=String(A9.cliQ||'').toLowerCase(),f=A9.cliF||'';
   let L=A9.clientes.filter(c=>(!q||(c.nome+' '+c.fone+' '+c.email+' '+c.cidade).toLowerCase().includes(q))&&(f!=='fiel'||c.n>=CLI_META));
   L.sort((a,b)=>b.n-a.n||String(b.ult||'').localeCompare(String(a.ult||'')));
   const fiel=A9.clientes.filter(c=>c.n>=CLI_META).length,m=cupomMarcas();
+  A9.cliLista=L.map(c=>c.k);const nSel=L.filter(c=>A9.cliSel[c.k]).length;
   return `<div class="box"><h2 style="margin:0 0 4px">Clientes cadastrados</h2><p style="margin:0 0 10px;color:var(--muted)">${A9.clientes.length} cliente${A9.clientes.length===1?'':'s'} · ${fiel} com ${CLI_META} pedidos ou mais. Pedidos cancelados não contam.</p>${A9.cliErro?'<div class="note err">'+esc(A9.cliErro)+'</div>':''}
   <input type="file" id="cliXlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="admProcessarPlanilha(this.files[0]);this.value=''">
   <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" onkeydown="if(event.key==='Enter'){A9.cliQ=this.value;route()}" onchange="A9.cliQ=this.value;route()"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button><button class="btn ghost sm" onclick="admImportarClientes()" title="Importar clientes de planilha Excel ou CSV">Importar planilha</button></div>
-  <div class="tbl"><table><thead><tr><th>Cliente</th><th>Contato</th><th>Cidade</th><th>Pedidos</th><th>Entregues</th><th>Total comprado</th><th>Último pedido</th><th>Cadastro</th><th></th></tr></thead><tbody>${L.map(c=>`<tr><td><b>${esc(c.nome||'Sem nome')}</b>${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" target="_blank" rel="noopener" style="color:inherit">${esc(c.fone)}</a>`:''} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="9">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div></div>`;
+  <div class="selbar"><button class="btn ghost sm" onclick="cliSelTodos(true)">Selecionar todos</button><button class="btn ghost sm" onclick="cliSelTodos(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><button class="btn acc sm" onclick="cobLote()" ${nSel?'':'disabled'}>Gerar cobrança${nSel?' ('+nSel+')':''}</button></div>
+  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th><th>Cliente</th><th>Contato</th><th>Cidade</th><th>Pedidos</th><th>Entregues</th><th>Total comprado</th><th>Último pedido</th><th>Cadastro</th><th></th></tr></thead><tbody>${L.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><b>${esc(c.nome||'Sem nome')}</b>${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" target="_blank" rel="noopener" style="color:inherit">${esc(c.fone)}</a>`:''} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div></div>`;
 }
 var CUPOM_TXT='Olá, {nome}, tudo bem? 😊\nPassando para agradecer de coração: você já fez {pedidos} pedidos com a gente e isso é muito especial para nós!\nComo agradecimento pela sua fidelidade, preparamos um cupom exclusivo para você: *{cupom}*.\nÉ só avisar no seu próximo pedido. Obrigado pela confiança! 💜';
 function cupomAbrir(k){
