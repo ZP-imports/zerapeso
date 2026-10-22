@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-21-2402 -->
+<!-- v2026-10-21-2403 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5000,7 +5000,8 @@ function filtroExtra(o,f){
   if(f.ft&&e.turno!==f.ft)return false;
   if(f.fq==='abertos'&&(ENC(o)||['programada','em-rota'].includes(o.status)))return false;
   if(f.fq==='agenda'&&o.status==='cancelado')return false;
-  if(f.fq==='abertos'||f.fq==='agenda'){const _p=(o.extra||{}).pag_prev;if(_p&&(typeof _p==='string'?_p.length>0:Array.isArray(_p)?_p.length>0:false))return false;}
+  if(f.fq==='pend-dia'&&ENC(o))return false;
+  if(f.fq==='abertos'||f.fq==='agenda'||f.fq==='pend-dia'){const _p=(o.extra||{}).pag_prev;if(_p&&(typeof _p==='string'?_p.length>0:Array.isArray(_p)?_p.length>0:false))return false;}
   if(f.fq==='feitos-hoje'&&!feitoHoje(o))return false;
   if(f.fq==='entrega-hoje'&&e.data!==hojeS())return false;
   if(f.fq==='entrega-amanha'&&e.data!==addDias(hojeS(),1))return false;
@@ -5029,7 +5030,7 @@ function listaPed(filtro,intro){
   A9.vistos=A9.vistos||{};A9.pedidos.forEach(o=>{if(!A9.vistos[o.id]){A9.vistos[o.id]=true;if(o.status==='realizado')A9.selP[o.id]=true}})
   if(!A9.lg&&!A9.busyLg){A9.busyLg=true;admCarregarLog().finally(()=>{A9.busyLg=false})}
   const ST_VISIVEIS=['confirmado','aguardando-programacao','em-rota'];
-  let lista=A9.pedidos.filter(o=>(!filtro||filtro(o))&&(A9.fs?o.status===A9.fs:(A9.fq==='abertos'||A9.fq==='agenda'||ST_VISIVEIS.includes(o.status)))&&filtroExtra(o));
+  let lista=A9.pedidos.filter(o=>(!filtro||filtro(o))&&(A9.fs?o.status===A9.fs:(A9.fq==='abertos'||A9.fq==='agenda'||A9.fq==='pend-dia'||ST_VISIVEIS.includes(o.status)))&&filtroExtra(o));
   if(A9.ordEnt){const d=A9.ordEnt==='asc'?1:-1;lista=lista.slice().sort((a,b)=>d*((a.entrega||{}).data||'').localeCompare((b.entrega||{}).data||''))}
   A9.lastLista=lista.map(o=>o.id);const nSel=lista.filter(o=>A9.selP[o.id]).length;
   const admin=ADMIN.papel==='admin';
@@ -5102,7 +5103,7 @@ function tabPagamentos(){
   const btnFrete=`<button class="btn ghost sm" onclick="A9.pagMostraFrete=${!mostraFrete};route()" style="font-size:.82rem">${mostraFrete?'🙈 Ocultar frete':'👁 Mostrar frete'}</button>`;
   const thead=`<thead><tr><th>Pedido</th><th>Cliente</th><th>Produtos</th>${mostraFrete?'<th>Frete</th>':''}<th>Total</th><th>Forma</th><th>Situação</th><th></th></tr></thead>`;
   const vencHoje=carteira.filter(o=>prevVencendo(o));
-  const bannerVenc=vencHoje.length?`<div class="note" style="background:#fef2f2;border-color:#fca5a5;color:#991b1b;animation:pagpulsa .9s ease-in-out infinite;margin-bottom:10px"><b>⚠️ ${vencHoje.length} parcela${vencHoje.length>1?'s':''} vencendo!</b> ${vencHoje.map(o=>esc((o.entrega||{}).nome||codPed(o))).join(', ')} — <button class="btn ghost sm" style="margin-left:8px" onclick="A9.pf='carteira';route()">Ver carteira</button></div>`:'';
+  const bannerVenc=vencHoje.length?`<div class="note" style="background:#fee2e2;border-color:#ef4444;color:#991b1b;margin-bottom:10px"><b>⚠️ ${vencHoje.length} parcela${vencHoje.length>1?'s':''} vencendo!</b> ${vencHoje.map(o=>esc((o.entrega||{}).nome||codPed(o))).join(', ')} — <button class="btn ghost sm" style="margin-left:8px" onclick="A9.pf='carteira';route()">Ver carteira</button></div>`:'';
   return `<div class="box">${msgBox()}${bannerVenc}${(A9.link||!A9.linkCarregado)?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre em Mais opções > Configurações.</div>'}
   <p style="margin:0 0 10px;color:var(--muted)">Pedido entregue → <b>Pendentes</b>. Envia link → <b>Cobrança em andamento</b>. Programa data → <b>Carteira</b>. Pago → <b>Concluídos</b>.</p>
   <div class="kcards" style="margin-bottom:12px">${aba('cobrar','Pagamentos pendentes',pendentes,'#d92d20')}${aba('andamento','Cobrança em andamento',andamento,'#d97706')}${aba('carteira','<span style="font-size:.82em">Carteira · Pré-datados</span>',carteira,'#2563eb')}${aba('pagos','Concluídos (pagos)',pagos,'#16a34a')}</div>
@@ -5169,7 +5170,7 @@ function tabDash(){
   const temPrevVal=o=>{const p=(o.extra||{}).pag_prev;return p&&(typeof p==='string'?p.length>0:Array.isArray(p)?p.length>0:false)};
   const L=A9.pedidos,hoje=hojeS(),ab=L.filter(o=>!ENC(o)&&!temPrevVal(o)&&!['programada','em-rota'].includes(o.status)),agenda=L.filter(o=>o.status!=='cancelado'&&!temPrevVal(o));
   const amanha=addDias(hoje,1);
-  const hojeN=L.filter(feitoHoje),entH=agenda.filter(o=>(o.entrega||{}).data===hoje),entA=agenda.filter(o=>(o.entrega||{}).data===amanha),atr=L.filter(emAtraso),rec=ab.filter(o=>+o.seq>=2);
+  const hojeN=L.filter(feitoHoje),entH=agenda.filter(o=>!ENC(o)&&(o.entrega||{}).data===hoje),entA=agenda.filter(o=>(o.entrega||{}).data===amanha),atr=L.filter(emAtraso),rec=ab.filter(o=>+o.seq>=2);
   const cobrar=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!A9.pagEnv[o.id]),pend=L.filter(o=>aguardaPag(o)&&!cobrar.includes(o)),pagos=L.filter(o=>(o.pagamento||{}).status==='pago'),entregues=L.filter(o=>o.status==='entregue');
   const temPrev=o=>(o.extra||{}).pag_prev;
   const carteiraDash=L.filter(o=>temPrev(o)&&(o.pagamento||{}).status!=='pago');
@@ -5187,12 +5188,12 @@ function tabDash(){
   const cidFrete=Object.values(todasCid).sort((a,b)=>a.localeCompare(b));
   const vencDash=carteiraDash.filter(o=>prevVencendo(o));
   const _bKey='zpBannerVenc_'+hojeS();const _bDism=(()=>{try{const x=sessionStorage.getItem(_bKey);return x&&(Date.now()-+x)<7200000}catch(e){return false}})();
-  const bannerDash=(!_bDism&&vencDash.length)?`<div class="note" style="background:#fef2f2;border-color:#fca5a5;color:#991b1b;animation:pagpulsa .9s ease-in-out infinite;margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="flex:1"><b>⚠️ ${vencDash.length} parcela${vencDash.length>1?'s':''} da carteira vencendo!</b> ${vencDash.map(o=>esc((o.entrega||{}).nome||codPed(o))).join(', ')}</span><button class="btn ghost sm" onclick="A9.pf='carteira';admTab('pagamentos')">Ver carteira</button><button class="btn ghost sm" onclick="try{sessionStorage.setItem('${_bKey}',Date.now())}catch(e){}A9.pedidos=null;route()" title="Fechar por 2h" style="font-size:1rem;padding:2px 8px">✕</button></div>`:'';
+  const bannerDash=(!_bDism&&vencDash.length)?`<div class="note" style="background:#fee2e2;border-color:#ef4444;color:#991b1b;margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="flex:1"><b>⚠️ ${vencDash.length} parcela${vencDash.length>1?'s':''} da carteira vencendo!</b> ${vencDash.map(o=>esc((o.entrega||{}).nome||codPed(o))).join(', ')}</span><button class="btn ghost sm" onclick="A9.pf='carteira';admTab('pagamentos')">Ver carteira</button><button class="btn ghost sm" onclick="try{sessionStorage.setItem('${_bKey}',Date.now())}catch(e){}A9.pedidos=null;route()" title="Fechar por 2h" style="font-size:1rem;padding:2px 8px">✕</button></div>`:'';
 
   return `<div class="box">${msgBox()}${bannerDash}<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="margin:0">Visão geral</h2><div><span style="color:var(--muted);font-size:.82rem">Atualiza sozinha a cada 20 segundos. </span><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar agora</button></div></div>
   <div class="kcards" style="margin-top:14px">
    ${k('#ea580c','Em aberto',ab.length,'ainda não saíram para rota',"admIr('pedidos',{fq:'abertos'})")}
-   ${k('#0891b2','Entrega hoje',entH.length,'total do dia (manhã, tarde e noite)',"admIr('pedidos',{fq:'agenda',fd:'"+hoje+"'})")}
+   ${k('#0891b2','Entrega hoje',entH.length,'ainda pendentes para hoje',"admIr('pedidos',{fq:'pend-dia',fd:'"+hoje+"'})")}
    ${k('#0d9488','Entrega amanhã',entA.length,'data desejada é amanhã',"admIr('pedidos',{fq:'agenda',fd:'"+amanha+"'})")}
    ${ADMIN.papel==='admin'?(()=>{const fp=fielPend(L);return fp.total?`<button class="kc ${fp.novos?'pulsa':''}" style="--c:#7c3aed" onclick="A9.cliF='fiel';admTab('clientes')"><div class="n">${fp.total}</div><div class="t"><b>Clientes fiéis (${CLI_META}+ pedidos)</b></div><div class="t">${fp.novos?fp.novos+' para oferecer cupom':'todos já receberam o convite'}</div></button>`:''})():''}
    ${pendSemData.length?`<button class="kc" style="--c:#7c2d12" onclick="A9.pf='cobrar';admTab('pagamentos')"><div class="n">${pendSemData.length}</div><div class="t"><b>Pagamentos pendentes</b></div><div class="t">Entregues sem link enviado · ${brl(pendSemData.reduce((s,o)=>s+tot(o),0))}</div></button>`:''}
@@ -5226,9 +5227,9 @@ function tabDash(){
    <div class="tbl"><table><thead><tr><th>Cidade</th><th>Total</th>${Object.keys(TURNOS).map(t=>`<th>${esc(TURNOS[t])}</th>`).join('')}</tr></thead><tbody>${A9.dcid.map((c,i)=>`<tr><td><b>${esc(c.nome)}</b></td><td><button class="chipn" style="--c:#ea580c" onclick="admIrCid(${i},'')">${c.t}</button></td>${Object.keys(TURNOS).map((t,j)=>`<td>${c[t]?`<button class="chipn" style="--c:${['#f59e0b','#2563eb','#7c3aed'][j%3]}" onclick="admIrCid(${i},'${t}')">${c[t]}</button>`:'<span style="color:#bbb">0</span>'}</td>`).join('')}</tr>`).join('')||'<tr><td colspan="5">Nenhum pedido em aberto.</td></tr>'}</tbody></table></div></div>
   <div><h3 style="margin-top:0">Pedidos nos últimos 7 dias</h3>${chartBars(dias.map(d=>d.slice(8)+'/'+d.slice(5,7)),vals,'#2563eb')}
    <h3>Situação dos pedidos</h3><div class="stackbar">${stk.map(s=>`<i style="width:${(st[s]/L.length*100).toFixed(1)}%;background:${STCOR[s]||'#999'}" title="${esc(STLB[s]||s)}: ${st[s]}"></i>`).join('')}</div><div class="legend">${stk.map(s=>`<span><b style="background:${STCOR[s]||'#999'}"></b>${esc(STLB[s]||s)} (${st[s]})</span>`).join('')}</div></div></div>
-  ${admin?`<h3>Valor de frete por cidade</h3><p style="margin:0 0 8px;color:var(--muted);font-size:.88rem">O valor aparece para o cliente na finalização da compra, quando ele escolhe o endereço, e entra na cobrança depois da entrega.</p>
+  ${admin?`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:12px 0">Valor de frete por cidade</h3><button class="btn ghost sm" onclick="A9.dashMostraFrete=${!A9.dashMostraFrete};route()" style="font-size:.82rem">${A9.dashMostraFrete?'🙈 Ocultar fretes':'👁 Mostrar fretes'}</button></div>${A9.dashMostraFrete?`<p style="margin:0 0 8px;color:var(--muted);font-size:.88rem">O valor aparece para o cliente na finalização da compra, quando ele escolhe o endereço, e entra na cobrança depois da entrega.</p>
   <div class="tbl"><table><thead><tr><th>Cidade</th><th>Frete (R$)</th></tr></thead><tbody>${cidFrete.map(c=>{const v=freteCidade(c);return `<tr><td>${esc(c)}</td><td><input type="text" inputmode="decimal" data-fc="${esc(c)}" value="${v==null?'':String(v).replace('.',',')}" placeholder="0,00" style="max-width:120px"></td></tr>`}).join('')}<tr><td><input id="frNova" placeholder="Adicionar outra cidade (ex.: Caçapava)"></td><td><input id="frNovaV" inputmode="decimal" placeholder="0,00" style="max-width:120px"></td></tr></tbody></table></div>
-  <p><button class="btn acc" onclick="freteSalvar()">Salvar frete</button></p>`:''}</div>`;
+  <p><button class="btn acc" onclick="freteSalvar()">Salvar frete</button></p>`:''}`:''}</div>`;
 }
 
 /* cor de cada entregador */
@@ -5802,7 +5803,7 @@ function pvEnviar(){
 
 /* ======================= PAGAMENTO EM OUTRO DIA: dia combinado, observação e aviso piscando ======================= */
 function pagInfo(o){
-  const x=o.extra||{},prev=x.pag_prev||'',hoje=hojeS();
+  const x=o.extra||{},pr=prevProxima(o),prev=pr&&pr.data||'',hoje=hojeS();
   const base=Date.parse(x.pag_base||o.chegou_em||o.atualizado_em||o.criado_em)||0;
   let est='ok';
   if(prev)est=prev<hoje?'vencido':prev===hoje?'hoje':'prometido';
