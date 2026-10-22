@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-22-2419 -->
+<!-- v2026-10-22-2420 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -2868,6 +2868,9 @@ function tabRevendedores(){
               <div class="fr">
                 <div class="c3"><label>Nome</label><input id="rv-nome" value="${esc(rv.nome)}"></div>
                 <div class="c3"><label>WhatsApp</label><input id="rv-tel" value="${esc(rv.telefone||'')}" inputmode="tel"></div>
+                <div class="c3"><label>CPF</label><input id="rv-cpf" value="${esc(cpfFmt(rv.cpf||''))}" inputmode="numeric"></div>
+                <div class="c3"><label>E-mail</label><input id="rv-email" value="${esc(rv.email||'')}"></div>
+                <div class="c3"><label>Cidade</label><input id="rv-cid" value="${esc(rv.cidade||'')}"></div>
                 <div class="c3"><label>Tipo</label><select id="rv-tipo" style="width:100%"><option value="comprador" ${rv.tipo==='comprador'?'selected':''}>Comprador (paga antes)</option><option value="consignado" ${rv.tipo==='consignado'?'selected':''}>Consignado (paga ao vender)</option></select></div>
                 <div class="c3"><label>Desconto % (preço ao revendedor)</label><input id="rv-desc" type="number" min="0" max="80" value="${rv.desconto_pct||0}"></div>
                 <div class="c6"><label>Observações internas</label><textarea id="rv-obs" rows="2">${esc(rv.obs||'')}</textarea></div>
@@ -3023,6 +3026,7 @@ function tabRevendedores(){
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px">
       <h3 style="margin:0">Gestão de revendedores</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn acc sm" onclick="revAdicionar()">➕ Adicionar revendedor</button>
         <button class="btn ghost sm" onclick="A9.revAba='ranking';route()">📊 Ranking</button>
         <button class="btn ghost sm" onclick="A9.revAba='avisos';route()">📢 Avisos${avisos.filter(a=>a.ativo).length?` <b style="color:var(--p)">(${avisos.filter(a=>a.ativo).length})</b>`:''}</button>
         <button class="btn sm" onclick="A9.revs=null;A9.busy=false;admCarregarRevs()">↻ Atualizar</button>
@@ -3055,7 +3059,7 @@ function tabRevendedores(){
           const saldo=rv.tipo==='consignado'?calcSaldoAdm(movimentos.filter(m=>m.revendedor_id===rv.id)):null;
           return `<tr>
             <td><b>${esc(rv.nome)}</b>${rv.tipo==='consignado'?'<br><small style="color:var(--p)">Consignado</small>':'<br><small style="color:#166534">Comprador</small>'}</td>
-            <td style="font-size:.82rem">${esc(rv.email)}<br>${esc(rv.telefone||'—')}</td>
+            <td style="font-size:.82rem">${esc(rv.email)}<br>${esc(rv.telefone||'—')}${rv.cpf?'<br>CPF '+esc(cpfFmt(rv.cpf)):''}</td>
             <td><span class="badge ${rv.tipo==='consignado'?'badge-er':'badge-c'}">${rv.tipo==='consignado'?'Consignado':'Comprador'}</span></td>
             <td style="font-size:.88rem">${rpeds.length} pedidos${saldo!=null?`<br><b style="color:var(--p);font-size:.82rem">Saldo: ${brl(saldo)}</b>`:''}</td>
             <td>${rv.desconto_pct||0}%</td>
@@ -3099,10 +3103,13 @@ async function admRevAtivar(id){
 async function admRevSalvar(id){
   const nome=document.getElementById('rv-nome')&&document.getElementById('rv-nome').value.trim();
   const tel=document.getElementById('rv-tel')&&document.getElementById('rv-tel').value.trim();
+  const rvv=id=>((document.getElementById(id)||{}).value||'').trim(),cpf=rvv('rv-cpf').replace(/\D/g,''),email=rvv('rv-email'),cidade=rvv('rv-cid');
   const tipo=document.getElementById('rv-tipo')&&document.getElementById('rv-tipo').value;
   const desc=parseInt(document.getElementById('rv-desc')&&document.getElementById('rv-desc').value)||0;
   const obs=document.getElementById('rv-obs')&&document.getElementById('rv-obs').value.trim();
-  const {error}=await SB.from('revendedores').update({nome,telefone:tel,tipo,desconto_pct:desc,obs}).eq('id',id);
+  const basico={nome,telefone:tel,tipo,desconto_pct:desc,obs};
+  let {error}=await SB.from('revendedores').update(Object.assign({},basico,{cpf:cpf||null,cidade:cidade||null},email?{email}:{})).eq('id',id);
+  if(error&&/cpf|cidade|column|schema/i.test(error.message||''))({error}=await SB.from('revendedores').update(basico).eq('id',id));
   if(error){A9.msg='Erro ao salvar.';A9.erro=true}else{A9.msg='Dados salvos.';A9.erro=false;A9.revEdit=null;A9.revs=null}
   route();
 }
@@ -6775,6 +6782,85 @@ async function cliLimparBtn(){
   let n=0;try{n=await cliLimparDuplicados(false)}finally{A9.busy=false}
   if(n){A9.clientes=null;A9.cliSel={};toast(n+' cadastro'+(n===1?'':'s')+' duplicado'+(n===1?'':'s')+' excluído'+(n===1?'':'s')+'.');route()}
 }
+/* ---- revendedor a partir do cliente: botão em Clientes (com estrelinha) e "Adicionar revendedor" na aba Revendedores ---- */
+A9.cliRev=null;
+async function admCarregarCliRev(){
+  const r=await SB.from('revendedores').select('id,nome,email,telefone,status');
+  A9.cliRev=r.error?[]:(r.data||[]);route();
+}
+function cliEhRev(c){
+  const l=A9.cliRev||[],f=cliNormFone(c.fone),e=String(c.email||'').trim().toLowerCase();
+  return l.find(r=>(f&&cliNormFone(r.telefone)===f)||(e&&String(r.email||'').trim().toLowerCase()===e))||null;
+}
+function cliRevStar(c){
+  if(A9.cliRev===null&&!A9.cliRevBusy){A9.cliRevBusy=true;admCarregarCliRev().finally(()=>{A9.cliRevBusy=false})}
+  return cliEhRev(c)?' <span title="Revendedor" style="color:#f59e0b;font-size:1.05rem">⭐</span>':'';
+}
+function cliRevBtn(c){
+  return cliEhRev(c)?'<span class="selo" style="background:#fff7e0;color:#b45309">⭐ Revendedor</span>':'<button class="btn ghost sm" onclick="revDoCliente(\''+esc(c.k)+'\')">⭐ Tornar revendedor</button>';
+}
+function cpfFmt(v){const d=String(v||'').replace(/\D/g,'');return d.length===11?d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9):String(v||'')}
+function revDoCliente(k){
+  const c=(A9.clientes||[]).find(x=>x.k===k);if(!c)return;
+  revForm({nome:c.nome||'',cpf:'',email:c.email||'',fone:c.fone||'',cidade:c.cidade||''});
+}
+function revForm(b){
+  const old=document.getElementById('rvbox');if(old)old.remove();
+  const o=document.getElementById('rvpick');if(o)o.remove();
+  const d=document.createElement('div');d.id='rvbox';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto';
+  const campo=(id,rot,val,ph,w)=>'<div style="flex:1;min-width:'+(w||200)+'px"><label style="font-size:.82rem" for="'+id+'">'+rot+'</label><input id="'+id+'" value="'+esc(val||'')+'" placeholder="'+(ph||'')+'" style="width:100%"></div>';
+  d.innerHTML='<div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:94vh;overflow:auto;padding:18px">'
+   +'<h3 style="margin:0 0 4px">⭐ Tornar revendedor</h3><p style="margin:0 0 12px;color:#667085;font-size:.88rem">Os dados do cliente já vêm preenchidos. Ele continua na lista de Clientes, com uma estrelinha, e passa a aparecer em Revendedores.</p>'
+   +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+campo('rvNome','Nome completo',b.nome)+campo('rvCpf','CPF',cpfFmt(b.cpf),'000.000.000-00',160)+'</div>'
+   +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+campo('rvEmail','E-mail',b.email)+campo('rvFone','WhatsApp',b.fone,'(12) 99999-9999',160)+'</div>'
+   +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+campo('rvCidade','Cidade',b.cidade,'',160)
+   +'<div style="flex:1;min-width:200px"><label style="font-size:.82rem" for="rvTipo">Tipo</label><select id="rvTipo" style="width:100%"><option value="comprador">Comprador (paga antes)</option><option value="consignado">Consignado (paga ao vender)</option></select></div>'
+   +'<div style="flex:1;min-width:120px"><label style="font-size:.82rem" for="rvDesc">Desconto %</label><input id="rvDesc" type="number" min="0" max="80" value="0" style="width:100%"></div></div>'
+   +'<label style="font-size:.82rem" for="rvObs">Observações internas (opcional)</label><textarea id="rvObs" rows="2" style="width:100%"></textarea>'
+   +'<div class="btns" style="margin-top:14px"><button class="btn acc" onclick="revSalvar()">Salvar revendedor</button><button class="btn ghost" onclick="document.getElementById(\'rvbox\').remove()">Cancelar</button></div>'
+   +'<p id="rvMsg" style="font-size:.82rem;margin:8px 0 0"></p></div>';
+  document.body.appendChild(d);
+}
+async function revSalvar(){
+  if(A9.busy)return;
+  const msg=document.getElementById('rvMsg');const erro=t=>{if(msg)msg.innerHTML='<span style="color:#d92d20">'+esc(t)+'</span>'};
+  const v=id=>((document.getElementById(id)||{}).value||'').trim();
+  const nome=v('rvNome'),cpf=v('rvCpf').replace(/\D/g,''),email=v('rvEmail'),fone=v('rvFone');
+  if(nome.length<2){erro('Informe o nome do revendedor.');return}
+  if(cpf&&cpf.length!==11){erro('O CPF precisa ter 11 números.');return}
+  if(email&&!/^\S+@\S+\.\S+$/.test(email)){erro('E-mail inválido.');return}
+  if(!email&&!cliNormFone(fone)){erro('Informe o WhatsApp ou o e-mail.');return}
+  A9.busy=true;
+  const r=await SB.rpc('criar_revendedor',{p_nome:nome,p_cpf:cpf,p_email:email,p_telefone:fone,p_cidade:v('rvCidade'),p_tipo:v('rvTipo')||'comprador',p_desconto:parseInt(v('rvDesc'),10)||0,p_obs:v('rvObs')});
+  A9.busy=false;
+  if(r.error){erro(/criar_revendedor|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 23_revendedor_do_cliente.sql no Supabase.':'Não foi possível salvar: '+r.error.message);return}
+  const el=document.getElementById('rvbox');if(el)el.remove();
+  A9.revs=null;A9.cliRev=null;toast(nome+' agora é revendedor. Ele aparece em Revendedores e fica com ⭐ em Clientes.');route();
+}
+/* na aba Revendedores: escolhe um cliente da base e abre o mesmo cadastro */
+function revAdicionar(){
+  const old=document.getElementById('rvpick');if(old)old.remove();
+  if(!A9.clientes&&!A9.cliBusy)admCarregarClientes();
+  const d=document.createElement('div');d.id='rvpick';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto';
+  d.innerHTML='<div style="background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:94vh;overflow:auto;padding:18px"><h3 style="margin:0 0 4px">Adicionar revendedor</h3><p style="margin:0 0 12px;color:#667085;font-size:.88rem">Escolha um cliente da base. Se ele ainda não está lá, importe ou cadastre o cliente primeiro.</p>'
+   +'<label style="font-size:.82rem" for="rvBusca">Cliente (nome ou telefone)</label><input id="rvBusca" autocomplete="off" placeholder="Digite para buscar..." oninput="revBuscar()" style="width:100%"><div id="rvLista" style="margin:8px 0"></div>'
+   +'<div class="btns"><button class="btn ghost" onclick="document.getElementById(\'rvpick\').remove()">Fechar</button></div></div>';
+  document.body.appendChild(d);revBuscar();
+}
+function revBuscar(tent){
+  const el=document.getElementById('rvLista');if(!el)return;
+  if(!A9.clientes){el.innerHTML='<span style="color:#667085;font-size:.85rem">Carregando clientes...</span>';if((tent||0)<20)setTimeout(()=>revBuscar((tent||0)+1),700);return}
+  const q=((document.getElementById('rvBusca')||{}).value||'').trim().toLowerCase(),qd=q.replace(/\D/g,'');
+  if(q.length<2){el.innerHTML='<span style="color:#667085;font-size:.85rem">'+A9.clientes.length+' clientes. Digite 2 letras ou números para buscar.</span>';return}
+  const ach=A9.clientes.filter(c=>(c.nome||'').toLowerCase().includes(q)||(qd.length>=3&&String(c.fone||'').replace(/\D/g,'').includes(qd))).slice(0,8);
+  A9.revAch=ach;
+  el.innerHTML=ach.map((c,i)=>'<button type="button" class="btn ghost sm" style="display:block;width:100%;text-align:left;margin-bottom:4px" onclick="revEscolher('+i+')"><b>'+esc(c.nome||'(sem nome)')+'</b>'+(cliEhRev(c)?' ⭐':'')+' · '+esc(c.fone||'sem telefone')+(c.cidade?' · '+esc(c.cidade):'')+'</button>').join('')||'<span style="color:#667085;font-size:.85rem">Nenhum cliente encontrado.</span>';
+}
+function revEscolher(i){
+  const c=(A9.revAch||[])[i];if(!c)return;
+  if(cliEhRev(c)){toast('Este cliente já é revendedor.');return}
+  revForm({nome:c.nome||'',cpf:'',email:c.email||'',fone:c.fone||'',cidade:c.cidade||''});
+}
 function tabClientes(){
   if(!A9.clientes){if(!A9.cliBusy)admCarregarClientes();return '<div class="box">Carregando clientes...</div>'}
   const q=String(A9.cliQ||'').toLowerCase(),f=A9.cliF||'';
@@ -6786,7 +6872,7 @@ function tabClientes(){
   <input type="file" id="cliXlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="admProcessarPlanilha(this.files[0]);this.value=''">
   <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" onkeydown="if(event.key==='Enter'){A9.cliQ=this.value;route()}" onchange="A9.cliQ=this.value;route()"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button><button class="btn ghost sm" onclick="admImportarClientes()" title="Importar clientes de planilha Excel ou CSV">Importar planilha</button> <button class="btn ghost" onclick="cliLimparBtn()" title="Junta e exclui cadastros importados com o mesmo telefone">Limpar duplicados</button></div>
   <div class="selbar"><button class="btn ghost sm" onclick="cliSelTodos(true)">Selecionar todos</button><button class="btn ghost sm" onclick="cliSelTodos(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><button class="btn acc sm" onclick="cobLote()" ${nSel?'':'disabled'}>Gerar cobrança${nSel?' ('+nSel+')':''}</button><button class="btn ghost sm danger" onclick="cliExcluir()" ${nSel?'':'disabled'}>Excluir cadastro${nSel?' ('+nSel+')':''}</button></div>
-  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th><th>Cliente</th><th>Contato</th><th>Cidade</th><th>Pedidos</th><th>Entregues</th><th>Total comprado</th><th>Último pedido</th><th>Cadastro</th><th></th></tr></thead><tbody>${L.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><a style="cursor:pointer;font-weight:700" onclick="cliEditar('${esc(c.k)}')" title="Editar cadastro">${esc(c.nome||'Sem nome')}</a>${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" target="_blank" rel="noopener" style="color:inherit">${esc(c.fone)}</a>`:''} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div></div>`;
+  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th><th>Cliente</th><th>Contato</th><th>Cidade</th><th>Pedidos</th><th>Entregues</th><th>Total comprado</th><th>Último pedido</th><th>Cadastro</th><th></th></tr></thead><tbody>${L.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><a style="cursor:pointer;font-weight:700" onclick="cliEditar('${esc(c.k)}')" title="Editar cadastro">${esc(c.nome||'Sem nome')}</a>${cliRevStar(c)}${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" target="_blank" rel="noopener" style="color:inherit">${esc(c.fone)}</a>`:''} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> ${cliRevBtn(c)} ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div></div>`;
 }
 var CUPOM_TXT='Olá, {nome}, tudo bem? 😊\nPassando para agradecer de coração: você já fez {pedidos} pedidos com a gente e isso é muito especial para nós!\nComo agradecimento pela sua fidelidade, preparamos um cupom exclusivo para você: *{cupom}*.\nÉ só avisar no seu próximo pedido. Obrigado pela confiança! 💜';
 function cupomAbrir(k){
