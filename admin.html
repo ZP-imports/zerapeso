@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-22-2408 -->
+<!-- v2026-10-22-2409 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -6380,7 +6380,7 @@ async function admCarregarClientes(){
           if(!existeK.cidade&&p.cidade)existeK.cidade=p.cidade;
         } else {
           const k='imp_'+p.id;
-          M[k]={k,nome:p.nome||'',fone:p.fone||'',email:p.email||'',cidade:p.cidade||'',cad:p.criado_em,n:0,ent:0,tot:0,pag:{},ult:null,importado:true};
+          M[k]={k,nome:p.nome||'',fone:p.fone||'',email:p.email||'',cidade:p.cidade||'',cad:p.criado_em,n:0,ent:0,tot:0,pag:{},ult:null,importado:true,impId:p.id,cep:p.cep||''};
         }
       });
     }catch(xi){}
@@ -6510,18 +6510,68 @@ async function cobLoteCriar(){
   toast(ok+' cobrança'+(ok===1?'':'s')+' gerada'+(ok===1?'':'s')+(prog?' na Carteira':' em Pagamentos pendentes')+(falhas.length?'. Falharam: '+falhas.join(', '):'')+'.');
   admTab('pagamentos');
 }
+/* ---- editar e excluir cadastro de cliente (só os importados: os de pedido ou do site não são mexidos aqui) ---- */
+function cliNormFone(f){let d=String(f||'').replace(/\D/g,'');if(d.length>11&&d.startsWith('55'))d=d.slice(2);return d}
+function cliEditar(k){
+  const c=(A9.clientes||[]).find(x=>x.k===k);if(!c)return;
+  if(!c.importado||!c.impId){toast('Este cliente veio de pedidos ou do cadastro do site. Só os clientes importados podem ser editados aqui.');return}
+  A9.cliEd=c;
+  const old=document.getElementById('cebox');if(old)old.remove();
+  const d=document.createElement('div');d.id='cebox';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto';
+  const campo=(id,rot,val,ph,extra)=>'<div style="flex:1;min-width:'+(extra||200)+'px"><label style="font-size:.82rem" for="'+id+'">'+rot+'</label><input id="'+id+'" value="'+esc(val||'')+'" placeholder="'+(ph||'')+'" style="width:100%"></div>';
+  d.innerHTML='<div style="background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:94vh;overflow:auto;padding:18px">'
+   +'<h3 style="margin:0 0 12px">Editar cadastro</h3>'
+   +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+campo('ceNome','Nome',c.nome,'')+campo('ceFone','Telefone (WhatsApp)',c.fone,'(12) 99999-9999')+'</div>'
+   +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+campo('ceEmail','E-mail',c.email,'',200)+campo('ceCidade','Cidade',c.cidade,'',140)+campo('ceCep','CEP',c.cep,'00000-000',110)+'</div>'
+   +'<div class="btns" style="margin-top:14px"><button class="btn acc" onclick="cliSalvar()">Salvar</button><button class="btn ghost danger" onclick="cliApagar([A9.cliEd])">Excluir cadastro</button><button class="btn ghost" onclick="document.getElementById(\'cebox\').remove()">Fechar</button></div>'
+   +'<p id="ceMsg" style="font-size:.82rem;margin:8px 0 0"></p></div>';
+  document.body.appendChild(d);
+}
+async function cliSalvar(){
+  const c=A9.cliEd;if(!c||A9.busy)return;
+  const msg=document.getElementById('ceMsg');const erro=t=>{if(msg)msg.innerHTML='<span style="color:#d92d20">'+esc(t)+'</span>'};
+  const v=id=>((document.getElementById(id)||{}).value||'').trim();
+  const nome=v('ceNome'),fone=v('ceFone'),fn=cliNormFone(fone);
+  if(!nome&&!fn){erro('Informe pelo menos o nome ou o telefone.');return}
+  const outro=fn&&(A9.clientes||[]).find(x=>x.k!==c.k&&cliNormFone(x.fone)===fn);
+  if(outro){erro('Já existe outro cliente com este telefone: '+(outro.nome||'(sem nome)')+'. Mantenha um cadastro só.');return}
+  A9.busy=true;
+  const r=await SB.from('clientes_importados').update({nome,fone,email:v('ceEmail'),cidade:v('ceCidade'),cep:v('ceCep')}).eq('id',c.impId).select('id');
+  A9.busy=false;
+  if(r.error){erro(/cep|column|schema/i.test(r.error.message||'')?'Falta rodar o arquivo 22_editar_clientes.sql no Supabase.':'Erro ao salvar: '+r.error.message);return}
+  if(!(r.data||[]).length){erro('Sem permissão para editar. Rode o arquivo 22_editar_clientes.sql no Supabase.');return}
+  const el=document.getElementById('cebox');if(el)el.remove();
+  A9.cliEd=null;A9.clientes=null;toast('Cadastro salvo.');route();
+}
+function cliExcluir(){cliApagar((A9.clientes||[]).filter(c=>A9.cliSel[c.k]))}
+async function cliApagar(cs){
+  cs=(cs||[]).filter(Boolean);if(!cs.length||A9.busy)return;
+  const imp=cs.filter(c=>c.importado&&c.impId),outros=cs.length-imp.length;
+  if(!imp.length){toast('Só clientes importados podem ser excluídos aqui. Os que vieram de pedidos ou do cadastro do site ficam.');return}
+  const s=imp.length===1?'':'s';
+  if(!confirm('Excluir '+imp.length+' cadastro'+s+' importado'+s+'?\n\n'+(outros?outros+' selecionado'+(outros===1?'':'s')+' veio'+(outros===1?'':'ram')+' de pedidos ou do site e '+(outros===1?'será mantido':'serão mantidos')+'.\n\n':'')+'Isso não dá para desfazer. Pedidos e cobranças não são apagados.'))return;
+  A9.busy=true;
+  const r=await SB.from('clientes_importados').delete().in('id',imp.map(c=>c.impId)).select('id');
+  A9.busy=false;
+  if(r.error){toast('Erro ao excluir: '+r.error.message);return}
+  const n=(r.data||[]).length;
+  if(!n){toast('Não foi possível excluir. Rode o arquivo 22_editar_clientes.sql no Supabase.');return}
+  const el=document.getElementById('cebox');if(el)el.remove();
+  A9.cliEd=null;A9.cliSel={};A9.clientes=null;route();
+  toast(n+' cadastro'+(n===1?'':'s')+' excluído'+(n===1?'':'s')+'.'+(outros?' '+outros+' de pedidos ou do site '+(outros===1?'foi mantido':'foram mantidos')+'.':''));
+}
 function tabClientes(){
   if(!A9.clientes){if(!A9.cliBusy)admCarregarClientes();return '<div class="box">Carregando clientes...</div>'}
   const q=String(A9.cliQ||'').toLowerCase(),f=A9.cliF||'';
-  let L=A9.clientes.filter(c=>(!q||(c.nome+' '+c.fone+' '+c.email+' '+c.cidade).toLowerCase().includes(q))&&(f!=='fiel'||c.n>=CLI_META));
+  let L=A9.clientes.filter(c=>(!q||(c.nome+' '+c.fone+' '+c.email+' '+c.cidade+' '+(c.cep||'')).toLowerCase().includes(q))&&(f!=='fiel'||c.n>=CLI_META));
   L.sort((a,b)=>b.n-a.n||String(b.ult||'').localeCompare(String(a.ult||'')));
   const fiel=A9.clientes.filter(c=>c.n>=CLI_META).length,m=cupomMarcas();
   A9.cliLista=L.map(c=>c.k);const nSel=L.filter(c=>A9.cliSel[c.k]).length;
   return `<div class="box"><h2 style="margin:0 0 4px">Clientes cadastrados</h2><p style="margin:0 0 10px;color:var(--muted)">${A9.clientes.length} cliente${A9.clientes.length===1?'':'s'} · ${fiel} com ${CLI_META} pedidos ou mais. Pedidos cancelados não contam.</p>${A9.cliErro?'<div class="note err">'+esc(A9.cliErro)+'</div>':''}
   <input type="file" id="cliXlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="admProcessarPlanilha(this.files[0]);this.value=''">
   <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" onkeydown="if(event.key==='Enter'){A9.cliQ=this.value;route()}" onchange="A9.cliQ=this.value;route()"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button><button class="btn ghost sm" onclick="admImportarClientes()" title="Importar clientes de planilha Excel ou CSV">Importar planilha</button></div>
-  <div class="selbar"><button class="btn ghost sm" onclick="cliSelTodos(true)">Selecionar todos</button><button class="btn ghost sm" onclick="cliSelTodos(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><button class="btn acc sm" onclick="cobLote()" ${nSel?'':'disabled'}>Gerar cobrança${nSel?' ('+nSel+')':''}</button></div>
-  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th><th>Cliente</th><th>Contato</th><th>Cidade</th><th>Pedidos</th><th>Entregues</th><th>Total comprado</th><th>Último pedido</th><th>Cadastro</th><th></th></tr></thead><tbody>${L.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><b>${esc(c.nome||'Sem nome')}</b>${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" target="_blank" rel="noopener" style="color:inherit">${esc(c.fone)}</a>`:''} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div></div>`;
+  <div class="selbar"><button class="btn ghost sm" onclick="cliSelTodos(true)">Selecionar todos</button><button class="btn ghost sm" onclick="cliSelTodos(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><button class="btn acc sm" onclick="cobLote()" ${nSel?'':'disabled'}>Gerar cobrança${nSel?' ('+nSel+')':''}</button><button class="btn ghost sm danger" onclick="cliExcluir()" ${nSel?'':'disabled'}>Excluir cadastro${nSel?' ('+nSel+')':''}</button></div>
+  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th><th>Cliente</th><th>Contato</th><th>Cidade</th><th>Pedidos</th><th>Entregues</th><th>Total comprado</th><th>Último pedido</th><th>Cadastro</th><th></th></tr></thead><tbody>${L.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><a style="cursor:pointer;font-weight:700" onclick="cliEditar('${esc(c.k)}')" title="Editar cadastro">${esc(c.nome||'Sem nome')}</a>${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" target="_blank" rel="noopener" style="color:inherit">${esc(c.fone)}</a>`:''} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div></div>`;
 }
 var CUPOM_TXT='Olá, {nome}, tudo bem? 😊\nPassando para agradecer de coração: você já fez {pedidos} pedidos com a gente e isso é muito especial para nós!\nComo agradecimento pela sua fidelidade, preparamos um cupom exclusivo para você: *{cupom}*.\nÉ só avisar no seu próximo pedido. Obrigado pela confiança! 💜';
 function cupomAbrir(k){
