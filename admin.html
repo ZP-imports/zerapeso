@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-22-2422 -->
+<!-- v2026-10-22-2423 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -2827,6 +2827,50 @@ async function admCarregarRevs(){
   route();
 }
 
+/* ---- Gestão dos revendedores: visão geral (painel do Wesley) ---- */
+function revDashHtml(){
+  const R=A9.revs;if(!R)return '';
+  const L=R.lista||[],P=R.pedidos||[],M=R.movimentos||[],PR=R.precos||[];
+  const hoje=hojeS(),mes=hoje.slice(0,7);
+  const loc=p=>ymd(new Date(Date.parse(p.criado_em)));
+  const val=p=>+p.custo_total||+p.subtotal||0;
+  const nItens=p=>(p.itens||[]).reduce((s,i)=>s+(+i.qty||0),0);
+  const ativos=L.filter(r=>r.status==='ativo'),pend=L.filter(r=>r.status==='pendente');
+  const ST={novo:'Novo',confirmado:'Confirmado',em_separacao:'Em separação',em_rota:'Em rota',entregue:'Entregue',cancelado:'Cancelado'};
+  const ORD=['novo','confirmado','em_separacao','em_rota'];
+  const abertos=P.filter(p=>ORD.includes(p.status)).sort((a,b)=>ORD.indexOf(a.status)-ORD.indexOf(b.status)||String(a.criado_em).localeCompare(String(b.criado_em)));
+  const novos=P.filter(p=>p.status==='novo');
+  const andam=P.filter(p=>['confirmado','em_separacao','em_rota'].includes(p.status));
+  const hojeP=P.filter(p=>p.status!=='cancelado'&&loc(p)===hoje);
+  const mesP=P.filter(p=>p.status!=='cancelado'&&loc(p).slice(0,7)===mes);
+  const consig=ativos.filter(r=>r.tipo==='consignado');
+  const saldo=r=>calcSaldoAdm(M.filter(m=>m.revendedor_id===r.id));
+  const aReceber=consig.reduce((s,r)=>s+saldo(r),0);
+  const nome=id=>{const r=L.find(x=>x.id===id);return r?r.nome:'—'};
+  const k=(c,t,n,sub)=>`<div class="kc" style="--c:${c};cursor:default"><div class="n">${n}</div><div class="t"><b>${t}</b></div><div class="t">${sub}</div></div>`;
+  const dias=[0,1,2,3,4,5,6].map(i=>addDias(hoje,i-6));
+  const vals=dias.map(d=>P.filter(p=>p.status!=='cancelado'&&loc(p)===d).length);
+  const linhas=abertos.slice(0,15).map(p=>`<tr><td>${esc(fmtD(Date.parse(p.criado_em)))}</td><td><b>${esc(p.revendedor_nome||nome(p.revendedor_id))}</b></td><td>${nItens(p)}</td><td>${brl(val(p))}</td><td>${p.tipo_pagamento==='consignado'?'Consignado':'À vista'}</td><td><select onchange="admRevAtualizaStatus('${p.id}',this.value)" style="width:auto">${Object.keys(ST).map(s=>`<option value="${s}" ${p.status===s?'selected':''}>${ST[s]}</option>`).join('')}</select></td><td><button class="btn ghost sm" onclick="A9.revSel='${p.revendedor_id}';route()">Ver</button></td></tr>`).join('');
+  const carteira=consig.map(r=>({r,s:saldo(r)})).sort((a,b)=>b.s-a.s).map(x=>`<tr><td><b>${esc(x.r.nome)}</b></td><td>${x.s>0?`<b style="color:#b45309">${brl(x.s)}</b>`:'<span style="color:var(--muted)">em dia</span>'}</td><td><button class="btn ghost sm" onclick="A9.revSel='${x.r.id}';route()">Ver</button></td></tr>`).join('');
+  const descontos=ativos.map(r=>`<tr><td><b>${esc(r.nome)}</b></td><td>${r.tipo==='consignado'?'Consignado':'Comprador'}</td><td>${r.desconto_pct||0}%</td><td>${PR.filter(x=>x.revendedor_id===r.id).length} produto${PR.filter(x=>x.revendedor_id===r.id).length===1?'':'s'}</td><td><button class="btn ghost sm" onclick="A9.revSel='${r.id}';route()">Preços</button></td></tr>`).join('');
+  return `<div style="margin-bottom:20px">
+   <h3 style="margin:0 0 10px">Visão geral dos revendedores</h3>
+   <div class="kcards">
+    ${k('#0a6e5c','Revendedores ativos',ativos.length,pend.length?pend.length+' aguardando aprovação':'nenhum pendente')}
+    ${k('#ea580c','Pedidos novos',novos.length,'ainda sem atendimento')}
+    ${k('#0891b2','Em andamento',andam.length,'confirmado, separação ou rota')}
+    ${k('#7c3aed','Pedidos hoje',hojeP.length,brl(hojeP.reduce((s,p)=>s+val(p),0)))}
+    ${k('#16a34a','Pedidos no mês',mesP.length,brl(mesP.reduce((s,p)=>s+val(p),0)))}
+    ${k('#b45309','A receber (consignado)',brl(aReceber),consig.length+' revendedor'+(consig.length===1?'':'es'))}
+   </div>
+   <div class="two" style="gap:18px;align-items:start;margin-top:14px">
+    <div class="box" style="box-shadow:none;border:1px solid var(--line)"><h4 style="margin:0 0 8px">Pedidos por dia (últimos 7 dias)</h4>${chartBars(dias.map(d=>d.slice(8)+'/'+d.slice(5,7)),vals,'#0a6e5c')}</div>
+    <div class="box" style="box-shadow:none;border:1px solid var(--line)"><h4 style="margin:0 0 8px">Carteira dos consignados</h4>${carteira?`<div class="tbl"><table><thead><tr><th>Revendedor</th><th>A receber</th><th></th></tr></thead><tbody>${carteira}</tbody></table></div>`:'<p style="color:var(--muted);margin:0">Nenhum revendedor consignado ativo.</p>'}<p style="font-size:.8rem;color:var(--muted);margin:8px 0 0">Datas, parcelas e alertas de cobrança entram na próxima etapa.</p></div>
+   </div>
+   <div class="box" style="box-shadow:none;border:1px solid var(--line);margin-top:14px"><h4 style="margin:0 0 8px">Pedidos para atender${abertos.length>15?' (15 mais antigos de '+abertos.length+')':''}</h4>${linhas?`<div class="tbl"><table><thead><tr><th>Data</th><th>Revendedor</th><th>Itens</th><th>Total</th><th>Pagamento</th><th>Situação</th><th></th></tr></thead><tbody>${linhas}</tbody></table></div>`:'<p style="color:var(--muted);margin:0">Nenhum pedido de revendedor para atender agora.</p>'}</div>
+   <div class="box" style="box-shadow:none;border:1px solid var(--line);margin-top:14px"><h4 style="margin:0 0 8px">Descontos e preços por revendedor</h4>${descontos?`<div class="tbl"><table><thead><tr><th>Revendedor</th><th>Tipo</th><th>Desconto padrão</th><th>Preços exclusivos</th><th></th></tr></thead><tbody>${descontos}</tbody></table></div>`:'<p style="color:var(--muted);margin:0">Nenhum revendedor ativo.</p>'}</div>
+  </div>`;
+}
 function tabRevendedores(){
   if(!A9.revs){if(!A9.busy){A9.busy=true;admCarregarRevs().finally(()=>{A9.busy=false})}return '<div class="box">Carregando revendedores...</div>'}
   const {lista,pedidos,movimentos}=A9.revs;
@@ -3054,6 +3098,7 @@ function tabRevendedores(){
       </div>
     </div>
 
+    ${revDashHtml()}
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
       <div class="box" style="cursor:pointer;border:2px solid ${abaAtual==='pendentes'?'var(--acc)':'var(--line)'}" onclick="A9.revAba='pendentes';route()">
         <div style="font-size:.8rem;color:var(--muted)">Aguardando aprovação</div>
