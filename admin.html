@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-22-2413 -->
+<!-- v2026-10-22-2414 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -4092,8 +4092,8 @@ function admCriaRota(){
     const r=await SB.rpc('criar_rota',{p_data:d,p_entregador:en,p_pedidos:ids});A9.busy=false;
     if(r.error){A9.msg=msgRpc(r.error);A9.erro=true;route();return}
     const sr=await SB.rpc('saiu_rota',{p_rota:r.data});
-    const uberRota=ehUber(((A9.lg||{}).ent||[]).find(x=>x.id===en));A9.sel={};A9.pedidos=null;A9.lg=null;A.tab='entregadores';A9.entSel={};A9.entSel[en]=true;A9.otAuto=uberRota?null:en;A9.otim=null;
-    A9.msg='Rota criada e já em andamento: os clientes foram avisados de que saiu para entrega'+(sr.error?' (falhou ao marcar a saída: use Saiu para entrega)':'')+'.'+(uberRota?' Use o botão Chamar Uber em cada pedido para abrir o aplicativo já com o endereço.':' Agora arraste as paradas na ordem da rota e envie ao entregador.');A9.erro=false;route();window.scrollTo(0,0)})();
+    const uberRota=ehUber(((A9.lg||{}).ent||[]).find(x=>x.id===en));const o1=((A9.lg||{}).peds||{})[ids[0]];A9.sel={};A9.pedidos=null;A9.lg=null;A.tab='entregadores';A9.entSel={};A9.entSel[en]=true;A9.otAuto=uberRota?null:en;A9.otim=null;
+    A9.msg='Rota criada e já em andamento: os clientes foram avisados de que saiu para entrega'+(sr.error?' (falhou ao marcar a saída: use Saiu para entrega)':'')+'.'+(uberRota?(ids.length>1?' O Uber abriu para o 1º pedido; use o botão Chamar Uber nos demais.':' O Uber abriu com o endereço do cliente. Se não abriu, use o botão Chamar Uber.'):' Agora arraste as paradas na ordem da rota e envie ao entregador.');A9.erro=false;route();window.scrollTo(0,0);if(uberRota)uberAbrir(o1)})();
 }
 function admSaiuRota(id){if(confirm('Marcar que a rota saiu? Os pedidos passam para "Em rota" e os clientes são avisados.'))admLgRpc('saiu_rota',{p_rota:id},'Rota em andamento. Clientes avisados.')}
 function admDesfazRota(id){if(confirm('Desfazer esta rota? Os pedidos voltam para "Aguardando programação".'))admLgRpc('desfazer_rota',{p_rota:id},'Rota desfeita.')}
@@ -4682,6 +4682,12 @@ var wazeDest=t=>'https://waze.com/ul?q='+encodeURIComponent(t)+'&navigate=yes';
 /* Uber: é um "entregador" chamado Uber. O botão abre o app (ou o site, no computador) com o endereço do cliente como destino */
 var ehUber=x=>/uber/i.test(String((x||{}).nome||''));
 function uberUrl(o){const e=o.entrega||{};return 'https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[nickname]='+encodeURIComponent(e.nome||'Cliente')+'&dropoff[formatted_address]='+encodeURIComponent(endTxt(e.dest))}
+function uberAbrir(o){
+  if(!o)return;const url=uberUrl(o);
+  if(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'')){setTimeout(()=>{location.href=url},300);return}
+  const w=window.open(url,'_blank');
+  if(!w)toast('O navegador bloqueou a nova aba do Uber. Use o botão Chamar Uber no pedido.');
+}
 async function uberAtivar(){
   if(A9.busy)return;A9.busy=true;
   const r=await SB.from('entregadores').insert({nome:'Uber',whats:'00000000000'}).select('id').single();
@@ -5387,10 +5393,10 @@ async function pedEnviarEntregador(){
   A9.busy=false;
   if(r.error){A9.msg=msgRpc(r.error);A9.erro=true;route();return}
   const sr=await SB.rpc('saiu_rota',{p_rota:r.data});
-  const uberRota=ehUber((A9.lg&&A9.lg.ent.find(x=>x.id===en))||{});
+  const uberRota=ehUber((A9.lg&&A9.lg.ent.find(x=>x.id===en))||{});const o1=(A9.pedidos||[]).find(x=>x.id===ids[0]);
   const nome=((A9.lg&&A9.lg.ent.find(x=>x.id===en))||{}).nome||'o entregador';
   A9.selP={};A9.pedidos=null;A9.lg=null;A9.lgE=en;A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';A9.po=null;A.tab='entregadores';A9.entSel={};A9.entSel[en]=true;A9.otAuto=uberRota?null:en;A9.otim=null;
-  A9.msg='Rota criada com '+ids.length+' pedido'+(ids.length>1?'s':'')+' para '+nome+'. Os clientes já foram avisados de que saiu para entrega'+(sr.error?' (falhou ao marcar a saída: use Saiu para entrega na Logística)':'')+'.'+(uberRota?' Use o botão Chamar Uber em cada pedido para abrir o aplicativo já com o endereço.':' Agora arraste as paradas na ordem da rota e envie ao entregador.');A9.erro=false;route();window.scrollTo(0,0);
+  A9.msg='Rota criada com '+ids.length+' pedido'+(ids.length>1?'s':'')+' para '+nome+'. Os clientes já foram avisados de que saiu para entrega'+(sr.error?' (falhou ao marcar a saída: use Saiu para entrega na Logística)':'')+'.'+(uberRota?(ids.length>1?' O Uber abriu para o 1º pedido; use o botão Chamar Uber nos demais.':' O Uber abriu com o endereço do cliente. Se não abriu, use o botão Chamar Uber.'):' Agora arraste as paradas na ordem da rota e envie ao entregador.');A9.erro=false;route();window.scrollTo(0,0);if(uberRota)uberAbrir(o1);
 }
 
 /* ======================= ATUALIZAÇÃO AUTOMÁTICA: o motoboy entrega, o painel já mostra e libera a cobrança ======================= */
