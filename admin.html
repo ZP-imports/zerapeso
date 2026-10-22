@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-22-2411 -->
+<!-- v2026-10-22-2412 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -612,8 +612,8 @@ var MSG_DEF={
   p:'Olá, {nome}! 💚\n\nPassando para avisar que o seu pedido {pedido} da {loja} já saiu e está a caminho! 🛵💨\n\nEle chega aí em breve, então deixe alguém por perto para receber. 🏠\n\nQualquer novidade, a gente avisa por aqui. Obrigado pela confiança! ✨'},
  rota_topo:{g:'adm',t:'Rota do entregador: começo',q:'Primeira parte da mensagem que o entregador recebe.',v:['nome','rota','data'],ex:{nome:'Lincoln',rota:'7',data:'15/10/2026'},
   p:'🛵 Rota {rota} · {data}\n\nOlá, {nome}! 😊\nSegue a sua rota:'},
- rota_parada:{g:'adm',t:'Rota do entregador: cada parada',q:'Repetida para cada cliente da rota. Só nome e endereço, sem itens, telefone ou valores.',v:['n','cliente','endereco','ref','maps'],ex:{n:'1',cliente:'Sirlene Souza',endereco:'Rua das Flores, 10, ap 2, Centro, São José dos Campos/SP, 12200-000',ref:'Portão azul',maps:'https://www.google.com/maps/dir/?api=1&destination=...'},
-  p:'{n}) {cliente}\n🏠 {endereco}\n📌 Ref.: {ref}\n📍 {maps}'},
+ rota_parada:{g:'adm',t:'Rota do entregador: cada parada',q:'Repetida para cada cliente da rota: nome, telefone e endereço, sem itens nem valores.',v:['n','cliente','fone','endereco','ref','maps'],ex:{n:'1',cliente:'Sirlene Souza',fone:'(12) 9 8172-7382',endereco:'Rua das Flores, 10, ap 2, Centro, São José dos Campos/SP, 12200-000',ref:'Portão azul',maps:'https://www.google.com/maps/dir/?api=1&destination=...'},
+  p:'{n}) {cliente}\n📞 {fone}\n🏠 {endereco}\n📌 Ref.: {ref}\n📍 {maps}'},
  rota_rodape:{g:'adm',t:'Rota do entregador: final',q:'Última parte da mensagem, com o link da rota completa e da página para marcar as entregas.',v:['maps_rota','link'],ex:{maps_rota:'https://www.google.com/maps/dir/?api=1&...',link:'https://zpimports.netlify.app/#/entrega/...'},
   p:'🗺️ Rota completa no Maps: {maps_rota}\n\n✅ Marque cada entrega por aqui: {link}\n\nBoa entrega! 💪'},
  rastreio:{g:'adm',t:'Link de rastreio ao cliente',q:'Botão "Enviar link de rastreio ao cliente" dentro do pedido.',v:['nome','pedido','link'],ex:{nome:'Sirlene',pedido:'ZP-000114',link:'https://zpimports.netlify.app/#/acompanhar/...'},
@@ -4116,13 +4116,22 @@ function admTirarRota(pid){
   })();
 }
 async function admEnviouRota(id){await SB.from('rotas').update({enviada_em:new Date().toISOString()}).eq('id',id)}
-/* mensagem para o entregador: só nome e endereço (sem itens, telefone ou valores), com o link do Maps e a página para marcar as entregas */
+/* uma parada da rota: nome, telefone e endereço do cliente (sem itens nem valores). Se o modelo salvo em Mensagens não tiver {fone}, o telefone entra na linha de baixo do nome */
+function paradaRota(o,k,end){
+  const e=o.entrega||{},d=e.dest||{};
+  const dig=String(e.fone||'').replace(/\D/g,'');
+  const f=dig?fmtFone(dig.length>11&&dig.startsWith('55')?dig.slice(2):dig,dig.length===10):'';
+  let t=msgTxt('rota_parada',{n:k+1,cliente:e.nome||'',fone:f,endereco:end,ref:d.ref||'',maps:mapsDest(end)});
+  if(f&&t.indexOf(f)<0&&t.indexOf(dig)<0){const i=t.indexOf('\n');t=i<0?t+'\n📞 '+f:t.slice(0,i)+'\n📞 '+f+t.slice(i)}
+  return t;
+}
+/* mensagem para o entregador: nome, telefone e endereço de cada cliente (sem itens ou valores), com o link do Maps e a página para marcar as entregas */
 function msgRota(r){
   const en=A9.lg.ent.find(x=>x.id===r.entregador_id)||{nome:''};
   const ps=r.pedidos.map(id=>A9.lg.peds[id]).filter(Boolean);
   const ends=ps.map(o=>endTxt((o.entrega||{}).dest));
   const paradas=ps.map((o,k)=>{const e=o.entrega||{},d=e.dest||{};
-    return msgTxt('rota_parada',{n:k+1,cliente:e.nome||'',endereco:ends[k],ref:d.ref||'',maps:mapsDest(ends[k])})});
+    return paradaRota(o,k,ends[k])});
   const topo=msgTxt('rota_topo',{nome:primeiro(en.nome)||'',rota:r.n,data:dataBr(r.data)});
   const fim=msgTxt('rota_rodape',{maps_rota:ps.length>1?mapsRota(ends):'',link:entUrl(r)||''});
   return nl([topo,paradas.join('\n\n'),fim].filter(x=>x&&x.trim()).join('\n\n'));
@@ -5534,7 +5543,7 @@ function otMsg(){
   const T=A9.otim,L=A9.lg;const en=L.ent.find(x=>x.id===T.ent)||{nome:''};
   const ps=otPs(),ends=ps.map(o=>endTxt((o.entrega||{}).dest));
   const rs=L.rotas.filter(r=>r.entregador_id===T.ent&&r.pedidos.some(i=>T.ids.includes(i))).sort((a,b)=>a.n-b.n);
-  const paradas=ps.map((o,k)=>{const e=o.entrega||{},d=e.dest||{};return msgTxt('rota_parada',{n:k+1,cliente:e.nome||'',endereco:ends[k],ref:d.ref||'',maps:mapsDest(ends[k])})});
+  const paradas=ps.map((o,k)=>{const e=o.entrega||{},d=e.dest||{};return paradaRota(o,k,ends[k])});
   const tr=otTrechos(ends);
   const maps=tr.length<=1?(ends.length>1?tr[0].url:''):tr.map(t=>'Paradas '+t.de+' a '+t.ate+': '+t.url).join('\n');
   const topo=msgTxt('rota_topo',{nome:primeiro(en.nome)||'',rota:rs.map(r=>r.n).join(' e '),data:dataBr(hojeS())});
@@ -6355,7 +6364,7 @@ async function admCarregarClientes(){
       if(!c.ult||o.criado_em>c.ult)c.ult=o.criado_em;
     });
     // dedup por telefone
-    const normF0=f=>String(f||'').replace(/\D/g,'');
+    const normF0=cliNormFone;
     const foneIndex={};
     Object.values(M).forEach(c=>{const fn=normF0(c.fone);if(!fn)return;if(!foneIndex[fn]){foneIndex[fn]=c.k;return}
       const principal=M[foneIndex[fn]];const outro=c;
@@ -6371,7 +6380,7 @@ async function admCarregarClientes(){
     // mesclar clientes importados
     try{
       const imp=await SB.from('clientes_importados').select('*').limit(5000);
-      const normF=f=>String(f||'').replace(/\D/g,'');
+      const normF=cliNormFone;
       (imp.data||[]).forEach(p=>{
         const fNorm=normF(p.fone||'');
         const existeK=fNorm&&Object.values(M).find(c=>c.fone&&normF(c.fone)===fNorm);
@@ -6400,7 +6409,7 @@ async function admProcessarPlanilha(file){
       const ws=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
       if(!rows.length){toast('Planilha vazia ou formato inválido.');return}
-      const norm=f=>{let d=String(f||'').replace(/\D/g,'');if(d.length>11&&d.startsWith('55'))d=d.slice(2);return d};
+      const norm=cliNormFone;
       let jaSalvos=[];
       if(SB){const r=await SB.from('clientes_importados').select('id,fone,nome,email,cidade');jaSalvos=r.data||[];}
       /* um cadastro por telefone: se o telefone já existe, o cadastro que tem menos informações recebe as que faltam */
@@ -6523,7 +6532,7 @@ async function cobLoteCriar(){
   admTab('pagamentos');
 }
 /* ---- editar e excluir cadastro de cliente (só os importados: os de pedido ou do site não são mexidos aqui) ---- */
-function cliNormFone(f){let d=String(f||'').replace(/\D/g,'');if(d.length>11&&d.startsWith('55'))d=d.slice(2);return d}
+function cliNormFone(f){const d=String(f||'').replace(/\D/g,'');return d.length>=8?d.slice(-8):d}
 function cliEditar(k){
   const c=(A9.clientes||[]).find(x=>x.k===k);if(!c)return;
   if(!c.importado||!c.impId){toast('Este cliente veio de pedidos ou do cadastro do site. Só os clientes importados podem ser editados aqui.');return}
