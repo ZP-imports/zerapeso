@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-22-2420 -->
+<!-- v2026-10-22-2421 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -4510,8 +4510,8 @@ function editHtml(o){
   const en=o.entrega||{},d=en.dest||{};const itensOk=!['em-rota','tentativa'].includes(o.status);
   const pago=(o.pagamento||{}).status==='pago';
   return `<details class="editbox" ${A9.editOpen?'open':''} ontoggle="A9.editOpen=this.open"><summary>Editar pedido (itens e endereço)</summary>
-  <h4>Itens</h4>${itensOk?`<div class="tbl"><table><thead><tr><th>Produto</th><th>Quantidade</th></tr></thead><tbody>${(o.itens||[]).map((i,k)=>`<tr><td>${esc(i.name)}</td><td><input id="eq${k}" type="number" min="0" max="99" value="${i.qty}" style="width:90px"></td></tr>`).join('')}</tbody></table></div>
-  <p style="font-size:.82rem;color:var(--muted);margin:4px 0">Quantidade 0 remove o item. O estoque é ajustado e o desconto recalculado.${pago?' <b>Pedido já pago: se o total mudar, acerte a diferença com o cliente.</b>':''}</p>
+  <h4>Itens</h4>${itensOk?`<div class="tbl"><table><thead><tr><th>Produto</th><th>Quantidade</th><th></th></tr></thead><tbody>${(o.itens||[]).map((i,k)=>`<tr><td>${esc(i.name)}</td><td><input id="eq${k}" type="number" min="0" max="99" value="${i.qty}" style="width:90px"></td><td><button class="btn ghost sm danger" onclick="admExcluiItem(${k})">🗑 Excluir</button></td></tr>`).join('')}</tbody></table></div>
+  <p style="font-size:.82rem;color:var(--muted);margin:4px 0">Use Excluir (ou quantidade 0) para tirar um item. O estoque é ajustado e o desconto recalculado.${pago?' <b>Pedido já pago: se o total mudar, acerte a diferença com o cliente.</b>':''}</p>
   <label for="eqM">Motivo (o cliente vê este texto)</label><input id="eqM" maxlength="200" placeholder="Ex.: cliente pediu para trocar a quantidade"><p><button class="btn sm" onclick="admSalvaItens()">Salvar itens</button></p>`:'<div class="note warn">Os itens não podem mais ser alterados depois que o pedido saiu para entrega.</div>'}
   <h4>Adicionar produto ao pedido</h4>
   ${itensOk?`<div id="addProdBox">
@@ -4530,6 +4530,17 @@ function admSalvaItens(){
   if(q.every((x,k)=>x===o.itens[k].qty)){A9.msg='Nenhuma quantidade foi alterada.';A9.erro=true;route();return}
   if(!v_('eqM').trim()){A9.msg='Informe o motivo da alteração.';A9.erro=true;route();return}
   admRpc('editar_itens_pedido',{p_pedido:o.id,p_qtds:q,p_motivo:v_('eqM').trim()},'Itens atualizados. O cliente foi avisado e a etiqueta ficou desatualizada.');
+}
+/* exclui um item que já está no pedido (mesma função de editar itens, com a quantidade dele em 0) */
+function admExcluiItem(k){
+  const o=A9.po,it=(o.itens||[])[k];if(!it)return;
+  const resto=(o.itens||[]).some((x,j)=>{if(j===k)return false;const n=parseInt(v_('eq'+j),10);return (isNaN(n)?x.qty:n)>0});
+  if(!resto){A9.msg='Este é o único item do pedido. Para tirar tudo, cancele o pedido.';A9.erro=true;route();return}
+  let m=v_('eqM').trim();
+  if(!m){m=(prompt('Motivo da exclusão de "'+it.name+'" (o cliente vê este texto):','Item retirado a pedido do cliente')||'').trim();if(!m)return}
+  if(!confirm('Excluir "'+it.name+'" do pedido?\n\nO estoque é devolvido, o desconto é recalculado e o cliente é avisado.'))return;
+  const q=(o.itens||[]).map((x,j)=>{if(j===k)return 0;const n=parseInt(v_('eq'+j),10);return isNaN(n)||n<0||n>99?x.qty:n});
+  admRpc('editar_itens_pedido',{p_pedido:o.id,p_qtds:q,p_motivo:m},'Item excluído. O cliente foi avisado e a etiqueta ficou desatualizada.');
 }
 function admSalvaEndereco(){
   const dest={cep:v_('edCep').trim(),uf:v_('edUf').trim(),cidade:v_('edCid').trim(),bairro:v_('edBai').trim(),rua:v_('edRua').trim(),num:v_('edNum').trim(),comp:v_('edCom').trim(),ref:v_('edRef').trim()};
