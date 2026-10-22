@@ -1,24 +1,27 @@
--- Portal do revendedor: tabela de preço exclusiva, preço de venda próprio,
--- clientes do revendedor (entrega direta da matriz) e custo/venda no pedido.
--- Rode depois das tabelas de revenda.html (revendedores, pedidos_revendedor...).
+-- 19_revendedor_precos_clientes.sql
+-- Portal do revendedor: preço exclusivo por revendedor, preço de venda do próprio revendedor,
+-- clientes do revendedor (entrega direta pela matriz) e custo/venda no pedido.
+-- Os preços são por VARIAÇÃO do produto (ex.: "Caixa fechada 5 ampolas" e "Ampola + diluente"),
+-- do mesmo jeito que a loja: cada variação tem o seu valor.
+-- Rode depois das tabelas de revenda (revendedores, pedidos_revendedor...) e do arquivo 07 (variações).
 
--- Tabela de preço exclusiva, montada manualmente pelo admin (custo do revendedor).
--- Produto sem linha aqui usa o desconto_pct padrão do revendedor.
-create table if not exists public.revendedor_precos (
+-- Preço exclusivo (custo do revendedor), montado à mão pelo painel.
+-- Variação sem linha aqui usa o preço da loja com o desconto padrão do revendedor (desconto_pct).
+create table if not exists public.revendedor_precos_var (
   revendedor_id uuid not null references public.revendedores(id) on delete cascade,
-  produto_id int not null,
+  variacao_id uuid not null references public.produto_variacoes(id) on delete cascade,
   preco numeric(10,2) not null check (preco >= 0),
   atualizado_em timestamptz not null default now(),
-  primary key (revendedor_id, produto_id)
+  primary key (revendedor_id, variacao_id)
 );
 
--- Preço de venda que o próprio revendedor define para o catálogo dele.
-create table if not exists public.revendedor_venda (
+-- Preço de venda que o próprio revendedor define no catálogo dele.
+create table if not exists public.revendedor_venda_var (
   revendedor_id uuid not null references public.revendedores(id) on delete cascade,
-  produto_id int not null,
+  variacao_id uuid not null references public.produto_variacoes(id) on delete cascade,
   preco_venda numeric(10,2) not null check (preco_venda >= 0),
   atualizado_em timestamptz not null default now(),
-  primary key (revendedor_id, produto_id)
+  primary key (revendedor_id, variacao_id)
 );
 
 -- Clientes do revendedor, para entrega direta da matriz.
@@ -46,15 +49,15 @@ alter table public.pedidos_revendedor
   add column if not exists custo_total numeric(10,2),
   add column if not exists venda_total numeric(10,2);
 
-alter table public.revendedor_precos enable row level security;
-alter table public.revendedor_venda enable row level security;
+alter table public.revendedor_precos_var enable row level security;
+alter table public.revendedor_venda_var enable row level security;
 alter table public.revendedor_clientes enable row level security;
 
 -- Mesma política permissiva temporária das demais tabelas de revenda
 -- (o portal ainda não usa Supabase Auth). Restringir junto com as outras.
-drop policy if exists "service_role_all" on public.revendedor_precos;
-drop policy if exists "service_role_all" on public.revendedor_venda;
+drop policy if exists "service_role_all" on public.revendedor_precos_var;
+drop policy if exists "service_role_all" on public.revendedor_venda_var;
 drop policy if exists "service_role_all" on public.revendedor_clientes;
-create policy "service_role_all" on public.revendedor_precos for all using (true) with check (true);
-create policy "service_role_all" on public.revendedor_venda for all using (true) with check (true);
+create policy "service_role_all" on public.revendedor_precos_var for all using (true) with check (true);
+create policy "service_role_all" on public.revendedor_venda_var for all using (true) with check (true);
 create policy "service_role_all" on public.revendedor_clientes for all using (true) with check (true);

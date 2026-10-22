@@ -2814,16 +2814,17 @@ function admLogoRem(){LBL.logo=null;LBL.logoKey='';saveLbl();toast('Logomarca re
 /* ======================= REVENDEDORES ======================= */
 
 async function admCarregarRevs(){
-  const [rv,pe,mo,av,pz,pr,cl]=await Promise.all([
+  const [rv,pe,mo,av,pz,pr,cl,vr]=await Promise.all([
     SB.from('revendedores').select('*').order('criado_em',{ascending:false}),
     SB.from('pedidos_revendedor').select('*').order('criado_em',{ascending:false}),
     SB.from('consignado_movimentos').select('*').order('criado_em',{ascending:false}),
     SB.from('avisos_revendedores').select('*').order('criado_em',{ascending:false}),
-    SB.from('revendedor_precos').select('revendedor_id,produto_id,preco'),
-    SB.from('produtos').select('id,nome,preco,consulta,ativo').eq('ativo',true).order('nome'),
-    SB.from('revendedor_clientes').select('id,revendedor_id,nome')
+    SB.from('revendedor_precos_var').select('revendedor_id,variacao_id,preco'),
+    SB.from('produtos').select('id,nome,ativo,sob_consulta').eq('ativo',true).order('nome'),
+    SB.from('revendedor_clientes').select('id,revendedor_id,nome'),
+    SB.from('produto_variacoes').select('id,produto_id,nome,unidades,preco,ativo,ordem').eq('ativo',true).order('ordem')
   ]);
-  A9.revs={lista:rv.data||[],pedidos:pe.data||[],movimentos:mo.data||[],avisos:av.data||[],precos:pz.data||[],produtos:pr.data||[],clientes:cl.data||[]};
+  A9.revs={lista:rv.data||[],pedidos:pe.data||[],movimentos:mo.data||[],avisos:av.data||[],precos:pz.data||[],produtos:pr.data||[],clientes:cl.data||[],variacoes:vr.data||[]};
   route();
 }
 
@@ -2931,18 +2932,19 @@ function tabRevendedores(){
           </div>
 
           ${(()=>{
-            const prods=(A9.revs.produtos||[]).filter(p=>!p.consulta&&p.preco);
-            const mapa={};(A9.revs.precos||[]).filter(x=>x.revendedor_id===rv.id).forEach(x=>{mapa[x.produto_id]=+x.preco});
+            const prodNome={};(A9.revs.produtos||[]).forEach(p=>{prodNome[p.id]=p.nome});
+            const prods=(A9.revs.variacoes||[]).filter(v=>prodNome[v.produto_id]).map(v=>({id:v.id,nome:prodNome[v.produto_id]+' — '+v.nome,preco:(v.preco==null||v.preco==='')?null:+v.preco})).sort((a,b)=>a.nome.localeCompare(b.nome));
+            const mapa={};(A9.revs.precos||[]).filter(x=>x.revendedor_id===rv.id).forEach(x=>{mapa[x.variacao_id]=+x.preco});
             const desc=rv.desconto_pct||0;
             return `<h3 style="margin:20px 0 4px">Tabela de preços exclusiva (${Object.keys(mapa).length} de ${prods.length})</h3>
-            <p style="margin:0 0 10px;color:var(--muted);font-size:.85rem">Preço que este revendedor paga. Em branco = preço de venda com o desconto padrão (${desc}%). Salva ao sair do campo.</p>
+            <p style="margin:0 0 10px;color:var(--muted);font-size:.85rem">Preço que este revendedor paga por cada variação (caixa, ampola...). Em branco = preço da loja com o desconto padrão (${desc}%); variação sem preço de loja só aparece para ele se você definir o preço aqui. Salva ao sair do campo.</p>
             <div class="box" style="max-height:420px;overflow:auto"><table>
               <thead><tr><th>Produto</th><th>Preço loja</th><th>Padrão (${desc}%)</th><th style="width:150px">Preço exclusivo</th></tr></thead>
               <tbody>${prods.map(p=>`<tr>
                 <td>${esc(p.nome)}</td>
-                <td>${brl(p.preco)}</td>
-                <td style="color:var(--muted)">${brl(p.preco*(1-desc/100))}</td>
-                <td><input inputmode="decimal" style="width:120px;text-align:right" value="${mapa[p.id]!=null?mapa[p.id].toFixed(2).replace('.',','):''}" placeholder="—" onchange="admRevPreco('${rv.id}',${p.id},this.value)"></td>
+                <td>${p.preco==null?'—':brl(p.preco)}</td>
+                <td style="color:var(--muted)">${p.preco==null?'—':brl(p.preco*(1-desc/100))}</td>
+                <td><input inputmode="decimal" style="width:120px;text-align:right" value="${mapa[p.id]!=null?mapa[p.id].toFixed(2).replace('.',','):''}" placeholder="—" onchange="admRevPreco('${rv.id}','${p.id}',this.value)"></td>
               </tr>`).join('')}</tbody>
             </table></div>`;
           })()}
@@ -3184,15 +3186,15 @@ async function admRevSalvar(id){
 async function admRevPreco(revId,prodId,txt){
   txt=(txt||'').trim();
   let error;
-  if(!txt){({error}=await SB.from('revendedor_precos').delete().eq('revendedor_id',revId).eq('produto_id',prodId))}
+  if(!txt){({error}=await SB.from('revendedor_precos_var').delete().eq('revendedor_id',revId).eq('variacao_id',prodId))}
   else{
     const v=parseFloat(txt.replace(/\./g,'').replace(',','.'));
     if(isNaN(v)||v<0){toast('Preço inválido.');return}
-    ({error}=await SB.from('revendedor_precos').upsert([{revendedor_id:revId,produto_id:prodId,preco:v,atualizado_em:new Date().toISOString()}],{onConflict:'revendedor_id,produto_id'}));
+    ({error}=await SB.from('revendedor_precos_var').upsert([{revendedor_id:revId,variacao_id:prodId,preco:v,atualizado_em:new Date().toISOString()}],{onConflict:'revendedor_id,variacao_id'}));
   }
   if(error){toast('Não foi possível salvar o preço.');return}
-  const lst=A9.revs.precos.filter(x=>!(x.revendedor_id===revId&&x.produto_id===prodId));
-  if(txt)lst.push({revendedor_id:revId,produto_id:prodId,preco:parseFloat(txt.replace(/\./g,'').replace(',','.'))});
+  const lst=A9.revs.precos.filter(x=>!(x.revendedor_id===revId&&x.variacao_id===prodId));
+  if(txt)lst.push({revendedor_id:revId,variacao_id:prodId,preco:parseFloat(txt.replace(/\./g,'').replace(',','.'))});
   A9.revs.precos=lst;toast('Preço salvo.');
 }
 async function admRevAtualizaStatus(pedidoId,status){

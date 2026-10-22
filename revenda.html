@@ -108,7 +108,7 @@ select{width:auto}
 .card{border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;background:#fff;transition:.2s}
 .card:hover{box-shadow:0 8px 24px rgba(0,0,0,.09);transform:translateY(-2px)}
 .pimg{aspect-ratio:1;border-radius:10px;display:grid;place-items:center;margin-bottom:8px;overflow:hidden;background:var(--pl)}
-.pimg img{width:100%;height:100%;object-fit:cover;border-radius:10px}
+.pimg img{width:100%;height:100%;object-fit:contain;background:#fff;border-radius:10px}
 .pn{font-size:.88rem;font-weight:500;color:var(--ink);line-height:1.3;min-height:3em}
 .price-rev{font-size:1.05rem;font-weight:700;color:var(--p);margin:6px 0 2px}
 .price-orig{font-size:.78rem;color:var(--muted);text-decoration:line-through}
@@ -276,23 +276,31 @@ function showErr(msg){$('#root').innerHTML=`<div style="padding:40px;text-align:
 
 async function carregarDados(){
   try{
-    const [pr,pe,mo,av,pz,vd,cl]=await Promise.all([
-      SB.from('produtos').select('id,nome,preco,imagem,estoque,ativo,categoria,consulta').eq('ativo',true),
+    const [pr,pe,mo,av,pz,vd,cl,vr]=await Promise.all([
+      SB.from('produtos').select('id,nome,imagem,estoque,ativo,categoria,sob_consulta').eq('ativo',true),
       SB.from('pedidos_revendedor').select('*').eq('revendedor_id',REV_USER.id).order('criado_em',{ascending:false}),
       REV_USER.tipo==='consignado'?SB.from('consignado_movimentos').select('*').eq('revendedor_id',REV_USER.id).order('criado_em',{ascending:false}):Promise.resolve({data:[]}),
       SB.from('avisos_revendedores').select('*').eq('ativo',true).order('criado_em',{ascending:false}).limit(10),
-      SB.from('revendedor_precos').select('produto_id,preco').eq('revendedor_id',REV_USER.id),
-      SB.from('revendedor_venda').select('produto_id,preco_venda').eq('revendedor_id',REV_USER.id),
-      SB.from('revendedor_clientes').select('*').eq('revendedor_id',REV_USER.id).order('nome')
+      SB.from('revendedor_precos_var').select('variacao_id,preco').eq('revendedor_id',REV_USER.id),
+      SB.from('revendedor_venda_var').select('variacao_id,preco_venda').eq('revendedor_id',REV_USER.id),
+      SB.from('revendedor_clientes').select('*').eq('revendedor_id',REV_USER.id).order('nome'),
+      SB.from('produto_variacoes').select('id,produto_id,nome,unidades,preco,ativo,ordem').eq('ativo',true).order('ordem')
     ]);
-    PRECOS={};(pz.data||[]).forEach(r=>{PRECOS[r.produto_id]=+r.preco});
-    VENDA={};(vd.data||[]).forEach(r=>{VENDA[r.produto_id]=+r.preco_venda});
+    PRECOS={};(pz.data||[]).forEach(r=>{PRECOS[r.variacao_id]=+r.preco});
+    VENDA={};(vd.data||[]).forEach(r=>{VENDA[r.variacao_id]=+r.preco_venda});
     CLIENTES=cl.data||[];
-    PRODUTOS=(pr.data||[]).filter(p=>{
-      const cfg=REV_USER.config||{};
-      if(cfg.produtos_visiveis&&cfg.produtos_visiveis.length)return cfg.produtos_visiveis.includes(p.id);
-      return true;
+    // cada VARIAÇÃO do produto vira um item do catálogo (ex.: "Caixa fechada 5 ampolas"), com o preço dela
+    const foto=f=>!f?'':(/^https?:/.test(f)?f:SB_URL+'/storage/v1/object/public/produtos/'+encodeURIComponent(f));
+    const cfg=REV_USER.config||{};
+    PRODUTOS=[];
+    (vr.data||[]).forEach(v=>{
+      const p=(pr.data||[]).find(x=>x.id===v.produto_id);if(!p)return;
+      if(cfg.produtos_visiveis&&cfg.produtos_visiveis.length&&!cfg.produtos_visiveis.includes(p.id))return;
+      const preco=(v.preco==null||v.preco==='')?null:+v.preco;
+      if(preco==null&&PRECOS[v.id]==null)return; // sem valor definido, não entra no catálogo do revendedor
+      PRODUTOS.push({id:v.id,produto_id:p.id,nome:p.nome+' — '+v.nome,unidades:+v.unidades||1,preco,imagem:foto(p.imagem),estoque:+p.estoque||0,categoria:p.categoria,consulta:false});
     });
+    PRODUTOS.sort((a,b)=>a.nome.localeCompare(b.nome));
     PEDIDOS=pe.data||[];
     MOVIMENTOS=mo.data||[];
     AVISOS=av.data||[];
@@ -346,7 +354,7 @@ function precoRev(p){
 function cartAdd(prod){
   const item=CART.find(i=>i.id===prod.id);
   if(item)item.qty++;
-  else CART.push({id:prod.id,nome:prod.nome,qty:1,preco:precoRev(prod),preco_orig:prod.preco});
+  else CART.push({id:prod.id,produto_id:prod.produto_id,nome:prod.nome,qty:1,preco:precoRev(prod),preco_orig:prod.preco});
   lsSet('cart',CART);updCartBar();render();
 }
 function cartSet(id,qty){
@@ -367,7 +375,7 @@ function updCartBar(){
 /* ============================= PEDIDOS ============================= */
 async function fazerPedido(obs){
   if(!CART.length)return;
-  const itens=CART.map(i=>({id:i.id,nome:i.nome,qty:i.qty,preco:i.preco,preco_orig:i.preco_orig,preco_venda:precoVenda(i.id,i.preco)}));
+  const itens=CART.map(i=>({id:i.id,produto_id:i.produto_id,nome:i.nome,qty:i.qty,preco:i.preco,preco_orig:i.preco_orig,preco_venda:precoVenda(i.id,i.preco)}));
   const subtotal=cartTotal();
   const venda_total=itens.reduce((s,i)=>s+i.preco_venda*i.qty,0);
   const cli=CLIENTES.find(c=>c.id===CLIENTE_SEL);
@@ -386,7 +394,7 @@ async function fazerPedido(obs){
   if(error){alert('Erro ao enviar pedido. Tente novamente.');return}
   // Se consignado: registrar saída de estoque
   if(REV_USER.tipo==='consignado'&&data){
-    const movs=itens.map(i=>({revendedor_id:REV_USER.id,tipo:'saida',produto_id:i.id,produto_nome:i.nome,quantidade:i.qty,valor_unitario:i.preco,valor_total:i.preco*i.qty,pedido_id:data.id,criado_em:new Date().toISOString()}));
+    const movs=itens.map(i=>({revendedor_id:REV_USER.id,tipo:'saida',produto_id:i.produto_id,produto_nome:i.nome,quantidade:i.qty,valor_unitario:i.preco,valor_total:i.preco*i.qty,pedido_id:data.id,criado_em:new Date().toISOString()}));
     await SB.from('consignado_movimentos').insert(movs);
   }
   CART=[];lsSet('cart',[]);updCartBar();CLIENTE_SEL='';OBS_TMP='';
@@ -550,7 +558,7 @@ function pageCatalogo(){
           ${!p.consulta&&pr?`<div class="marg-hint">Venda a ${brl(pr*(1+MARGEM_PCT/100))} → +${brl(pr*MARGEM_PCT/100)}/un.</div>`:''}
           ${sem?`<div style="color:#b91c1c;font-size:.8rem;margin:4px 0">Sem estoque</div>`:''}
           ${!sem&&!p.consulta?item
-            ?`<div class="qty-ctrl"><button onclick="cartSet(${p.id},${item.qty-1})">−</button><span>${item.qty}</span><button onclick="cartSet(${p.id},${item.qty+1})">+</button></div>`
+            ?`<div class="qty-ctrl"><button onclick="cartSet('${p.id}',${item.qty-1})">−</button><span>${item.qty}</span><button onclick="cartSet('${p.id}',${item.qty+1})">+</button></div>`
             :`<button class="btn full sm" onclick="cartAdd(${JSON.stringify(p).replace(/"/g,'&quot;')})">Adicionar</button>`
           :''}
           ${p.consulta?`<button class="btn full sm ghost" onclick="alert('Entre em contato com a ZP Imports para consultar o valor e disponibilidade.')">Consultar</button>`:''}
@@ -564,7 +572,7 @@ function pageCatalogo(){
 function enderecoCli(c){return [[c.endereco,c.numero].filter(Boolean).join(', '),c.complemento,c.bairro,c.cidade,c.cep].filter(Boolean).join(' · ')||'Endereço não informado'}
 /* ============================= MEU CATÁLOGO ============================= */
 function pageMeuCatalogo(){
-  const lista=PRODUTOS.filter(p=>!p.consulta&&p.preco);
+  const lista=PRODUTOS.filter(p=>!p.consulta&&precoRev(p)>0);
   if(!lista.length)return `<div class="pg"><div class="note">Nenhum produto disponível para montar o catálogo.</div></div>`;
   const defs=lista.filter(p=>VENDA[p.id]==null).length;
   return `<div class="pg">
@@ -596,9 +604,9 @@ function pageMeuCatalogo(){
           </div>
           <div class="pn">${esc(p.nome)}</div>
           <div class="no-print" style="font-size:.78rem;color:var(--muted)">Seu custo: <b>${brl(custo)}</b></div>
-          <div class="vinp"><span>Vender a R$</span><input id="vp-${p.id}" inputmode="decimal" value="${prop?pv.toFixed(2).replace('.',','):''}" placeholder="${pv.toFixed(2).replace('.',',')}" onchange="salvarVenda(${p.id},this.value)"></div>
+          <div class="vinp"><span>Vender a R$</span><input id="vp-${p.id}" inputmode="decimal" value="${prop?pv.toFixed(2).replace('.',','):''}" placeholder="${pv.toFixed(2).replace('.',',')}" onchange="salvarVenda('${p.id}',this.value)"></div>
           <div class="lucro no-print" id="lc-${p.id}">Lucro: ${brl(pv-custo)}/un.${prop?'':' (sugerido)'}</div>
-          <button class="btn ghost sm no-print" style="margin-top:8px" onclick="baixarImagemProduto(${p.id})">⬇ Baixar imagem</button>
+          <button class="btn ghost sm no-print" style="margin-top:8px" onclick="baixarImagemProduto('${p.id}')">⬇ Baixar imagem</button>
         </div>`;
       }).join('')}
     </div>
@@ -615,23 +623,23 @@ async function salvarVenda(id,txt){
   txt=(txt||'').trim();
   if(!txt){
     delete VENDA[id];atualizaVendaUI(id);
-    await SB.from('revendedor_venda').delete().eq('revendedor_id',REV_USER.id).eq('produto_id',id);return;
+    await SB.from('revendedor_venda_var').delete().eq('revendedor_id',REV_USER.id).eq('variacao_id',id);return;
   }
   const v=parseFloat(txt.replace(/\./g,'').replace(',','.'));
   if(isNaN(v)||v<0){alert('Preço inválido.');return}
   VENDA[id]=v;atualizaVendaUI(id);
-  const {error}=await SB.from('revendedor_venda').upsert([{revendedor_id:REV_USER.id,produto_id:id,preco_venda:v,atualizado_em:new Date().toISOString()}],{onConflict:'revendedor_id,produto_id'});
+  const {error}=await SB.from('revendedor_venda_var').upsert([{revendedor_id:REV_USER.id,variacao_id:id,preco_venda:v,atualizado_em:new Date().toISOString()}],{onConflict:'revendedor_id,variacao_id'});
   if(error)alert('Não foi possível salvar o preço. Tente novamente.');
 }
 async function preencherVendaMargem(){
-  const rows=PRODUTOS.filter(p=>!p.consulta&&p.preco&&VENDA[p.id]==null).map(p=>{
+  const rows=PRODUTOS.filter(p=>!p.consulta&&precoRev(p)>0&&VENDA[p.id]==null).map(p=>{
     const v=Math.round(precoRev(p)*(1+MARGEM_PCT/100)*100)/100;
-    return {revendedor_id:REV_USER.id,produto_id:p.id,preco_venda:v,atualizado_em:new Date().toISOString()};
+    return {revendedor_id:REV_USER.id,variacao_id:p.id,preco_venda:v,atualizado_em:new Date().toISOString()};
   });
   if(!rows.length)return;
-  const {error}=await SB.from('revendedor_venda').upsert(rows,{onConflict:'revendedor_id,produto_id'});
+  const {error}=await SB.from('revendedor_venda_var').upsert(rows,{onConflict:'revendedor_id,variacao_id'});
   if(error){alert('Não foi possível salvar os preços.');return}
-  rows.forEach(r=>{VENDA[r.produto_id]=r.preco_venda});render();
+  rows.forEach(r=>{VENDA[r.variacao_id]=r.preco_venda});render();
 }
 async function baixarImagemProduto(id){
   const p=PRODUTOS.find(x=>x.id===id);if(!p)return;
@@ -756,10 +764,10 @@ function pageCheckout(){
             <tbody>
               ${CART.map(i=>`<tr>
                 <td data-l="Produto"><b>${esc(i.nome)}</b></td>
-                <td data-l="Qtd"><div class="qty-ctrl"><button onclick="cartSet(${i.id},${i.qty-1})">−</button><span>${i.qty}</span><button onclick="cartSet(${i.id},${i.qty+1})">+</button></div></td>
+                <td data-l="Qtd"><div class="qty-ctrl"><button onclick="cartSet('${i.id}',${i.qty-1})">−</button><span>${i.qty}</span><button onclick="cartSet('${i.id}',${i.qty+1})">+</button></div></td>
                 <td data-l="Preço">${brl(i.preco)}</td>
                 <td class="r" data-l="Subtotal">${brl(i.preco*i.qty)}</td>
-                <td><button class="btn ghost sm" style="font-size:.75rem" onclick="cartSet(${i.id},0)">✕</button></td>
+                <td><button class="btn ghost sm" style="font-size:.75rem" onclick="cartSet('${i.id}',0)">✕</button></td>
               </tr>`).join('')}
             </tbody>
           </table>
