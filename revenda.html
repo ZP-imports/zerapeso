@@ -148,6 +148,23 @@ select{width:auto}
 .adtabs{display:flex;gap:4px;margin:0 0 18px;background:var(--bg);border-radius:12px;padding:4px}
 .adtabs button{flex:1;border:0;background:none;padding:.55em;border-radius:9px;font:inherit;font-weight:500;font-size:.88rem;color:var(--muted);cursor:pointer}
 .adtabs button.on{background:#fff;color:var(--p);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+/* login: painel da marca + formulário */
+.adlogin{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);min-height:100vh;padding:0;align-items:stretch;justify-content:stretch;background:#fff}
+.lg-brand{position:relative;overflow:hidden;background:linear-gradient(155deg,#0a6e5c 0%,#074d40 100%);color:#fff;padding:44px clamp(28px,5vw,64px);display:flex;flex-direction:column;justify-content:space-between;gap:36px}
+.lg-brand:before{content:"";position:absolute;width:420px;height:420px;border-radius:50%;background:#0d8570;opacity:.45;right:-150px;top:-130px}
+.lg-brand:after{content:"";position:absolute;width:340px;height:340px;border-radius:50%;background:#053b31;opacity:.7;left:-120px;bottom:-130px}
+.lg-brand>*{position:relative;z-index:1}
+.lg-logo{display:flex;align-items:center;gap:12px}.lg-mk{width:46px;height:46px;border-radius:14px;background:#fff;color:#0a6e5c;display:grid;place-items:center;padding:11px}.lg-nm{font-weight:700;font-size:1.45rem;letter-spacing:-.02em}
+.lg-txt h2{font-size:clamp(1.7rem,3.2vw,2.3rem);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em;text-wrap:balance}
+.lg-txt>p{margin:0 0 26px;max-width:36ch;color:#d6efe8;font-size:1rem}
+.lg-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:16px}
+.lg-lista li{display:flex;align-items:center;gap:14px}.lg-lista li>span{flex:none;width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.14);display:grid;place-items:center;color:#ffb703}
+.lg-lista b{display:block;font-size:.98rem;font-weight:600}.lg-lista small{display:block;color:#bfe3da;font-size:.84rem}
+.lg-rod{font-size:.8rem;color:#a9d6cb;border-top:1px solid rgba(255,255,255,.18);padding-top:16px}
+.lg-side{display:flex;align-items:center;justify-content:center;padding:40px clamp(18px,4vw,56px);background:#fff;min-width:0}
+.lg-side .adcard{box-shadow:none;border:0;padding:0;max-width:420px;border-radius:0;text-align:left}
+.lg-side .adcard h1{font-size:1.7rem;letter-spacing:-.02em}
+@media(max-width:820px){.adlogin{grid-template-columns:minmax(0,1fr);min-height:0}.lg-brand{padding:24px 20px;gap:14px}.lg-txt>p,.lg-lista,.lg-rod{display:none}.lg-txt h2{font-size:1.35rem;margin:0}.lg-side{padding:26px 18px 40px}}
 .field{margin-bottom:0}
 .msg{border-radius:10px;padding:10px 14px;font-size:.88rem;margin-bottom:12px;display:none}
 .msg.show{display:block}.msg.ok{background:#dcfce7;color:#166534}.msg.err{background:#fee2e2;color:#991b1b}.msg.warn{background:#fffbeb;color:#92400e}
@@ -245,6 +262,10 @@ let PRECOS={};      // tabela de preço exclusiva: produto_id -> custo do revend
 let VENDA={};       // preço de venda próprio: produto_id -> preço
 let CLIENTES=[];    // clientes do revendedor (entrega direta)
 let CLIENTE_SEL=''; // cliente escolhido no checkout
+let FORMA_PAG='pix'; // forma de pagamento do pedido à vista
+const FORMAS=[['pix','Pix'],['cartao_credito','Cartão de crédito (link de pagamento)'],['cartao_debito','Cartão de débito'],['transferencia','Transferência bancária']];
+const FORMA_LB=Object.fromEntries(FORMAS.concat([['consignado','Consignado']]));
+function clientesAtivo(){const c=(REV_USER&&REV_USER.config)||{};return c.clientes_ativo!==false}
 let OBS_TMP='';     // observação do checkout (preservada ao redesenhar)
 
 const LS='zp_rev_';
@@ -298,12 +319,12 @@ async function carregarDados(){
       if(cfg.produtos_visiveis&&cfg.produtos_visiveis.length&&!cfg.produtos_visiveis.includes(p.id))return;
       const preco=(v.preco==null||v.preco==='')?null:+v.preco;
       if(preco==null&&PRECOS[v.id]==null)return; // sem valor definido, não entra no catálogo do revendedor
-      PRODUTOS.push({id:v.id,produto_id:p.id,nome:p.nome+' — '+v.nome,unidades:+v.unidades||1,preco,imagem:foto(p.imagem),estoque:+p.estoque||0,categoria:p.categoria,consulta:false});
+      PRODUTOS.push({id:v.id,produto_id:p.id,nome:p.nome+' — '+v.nome,nome_produto:p.nome,nome_var:v.nome,unidades:+v.unidades||1,preco,imagem:foto(p.imagem),estoque:+p.estoque||0,categoria:p.categoria,consulta:false});
     });
     PRODUTOS.sort((a,b)=>a.nome.localeCompare(b.nome));
     PEDIDOS=pe.data||[];
     MOVIMENTOS=mo.data||[];
-    AVISOS=av.data||[];
+    AVISOS=(av.data||[]).filter(a=>a.revendedor_id==null||a.revendedor_id===REV_USER.id);
     // mantém o carrinho com os preços atuais e sem produtos que saíram do catálogo
     CART=CART.filter(i=>PRODUTOS.some(p=>p.id===i.id));
     CART.forEach(i=>{const p=PRODUTOS.find(x=>x.id===i.id);i.preco=precoRev(p);i.preco_orig=p.preco});
@@ -378,7 +399,7 @@ async function fazerPedido(obs){
   const itens=CART.map(i=>({id:i.id,produto_id:i.produto_id,nome:i.nome,qty:i.qty,preco:i.preco,preco_orig:i.preco_orig,preco_venda:precoVenda(i.id,i.preco)}));
   const subtotal=cartTotal();
   const venda_total=itens.reduce((s,i)=>s+i.preco_venda*i.qty,0);
-  const cli=CLIENTES.find(c=>c.id===CLIENTE_SEL);
+  const cli=clientesAtivo()?CLIENTES.find(c=>c.id===CLIENTE_SEL):null;
   const tipo_pag=REV_USER.tipo==='consignado'?'consignado':'avista';
   const {data,error}=await SB.from('pedidos_revendedor').insert([{
     revendedor_id:REV_USER.id,
@@ -388,10 +409,11 @@ async function fazerPedido(obs){
     cliente_id:cli?cli.id:null,cliente_nome:cli?cli.nome:null,
     entrega:cli?{nome:cli.nome,telefone:cli.telefone,cep:cli.cep,endereco:cli.endereco,numero:cli.numero,complemento:cli.complemento,bairro:cli.bairro,cidade:cli.cidade}:null,
     tipo_pagamento:tipo_pag,
+    forma_pagamento:tipo_pag==='consignado'?'consignado':FORMA_PAG,
     status:'novo',
     criado_em:new Date().toISOString()
   }]).select().maybeSingle();
-  if(error){alert('Erro ao enviar pedido. Tente novamente.');return}
+  if(error){alert(/forma_pagamento|column|schema/i.test(error.message||'')?'Falta liberar a forma de pagamento no sistema. Avise a ZP Imports.':'Erro ao enviar pedido. Tente novamente.');return}
   // Se consignado: registrar saída de estoque
   if(REV_USER.tipo==='consignado'&&data){
     const movs=itens.map(i=>({revendedor_id:REV_USER.id,tipo:'saida',produto_id:i.produto_id,produto_nome:i.nome,quantidade:i.qty,valor_unitario:i.preco,valor_total:i.preco*i.qty,pedido_id:data.id,criado_em:new Date().toISOString()}));
@@ -439,7 +461,7 @@ function renderNav(){
     ['dashboard','Início'],
     ['catalogo','Catálogo'],
     ['meucat','Meu catálogo'],
-    ['clientes','Meus clientes'],
+    ...(clientesAtivo()?[['clientes','Meus clientes']]:[]),
     ['pedidos','Meus Pedidos'],
     ...(REV_USER.tipo==='consignado'?[['extrato','Extrato']]:[]),
     ['avisos',AVISOS.length?`Avisos <span class="nav-badge">${AVISOS.length}</span>`:'Avisos'],
@@ -583,7 +605,8 @@ function pageMeuCatalogo(){
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn ghost sm" onclick="preencherVendaMargem()">Preencher vazios com ${MARGEM_PCT}%</button>
-        <button class="btn sm" onclick="window.print()">🖨 Imprimir / salvar PDF</button>
+        <button class="btn sm" onclick="catalogoPdfAbrir()">📄 Baixar catálogo (PDF)</button>
+        <button class="btn ghost sm" onclick="window.print()">🖨 Imprimir esta tela</button>
       </div>
     </div>
     <div class="box marg-box no-print">
@@ -675,6 +698,7 @@ async function baixarImagemProduto(id){
 
 /* ============================= CLIENTES ============================= */
 function pageClientes(){
+  if(!clientesAtivo())return '<div class="pg"><div class="note warn">O cadastro de clientes não está liberado para a sua conta. Fale com a ZP Imports.</div></div>';
   return `<div class="pg">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px">
       <div>
@@ -776,7 +800,7 @@ function pageCheckout(){
           <h3>Observações</h3>
           <textarea id="obs-pedido" rows="3" oninput="OBS_TMP=this.value" placeholder="Instruções especiais, horário de entrega, etc.">${esc(OBS_TMP)}</textarea>
         </div>
-        <div class="box" style="margin-top:14px">
+        ${!clientesAtivo()?`<div class="box" style="margin-top:14px"><h3>Entrega</h3><div class="note rev">📍 A entrega é feita no endereço do seu cadastro.</div></div>`:`<div class="box" style="margin-top:14px">
           <h3>Entrega</h3>
           <label for="cli-sel">Entregar para</label>
           <select id="cli-sel" style="width:100%" onchange="CLIENTE_SEL=this.value;render()">
@@ -785,7 +809,7 @@ function pageCheckout(){
           </select>
           ${cli?`<div class="note rev">📍 Entrega direta da matriz para <b>${esc(cli.nome)}</b><br>${esc(enderecoCli(cli))}${cli.telefone?'<br>📞 '+esc(cli.telefone):''}</div>`:''}
           <button class="btn ghost sm" style="margin-top:8px" onclick="formCliente('')">+ Cadastrar novo cliente</button>
-        </div>
+        </div>`}
       </div>
       <div>
         <div class="box">
@@ -797,7 +821,7 @@ function pageCheckout(){
           <div class="note ${tipo==='consignado'?'rev':''}">
             ${tipo==='consignado'
               ?'<b>Modalidade Consignado</b> — Este pedido será lançado no seu extrato. Repasse o valor à ZP Imports conforme a venda.'
-              :'<b>Pagamento à vista</b> — O pagamento será combinado com a ZP Imports após confirmação do pedido.'}
+              :`<b>Forma de pagamento</b><select id="ck-forma" style="width:100%;margin:8px 0 6px" onchange="FORMA_PAG=this.value">${FORMAS.map(f=>`<option value="${f[0]}" ${FORMA_PAG===f[0]?'selected':''}>${f[1]}</option>`).join('')}</select><span style="font-size:.82rem">A ZP Imports envia os dados ou o link de pagamento depois de confirmar o pedido.</span>`}
           </div>
           <div class="sumline big"><span>Total a pagar</span><span style="color:var(--p)">${brl(custo)}</span></div>
           <button class="btn full" style="margin-top:16px" onclick="confirmarPedido()">Confirmar pedido →</button>
@@ -871,6 +895,7 @@ function verPedido(id){
         </div>`;
       }).join('')}
     </div>
+    ${p.forma_pagamento?`<div class="note">💳 <b>Pagamento:</b> ${esc(FORMA_LB[p.forma_pagamento]||p.forma_pagamento)}</div>`:''}
     ${p.obs?`<div class="note"><b>Obs:</b> ${esc(p.obs)}</div>`:''}
     <button class="btn ghost full" style="margin-top:12px" onclick="closeModal()">Fechar</button>`);
 }
@@ -1044,11 +1069,25 @@ function revVerSenha(btn){
   btn.textContent=show?'Ocultar':'Mostrar';
 }
 function renderLogin(){
+  const cad=authTab==='cadastro';
   $('#root').innerHTML=`<div class="adlogin">
+    <aside class="lg-brand">
+      <div class="lg-logo"><span class="lg-mk"><svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="18" rx="1.5"/><rect x="3" y="9" width="18" height="6" rx="1.5"/></svg></span><span class="lg-nm">ZP Imports</span></div>
+      <div class="lg-txt">
+        <h2>Portal do revendedor</h2>
+        <p>Compre com preço exclusivo, monte o seu catálogo e entregue direto para os seus clientes.</p>
+        <ul class="lg-lista">
+          <li><span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg></span><div><b>Preço exclusivo</b><small>Valor combinado para cada produto</small></div></li>
+          <li><span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h4"/></svg></span><div><b>Catálogo com a sua margem</b><small>Suas fotos, o seu preço, pronto para enviar</small></div></li>
+          <li><span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.5"/><circle cx="17" cy="17.5" r="1.5"/></svg></span><div><b>Entrega direta</b><small>A ZP Imports entrega para o seu cliente</small></div></li>
+        </ul>
+      </div>
+      <div class="lg-rod">Acesso restrito a revendedores aprovados</div>
+    </aside>
+    <div class="lg-side">
     <div class="adcard">
-      <div class="adico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/></svg></div>
-      <h1>Portal do Revendedor</h1>
-      <p class="adsub">Acesso exclusivo para revendedores ZP Imports</p>
+      <h1>${cad?'Quero ser revendedor':'Bem-vindo de volta'}</h1>
+      <p class="adsub">${cad?'Preencha os dados. A ZP Imports aprova o seu acesso.':'Entre com o seu e-mail e a sua senha.'}</p>
       <div class="adtabs">
         <button class="${authTab==='entrar'?'on':''}" onclick="authTab='entrar';renderLogin()">Entrar</button>
         <button class="${authTab==='cadastro'?'on':''}" onclick="authTab='cadastro';renderLogin()">Cadastrar-se</button>
@@ -1086,7 +1125,80 @@ function renderLogin(){
         <p class="adnota">Após o envio, aguarde a aprovação da ZP Imports.</p>
       `}
     </div>
+    </div>
   </div>`;
+}
+
+/* ============================= CATÁLOGO EM PDF (ZP Imports, com os preços de venda do revendedor) ============================= */
+/* ---- catálogo em PDF: monta uma página HTML pronta para imprimir/salvar em PDF (A4) ---- */
+function catEsc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function catBrl(v){return 'R$ '+Number(v).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.')}
+/* itens: [{nome,sku,descricao,cat,foto,vars:[{nome,unidades,preco,preco_promo}]}]
+   op: {titulo,marca,fone,valores (false = sem preços),detalhes (true = mostra código e descrição),imprimir}
+   Cada categoria começa numa página nova, com o nome da categoria embaixo da linha do topo. */
+function catalogoHtml(itens,op){
+  op=op||{};const marca=op.marca||'ZP Imports',titulo=op.titulo||'Catálogo de Produtos';
+  const mostraValores=op.valores!==false,detalhes=!!op.detalhes;
+  const POR=6;
+  const ordem=[];itens.forEach(function(p){if(ordem.indexOf(p.cat||'')<0)ordem.push(p.cat||'')});
+  const paginas=[];
+  ordem.forEach(function(c){const g=itens.filter(function(p){return (p.cat||'')===c});for(let i=0;i<g.length;i+=POR)paginas.push({cat:c,itens:g.slice(i,i+POR),cont:i>0})});
+  const cruz='<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="18" rx="1.5"/><rect x="3" y="9" width="18" height="6" rx="1.5"/></svg>';
+  const logo='<div class="logo"><span class="mk">'+cruz+'</span><span class="nm">'+catEsc(marca)+'</span></div>';
+  /* uma linha por variação: "Caixa com 4 unidades — R$ 380,00". Sem preço (ou com valores desligados), só o nome. */
+  const linha=function(v){
+    const tem=mostraValores&&v.preco!=null&&v.preco!==''&&!isNaN(+v.preco);
+    if(!tem)return '<div class="pv"><span class="vn">'+catEsc(v.nome)+'</span></div>';
+    const promo=v.preco_promo!=null&&v.preco_promo!==''&&+v.preco_promo>0&&+v.preco_promo<+v.preco;
+    const un=+v.unidades>1?'<small>'+catBrl((promo?v.preco_promo:v.preco)/v.unidades)+' por unidade</small>':'';
+    const val=promo?'<s>'+catBrl(v.preco)+'</s> <b>'+catBrl(v.preco_promo)+'</b>':'<b>'+catBrl(v.preco)+'</b>';
+    return '<div class="pv"><span class="vn">'+catEsc(v.nome)+' <span class="tr">—</span></span> <span class="vp">'+val+'</span>'+un+'</div>';
+  };
+  const card=function(p){
+    const vs=(p.vars||[]);const lim=vs.length>4?3:4;const vis=vs.slice(0,lim);
+    const faltam=vs.length-lim;const mais=faltam>0?'<div class="mais">+ '+faltam+' outra'+(faltam>1?'s':'')+' opç'+(faltam>1?'ões':'ão')+'</div>':'';
+    const img=p.foto?'<img src="'+catEsc(p.foto)+'" alt="">':'<span class="ph">'+catEsc((p.nome||'?').trim().charAt(0).toUpperCase())+'</span>';
+    return '<div class="card"><div class="foto">'+img+'</div><div class="corpo"><h3>'+catEsc(p.nome)+'</h3>'+(detalhes&&p.sku?'<div class="sku">Cód. '+catEsc(p.sku)+'</div>':'')+(detalhes&&p.descricao?'<p>'+catEsc(p.descricao)+'</p>':'')+'<div class="precos">'+vis.map(linha).join('')+mais+'</div></div></div>';
+  };
+  const css='@page{size:A4;margin:0}*{box-sizing:border-box;margin:0;padding:0}html,body{background:#fff}body{font-family:"Poppins",Arial,Helvetica,sans-serif;color:#2b2b2b;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+   +'.pag{width:210mm;height:297mm;position:relative;overflow:hidden;page-break-after:always;break-after:page;background:#fff}.pag:last-child{page-break-after:auto;break-after:auto}'
+   +'.logo{display:flex;align-items:center;gap:3mm}.mk{width:11mm;height:11mm;border-radius:3.2mm;background:#0a6e5c;color:#fff;display:inline-grid;place-items:center;padding:2.2mm}.nm{font-weight:700;font-size:15pt;letter-spacing:-.02em;color:#0a6e5c}'
+   +'.topo{position:absolute;left:14mm;right:14mm;top:0;height:23mm;display:flex;align-items:center;justify-content:space-between;border-bottom:.5mm solid #ffb703}.topo .tt{font-size:9.5pt;color:#6f6f6f;font-weight:500;letter-spacing:.04em;text-transform:uppercase}'
+   +'.catt{position:absolute;left:14mm;right:14mm;top:25mm;height:11mm;display:flex;align-items:center;font-size:15pt;font-weight:700;color:#0a6e5c;letter-spacing:-.01em}.catt small{font-size:9pt;font-weight:500;color:#8a8a8a;margin-left:3mm}'
+   +'.grade{position:absolute;left:14mm;right:14mm;top:37mm;bottom:18mm;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);gap:5mm}'
+   +'.card{border:.3mm solid #e2e8e5;border-radius:4mm;overflow:hidden;display:flex;flex-direction:column;background:#fff;text-align:center}'
+   +'.foto{height:32mm;position:relative;overflow:hidden;background:#f1f7f5;flex:none}.foto img{position:absolute;left:1.5mm;top:1.5mm;width:calc(100% - 3mm);height:calc(100% - 3mm);object-fit:contain}.ph{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:16mm;height:16mm;border-radius:50%;background:#dcefe9;color:#0a6e5c;display:grid;place-items:center;font-size:18pt;font-weight:700}'
+   +'.corpo{flex:1 1 0;min-height:0;overflow:hidden;padding:3.2mm 4mm 2.4mm;display:flex;flex-direction:column;align-items:center}.corpo>*{flex:none}.corpo>:first-child{margin-top:auto}.corpo>:last-child{margin-bottom:auto}'
+   +'.corpo h3{font-size:11pt;font-weight:700;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.sku{font-size:7pt;color:#8a8a8a;margin-top:.6mm}.corpo p{font-size:7.8pt;color:#6f6f6f;line-height:1.4;margin-top:1mm;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}'
+   +'.precos{margin-top:2.2mm;width:100%}.pv{padding:.7mm 0;line-height:1.3;font-size:9pt}.vn{font-weight:500;color:#333}.tr{color:#9a9a9a}.vp{white-space:nowrap}.vp b{font-size:12.5pt;color:#0a6e5c;font-weight:800;letter-spacing:-.01em}.vp s{color:#8a8a8a;font-size:8.5pt;font-weight:500;margin-right:.8mm}.pv small{display:block;font-size:6.8pt;font-weight:400;color:#8a8a8a}.mais{font-size:7pt;color:#8a8a8a;margin-top:.6mm}'
+   +'.rodape{position:absolute;left:14mm;right:14mm;bottom:0;height:14mm;border-top:.3mm solid #e2e8e5;display:flex;align-items:center;justify-content:space-between;font-size:8pt;color:#6f6f6f}.rodape b{color:#0a6e5c;font-weight:600}';
+  const corpo=paginas.map(function(pg){
+    return '<section class="pag"><div class="topo">'+logo+'<span class="tt">'+catEsc(titulo)+'</span></div>'+(pg.cat?'<div class="catt">'+catEsc(pg.cat)+(pg.cont?'<small>(continuação)</small>':'')+'</div>':'')+'<div class="grade">'+pg.itens.map(card).join('')+'</div><div class="rodape"><span><b>'+catEsc(marca)+'</b> — Catálogo</span>'+(op.fone?'<span>WhatsApp '+catEsc(op.fone)+'</span>':'<span></span>')+'</div></section>';
+  }).join('');
+  const auto='<script>(function(){function ajusta(){[].forEach.call(document.querySelectorAll(".card"),function(c){var f=c.querySelector(".foto"),i=c.querySelector(".corpo"),h=32;while(i.scrollHeight>i.clientHeight+1&&h>12){h-=1;f.style.height=h+"mm"}})}var im=[].slice.call(document.images).filter(function(i){return !i.complete});var f=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();Promise.all([f].concat(im.map(function(i){return new Promise(function(r){i.onload=i.onerror=r})}))).then(function(){ajusta();'+(op.imprimir?'setTimeout(function(){window.print()},400);':'')+'})})()<\/script>';
+  return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+catEsc(titulo)+' - '+catEsc(marca)+'</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>'+css+'@media screen{body{background:#e9edeb;padding:8mm 0}.pag{margin:0 auto 8mm;box-shadow:0 2px 16px rgba(0,0,0,.18)}}</style></head><body>'+corpo+auto+'</body></html>';
+}
+function catalogoPdfAbrir(){
+  const prods={};
+  PRODUTOS.filter(p=>!p.consulta&&precoRev(p)>0).forEach(p=>{(prods[p.produto_id]=prods[p.produto_id]||{id:p.produto_id,nome:p.nome_produto||p.nome,itens:[]}).itens.push(p)});
+  window.CATPDF=prods;const lista=Object.values(prods);
+  if(!lista.length){alert('Ainda não há produtos com preço no seu catálogo.');return}
+  openModal(`<h3 style="margin-top:0">Catálogo em PDF</h3><p style="color:var(--muted);margin:0 0 10px">Escolha o que entra. O catálogo sai com a marca ZP Imports e o seu WhatsApp, e você salva em PDF.</p>
+    <label style="display:flex;gap:8px;align-items:center;margin:0 0 10px"><input type="checkbox" id="cp-val" checked style="width:auto"> Mostrar os meus preços de venda</label>
+    <div style="max-height:42vh;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px 10px">${lista.map(p=>`<label style="display:flex;gap:8px;align-items:center;padding:4px 0"><input type="checkbox" class="cp-p" value="${p.id}" checked style="width:auto"> ${esc(p.nome)}</label>`).join('')}</div>
+    <button class="btn full" style="margin-top:12px" onclick="catalogoPdfGerar()">📄 Gerar PDF</button><button class="btn ghost full" style="margin-top:8px" onclick="closeModal()">Fechar</button>`);
+}
+function catalogoPdfGerar(){
+  const marcados=[].slice.call(document.querySelectorAll('.cp-p:checked')).map(x=>x.value);
+  if(!marcados.length){alert('Marque pelo menos um produto.');return}
+  const valores=!!(document.getElementById('cp-val')||{}).checked;
+  const itens=marcados.map(id=>window.CATPDF[id]).filter(Boolean).map(p=>({nome:p.nome,cat:((p.itens[0].categoria||[])[0])||'',foto:p.itens[0].imagem,vars:p.itens.map(v=>({nome:v.nome_var||v.nome,unidades:v.unidades,preco:precoVenda(v.id,precoRev(v)),preco_promo:null}))}));
+  const d=String(REV_USER.telefone||'').replace(/\D/g,'');
+  const fone=d.length>=10?'('+d.slice(-11,-9||undefined)+') '+d.slice(-9,-4)+'-'+d.slice(-4):'';
+  const html=catalogoHtml(itens,{titulo:'Catálogo de Produtos',marca:'ZP Imports',fone,valores,imprimir:true});
+  const w=window.open('','_blank');
+  if(!w){alert('O navegador bloqueou a janela do catálogo. Libere os pop-ups e tente de novo.');return}
+  w.document.open();w.document.write(html);w.document.close();
 }
 
 /* ============================= MODAL ============================= */

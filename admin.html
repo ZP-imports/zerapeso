@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-22-2423 -->
+<!-- v2026-10-22-2424 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -2851,7 +2851,7 @@ function revDashHtml(){
   const k=(c,t,n,sub)=>`<div class="kc" style="--c:${c};cursor:default"><div class="n">${n}</div><div class="t"><b>${t}</b></div><div class="t">${sub}</div></div>`;
   const dias=[0,1,2,3,4,5,6].map(i=>addDias(hoje,i-6));
   const vals=dias.map(d=>P.filter(p=>p.status!=='cancelado'&&loc(p)===d).length);
-  const linhas=abertos.slice(0,15).map(p=>`<tr><td>${esc(fmtD(Date.parse(p.criado_em)))}</td><td><b>${esc(p.revendedor_nome||nome(p.revendedor_id))}</b></td><td>${nItens(p)}</td><td>${brl(val(p))}</td><td>${p.tipo_pagamento==='consignado'?'Consignado':'À vista'}</td><td><select onchange="admRevAtualizaStatus('${p.id}',this.value)" style="width:auto">${Object.keys(ST).map(s=>`<option value="${s}" ${p.status===s?'selected':''}>${ST[s]}</option>`).join('')}</select></td><td><button class="btn ghost sm" onclick="A9.revSel='${p.revendedor_id}';route()">Ver</button></td></tr>`).join('');
+  const linhas=abertos.slice(0,15).map(p=>`<tr><td>${esc(fmtD(Date.parse(p.criado_em)))}</td><td><b>${esc(p.revendedor_nome||nome(p.revendedor_id))}</b></td><td>${nItens(p)}</td><td>${brl(val(p))}</td><td>${p.tipo_pagamento==='consignado'?'Consignado':'À vista'+(p.forma_pagamento?' · '+({pix:'Pix',cartao_credito:'Cartão de crédito',cartao_debito:'Cartão de débito',transferencia:'Transferência'}[p.forma_pagamento]||p.forma_pagamento):'')}</td><td><select onchange="admRevAtualizaStatus('${p.id}',this.value)" style="width:auto">${Object.keys(ST).map(s=>`<option value="${s}" ${p.status===s?'selected':''}>${ST[s]}</option>`).join('')}</select></td><td><button class="btn ghost sm" onclick="A9.revSel='${p.revendedor_id}';route()">Ver</button></td></tr>`).join('');
   const carteira=consig.map(r=>({r,s:saldo(r)})).sort((a,b)=>b.s-a.s).map(x=>`<tr><td><b>${esc(x.r.nome)}</b></td><td>${x.s>0?`<b style="color:#b45309">${brl(x.s)}</b>`:'<span style="color:var(--muted)">em dia</span>'}</td><td><button class="btn ghost sm" onclick="A9.revSel='${x.r.id}';route()">Ver</button></td></tr>`).join('');
   const descontos=ativos.map(r=>`<tr><td><b>${esc(r.nome)}</b></td><td>${r.tipo==='consignado'?'Consignado':'Comprador'}</td><td>${r.desconto_pct||0}%</td><td>${PR.filter(x=>x.revendedor_id===r.id).length} produto${PR.filter(x=>x.revendedor_id===r.id).length===1?'':'s'}</td><td><button class="btn ghost sm" onclick="A9.revSel='${r.id}';route()">Preços</button></td></tr>`).join('');
   return `<div style="margin-bottom:20px">
@@ -2949,6 +2949,12 @@ function tabRevendedores(){
             </table></div>`;
           })()}
 
+          <div class="box" style="margin:20px 0 0"><h3 style="margin:0 0 8px">Clientes e mensagens</h3>
+            <label style="display:flex;gap:8px;align-items:center;cursor:pointer;margin-bottom:12px"><input type="checkbox" style="width:auto" ${(rv.config||{}).clientes_ativo!==false?'checked':''} onchange="admRevClientes('${rv.id}',this.checked)"> Pode cadastrar clientes para entrega direta (aba Meus clientes)</label>
+            <label for="rvmT" style="font-size:.85rem">Mensagem direta para o perfil deste revendedor</label>
+            <input id="rvmT" maxlength="80" placeholder="Título" style="width:100%;margin:4px 0 6px">
+            <textarea id="rvmM" rows="2" maxlength="500" placeholder="Escreva a mensagem. Ela aparece em Avisos no portal dele." style="width:100%"></textarea>
+            <p style="margin:8px 0 0"><button class="btn acc sm" onclick="admRevMensagem('${rv.id}')">Enviar mensagem</button></p></div>
           <h3 style="margin:20px 0 10px">Pedidos (${rpeds.length})</h3>
           ${!rpeds.length?`<div class="note">Nenhum pedido ainda.</div>`:`<div class="box"><table>
             <thead><tr><th>Data</th><th>Itens</th><th>Total</th><th>Tipo</th><th>Status</th><th></th></tr></thead>
@@ -3196,6 +3202,21 @@ async function admRevPreco(revId,prodId,txt){
   const lst=A9.revs.precos.filter(x=>!(x.revendedor_id===revId&&x.variacao_id===prodId));
   if(txt)lst.push({revendedor_id:revId,variacao_id:prodId,preco:parseFloat(txt.replace(/\./g,'').replace(',','.'))});
   A9.revs.precos=lst;toast('Preço salvo.');
+}
+async function admRevClientes(revId,on){
+  const rv=(A9.revs.lista||[]).find(r=>r.id===revId);if(!rv)return;
+  const cfg=Object.assign({},rv.config||{},{clientes_ativo:!!on});
+  const {error}=await SB.from('revendedores').update({config:cfg}).eq('id',revId);
+  if(error){toast('Não foi possível salvar.');route();return}
+  rv.config=cfg;toast(on?'Cadastro de clientes liberado para este revendedor.':'Cadastro de clientes bloqueado para este revendedor.');
+}
+async function admRevMensagem(revId){
+  const t=v_('rvmT').trim(),m=v_('rvmM').trim();
+  if(!t||!m){toast('Preencha o título e a mensagem.');return}
+  const {error}=await SB.from('avisos_revendedores').insert([{titulo:t,mensagem:m,tipo:'info',ativo:true,revendedor_id:revId}]);
+  if(error){toast(/revendedor_id|column|schema/i.test(error.message||'')?'Falta rodar o arquivo 25 no Supabase.':'Não foi possível enviar a mensagem.');return}
+  document.getElementById('rvmT').value='';document.getElementById('rvmM').value='';
+  toast('Mensagem enviada para o perfil do revendedor.');
 }
 async function admRevAtualizaStatus(pedidoId,status){
   await SB.from('pedidos_revendedor').update({status}).eq('id',pedidoId);
