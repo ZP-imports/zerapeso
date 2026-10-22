@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-21-2404 -->
+<!-- v2026-10-21-2405 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5110,7 +5110,7 @@ function tabPagamentos(){
   <p style="margin:0 0 10px;color:var(--muted)">Pedido entregue → <b>Pendentes</b>. Envia link → <b>Cobrança em andamento</b>. Programa data → <b>Carteira</b>. Pago → <b>Concluídos</b>.</p>
   <div class="kcards" style="margin-bottom:12px">${aba('cobrar','Pagamentos pendentes',pendentes,'#d92d20')}${aba('andamento','Cobrança em andamento',andamento,'#d97706')}${aba('carteira','<span style="font-size:.82em">Carteira · Pré-datados</span>',carteira,'#2563eb')}${aba('pagos','Concluídos (pagos)',pagos,'#16a34a')}</div>
   ${barraFiltros()}
-  <div style="margin-bottom:8px">${btnFrete}</div>
+  <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn acc sm" onclick="cobNova()">➕ Nova cobrança</button>${btnFrete}</div>
   <div class="tbl"><table>${thead}<tbody>${listaBase.map(o=>rowPag(o,mostraFrete)).join('')||`<tr><td colspan="${mostraFrete?8:7}">Nenhum pedido nesta lista.</td></tr>`}</tbody></table></div>
   </div>`;
 }
@@ -5968,6 +5968,61 @@ async function pagDiaRemover(id){
   SB.from('pedido_eventos').insert({pedido_id:id,tipo:'pagamento',publico:false,texto:'Programação de pagamento removida.',por:ADMIN.nome}).then(()=>{},()=>{});
   const el=document.getElementById('pdbox');if(el)el.remove();
   toast('Programação removida.');route();
+}
+/* ---- nova cobrança sem pedido: escolhe o cliente, informa o valor e segue o fluxo normal de Pagamentos ---- */
+function cobNova(){
+  const old=document.getElementById('cobbox');if(old)old.remove();
+  if(!A9.clientes&&!A9.cliBusy)admCarregarClientes();
+  A9.cobSel=null;
+  const d=document.createElement('div');d.id='cobbox';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto';
+  d.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:94vh;overflow:auto;padding:18px">
+<h3 style="margin:0 0 4px">Nova cobrança</h3>
+<p style="margin:0 0 12px;color:#667085;font-size:.88rem">Escolha o cliente e informe o valor. Não cria pedido.</p>
+<label style="font-size:.82rem" for="cobBusca">Cliente (nome ou telefone)</label>
+<input id="cobBusca" autocomplete="off" placeholder="Digite para buscar..." oninput="cobBuscar()" style="width:100%">
+<div id="cobLista" style="margin:6px 0 10px"></div>
+<div id="cobSel" style="display:none;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:.9rem"></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+  <div style="flex:1;min-width:130px"><label style="font-size:.82rem" for="cobValor">Valor (R$)</label><input id="cobValor" inputmode="decimal" placeholder="0,00" style="width:100%"></div>
+  <div style="flex:2;min-width:160px"><label style="font-size:.82rem" for="cobDesc">Descrição</label><input id="cobDesc" maxlength="80" placeholder="Cobrança" style="width:100%"></div>
+</div>
+<div class="btns" style="margin-top:14px"><button class="btn acc" onclick="cobCriar(false)">Cobrar agora</button><button class="btn" onclick="cobCriar(true)">Programar (pré-datado)</button><button class="btn ghost" onclick="document.getElementById('cobbox').remove()">Fechar</button></div>
+<p id="cobMsg" style="font-size:.82rem;margin:8px 0 0"></p>
+</div>`;
+  document.body.appendChild(d);
+  cobBuscar();
+}
+function cobBuscar(tent){
+  const el=document.getElementById('cobLista');if(!el)return;
+  if(!A9.clientes){el.innerHTML='<span style="color:#667085;font-size:.85rem">Carregando clientes...</span>';if((tent||0)<20)setTimeout(()=>cobBuscar((tent||0)+1),700);return}
+  const q=((document.getElementById('cobBusca')||{}).value||'').trim().toLowerCase();
+  const qd=q.replace(/\D/g,'');
+  if(q.length<2){el.innerHTML='<span style="color:#667085;font-size:.85rem">'+A9.clientes.length+' clientes. Digite 2 letras ou números para buscar.</span>';return}
+  const ach=A9.clientes.filter(c=>(c.nome||'').toLowerCase().includes(q)||(qd.length>=3&&String(c.fone||'').replace(/\D/g,'').includes(qd))).slice(0,8);
+  A9.cobAch=ach;
+  el.innerHTML=ach.map((c,i)=>'<button type="button" class="btn ghost sm" style="display:block;width:100%;text-align:left;margin-bottom:4px" onclick="cobEscolher('+i+')"><b>'+esc(c.nome||'(sem nome)')+'</b> · '+esc(c.fone||'sem telefone')+(c.cidade?' · '+esc(c.cidade):'')+'</button>').join('')||'<span style="color:#667085;font-size:.85rem">Nenhum cliente encontrado.</span>';
+}
+function cobEscolher(i){
+  const c=(A9.cobAch||[])[i];if(!c)return;
+  A9.cobSel=c;
+  const s=document.getElementById('cobSel');if(s){s.style.display='block';s.innerHTML='✅ <b>'+esc(c.nome||'(sem nome)')+'</b><br>'+esc(c.fone||'sem telefone')+(c.cidade?' · '+esc(c.cidade):'')}
+  const l=document.getElementById('cobLista');if(l)l.innerHTML='';
+  const b=document.getElementById('cobBusca');if(b)b.value='';
+}
+async function cobCriar(programar){
+  const msg=document.getElementById('cobMsg');const erro=t=>{if(msg)msg.innerHTML='<span style="color:#d92d20">'+esc(t)+'</span>'};
+  const c=A9.cobSel;if(!c){erro('Escolha o cliente na lista.');return}
+  const valor=pdNum((document.getElementById('cobValor')||{}).value);if(!(valor>0)){erro('Informe o valor da cobrança.');return}
+  if(A9.busy)return;A9.busy=true;
+  const r=await SB.rpc('criar_cobranca',{p_nome:c.nome||'',p_fone:c.fone||'',p_cidade:c.cidade||'',p_descricao:((document.getElementById('cobDesc')||{}).value||'').trim(),p_valor:valor});
+  A9.busy=false;
+  if(r.error){erro(/criar_cobranca|schema cache|function/i.test(r.error.message||'')?'Falta rodar o arquivo 20_cobranca_avulsa.sql no Supabase.':msgRpc(r.error));return}
+  const id=r.data;
+  const el=document.getElementById('cobbox');if(el)el.remove();
+  A9.pf='cobrar';A9.pedidos=null;A9.busy=true;
+  try{await admCarregarPedidos()}finally{A9.busy=false}
+  toast('Cobrança de '+brl(valor)+' criada para '+(c.nome||'o cliente')+'.');
+  if(programar)pagDia(id);
 }
 async function prevMarcar(id,idx,pago){
   const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
