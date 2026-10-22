@@ -3608,7 +3608,8 @@ async function finish(){
   if(cart.find(i=>!vOf(i)||i.qty>maxVar(byId(i.id),vOf(i),i)))er.push('Um item ficou sem estoque suficiente. Ajuste o carrinho.');
   ent.erros=er;if(er.length){route();return}
   busy2=true;const b=$('#fin');b.disabled=true;b.textContent='Registrando o pedido...';
-  const w=window.open('about:blank','_blank');
+  const movel=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'');
+  const w=movel?null:window.open('about:blank','_blank');
   const itens=cart.map(i=>i.v===SP?{id:i.id,qty:i.qty}:{var:i.v,qty:i.qty});
   const entrega={data:ent.data,turno:ent.turno,pagamento:ent.pag,obs:ent.obs.trim(),sec:ent.sec?Object.assign({},normEnd(ent.s),{cep:fmtCep(ent.s.cep)}):null};
   const r=await SB.rpc('criar_pedido',{p_itens:itens,p_entrega:entrega,p_codigo:(rv.ref&&rv.code)?rv.code:null,p_usar_credito:!!rv.use});
@@ -3626,6 +3627,7 @@ async function finish(){
   save();updHead();
   if(w)w.location.href=url;
   nav('/pedido/'+d.id);
+  if(movel)setTimeout(()=>{location.href=url},400);
 }
 function pageOrder(id){
   const h=pageOrderBase(id);
