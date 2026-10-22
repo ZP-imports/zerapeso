@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-21-2401 -->
+<!-- v2026-10-21-2402 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -3833,7 +3833,7 @@ var ENC=o=>['entregue','cancelado'].includes(o.status);
 var emAtraso=o=>!ENC(o)&&(o.entrega||{}).data&&(o.entrega||{}).data<hojeS();
 var aguardaPag=o=>o.status!=='cancelado'&&(o.pagamento||{}).status!=='pago';
 function motivoCancel(o){const ev=(o.eventos||[]).slice().reverse().find(e=>e.tipo==='status'&&e.para==='cancelado');return ev&&ev.motivo?ev.motivo:''}
-function tabPedidos(){return listaPed(o=>A9.fs==='cancelado'?o.status==='cancelado':!ENC(o),'Pedidos em aberto. Use o filtro Cancelados para ver pedidos cancelados.')}
+function tabPedidos(){return listaPed(o=>A9.fs==='cancelado'?o.status==='cancelado':(A9.fq==='agenda'||!ENC(o)),'Pedidos em aberto. Use o filtro Cancelados para ver pedidos cancelados.')}
 function tabAberto(){return listaPed(o=>!ENC(o),'Pedidos ainda não encerrados (não entregues e não cancelados).')}
 function tabAtrasados(){return listaPed(emAtraso,'Pedidos não encerrados cuja data de entrega desejada já passou.')}
 async function admSalvaLink(){
@@ -4998,8 +4998,9 @@ function filtroExtra(o,f){
   if(f.fc){const l=String(f.fc).split('|').map(cidNorm);if(!l.includes(cidNorm(cidadeDe(o))))return false}
   if(f.fd&&e.data!==f.fd)return false;
   if(f.ft&&e.turno!==f.ft)return false;
-  if(f.fq==='abertos'&&ENC(o))return false;
-  if(f.fq==='abertos'){const _p=(o.extra||{}).pag_prev;if(_p&&(typeof _p==='string'?_p.length>0:Array.isArray(_p)?_p.length>0:false))return false;}
+  if(f.fq==='abertos'&&(ENC(o)||['programada','em-rota'].includes(o.status)))return false;
+  if(f.fq==='agenda'&&o.status==='cancelado')return false;
+  if(f.fq==='abertos'||f.fq==='agenda'){const _p=(o.extra||{}).pag_prev;if(_p&&(typeof _p==='string'?_p.length>0:Array.isArray(_p)?_p.length>0:false))return false;}
   if(f.fq==='feitos-hoje'&&!feitoHoje(o))return false;
   if(f.fq==='entrega-hoje'&&e.data!==hojeS())return false;
   if(f.fq==='entrega-amanha'&&e.data!==addDias(hojeS(),1))return false;
@@ -5009,7 +5010,7 @@ function filtroExtra(o,f){
 }
 function admIr(tab,f){f=f||{};A9.fc=f.fc||'';A9.ft=f.ft||'';A9.fq=f.fq||'';A9.fs=f.fs||'';A9.fe=f.fe||'';A9.fd=f.fd||'';A9.po=null;A9.msg='';A.tab=tab;route();window.scrollTo(0,0)}
 function cidadesPed(){const m={};(A9.pedidos||[]).forEach(o=>{const c=cidadeDe(o);if(c&&!m[cidNorm(c)])m[cidNorm(c)]=c});return Object.values(m).sort((a,b)=>a.localeCompare(b))}
-var QUANDO=[['','Todos'],['abertos','Em aberto (não entregues)'],['feitos-hoje','Feitos hoje'],['entrega-hoje','Entrega hoje'],['entrega-amanha','Entrega amanhã']];
+var QUANDO=[['','Todos'],['abertos','Em aberto (ainda não saíram para rota)'],['agenda','Entregas do dia (sem pré-datados)'],['feitos-hoje','Feitos hoje'],['entrega-hoje','Entrega hoje'],['entrega-amanha','Entrega amanhã']];
 function barraFiltros(){
   const sel=(v,arr,fn)=>arr.map(x=>`<option value="${esc(x[0])}" ${v===x[0]?'selected':''}>${esc(x[1])}</option>`).join('');
   const temF=A9.fc||A9.ft||A9.fq||A9.fe||A9.fd;
@@ -5028,7 +5029,7 @@ function listaPed(filtro,intro){
   A9.vistos=A9.vistos||{};A9.pedidos.forEach(o=>{if(!A9.vistos[o.id]){A9.vistos[o.id]=true;if(o.status==='realizado')A9.selP[o.id]=true}})
   if(!A9.lg&&!A9.busyLg){A9.busyLg=true;admCarregarLog().finally(()=>{A9.busyLg=false})}
   const ST_VISIVEIS=['confirmado','aguardando-programacao','em-rota'];
-  let lista=A9.pedidos.filter(o=>(!filtro||filtro(o))&&(A9.fs?o.status===A9.fs:ST_VISIVEIS.includes(o.status))&&filtroExtra(o));
+  let lista=A9.pedidos.filter(o=>(!filtro||filtro(o))&&(A9.fs?o.status===A9.fs:(A9.fq==='abertos'||A9.fq==='agenda'||ST_VISIVEIS.includes(o.status)))&&filtroExtra(o));
   if(A9.ordEnt){const d=A9.ordEnt==='asc'?1:-1;lista=lista.slice().sort((a,b)=>d*((a.entrega||{}).data||'').localeCompare((b.entrega||{}).data||''))}
   A9.lastLista=lista.map(o=>o.id);const nSel=lista.filter(o=>A9.selP[o.id]).length;
   const admin=ADMIN.papel==='admin';
@@ -5065,7 +5066,7 @@ function admMsgPagamento(o){return nl(msgTxt(o.status==='entregue'?'pagamento_en
 function tabPagamentos(){
   if(A9.po)return admDetalhe();
   if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
-  if(!A9.linkCarregado){if(!A9.busyL){A9.busyL=true;admCarregarLink().finally(()=>{A9.busyL=false;A9.linkCarregado=true;route()})}return '<div class="box">Carregando...</div>'}
+  if(!A9.linkCarregado&&!A9.busyL){A9.busyL=true;admCarregarLink().catch(()=>{}).finally(()=>{A9.busyL=false;A9.linkCarregado=true;route()})}
   const L=A9.pedidos,total=o=>pedTotal(o)+(freteDoPedido(o)||0);
   const temPrev=o=>(o.extra||{}).pag_prev;
   // 4 seções: pendentes → andamento → carteira → pagos
@@ -5102,7 +5103,7 @@ function tabPagamentos(){
   const thead=`<thead><tr><th>Pedido</th><th>Cliente</th><th>Produtos</th>${mostraFrete?'<th>Frete</th>':''}<th>Total</th><th>Forma</th><th>Situação</th><th></th></tr></thead>`;
   const vencHoje=carteira.filter(o=>prevVencendo(o));
   const bannerVenc=vencHoje.length?`<div class="note" style="background:#fef2f2;border-color:#fca5a5;color:#991b1b;animation:pagpulsa .9s ease-in-out infinite;margin-bottom:10px"><b>⚠️ ${vencHoje.length} parcela${vencHoje.length>1?'s':''} vencendo!</b> ${vencHoje.map(o=>esc((o.entrega||{}).nome||codPed(o))).join(', ')} — <button class="btn ghost sm" style="margin-left:8px" onclick="A9.pf='carteira';route()">Ver carteira</button></div>`:'';
-  return `<div class="box">${msgBox()}${bannerVenc}${A9.link?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre em Mais opções > Configurações.</div>'}
+  return `<div class="box">${msgBox()}${bannerVenc}${(A9.link||!A9.linkCarregado)?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre em Mais opções > Configurações.</div>'}
   <p style="margin:0 0 10px;color:var(--muted)">Pedido entregue → <b>Pendentes</b>. Envia link → <b>Cobrança em andamento</b>. Programa data → <b>Carteira</b>. Pago → <b>Concluídos</b>.</p>
   <div class="kcards" style="margin-bottom:12px">${aba('cobrar','Pagamentos pendentes',pendentes,'#d92d20')}${aba('andamento','Cobrança em andamento',andamento,'#d97706')}${aba('carteira','<span style="font-size:.82em">Carteira · Pré-datados</span>',carteira,'#2563eb')}${aba('pagos','Concluídos (pagos)',pagos,'#16a34a')}</div>
   ${barraFiltros()}
@@ -5166,9 +5167,9 @@ function tabDash(){
     <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Entrega</th><th>Pagamento</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(o=>{const en=o.entrega||{};const pg=o.pagamento||{};return `<tr data-sc style="--sc:${en.turno==='manha'?'#f59e0b':en.turno==='tarde'?'#dc2626':en.turno==='noite'?'#7c3aed':'#999'}"><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' · '+((en.dest||{}).cidade||''))}</div></td><td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td><td>${totAdm(o)}</td><td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td><td>${esc(PAGNOME[pg.preferencia]||'')}<div>${pagChipP(o)}</div></td><td>${stChip(o.status)}</td><td style="white-space:nowrap">${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||`<tr><td colspan="8">Nenhum pedido.</td></tr>`}</tbody></table></div></div>`;
   }
   const temPrevVal=o=>{const p=(o.extra||{}).pag_prev;return p&&(typeof p==='string'?p.length>0:Array.isArray(p)?p.length>0:false)};
-  const L=A9.pedidos,hoje=hojeS(),ab=L.filter(o=>!ENC(o)&&!temPrevVal(o));
+  const L=A9.pedidos,hoje=hojeS(),ab=L.filter(o=>!ENC(o)&&!temPrevVal(o)&&!['programada','em-rota'].includes(o.status)),agenda=L.filter(o=>o.status!=='cancelado'&&!temPrevVal(o));
   const amanha=addDias(hoje,1);
-  const hojeN=L.filter(feitoHoje),entH=ab.filter(o=>(o.entrega||{}).data===hoje),entA=ab.filter(o=>(o.entrega||{}).data===amanha),atr=L.filter(emAtraso),rec=ab.filter(o=>+o.seq>=2);
+  const hojeN=L.filter(feitoHoje),entH=agenda.filter(o=>(o.entrega||{}).data===hoje),entA=agenda.filter(o=>(o.entrega||{}).data===amanha),atr=L.filter(emAtraso),rec=ab.filter(o=>+o.seq>=2);
   const cobrar=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!A9.pagEnv[o.id]),pend=L.filter(o=>aguardaPag(o)&&!cobrar.includes(o)),pagos=L.filter(o=>(o.pagamento||{}).status==='pago'),entregues=L.filter(o=>o.status==='entregue');
   const temPrev=o=>(o.extra||{}).pag_prev;
   const carteiraDash=L.filter(o=>temPrev(o)&&(o.pagamento||{}).status!=='pago');
@@ -5190,9 +5191,9 @@ function tabDash(){
 
   return `<div class="box">${msgBox()}${bannerDash}<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="margin:0">Visão geral</h2><div><span style="color:var(--muted);font-size:.82rem">Atualiza sozinha a cada 20 segundos. </span><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar agora</button></div></div>
   <div class="kcards" style="margin-top:14px">
-   ${k('#ea580c','Em aberto',ab.length,'não entregues',"admIr('pedidos',{fq:'abertos'})")}
-   ${k('#0891b2','Entrega hoje',entH.length,'data desejada é hoje',"admIr('pedidos',{fd:'"+hoje+"'})")}
-   ${k('#0d9488','Entrega amanhã',entA.length,'data desejada é amanhã',"admIr('pedidos',{fd:'"+amanha+"'})")}
+   ${k('#ea580c','Em aberto',ab.length,'ainda não saíram para rota',"admIr('pedidos',{fq:'abertos'})")}
+   ${k('#0891b2','Entrega hoje',entH.length,'total do dia (manhã, tarde e noite)',"admIr('pedidos',{fq:'agenda',fd:'"+hoje+"'})")}
+   ${k('#0d9488','Entrega amanhã',entA.length,'data desejada é amanhã',"admIr('pedidos',{fq:'agenda',fd:'"+amanha+"'})")}
    ${ADMIN.papel==='admin'?(()=>{const fp=fielPend(L);return fp.total?`<button class="kc ${fp.novos?'pulsa':''}" style="--c:#7c3aed" onclick="A9.cliF='fiel';admTab('clientes')"><div class="n">${fp.total}</div><div class="t"><b>Clientes fiéis (${CLI_META}+ pedidos)</b></div><div class="t">${fp.novos?fp.novos+' para oferecer cupom':'todos já receberam o convite'}</div></button>`:''})():''}
    ${pendSemData.length?`<button class="kc" style="--c:#7c2d12" onclick="A9.pf='cobrar';admTab('pagamentos')"><div class="n">${pendSemData.length}</div><div class="t"><b>Pagamentos pendentes</b></div><div class="t">Entregues sem link enviado · ${brl(pendSemData.reduce((s,o)=>s+tot(o),0))}</div></button>`:''}
    ${(()=>{const cd=carteiraDash;if(!cd.length)return '';const porDia={};cd.forEach(o=>{const pr=prevProxima(o);const d=pr?pr.data:'?';porDia[d]=(porDia[d]||0)+1});const dias=Object.keys(porDia).sort();const sub=dias.slice(0,3).map(d=>dataBr(d)+': '+porDia[d]).join(' · ')+(dias.length>3?' …':'');const pulsaCart=cd.some(o=>prevVencendo(o));return `<button class="kc${pulsaCart?' pulsa':''}" style="--c:#be123c" onclick="A9.pf='carteira';admTab('pagamentos')"><div class="n">${cd.length}</div><div class="t"><b>Carteira (pré-datados)</b></div><div class="t">${sub||brl(cd.reduce((s,o)=>s+tot(o),0))}</div></button>`})()}
@@ -5206,12 +5207,12 @@ function tabDash(){
       const d=addDias(hoje,i);
       const dow=new Date(d+'T12:00').getDay();
       const isHoje=d===hoje,isOntem=false;
-      const peds=ab.filter(o=>(o.entrega||{}).data===d);
+      const peds=agenda.filter(o=>(o.entrega||{}).data===d);
       const byT={};peds.forEach(o=>{const t=(o.entrega||{}).turno||'';byT[t]=(byT[t]||0)+1});
       const chips=Object.entries(TC).map(([t,cfg])=>byT[t]?`<span style="display:inline-flex;align-items:center;gap:2px;background:${cfg.bg};color:${cfg.c};border:1px solid ${cfg.c};border-radius:6px;padding:1px 5px;font-size:.7rem;font-weight:700">${cfg.label} ${byT[t]}</span>`:'').join('');
       const border=isHoje?'2px solid #2563eb':'1px solid var(--line)';
       const opacity=peds.length===0?'opacity:.45':'';
-      return `<button onclick="admIr('pedidos',{fd:'${d}'})" style="cursor:pointer;${opacity};border:${border};border-radius:12px;padding:8px 10px;background:${isHoje?'#eff6ff':'#fff'};min-width:64px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
+      return `<button onclick="admIr('pedidos',{fq:'agenda',fd:'${d}'})" style="cursor:pointer;${opacity};border:${border};border-radius:12px;padding:8px 10px;background:${isHoje?'#eff6ff':'#fff'};min-width:64px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
         <span style="font-size:.7rem;color:var(--muted);font-weight:600">${isHoje?'Hoje':DIAS_ABREV[dow]}</span>
         <span style="font-size:.68rem;color:var(--muted)">${d.slice(8)}/${d.slice(5,7)}</span>
         <span style="font-size:1.3rem;font-weight:800;line-height:1;color:${peds.length?'var(--ink)':'#bbb'}">${peds.length}</span>
@@ -5826,7 +5827,7 @@ function pagTag(o){
 /* ---- helpers pré-datados / parcelados ---- */
 function prevParcelas(o){const p=(o.extra||{}).pag_prev;if(!p)return[];if(typeof p==='string')return[{data:p,pago:false,pago_em:null}];return p}
 function prevProxima(o){return prevParcelas(o).find(p=>!p.pago)||null}
-function prevVencendo(o){const p=prevProxima(o);if(!p||!p.data)return false;const diff=(Date.parse(p.data)-Date.now())/864e5;return diff<=3}
+function prevVencendo(o){const p=prevProxima(o);return !!(p&&p.data&&p.data<=hojeS())}
 function prevVencida(o){const p=prevProxima(o);return !!(p&&p.data&&p.data<hojeS())}
 function prevStatusTxt(o){const ps=prevParcelas(o);if(!ps.length)return'';const pagas=ps.filter(p=>p.pago).length;if(ps.length===1){return ps[0].pago?'✅ pago':'📅 '+dataBr(ps[0].data);}if(pagas===0){const pr=prevProxima(o);return`${ps.length}x · próx. ${pr?dataBr(pr.data):'?'}`;}if(pagas===ps.length)return`✅ ${ps.length}x todas pagas`;return`${ps.length}x · ${pagas}/${ps.length} pagas`;}
 
@@ -5841,7 +5842,7 @@ function pagDia(id){
 <div style="display:flex;gap:10px;margin-bottom:12px;align-items:flex-end;flex-wrap:wrap">
   <div style="flex:1;min-width:120px"><label style="font-size:.82rem">Nº de parcelas</label><input id="pdN" type="number" min="1" max="36" value="${nAtual}" style="width:100%" oninput="pdGerarLinhas()"></div>
   <div style="flex:2;min-width:140px"><label style="font-size:.82rem">Data da 1ª parcela</label><input id="pdD1" type="date" value="${esc(ps[0]&&ps[0].data||'')}" oninput="pdGerarLinhas()"></div>
-  <div style="flex:2;min-width:140px"><label style="font-size:.82rem">Repetir a cada</label><select id="pdFreq" onchange="pdGerarLinhas()" style="width:100%"><option value="30">30 dias (mensal)</option><option value="7">7 dias (semanal)</option><option value="15">15 dias (quinzenal)</option><option value="0">Manual (defino cada data)</option></select></div>
+  <div style="flex:2;min-width:140px"><label style="font-size:.82rem">Repetir a cada</label><select id="pdFreq" onchange="pdGerarLinhas()" style="width:100%"><option value="M">Mesmo dia, todo mês</option><option value="30">30 dias (mensal)</option><option value="7">7 dias (semanal)</option><option value="15">15 dias (quinzenal)</option><option value="0">Manual (defino cada data)</option></select></div>
 </div>
 <div id="pdLinhas"></div>
 <label style="margin-top:10px;font-size:.82rem">Observação</label><input id="pdO" maxlength="160" placeholder="Ex.: recebe dia 30, paga no Pix" value="${esc(obs)}">
@@ -5856,16 +5857,23 @@ function pagDia(id){
 function pdAddDias(dateStr,n){
   const dt=new Date(dateStr+'T12:00');dt.setDate(dt.getDate()+n);return dt.toISOString().slice(0,10);
 }
+function pdAddMeses(dateStr,n){
+  const [y,m,dia]=dateStr.split('-').map(Number);const alvo=new Date(y,m-1+n,1,12);
+  const ult=new Date(alvo.getFullYear(),alvo.getMonth()+1,0,12).getDate();
+  alvo.setDate(Math.min(dia,ult));
+  return alvo.getFullYear()+'-'+String(alvo.getMonth()+1).padStart(2,'0')+'-'+String(alvo.getDate()).padStart(2,'0');
+}
 function pdGerarLinhas(){
   const d=document.getElementById('pdbox');if(!d)return;
   const n=Math.max(1,Math.min(36,+(document.getElementById('pdN')||{value:1}).value||1));
   const d1=(document.getElementById('pdD1')||{value:''}).value||'';
-  const freq=+(document.getElementById('pdFreq')||{value:30}).value;
-  const manual=freq===0;
+  const fv=(document.getElementById('pdFreq')||{value:'M'}).value;
+  const mensalFixo=fv==='M';const freq=mensalFixo?0:+fv;
+  const manual=!mensalFixo&&freq===0;
   const ps=d._pdPs||[];
   /* gerar datas */
   let datas=[];
-  if(!manual&&d1){for(let i=0;i<n;i++){datas.push(i===0?d1:pdAddDias(d1,freq*i));}}
+  if(!manual&&d1){for(let i=0;i<n;i++){datas.push(i===0?d1:mensalFixo?pdAddMeses(d1,i):pdAddDias(d1,freq*i));}}
   else{for(let i=0;i<n;i++){datas.push(ps[i]&&ps[i].data||'');}}
   const cont=document.getElementById('pdLinhas');if(!cont)return;
   if(n===1){cont.innerHTML=`<label style="font-size:.82rem">Data do pagamento</label><input id="pdDate0" type="date" value="${esc(datas[0]||'')}">`;return;}
