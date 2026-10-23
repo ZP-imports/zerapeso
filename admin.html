@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-23-2428 -->
+<!-- v2026-10-23-2429 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -1571,7 +1571,7 @@ async function etqCompartilhar(oid,v){
     if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],text:txt});logEtq(o,r.rec,'Compartilhamento iniciado pelo sistema do aparelho','externa');toast('Compartilhamento iniciado. O envio só vale quando você concluir no aplicativo.');route();return}
   }catch(e){if(e&&e.name==='AbortError')return}
   const a=document.createElement('a');a.href=blobUrl(bytes);a.download=nome;document.body.appendChild(a);a.click();a.remove();
-  window.open('https://wa.me/55'+digits(o.entrega.fone).replace(/^55/,'')+'?text='+encodeURIComponent(txt),'_blank');
+  waApp('55'+digits(o.entrega.fone).replace(/^55/,''),txt);
   logEtq(o,r.rec,'WhatsApp aberto e PDF baixado para anexar (envio não confirmado)','externa');
   toast('O PDF foi baixado. Anexe-o na conversa do WhatsApp que abriu. O sistema não confirma o envio.');route();
 }
@@ -2115,7 +2115,7 @@ function enviarLinkCliente(id){
   const campo=document.getElementById('msgPagT'+id);const t=campo?campo.value:o.msgPag.texto;
   if(!t.trim()){toast('A mensagem está vazia.');return}
   o.msgPag.texto=t;
-  window.open('https://wa.me/55'+digits(o.entrega.fone).replace(/^55/,'')+'?text='+encodeURIComponent(t),'_blank');
+  waApp('55'+digits(o.entrega.fone).replace(/^55/,''),t);
   if(o.pagamento.status==='pendente')o.pagamento.status='link';
   o.pagamento.linkEnviadoEm=now();
   addEv(o,{tipo:'whatsapp',publico:false,texto:'WhatsApp aberto com o link de pagamento (envio não confirmado pelo sistema)'});
@@ -2401,7 +2401,7 @@ function rotaMsg(r){
 function rotaEnviarWA(rid){
   const r=ROTE.find(x=>x.id===rid);if(!r)return;const en=ENTR.find(x=>x.id===r.entregadorId);if(!en){toast('Entregador não encontrado.');return}
   const campo=document.getElementById('rotaMsgT');const t=campo?campo.value:rotaMsg(r);if(!t.trim()){toast('A mensagem está vazia.');return}
-  window.open('https://wa.me/55'+digits(en.whats).replace(/^55/,'')+'?text='+encodeURIComponent(t),'_blank');
+  waApp('55'+digits(en.whats).replace(/^55/,''),t);
   r.enviadaEm=now();r.orders.forEach(id=>{const o=orders.find(x=>x.id===id);if(o)addEv(o,{tipo:'whatsapp',publico:false,texto:'Rota '+rotaCod(r)+' enviada ao entregador '+en.nome+' (envio não confirmado pelo sistema)'})});
   save();toast('Conversa aberta com '+en.nome+'. O envio é feito por você no WhatsApp.');route();
 }
@@ -2630,7 +2630,7 @@ function admReag(id){
   save();toast('Entrega reagendada. O cliente foi avisado na área dele e a mensagem de WhatsApp está pronta.');route();
 }
 function admAbrirWA(id,tid,rot){const o=gO(id);const t=v_(tid);if(!t.trim()){toast('A mensagem está vazia.');return}
-  window.open('https://wa.me/55'+digits(o.entrega.fone).replace(/^55/,'')+'?text='+encodeURIComponent(t),'_blank');
+  waApp('55'+digits(o.entrega.fone).replace(/^55/,''),t);
   addEv(o,{tipo:'whatsapp',publico:false,texto:'WhatsApp aberto com a mensagem: '+rot+' (envio não confirmado pelo sistema)'});save();toast('Conversa aberta. O envio é feito por você no WhatsApp.');route()}
 function admEditEntrega(id){
   const o=gO(id),e=o.entrega,d=e.dest;const mot=v_('eMot').trim();
@@ -4984,21 +4984,22 @@ function copiaTexto(t,ok){
 function waModo(){try{return localStorage.getItem('zp_wa_modo')||'web'}catch(x){return 'web'}}
 function waSetModo(m){try{localStorage.setItem('zp_wa_modo',m)}catch(x){}toast('Modo de envio alterado.');route()}
 function waMovel(){return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'')}
-function waAbrir(fone,txt){
-  const m=waModo();
-  if(m==='link'){window.open(waUrlPara(fone,txt),'_blank');return}
-  if(m==='colar'){copiaTexto(txt,'Mensagem copiada. Na conversa que abriu, cole com Ctrl+V (ou segure e toque em Colar) e envie.');window.open('https://wa.me/'+fone,'_blank');return}
-  if(waMovel()){window.open(waUrlPara(fone,txt),'_blank');return}
-  copiaTexto(txt,'Conversa do cliente aberta. Se algum emoji vier quebrado, apague o texto e cole com Ctrl+V: a mensagem já está copiada.');
-  window.open('https://web.whatsapp.com/send?phone='+fone+'&text='+encodeURIComponent(txt),'_blank');
+/* abre a conversa direto no aplicativo do WhatsApp instalado (nunca no WhatsApp Web), sem janela de aviso.
+   Se a mensagem tiver emoji, ela também vai para a área de transferência (Ctrl+V) caso o aplicativo mostre algum emoji quebrado. */
+function waApp(fone,txt){
+  const n=String(fone||'').replace(/\D/g,'');if(!n)return;
+  if(txt&&/\p{Extended_Pictographic}/u.test(txt)){try{navigator.clipboard.writeText(txt).catch(()=>{})}catch(x){}}
+  const el=document.createElement('a');el.href='whatsapp://send?phone='+n+(txt?'&text='+encodeURIComponent(txt):'');el.rel='noopener';el.style.display='none';
+  document.body.appendChild(el);el.click();setTimeout(()=>el.remove(),500);
 }
+function waAbrir(fone,txt){waApp(fone,txt)}
+
 if(window.__ADMIN_APP)document.addEventListener('click',function(ev){
-  if(waModo()==='link')return;
   const a=ev.target.closest&&ev.target.closest('a[href^="https://wa.me/"]');if(!a)return;
-  const m=a.getAttribute('href').match(/^https:\/\/wa\.me\/(\d+)\?text=(.*)$/);if(!m)return;
+  const m=a.getAttribute('href').match(/^https:\/\/wa\.me\/(\d+)(?:\?text=(.*))?$/);if(!m)return;
   ev.preventDefault();
-  let t='';try{t=decodeURIComponent(m[2])}catch(x){return}
-  waAbrir(m[1],t);
+  let t='';try{t=m[2]?decodeURIComponent(m[2]):''}catch(x){return}
+  waApp(m[1],t);
 },true);
 
 /* ======================= PAINEL: VISÃO GERAL, SELOS, FRETE, PAGAMENTOS E CORES ======================= */
@@ -6899,7 +6900,7 @@ function buscaLive(el,chave){
 function waDireto(id){
   const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
   const fw=foneWa((o.entrega||{}).fone);if(!fw){toast('Este pedido está sem telefone válido.');return}
-  window.open('https://wa.me/'+fw,'_blank');
+  waApp(fw);
 }
 /* ---- formulário de cliente com endereço: o CEP preenche rua, bairro, cidade e UF ---- */
 function cliCampos(p,c){
@@ -6959,7 +6960,7 @@ function tabClientes(){
   <input type="file" id="cliXlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="admProcessarPlanilha(this.files[0]);this.value=''">
   <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" oninput="buscaLive(this,'cliQ')"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button><button class="btn ghost sm" onclick="admImportarClientes()" title="Importar clientes de planilha Excel ou CSV">Importar planilha</button> <button class="btn acc" onclick="cliNovo()">➕ Novo cliente</button> <button class="btn ghost" onclick="cliLimparBtn()" title="Junta e exclui cadastros importados com o mesmo telefone">Limpar duplicados</button></div>
   <div class="selbar"><button class="btn ghost sm" onclick="cliSelTodos(true)">Selecionar todos</button><button class="btn ghost sm" onclick="cliSelTodos(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><button class="btn acc sm" onclick="cobLote()" ${nSel?'':'disabled'}>Gerar cobrança${nSel?' ('+nSel+')':''}</button><button class="btn ghost sm danger" onclick="cliExcluir()" ${nSel?'':'disabled'}>Excluir cadastro${nSel?' ('+nSel+')':''}</button></div>
-  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th>${cth('nome','Cliente')}<th>Contato</th>${cth('cidade','Cidade')}${cth('n','Pedidos')}${cth('ent','Entregues')}${cth('tot','Total comprado')}${cth('ult','Último pedido')}${cth('cad','Cadastro')}<th></th></tr></thead><tbody>${Lv.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><a style="cursor:pointer;font-weight:700" onclick="cliEditar('${esc(c.k)}')" title="Editar cadastro">${esc(c.nome||'Sem nome')}</a>${cliRevStar(c)}${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" target="_blank" rel="noopener" style="color:inherit">${esc(c.fone)}</a>`:''} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}${c.endereco?`<div style="color:var(--muted);font-size:.78rem">${esc(c.endereco)}${c.numero?', '+esc(c.numero):''}${c.bairro?' · '+esc(c.bairro):''}</div>`:''}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> ${cliRevBtn(c)} ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div>${L.length>Lv.length?`<p style="text-align:center;margin:12px 0 0"><button class="btn ghost" onclick="cliMais()">Mostrar mais (${L.length-Lv.length} restantes)</button></p>`:''}</div>`;
+  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th>${cth('nome','Cliente')}<th>Contato</th>${cth('cidade','Cidade')}${cth('n','Pedidos')}${cth('ent','Entregues')}${cth('tot','Total comprado')}${cth('ult','Último pedido')}${cth('cad','Cadastro')}<th></th></tr></thead><tbody>${Lv.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><a style="cursor:pointer;font-weight:700" onclick="cliEditar('${esc(c.k)}')" title="Editar cadastro">${esc(c.nome||'Sem nome')}</a>${cliRevStar(c)}${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" style="color:inherit">${esc(c.fone)}</a>`:''} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}${c.endereco?`<div style="color:var(--muted);font-size:.78rem">${esc(c.endereco)}${c.numero?', '+esc(c.numero):''}${c.bairro?' · '+esc(c.bairro):''}</div>`:''}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> ${cliRevBtn(c)} ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div>${L.length>Lv.length?`<p style="text-align:center;margin:12px 0 0"><button class="btn ghost" onclick="cliMais()">Mostrar mais (${L.length-Lv.length} restantes)</button></p>`:''}</div>`;
 }
 var CUPOM_TXT='Olá, {nome}, tudo bem? 😊\nPassando para agradecer de coração: você já fez {pedidos} pedidos com a gente e isso é muito especial para nós!\nComo agradecimento pela sua fidelidade, preparamos um cupom exclusivo para você: *{cupom}*.\nÉ só avisar no seu próximo pedido. Obrigado pela confiança! 💜';
 function cupomAbrir(k){
