@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-23-2431 -->
+<!-- v2026-10-23-2432 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5266,10 +5266,10 @@ function tabPagamentos(){
      rowCls=atrs?' class="parc-atrs"':venc?' class="parc-venc"':'';
      if(ps.length===1){
        const p=ps[0];
-       parcRow=`<div style="font-size:.8rem;margin-top:4px">${p.valor?`<b>${esc(brl(p.valor))}</b> `:''}${p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':atrs?'<span class="parc-chip parc-pend" style="animation:pagpulsa .9s ease-in-out infinite">⚠️ VENCIDA '+dataBr(p.data)+'</span>':venc?'<span class="parc-chip parc-pend" style="animation:pagpulsa .9s ease-in-out infinite">⚠️ Vence '+dataBr(p.data)+'</span>':`<span class="parc-chip parc-ok">📅 ${dataBc(p.data)}</span>`}${!p.pago?`<button class="btn ghost sm" style="margin-left:6px;padding:1px 7px;font-size:.75rem" onclick="prevMarcar(${o.id},0,true)">Marcar pago</button>`:''}</div>`;
+       parcRow=`<div style="font-size:.8rem;margin-top:4px">${p.valor?`<b>${esc(brl(p.valor))}</b> `:''}${p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':atrs?'<span class="parc-chip parc-pend" style="animation:pagpulsa .9s ease-in-out infinite">⚠️ VENCIDA '+dataBr(p.data)+'</span>':venc?'<span class="parc-chip parc-pend" style="animation:pagpulsa .9s ease-in-out infinite">⚠️ Vence '+dataBr(p.data)+'</span>':`<span class="parc-chip parc-ok">📅 ${dataBc(p.data)}</span>`}${!p.pago?`<button class="btn ghost sm" style="margin-left:6px;padding:1px 7px;font-size:.75rem" onclick="prevMarcar(${o.id},0,true)">Marcar pago</button><button class="btn ghost sm" style="margin-left:4px;padding:1px 7px;font-size:.75rem" onclick="prevParcial(${o.id},0)">Pagou parte</button>`:''}</div>`;
      }else{
        const pagas=ps.filter(p=>p.pago).length;
-       parcRow=`<details style="margin-top:4px"><summary style="cursor:pointer;font-size:.8rem;font-weight:600;color:${atrs?'#dc2626':venc?'#c2410c':'#2563eb'}">${prevStatusTxt(o)} ${atrs?'⚠️':venc?'🔔':''}</summary><table style="margin-top:6px;font-size:.78rem;border-collapse:collapse">${ps.map((p,i)=>`<tr><td style="padding:2px 8px 2px 0;font-weight:600">${p.entrada?'Entrada':(i+1-(ps[0].entrada?1:0))+'ª'}</td><td style="padding:2px 8px 2px 0">${dataBc(p.data)}</td><td style="padding:2px 8px 2px 0">${p.valor?esc(brl(p.valor)):''}</td><td style="padding:2px 8px 2px 0">${p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':'<span class="parc-chip parc-pend">pendente</span>'}</td><td>${p.pago?`<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar(${o.id},${i},false)">↩ desfazer</button>`:`<button class="btn acc" style="padding:0 6px;font-size:.72rem;background:#16a34a;color:#fff;border:none" onclick="prevMarcar(${o.id},${i},true)">Marcar pago</button>`}</td></tr>`).join('')}</table></details>`;
+       parcRow=`<details style="margin-top:4px"><summary style="cursor:pointer;font-size:.8rem;font-weight:600;color:${atrs?'#dc2626':venc?'#c2410c':'#2563eb'}">${prevStatusTxt(o)} ${atrs?'⚠️':venc?'🔔':''}</summary><table style="margin-top:6px;font-size:.78rem;border-collapse:collapse">${ps.map((p,i)=>`<tr><td style="padding:2px 8px 2px 0;font-weight:600">${p.entrada?'Entrada':(i+1-(ps[0].entrada?1:0))+'ª'}</td><td style="padding:2px 8px 2px 0">${dataBc(p.data)}</td><td style="padding:2px 8px 2px 0">${p.valor?esc(brl(p.valor)):''}</td><td style="padding:2px 8px 2px 0">${p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':'<span class="parc-chip parc-pend">pendente</span>'}</td><td>${p.pago?`<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar(${o.id},${i},false)">↩ desfazer</button>`:`<button class="btn acc" style="padding:0 6px;font-size:.72rem;background:#16a34a;color:#fff;border:none" onclick="prevMarcar(${o.id},${i},true)">Marcar pago</button> <button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevParcial(${o.id},${i})">Pagou parte</button>`}</td></tr>`).join('')}</table></details>`;
      }
    }else{
      const prev=(o.extra||{}).pag_prev;
@@ -6208,6 +6208,59 @@ async function cobCriar(programar){
   toast('Cobrança de '+brl(valor)+' criada para '+(c.nome||'o cliente')+'.');
   if(volta){A9.pf=programar?'carteira':'cobrar';admTab('pagamentos')}
   if(programar)pagDia(id);
+}
+/* ---- pagamento parcial de uma parcela: baixa o que foi pago e deixa o restante com nova data ---- */
+function prevValorParc(o,i){
+  const ps=prevParcelas(o);if(!ps[i])return 0;if(+ps[i].valor>0)return +ps[i].valor;
+  const tot=pedTotal(o)+(freteDoPedido(o)||0);const conhecido=ps.reduce((s,p)=>s+(+p.valor>0?+p.valor:0),0);
+  const sem=ps.filter(p=>!(+p.valor>0)).length||1;
+  return Math.max(0,Math.round((tot-conhecido)/sem*100)/100);
+}
+function prevParcial(id,idx){
+  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
+  const ps=prevParcelas(o);if(!ps[idx]||ps[idx].pago)return;
+  const dev=prevValorParc(o,idx);A9.parcEd={id,idx,dev};
+  const rot=ps[idx].entrada?'Entrada':(idx+1-(ps[0].entrada?1:0))+'ª parcela';
+  cliModal('parbox','Pagamento parcial · '+esc(rot),
+    '<p style="margin:0 0 8px">Cliente: <b>'+esc((o.entrega||{}).nome||'')+'</b><br>Valor desta parcela: <b>'+esc(brl(dev))+'</b>'+(ps[idx].data?' · vence '+dataBr(ps[idx].data):'')+'</p>'+
+    '<label for="parPago">Quanto o cliente pagou agora (R$)</label><input id="parPago" inputmode="decimal" placeholder="0,00" oninput="parResumo()">'+
+    '<p id="parRest" style="margin:8px 0;font-weight:600"></p>'+
+    '<label for="parData">Data em que ele termina de pagar o restante</label><input id="parData" type="date" style="width:auto">',
+    '<button class="btn acc" onclick="parSalvar()">Dar baixa</button><button class="btn ghost" onclick="document.getElementById(\'parbox\').remove()">Fechar</button>');
+  parResumo();
+}
+function parResumo(){
+  const e=A9.parcEd,el=document.getElementById('parRest'),inp=document.getElementById('parPago');if(!e||!el||!inp)return;
+  const pago=pdNum(inp.value),rest=Math.round((e.dev-pago)*100)/100;
+  el.innerHTML=pago<=0?'':rest>0?'Fica faltando: <span style="color:#b45309">'+esc(brl(rest))+'</span>':rest===0?'<span style="color:#16a34a">Quita a parcela inteira.</span>':'<span style="color:#d92d20">O valor é maior que a parcela.</span>';
+}
+async function parSalvar(){
+  const e=A9.parcEd;if(!e||A9.busy)return;
+  const msg=document.getElementById('parboxMsg');const erro=t=>{if(msg)msg.innerHTML='<span style="color:#d92d20">'+esc(t)+'</span>'};
+  const o=(A9.pedidos||[]).find(x=>x.id===e.id);if(!o)return;
+  const ps=prevParcelas(o).map(p=>({...p}));const p=ps[e.idx];if(!p||p.pago)return;
+  const pago=pdNum((document.getElementById('parPago')||{}).value),rest=Math.round((e.dev-pago)*100)/100,data=(document.getElementById('parData')||{}).value||'';
+  if(pago<=0){erro('Informe quanto o cliente pagou.');return}
+  if(rest<0){erro('O valor pago é maior que a parcela ('+brl(e.dev)+').');return}
+  if(rest>0&&!data){erro('Informe a data em que ele termina de pagar o restante.');return}
+  let nova;
+  if(rest===0)nova=ps.map((x,i)=>i===e.idx?{...x,valor:e.dev,pago:true,pago_em:hojeS()}:x);
+  else{
+    const quitada={...p,valor:pago,pago:true,pago_em:hojeS(),parcial:true};
+    const resto={data,valor:rest,pago:false,pago_em:null,resto:true};
+    nova=ps.slice(0,e.idx).concat([quitada,resto],ps.slice(e.idx+1));
+    if(nova.every(x=>x.data))nova=nova.map((x,i)=>[x,i]).sort((a,b)=>(a[0].entrada?0:1)-(b[0].entrada?0:1)||(a[0].pago===b[0].pago?(a[0].data<b[0].data?-1:a[0].data>b[0].data?1:a[1]-b[1]):(a[0].pago?-1:1))).map(x=>x[0]);
+  }
+  const todasPagas=nova.every(x=>x.pago);
+  const ex=Object.assign({},o.extra||{},{pag_prev:prevForma(nova)});
+  const upd={extra:ex};if(todasPagas)upd.pagamento=Object.assign({},o.pagamento||{},{status:'pago',pago_em:new Date().toISOString()});
+  A9.busy=true;const r=await SB.from('pedidos').update(upd).eq('id',e.id);A9.busy=false;
+  if(r.error){erro('Erro ao salvar: '+r.error.message);return}
+  o.extra=ex;if(upd.pagamento)o.pagamento=upd.pagamento;
+  const txt='Pagamento parcial: '+brl(pago)+(rest>0?', restante '+brl(rest)+' até '+dataBr(data):' (parcela quitada)');
+  SB.from('pedido_eventos').insert({pedido_id:e.id,tipo:'pagamento',publico:false,texto:txt,por:ADMIN.nome}).then(()=>{},()=>{});
+  const el=document.getElementById('parbox');if(el)el.remove();A9.parcEd=null;
+  toast(txt+(todasPagas?' ✅ Pedido totalmente pago!':'.'));if(todasPagas)A9.pedidos=null;route();
 }
 async function prevMarcar(id,idx,pago){
   const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
