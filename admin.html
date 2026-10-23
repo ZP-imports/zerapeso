@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-23-2432 -->
+<!-- v2026-10-23-2433 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -2952,6 +2952,7 @@ function tabRevendedores(){
           <div class="box" style="margin:20px 0 0"><h3 style="margin:0 0 8px">Clientes e mensagens</h3>
             <label style="display:flex;gap:8px;align-items:center;cursor:pointer;margin-bottom:8px"><input type="checkbox" style="width:auto" ${(rv.config||{}).clientes_ativo!==false?'checked':''} onchange="admRevClientes('${rv.id}',this.checked)"> Pode cadastrar clientes para entrega direta (aba Meus clientes)</label>
             <label style="display:flex;gap:8px;align-items:center;cursor:pointer;margin-bottom:12px"><input type="checkbox" style="width:auto" ${(rv.config||{}).mostrar_desconto===true?'checked':''} onchange="admRevDesconto('${rv.id}',this.checked)"> Mostrar o desconto para ele (preço da loja riscado e % OFF no catálogo)</label>
+            <label style="display:flex;gap:8px;align-items:center;cursor:pointer;margin-bottom:12px"><input type="checkbox" style="width:auto" ${(rv.config||{}).carteira===true?'checked':''} onchange="admRevCarteira('${rv.id}',this.checked)"> Revendedor de carteira: paga parcelado (os pedidos dele aparecem na Carteira com a etiqueta Revendedor)</label>
             <label for="rvmT" style="font-size:.85rem">Mensagem direta para o perfil deste revendedor</label>
             <input id="rvmT" maxlength="80" placeholder="Título" style="width:100%;margin:4px 0 6px">
             <textarea id="rvmM" rows="2" maxlength="500" placeholder="Escreva a mensagem. Ela aparece em Avisos no portal dele." style="width:100%"></textarea>
@@ -3884,6 +3885,52 @@ async function admCarregarLink(){
   const r=await SB.from('configuracao').select('valor').eq('chave','pagamento').maybeSingle();
   A9.link=(r.data&&r.data.valor&&r.data.valor.linkPag)||'';
 }
+/* ---- revendedor de carteira (paga parcelado): os pedidos dele aparecem só na Carteira, com a etiqueta "Revendedor" ---- */
+const revCarteira=r=>!!(r&&(r.config||{}).carteira);
+async function admCarregarRevCart(){
+  if(A9.revCartBusy)return;A9.revCartBusy=true;
+  try{
+    const [pe,rv]=await Promise.all([SB.from('pedidos_revendedor').select('*').order('criado_em',{ascending:true}),SB.from('revendedores').select('id,nome,telefone,config')]);
+    const revs={};(rv.data||[]).forEach(r=>{revs[r.id]=r});
+    const lista=[];let seq=0;
+    (pe.data||[]).forEach(p=>{
+      const r=revs[p.revendedor_id];if(!r||!revCarteira(r)||p.status==='cancelado')return;
+      seq++;lista.push({id:-seq,_rev:p.id,_cod:'REV-'+String(seq).padStart(3,'0'),status:p.status,criado_em:p.criado_em,
+        itens:(p.itens||[]).map(i=>({nome:i.nome,qty:+i.qty||1,unit:+i.preco||0})),
+        entrega:{nome:r.nome,fone:r.telefone||'',dest:{}},
+        extra:{pag_prev:p.pag_prev||null,pag_obs:p.pag_obs||null,revendedor:true},
+        pagamento:{status:p.pag_status==='pago'?'pago':'pendente',preferencia:p.forma_pagamento||''}});
+    });
+    A9.revCart=lista;
+  }catch(e){A9.revCart=[]}
+  A9.revCartBusy=false;route();
+}
+function revCartPrep(){(A9.revCart||[]).forEach(o=>{if(!o.extra.pag_prev)o.extra.pag_prev=[{data:'',pago:false,pago_em:null}]})}
+function pedAcha(id){return id<0?(A9.revCart||[]).find(x=>x.id===id):(A9.pedidos||[]).find(x=>x.id===id)}
+async function pedSalva(o,id,upd){
+  if(!(id<0))return SB.from('pedidos').update(upd).eq('id',id);
+  const ex=upd.extra||o.extra||{},pr=ex.pag_prev,pago=((upd.pagamento||o.pagamento||{}).status==='pago');
+  const r=await SB.from('pedidos_revendedor').update({pag_prev:pr||null,pag_obs:ex.pag_obs||null,pag_status:pago?'pago':'pendente'}).eq('id',o._rev);
+  if(r.error&&/pag_prev|pag_obs|pag_status|column|schema/i.test(r.error.message||''))r.error={message:'Falta rodar o arquivo 27_revendedor_carteira.sql no Supabase.'};
+  return r;
+}
+function pedEvento(obj){return obj.pedido_id>0?SB.from('pedido_eventos').insert(obj):Promise.resolve()}
+async function revPagoTotal(id,v){
+  const o=pedAcha(id);if(!o)return;
+  const ps=prevParcelas(o).map(p=>({...p,pago:!!v,pago_em:v?hojeS():null}));
+  const ex=Object.assign({},o.extra,{pag_prev:ps}),pg=v?Object.assign({},o.pagamento,{status:'pago'}):Object.assign({},o.pagamento,{status:'pendente'});
+  const r=await pedSalva(o,id,{extra:ex,pagamento:pg});
+  if(r.error){toast(r.error.message||'Erro ao salvar.');return}
+  o.extra=ex;o.pagamento=pg;toast(v?'Pagamento do revendedor registrado como recebido.':'Voltou para pendente.');route();
+}
+async function admRevCarteira(revId,on){
+  const rv=(A9.revs.lista||[]).find(r=>r.id===revId);if(!rv)return;
+  const cfg=Object.assign({},rv.config||{},{carteira:!!on});
+  const {error}=await SB.from('revendedores').update({config:cfg}).eq('id',revId);
+  if(error){toast('Não foi possível salvar.');route();return}
+  rv.config=cfg;A9.revCart=undefined;toast(on?'Os pedidos deste revendedor passam a aparecer na Carteira (pago parcelado).':'Este revendedor deixa de aparecer na Carteira.');
+}
+{const c0=codPed;codPed=o=>o._cod||c0(o)}
 async function admCarregarPedidos(){
   const r=await SB.from('pedidos').select('*').order('id',{ascending:false}).limit(300);
   A9.pedidos=r.error?[]:r.data;if(r.error){A9.msg='Não foi possível carregar os pedidos.';A9.erro=true}
@@ -5237,7 +5284,8 @@ function tabPagamentos(){
   if(A9.po)return admDetalhe();
   if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
   if(!A9.linkCarregado&&!A9.busyL){A9.busyL=true;admCarregarLink().catch(()=>{}).finally(()=>{A9.busyL=false;A9.linkCarregado=true;route()})}
-  const L=A9.pedidos,total=o=>pedTotal(o)+(freteDoPedido(o)||0);
+  if(A9.revCart===undefined)admCarregarRevCart();revCartPrep();
+  const L=A9.pedidos.concat(A9.revCart||[]),total=o=>pedTotal(o)+(freteDoPedido(o)||0);
   const temPrev=o=>(o.extra||{}).pag_prev;
   // 4 seções: pendentes → andamento → carteira → pagos
   const pendentes=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!A9.pagEnv[o.id]&&!temPrev(o));
@@ -5275,8 +5323,8 @@ function tabPagamentos(){
      const prev=(o.extra||{}).pag_prev;
      if(prev)parcRow=`<div style="font-size:.78rem;color:#2563eb;font-weight:600">📅 ${prevStatusTxt(o)}</div>`;
    }
-   return `<tr data-sc${rowCls} style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${temPrev(o)?brl(pedTotal(o)):totAdm(o)}${parcRow}</td>${mF?`<td>${fr!=null?brl(fr).slice(3):'<span style="color:var(--muted)">a combinar</span>'}</td>`:''}<td><b>${sp?'A confirmar':brl(total(o))}</b>${isCarteira&&!sp?`<div style="font-size:.78rem;color:var(--muted)">Restante <b style="color:#b45309">${brl(prevRestante(o,total(o)))}</b></div>`:''}</td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td style="white-space:nowrap">${temPrev(o)?(()=>{const p=prevProxima(o);return p?dataBc(p.data):''})():dataBr(dataRef(o))}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">✅ Link enviado no WhatsApp</div>':''}</td>
-   <td style="white-space:nowrap">${pg?`${waBtn(o)} <button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})">${A9.pagEnv[o.id]?'Reenviar link':'Enviar link'}</button> ${waBtn(o)} <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar pago total</button> <button class="btn ghost sm" onclick="pagDia(${o.id})">Programar</button>`} ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`;};
+   return `<tr data-sc${rowCls} style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${o._rev?'<span class="selo" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed66" title="Pedido de revendedor de carteira">🏷️ Revendedor</span>':selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${temPrev(o)?brl(pedTotal(o)):totAdm(o)}${parcRow}</td>${mF?`<td>${fr!=null?brl(fr).slice(3):'<span style="color:var(--muted)">a combinar</span>'}</td>`:''}<td><b>${sp?'A confirmar':brl(total(o))}</b>${isCarteira&&!sp?`<div style="font-size:.78rem;color:var(--muted)">Restante <b style="color:#b45309">${brl(prevRestante(o,total(o)))}</b></div>`:''}</td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td style="white-space:nowrap">${temPrev(o)?(()=>{const p=prevProxima(o);return p?dataBc(p.data):''})():dataBr(dataRef(o))}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">✅ Link enviado no WhatsApp</div>':''}</td>
+   <td style="white-space:nowrap">${pg?`${waBtn(o)} <button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})" ${o._rev?'style="display:none"':''}>${A9.pagEnv[o.id]?'Reenviar link':'Enviar link'}</button> ${waBtn(o)} <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar pago total</button> <button class="btn ghost sm" onclick="pagDia(${o.id})">Programar</button>`} ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})" ${o._rev?'style="display:none"':''}>Abrir</button></td></tr>`;};
   const mostraFrete=A9.pagMostraFrete||false;
   const btnFrete=`<button class="btn ghost sm" onclick="A9.pagMostraFrete=${!mostraFrete};route()" style="font-size:.82rem">${mostraFrete?'🙈 Ocultar frete':'👁 Mostrar frete'}</button>`;
   const seta=c=>(A9.pagSort&&A9.pagSort.c===c)?(A9.pagSort.d>0?' ▲':' ▼'):'';
@@ -5302,6 +5350,7 @@ function pagEnviar(id){
   route();
 }
 async function pagMarcar(id,v){
+  if(id<0)return revPagoTotal(id,v);
   const r=await SB.rpc('registrar_pagamento',{p_pedido:id,p_pago:v});
   if(r.error){A9.msg=msgRpc(r.error);A9.erro=true}else{A9.msg=v?'Pagamento registrado como recebido.':'Pagamento voltou para pendente.';A9.erro=false;A9.pedidos=null}
   route();
@@ -5354,7 +5403,8 @@ function tabDash(){
   const hojeN=L.filter(feitoHoje),entH=agenda.filter(o=>!ENC(o)&&(o.entrega||{}).data===hoje),entA=agenda.filter(o=>(o.entrega||{}).data===amanha),atr=L.filter(emAtraso),rec=ab.filter(o=>+o.seq>=2);
   const cobrar=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!A9.pagEnv[o.id]),pend=L.filter(o=>aguardaPag(o)&&!cobrar.includes(o)),pagos=L.filter(o=>(o.pagamento||{}).status==='pago'),entregues=L.filter(o=>o.status==='entregue');
   const temPrev=o=>(o.extra||{}).pag_prev;
-  const carteiraDash=L.filter(o=>temPrev(o)&&(o.pagamento||{}).status!=='pago');
+  if(A9.revCart===undefined)admCarregarRevCart();revCartPrep();
+  const carteiraDash=L.concat(A9.revCart||[]).filter(o=>temPrev(o)&&(o.pagamento||{}).status!=='pago');
   const aguardaDash=L.filter(o=>aguardaPag(o)&&temPrev(o)===hoje);
   const concluidos100=L.filter(o=>o.status==='entregue'&&(o.pagamento||{}).status==='pago'&&!(o.extra||{}).cobranca);
   const pendSemData=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!temPrev(o));
@@ -6019,7 +6069,7 @@ function pdNum(s){s=String(s==null?'':s).trim();if(!s)return 0;if(s.indexOf(',')
 function pdMoeda(v){return v>0?v.toFixed(2).replace('.',','):''}
 function prevForma(ps){return ps.length===1&&!ps[0].pago&&!ps[0].valor&&!ps[0].entrada?ps[0].data:ps}
 function pagDia(id){
-  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
+  const o=pedAcha(id);if(!o)return;
   const ps=prevParcelas(o);const obs=(o.extra||{}).pag_obs||'';
   const ent=ps.find(p=>p.entrada)||null;const regulares=ps.filter(p=>!p.entrada);
   const nAtual=regulares.length||1;const total=pedTotal(o)+(freteDoPedido(o)||0);
@@ -6113,7 +6163,7 @@ function pdResumo(){
 }
 async function pagDiaSalvar(id){
   const d=document.getElementById('pdbox');if(!d)return;
-  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
+  const o=pedAcha(id);if(!o)return;
   const rs=pdLerLinhas();const msg=document.getElementById('pdMsg');
   const parcelas=[];
   for(let i=0;i<rs.length;i++){
@@ -6129,24 +6179,24 @@ async function pagDiaSalvar(id){
   if(!ex.pag_base)ex.pag_base=new Date(Date.parse(o.chegou_em||o.atualizado_em||o.criado_em)||Date.now()).toISOString();
   const upd={extra:ex};
   if(parcelas.every(p=>p.pago)&&(o.pagamento||{}).status!=='pago')upd.pagamento=Object.assign({},o.pagamento||{},{status:'pago',pago_em:new Date().toISOString()});
-  const r=await SB.from('pedidos').update(upd).eq('id',id);
+  const r=await pedSalva(o,id,upd);
   if(r.error){if(msg)msg.innerHTML=`<span style="color:#d92d20">Erro: ${esc(r.error.message)}</span>`;return;}
   o.extra=ex;if(upd.pagamento)o.pagamento=upd.pagamento;
   const nPagas=parcelas.filter(p=>p.pago).length;
   const temE=parcelas.some(p=>p.entrada);
   const txt=parcelas.length===1&&!temE?`Pagamento programado para ${dataBr(parcelas[0].data)}`:`Pagamento parcelado${temE?' com entrada':''} em ${parcelas.length-(temE?1:0)}x — ${nPagas}/${parcelas.length} recebidas`;
-  SB.from('pedido_eventos').insert({pedido_id:id,tipo:'pagamento',publico:false,texto:txt+(ob?' · '+ob:''),por:ADMIN.nome}).then(()=>{},()=>{});
+  pedEvento({pedido_id:id,tipo:'pagamento',publico:false,texto:txt+(ob?' · '+ob:''),por:ADMIN.nome}).then(()=>{},()=>{});
   const el=document.getElementById('pdbox');if(el)el.remove();
   toast(txt+'.');route();
 }
 async function pagDiaRemover(id){
   if(!confirm('Remover a programação de pagamento deste pedido?'))return;
-  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
+  const o=pedAcha(id);if(!o)return;
   const ex=Object.assign({},o.extra||{},{pag_prev:null,pag_obs:null});
-  const r=await SB.from('pedidos').update({extra:ex}).eq('id',id);
+  const r=await pedSalva(o,id,{extra:ex});
   if(r.error){toast('Erro ao remover.');return;}
   o.extra=ex;
-  SB.from('pedido_eventos').insert({pedido_id:id,tipo:'pagamento',publico:false,texto:'Programação de pagamento removida.',por:ADMIN.nome}).then(()=>{},()=>{});
+  pedEvento({pedido_id:id,tipo:'pagamento',publico:false,texto:'Programação de pagamento removida.',por:ADMIN.nome}).then(()=>{},()=>{});
   const el=document.getElementById('pdbox');if(el)el.remove();
   toast('Programação removida.');route();
 }
@@ -6217,7 +6267,7 @@ function prevValorParc(o,i){
   return Math.max(0,Math.round((tot-conhecido)/sem*100)/100);
 }
 function prevParcial(id,idx){
-  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
+  const o=pedAcha(id);if(!o)return;
   const ps=prevParcelas(o);if(!ps[idx]||ps[idx].pago)return;
   const dev=prevValorParc(o,idx);A9.parcEd={id,idx,dev};
   const rot=ps[idx].entrada?'Entrada':(idx+1-(ps[0].entrada?1:0))+'ª parcela';
@@ -6237,7 +6287,7 @@ function parResumo(){
 async function parSalvar(){
   const e=A9.parcEd;if(!e||A9.busy)return;
   const msg=document.getElementById('parboxMsg');const erro=t=>{if(msg)msg.innerHTML='<span style="color:#d92d20">'+esc(t)+'</span>'};
-  const o=(A9.pedidos||[]).find(x=>x.id===e.id);if(!o)return;
+  const o=pedAcha(e.id);if(!o)return;
   const ps=prevParcelas(o).map(p=>({...p}));const p=ps[e.idx];if(!p||p.pago)return;
   const pago=pdNum((document.getElementById('parPago')||{}).value),rest=Math.round((e.dev-pago)*100)/100,data=(document.getElementById('parData')||{}).value||'';
   if(pago<=0){erro('Informe quanto o cliente pagou.');return}
@@ -6254,16 +6304,16 @@ async function parSalvar(){
   const todasPagas=nova.every(x=>x.pago);
   const ex=Object.assign({},o.extra||{},{pag_prev:prevForma(nova)});
   const upd={extra:ex};if(todasPagas)upd.pagamento=Object.assign({},o.pagamento||{},{status:'pago',pago_em:new Date().toISOString()});
-  A9.busy=true;const r=await SB.from('pedidos').update(upd).eq('id',e.id);A9.busy=false;
+  A9.busy=true;const r=await pedSalva(o,e.id,upd);A9.busy=false;
   if(r.error){erro('Erro ao salvar: '+r.error.message);return}
   o.extra=ex;if(upd.pagamento)o.pagamento=upd.pagamento;
   const txt='Pagamento parcial: '+brl(pago)+(rest>0?', restante '+brl(rest)+' até '+dataBr(data):' (parcela quitada)');
-  SB.from('pedido_eventos').insert({pedido_id:e.id,tipo:'pagamento',publico:false,texto:txt,por:ADMIN.nome}).then(()=>{},()=>{});
+  pedEvento({pedido_id:e.id,tipo:'pagamento',publico:false,texto:txt,por:ADMIN.nome}).then(()=>{},()=>{});
   const el=document.getElementById('parbox');if(el)el.remove();A9.parcEd=null;
   toast(txt+(todasPagas?' ✅ Pedido totalmente pago!':'.'));if(todasPagas)A9.pedidos=null;route();
 }
 async function prevMarcar(id,idx,pago){
-  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
+  const o=pedAcha(id);if(!o)return;
   let ps=prevParcelas(o);
   if(!ps[idx])return;
   ps[idx]={...ps[idx],pago,pago_em:pago?hojeS():null};
@@ -6271,11 +6321,11 @@ async function prevMarcar(id,idx,pago){
   const ex=Object.assign({},o.extra||{},{pag_prev:prevForma(ps)});
   const pagStatus=todasPagas?'pago':(o.pagamento||{}).status==='pago'?'pago':undefined;
   const upd={extra:ex};if(pagStatus)upd.pagamento=Object.assign({},o.pagamento||{},{status:'pago',pago_em:new Date().toISOString()});
-  const r=await SB.from('pedidos').update(upd).eq('id',id);
+  const r=await pedSalva(o,id,upd);
   if(r.error){toast('Erro ao salvar.');return;}
   o.extra=ex;if(upd.pagamento)o.pagamento=upd.pagamento;
   const txt=pago?`${idx+1}ª parcela marcada como paga`:`${idx+1}ª parcela revertida para pendente`;
-  SB.from('pedido_eventos').insert({pedido_id:id,tipo:'pagamento',publico:false,texto:txt+(todasPagas?' — todas as parcelas pagas!':''),por:ADMIN.nome}).then(()=>{},()=>{});
+  pedEvento({pedido_id:id,tipo:'pagamento',publico:false,texto:txt+(todasPagas?' — todas as parcelas pagas!':''),por:ADMIN.nome}).then(()=>{},()=>{});
   toast(txt+(todasPagas?' ✅ Pedido totalmente pago!':'.')+'');if(todasPagas)A9.pedidos=null;route();
 }
 
@@ -7111,7 +7161,7 @@ function buscaLive(el,chave){
   _buscaT=setTimeout(()=>{A9[chave]=v;if(chave==='cliQ')A9.cliMax=100;route();const n=document.getElementById(id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}}},150);
 }
 function waDireto(id){
-  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
+  const o=pedAcha(id);if(!o)return;
   const fw=foneWa((o.entrega||{}).fone);if(!fw){toast('Este pedido está sem telefone válido.');return}
   waApp(fw);
 }
