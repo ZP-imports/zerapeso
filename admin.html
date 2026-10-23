@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-22-2425 -->
+<!-- v2026-10-23-2431 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -1571,7 +1571,7 @@ async function etqCompartilhar(oid,v){
     if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],text:txt});logEtq(o,r.rec,'Compartilhamento iniciado pelo sistema do aparelho','externa');toast('Compartilhamento iniciado. O envio só vale quando você concluir no aplicativo.');route();return}
   }catch(e){if(e&&e.name==='AbortError')return}
   const a=document.createElement('a');a.href=blobUrl(bytes);a.download=nome;document.body.appendChild(a);a.click();a.remove();
-  window.open('https://wa.me/55'+digits(o.entrega.fone).replace(/^55/,'')+'?text='+encodeURIComponent(txt),'_blank');
+  waApp('55'+digits(o.entrega.fone).replace(/^55/,''),txt);
   logEtq(o,r.rec,'WhatsApp aberto e PDF baixado para anexar (envio não confirmado)','externa');
   toast('O PDF foi baixado. Anexe-o na conversa do WhatsApp que abriu. O sistema não confirma o envio.');route();
 }
@@ -2115,7 +2115,7 @@ function enviarLinkCliente(id){
   const campo=document.getElementById('msgPagT'+id);const t=campo?campo.value:o.msgPag.texto;
   if(!t.trim()){toast('A mensagem está vazia.');return}
   o.msgPag.texto=t;
-  window.open('https://wa.me/55'+digits(o.entrega.fone).replace(/^55/,'')+'?text='+encodeURIComponent(t),'_blank');
+  waApp('55'+digits(o.entrega.fone).replace(/^55/,''),t);
   if(o.pagamento.status==='pendente')o.pagamento.status='link';
   o.pagamento.linkEnviadoEm=now();
   addEv(o,{tipo:'whatsapp',publico:false,texto:'WhatsApp aberto com o link de pagamento (envio não confirmado pelo sistema)'});
@@ -2401,7 +2401,7 @@ function rotaMsg(r){
 function rotaEnviarWA(rid){
   const r=ROTE.find(x=>x.id===rid);if(!r)return;const en=ENTR.find(x=>x.id===r.entregadorId);if(!en){toast('Entregador não encontrado.');return}
   const campo=document.getElementById('rotaMsgT');const t=campo?campo.value:rotaMsg(r);if(!t.trim()){toast('A mensagem está vazia.');return}
-  window.open('https://wa.me/55'+digits(en.whats).replace(/^55/,'')+'?text='+encodeURIComponent(t),'_blank');
+  waApp('55'+digits(en.whats).replace(/^55/,''),t);
   r.enviadaEm=now();r.orders.forEach(id=>{const o=orders.find(x=>x.id===id);if(o)addEv(o,{tipo:'whatsapp',publico:false,texto:'Rota '+rotaCod(r)+' enviada ao entregador '+en.nome+' (envio não confirmado pelo sistema)'})});
   save();toast('Conversa aberta com '+en.nome+'. O envio é feito por você no WhatsApp.');route();
 }
@@ -2630,7 +2630,7 @@ function admReag(id){
   save();toast('Entrega reagendada. O cliente foi avisado na área dele e a mensagem de WhatsApp está pronta.');route();
 }
 function admAbrirWA(id,tid,rot){const o=gO(id);const t=v_(tid);if(!t.trim()){toast('A mensagem está vazia.');return}
-  window.open('https://wa.me/55'+digits(o.entrega.fone).replace(/^55/,'')+'?text='+encodeURIComponent(t),'_blank');
+  waApp('55'+digits(o.entrega.fone).replace(/^55/,''),t);
   addEv(o,{tipo:'whatsapp',publico:false,texto:'WhatsApp aberto com a mensagem: '+rot+' (envio não confirmado pelo sistema)'});save();toast('Conversa aberta. O envio é feito por você no WhatsApp.');route()}
 function admEditEntrega(id){
   const o=gO(id),e=o.entrega,d=e.dest;const mot=v_('eMot').trim();
@@ -5097,21 +5097,22 @@ function copiaTexto(t,ok){
 function waModo(){try{return localStorage.getItem('zp_wa_modo')||'web'}catch(x){return 'web'}}
 function waSetModo(m){try{localStorage.setItem('zp_wa_modo',m)}catch(x){}toast('Modo de envio alterado.');route()}
 function waMovel(){return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'')}
-function waAbrir(fone,txt){
-  const m=waModo();
-  if(m==='link'){window.open(waUrlPara(fone,txt),'_blank');return}
-  if(m==='colar'){copiaTexto(txt,'Mensagem copiada. Na conversa que abriu, cole com Ctrl+V (ou segure e toque em Colar) e envie.');window.open('https://wa.me/'+fone,'_blank');return}
-  if(waMovel()){window.open(waUrlPara(fone,txt),'_blank');return}
-  copiaTexto(txt,'Conversa do cliente aberta. Se algum emoji vier quebrado, apague o texto e cole com Ctrl+V: a mensagem já está copiada.');
-  window.open('https://web.whatsapp.com/send?phone='+fone+'&text='+encodeURIComponent(txt),'_blank');
+/* abre a conversa direto no aplicativo do WhatsApp instalado (nunca no WhatsApp Web), sem janela de aviso.
+   Se a mensagem tiver emoji, ela também vai para a área de transferência (Ctrl+V) caso o aplicativo mostre algum emoji quebrado. */
+function waApp(fone,txt){
+  const n=String(fone||'').replace(/\D/g,'');if(!n)return;
+  if(txt&&/\p{Extended_Pictographic}/u.test(txt)){try{navigator.clipboard.writeText(txt).catch(()=>{})}catch(x){}}
+  const el=document.createElement('a');el.href='whatsapp://send?phone='+n+(txt?'&text='+encodeURIComponent(txt):'');el.rel='noopener';el.style.display='none';
+  document.body.appendChild(el);el.click();setTimeout(()=>el.remove(),500);
 }
+function waAbrir(fone,txt){waApp(fone,txt)}
+
 if(window.__ADMIN_APP)document.addEventListener('click',function(ev){
-  if(waModo()==='link')return;
   const a=ev.target.closest&&ev.target.closest('a[href^="https://wa.me/"]');if(!a)return;
-  const m=a.getAttribute('href').match(/^https:\/\/wa\.me\/(\d+)\?text=(.*)$/);if(!m)return;
+  const m=a.getAttribute('href').match(/^https:\/\/wa\.me\/(\d+)(?:\?text=(.*))?$/);if(!m)return;
   ev.preventDefault();
-  let t='';try{t=decodeURIComponent(m[2])}catch(x){return}
-  waAbrir(m[1],t);
+  let t='';try{t=m[2]?decodeURIComponent(m[2]):''}catch(x){return}
+  waApp(m[1],t);
 },true);
 
 /* ======================= PAINEL: VISÃO GERAL, SELOS, FRETE, PAGAMENTOS E CORES ======================= */
@@ -5198,6 +5199,7 @@ function listaPed(filtro,intro){
   const ST_VISIVEIS=['confirmado','aguardando-programacao','em-rota'];
   let lista=A9.pedidos.filter(o=>(!filtro||filtro(o))&&(A9.fs?o.status===A9.fs:(A9.fq==='abertos'||A9.fq==='agenda'||A9.fq==='pend-dia'||ST_VISIVEIS.includes(o.status)))&&filtroExtra(o));
   if(A9.ordEnt){const d=A9.ordEnt==='asc'?1:-1;lista=lista.slice().sort((a,b)=>d*((a.entrega||{}).data||'').localeCompare((b.entrega||{}).data||''))}
+  if(A9.pedSort&&A9.pedSort.c){const ps=A9.pedSort,val={id:o=>+o.id,nome:o=>pagNz((o.entrega||{}).nome)}[ps.c];lista=lista.slice().sort((a,b)=>{const x=val(a),y=val(b);return (x<y?-1:x>y?1:0)*ps.d})}
   lista=lista.map((o,i)=>[o,i]).sort((a,b)=>pedGrupo(a[0])-pedGrupo(b[0])||a[1]-b[1]).map(x=>x[0]);
   A9.lastLista=lista.map(o=>o.id);const nSel=lista.filter(o=>A9.selP[o.id]).length;
   const admin=ADMIN.papel==='admin';
@@ -5206,7 +5208,7 @@ function listaPed(filtro,intro){
   ${barraFiltros()}
   <div class="selbar"><button class="btn ghost sm" onclick="selTodosPed(true)">Selecionar todos</button><button class="btn ghost sm" onclick="selTodosPed(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><select id="etqTipo" style="width:auto" aria-label="Tipo de etiqueta"><option value="ambas">As duas etiquetas</option><option value="externa">Só externa</option><option value="interna">Só interna</option></select><button class="btn ghost sm" onclick="pedSoConfirmar()" ${nSel?'':'disabled'} title="Confirma os pedidos selecionados e avisa os clientes">Confirmar selecionados${nSel?' ('+nSel+')':''}</button><button class="btn acc sm" onclick="pedSoImprimir()" ${nSel?'':'disabled'} title="Baixa as etiquetas dos pedidos selecionados em PDF">Imprimir etiquetas${nSel?' ('+nSel+')':''}</button>
   <select id="bkE" style="width:auto" onchange="A9.bkE=this.value" aria-label="Entregador">${A9.lg?'<option value="">Entregador...</option>'+A9.lg.ent.filter(x=>x.ativo).map(x=>`<option value="${x.id}" ${A9.bkE===x.id?'selected':''}>${esc(x.nome)}</option>`).join(''):'<option value="">Carregando entregadores...</option>'}</select><input id="bkD" type="date" value="${esc(A9.bkD||hojeS())}" onchange="A9.bkD=this.value" style="width:auto" aria-label="Data da rota"><button class="btn wa sm" onclick="pedEnviarEntregador()" ${nSel?'':'disabled'}>Enviar para entregador${nSel?' ('+nSel+')':''}</button><input id="avNome" placeholder="Rota avulsa: nome de quem entrega" style="width:auto;min-width:190px" aria-label="Nome de quem vai entregar"><button class="btn ghost sm" onclick="rotaAvulsa()" ${nSel?'':'disabled'} title="Gera uma etiqueta simples com a rota, para um motoboy que não está cadastrado">Imprimir rota avulsa${nSel?' ('+nSel+')':''}</button>${admin?`<button class="btn ghost sm danger" onclick="pedExcluir()" ${nSel?'':'disabled'}>Excluir selecionados${nSel?' ('+nSel+')':''}</button>`:''}</div>
-  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${lista.length&&nSel===lista.length?'checked':''} onchange="selTodosPed(this.checked)"></th><th>Pedido</th><th>Cliente</th>${CH.itens?'':'<th>Itens</th>'}${CH.total?'':'<th>Total</th>'}${CH.entrega?'':`<th style="cursor:pointer;white-space:nowrap" onclick="A9.ordEnt=A9.ordEnt==='asc'?'desc':'asc';route()" title="Ordenar por data de entrega">Entrega desejada ${A9.ordEnt==='asc'?'↑':A9.ordEnt==='desc'?'↓':'↕'}</th>`}${CH.pagamento?'':'<th>Pagamento</th>'}<th>Situação</th><th></th></tr></thead><tbody>${lista.map((o,ix)=>{const en=o.entrega||{};const pg=o.pagamento||{};return pedGrupoCab(o,ix,lista)+`<tr class="${emAtraso(o)?'rowatr':''}" data-sc style="--sc:${((o.entrega||{}).turno==='manha'?'#f59e0b':(o.entrega||{}).turno==='tarde'?'#dc2626':(o.entrega||{}).turno==='noite'?'#7c3aed':'#999')}"><td><input type="checkbox" class="selck" aria-label="Selecionar ${codPed(o)}" ${A9.selP[o.id]?'checked':''} onchange="selPed(${o.id},this.checked)"></td><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' · '+((en.dest||{}).cidade||''))}</div></td>${CH.itens?'':`<td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td>`}${CH.total?'':`<td>${totAdm(o)}</td>`}${CH.entrega?'':`<td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td>`}${CH.pagamento?'':`<td>${esc(PAGNOME[pg.preferencia]||'')}<div>${pagChipP(o)}</div></td>`}<td>${stChip(o.status)}${o.status==='cancelado'&&motivoCancel(o)?`<div style="font-size:.76rem;color:var(--muted);margin-top:2px">↳ ${esc(motivoCancel(o))}</div>`:''}</td><td style="white-space:nowrap"><button class="btn ghost sm etqbtn" title="Gerar etiquetas e abrir o PDF" aria-label="Gerar etiquetas do pedido ${codPed(o)}" onclick="etqRapida(${o.id})">${ICO_DOC}</button> ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||`<tr><td colspan="${6-Object.values(CH).filter(Boolean).length+3}">Nenhum pedido.</td></tr>`}</tbody></table></div></div>`;
+  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${lista.length&&nSel===lista.length?'checked':''} onchange="selTodosPed(this.checked)"></th><th style="cursor:pointer;user-select:none" ondblclick="pedOrd('id')" title="Dê dois cliques para ordenar">Pedido${A9.pedSort&&A9.pedSort.c==='id'?(A9.pedSort.d>0?' ▲':' ▼'):''}</th><th style="cursor:pointer;user-select:none" ondblclick="pedOrd('nome')" title="Dê dois cliques para ordenar (A-Z / Z-A)">Cliente${A9.pedSort&&A9.pedSort.c==='nome'?(A9.pedSort.d>0?' ▲':' ▼'):''}</th>${CH.itens?'':'<th>Itens</th>'}${CH.total?'':'<th>Total</th>'}${CH.entrega?'':`<th style="cursor:pointer;white-space:nowrap" onclick="A9.ordEnt=A9.ordEnt==='asc'?'desc':'asc';route()" title="Ordenar por data de entrega">Entrega desejada ${A9.ordEnt==='asc'?'↑':A9.ordEnt==='desc'?'↓':'↕'}</th>`}${CH.pagamento?'':'<th>Pagamento</th>'}<th>Situação</th><th></th></tr></thead><tbody>${lista.map((o,ix)=>{const en=o.entrega||{};const pg=o.pagamento||{};return pedGrupoCab(o,ix,lista)+`<tr class="${emAtraso(o)?'rowatr':''}" data-sc style="--sc:${((o.entrega||{}).turno==='manha'?'#f59e0b':(o.entrega||{}).turno==='tarde'?'#dc2626':(o.entrega||{}).turno==='noite'?'#7c3aed':'#999')}"><td><input type="checkbox" class="selck" aria-label="Selecionar ${codPed(o)}" ${A9.selP[o.id]?'checked':''} onchange="selPed(${o.id},this.checked)"></td><td><b>${codPed(o)}</b><div style="color:var(--muted);font-size:.8rem">${fmtD(Date.parse(o.criado_em))}</div><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(((en.dest||{}).bairro||'')+' · '+((en.dest||{}).cidade||''))}</div></td>${CH.itens?'':`<td>${(o.itens||[]).map(i=>esc(i.name)+' x '+i.qty).join('<br>')}</td>`}${CH.total?'':`<td>${totAdm(o)}</td>`}${CH.entrega?'':`<td>${dataBr(en.data)} ${esc(TURNOS[en.turno]||'')}</td>`}${CH.pagamento?'':`<td>${esc(PAGNOME[pg.preferencia]||'')}<div>${pagChipP(o)}</div></td>`}<td>${stChip(o.status)}${o.status==='cancelado'&&motivoCancel(o)?`<div style="font-size:.76rem;color:var(--muted);margin-top:2px">↳ ${esc(motivoCancel(o))}</div>`:''}</td><td style="white-space:nowrap"><button class="btn ghost sm etqbtn" title="Gerar etiquetas e abrir o PDF" aria-label="Gerar etiquetas do pedido ${codPed(o)}" onclick="etqRapida(${o.id})">${ICO_DOC}</button> ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')||`<tr><td colspan="${6-Object.values(CH).filter(Boolean).length+3}">Nenhum pedido.</td></tr>`}</tbody></table></div></div>`;
 }
 async function pedExcluir(){
   const ids=(A9.lastLista||[]).filter(id=>A9.selP[id]);if(!ids.length)return;
@@ -5244,10 +5246,19 @@ function tabPagamentos(){
   const pagos=L.filter(o=>(o.pagamento||{}).status==='pago');
   const f=A9.pf||'cobrar';
   const listaBase=(f==='cobrar'?pendentes:f==='andamento'?andamento:f==='carteira'?carteira:pagos).filter(o=>filtroExtra(o)).sort(f==='pagos'?(()=>0):pagOrdem);
-  const soma=a=>brl(a.reduce((s,o)=>s+total(o),0));
+  const base=o=>(temPrev(o)&&aguardaPag(o))?prevRestante(o,total(o)):total(o);
+  const spV=o=>temSP(o)&&!temPrev(o);
+  const soma=a=>{const ok=a.filter(o=>!spV(o)),sp=a.length-ok.length;return brl(ok.reduce((s,o)=>s+base(o),0))+(sp?' + '+sp+' a confirmar':'')};
+  /* filtro por nome e data, e ordenação por título (dois cliques) */
+  const qn=pagNz(A9.pagQ||''),d1=A9.pagD1||'',d2=A9.pagD2||'';
+  const dataRef=o=>{const p=temPrev(o)?prevProxima(o):null;return (p&&p.data)||(o.entrega||{}).data||String(o.criado_em||'').slice(0,10)};
+  let lista=listaBase.filter(o=>(!qn||pagNz((o.entrega||{}).nome+' '+(o.entrega||{}).fone).includes(qn))&&(!d1||dataRef(o)>=d1)&&(!d2||dataRef(o)<=d2));
+  const so=A9.pagSort;
+  if(so&&so.c){const val={cliente:o=>pagNz((o.entrega||{}).nome),total:o=>base(o),data:o=>dataRef(o),pedido:o=>+o.id}[so.c];lista=lista.slice().sort((a,b)=>{const x=val(a),y=val(b);return (x<y?-1:x>y?1:0)*so.d})}
   const aba=(k,t,a,c)=>`<button class="kc ${f===k?'sel':''}" style="--c:${c}" onclick="A9.pf='${k}';route()"><div class="n">${a.length}</div><div class="t">${t}</div><div class="t">${soma(a)}</div></button>`;
   const isCarteira=f==='carteira';
-  const rowPag=(o,mF)=>{const en=o.entrega||{};const fr=freteDoPedido(o);const sp=temSP(o);const pg=(o.pagamento||{}).status==='pago';
+  const waBtn=o=>`<button class="btn wa sm" style="padding:5px 8px" onclick="waDireto(${o.id})" title="Abrir a conversa no WhatsApp" aria-label="WhatsApp"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></button>`;
+  const rowPag=(o,mF)=>{const en=o.entrega||{};const fr=freteDoPedido(o);const sp=spV(o);const pg=(o.pagamento||{}).status==='pago';
    /* parcelas para carteira */
    let parcRow='';let rowCls='';
    if(isCarteira){
@@ -5255,28 +5266,31 @@ function tabPagamentos(){
      rowCls=atrs?' class="parc-atrs"':venc?' class="parc-venc"':'';
      if(ps.length===1){
        const p=ps[0];
-       parcRow=`<div style="font-size:.8rem;margin-top:4px">${p.valor?`<b>${esc(brl(p.valor))}</b> `:''}${p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':atrs?'<span class="parc-chip parc-pend" style="animation:pagpulsa .9s ease-in-out infinite">⚠️ VENCIDA '+dataBr(p.data)+'</span>':venc?'<span class="parc-chip parc-pend" style="animation:pagpulsa .9s ease-in-out infinite">⚠️ Vence '+dataBr(p.data)+'</span>':`<span class="parc-chip parc-ok">📅 ${dataBr(p.data)}</span>`}${!p.pago?`<button class="btn ghost sm" style="margin-left:6px;padding:1px 7px;font-size:.75rem" onclick="prevMarcar(${o.id},0,true)">Marcar pago</button>`:''}</div>`;
+       parcRow=`<div style="font-size:.8rem;margin-top:4px">${p.valor?`<b>${esc(brl(p.valor))}</b> `:''}${p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':atrs?'<span class="parc-chip parc-pend" style="animation:pagpulsa .9s ease-in-out infinite">⚠️ VENCIDA '+dataBr(p.data)+'</span>':venc?'<span class="parc-chip parc-pend" style="animation:pagpulsa .9s ease-in-out infinite">⚠️ Vence '+dataBr(p.data)+'</span>':`<span class="parc-chip parc-ok">📅 ${dataBc(p.data)}</span>`}${!p.pago?`<button class="btn ghost sm" style="margin-left:6px;padding:1px 7px;font-size:.75rem" onclick="prevMarcar(${o.id},0,true)">Marcar pago</button>`:''}</div>`;
      }else{
        const pagas=ps.filter(p=>p.pago).length;
-       parcRow=`<details style="margin-top:4px"><summary style="cursor:pointer;font-size:.8rem;font-weight:600;color:${atrs?'#dc2626':venc?'#c2410c':'#2563eb'}">${prevStatusTxt(o)} ${atrs?'⚠️':venc?'🔔':''}</summary><table style="margin-top:6px;font-size:.78rem;border-collapse:collapse">${ps.map((p,i)=>`<tr><td style="padding:2px 8px 2px 0;font-weight:600">${p.entrada?'Entrada':(i+1-(ps[0].entrada?1:0))+'ª'}</td><td style="padding:2px 8px 2px 0">${dataBr(p.data)}</td><td style="padding:2px 8px 2px 0">${p.valor?esc(brl(p.valor)):''}</td><td style="padding:2px 8px 2px 0">${p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':'<span class="parc-chip parc-pend">pendente</span>'}</td><td>${p.pago?`<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar(${o.id},${i},false)">↩ desfazer</button>`:`<button class="btn acc" style="padding:0 6px;font-size:.72rem;background:#16a34a;color:#fff;border:none" onclick="prevMarcar(${o.id},${i},true)">Marcar pago</button>`}</td></tr>`).join('')}</table></details>`;
+       parcRow=`<details style="margin-top:4px"><summary style="cursor:pointer;font-size:.8rem;font-weight:600;color:${atrs?'#dc2626':venc?'#c2410c':'#2563eb'}">${prevStatusTxt(o)} ${atrs?'⚠️':venc?'🔔':''}</summary><table style="margin-top:6px;font-size:.78rem;border-collapse:collapse">${ps.map((p,i)=>`<tr><td style="padding:2px 8px 2px 0;font-weight:600">${p.entrada?'Entrada':(i+1-(ps[0].entrada?1:0))+'ª'}</td><td style="padding:2px 8px 2px 0">${dataBc(p.data)}</td><td style="padding:2px 8px 2px 0">${p.valor?esc(brl(p.valor)):''}</td><td style="padding:2px 8px 2px 0">${p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':'<span class="parc-chip parc-pend">pendente</span>'}</td><td>${p.pago?`<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar(${o.id},${i},false)">↩ desfazer</button>`:`<button class="btn acc" style="padding:0 6px;font-size:.72rem;background:#16a34a;color:#fff;border:none" onclick="prevMarcar(${o.id},${i},true)">Marcar pago</button>`}</td></tr>`).join('')}</table></details>`;
      }
    }else{
      const prev=(o.extra||{}).pag_prev;
      if(prev)parcRow=`<div style="font-size:.78rem;color:#2563eb;font-weight:600">📅 ${prevStatusTxt(o)}</div>`;
    }
-   return `<tr data-sc${rowCls} style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${totAdm(o)}${parcRow}</td>${mF?`<td>${fr!=null?brl(fr).slice(3):'<span style="color:var(--muted)">a combinar</span>'}</td>`:''}<td><b>${sp?'A confirmar':brl(total(o))}</b></td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">✅ Link enviado no WhatsApp</div>':''}</td>
-   <td style="white-space:nowrap">${pg?`<button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})">${A9.pagEnv[o.id]?'Reenviar link':'Enviar link'}</button> <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar pago total</button> <button class="btn ghost sm" onclick="pagDia(${o.id})">Programar</button>`} ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`;};
+   return `<tr data-sc${rowCls} style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${temPrev(o)?brl(pedTotal(o)):totAdm(o)}${parcRow}</td>${mF?`<td>${fr!=null?brl(fr).slice(3):'<span style="color:var(--muted)">a combinar</span>'}</td>`:''}<td><b>${sp?'A confirmar':brl(total(o))}</b>${isCarteira&&!sp?`<div style="font-size:.78rem;color:var(--muted)">Restante <b style="color:#b45309">${brl(prevRestante(o,total(o)))}</b></div>`:''}</td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td style="white-space:nowrap">${temPrev(o)?(()=>{const p=prevProxima(o);return p?dataBc(p.data):''})():dataBr(dataRef(o))}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">✅ Link enviado no WhatsApp</div>':''}</td>
+   <td style="white-space:nowrap">${pg?`${waBtn(o)} <button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})">${A9.pagEnv[o.id]?'Reenviar link':'Enviar link'}</button> ${waBtn(o)} <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar pago total</button> <button class="btn ghost sm" onclick="pagDia(${o.id})">Programar</button>`} ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})">Abrir</button></td></tr>`;};
   const mostraFrete=A9.pagMostraFrete||false;
   const btnFrete=`<button class="btn ghost sm" onclick="A9.pagMostraFrete=${!mostraFrete};route()" style="font-size:.82rem">${mostraFrete?'🙈 Ocultar frete':'👁 Mostrar frete'}</button>`;
-  const thead=`<thead><tr><th>Pedido</th><th>Cliente</th><th>Produtos</th>${mostraFrete?'<th>Frete</th>':''}<th>Total</th><th>Forma</th><th>Situação</th><th></th></tr></thead>`;
+  const seta=c=>(A9.pagSort&&A9.pagSort.c===c)?(A9.pagSort.d>0?' ▲':' ▼'):'';
+  const th=(c,t)=>`<th style="cursor:pointer;user-select:none" ondblclick="pagOrd('${c}')" title="Dê dois cliques para ordenar (maior/menor)">${t}${seta(c)}</th>`;
+  const thead=`<thead><tr>${th('pedido','Pedido')}${th('cliente','Cliente')}<th>Produtos</th>${mostraFrete?'<th>Frete</th>':''}${th('total',isCarteira?'Total / restante':'Total')}<th>Forma</th>${th('data',isCarteira?'Vencimento':'Data')}<th>Situação</th><th></th></tr></thead>`;
   const vencHoje=carteira.filter(o=>prevVencendo(o));
   const bannerVenc=vencHoje.length?`<div class="note" style="background:#fee2e2;border-color:#ef4444;color:#991b1b;margin-bottom:10px"><b>⚠️ ${vencHoje.length} parcela${vencHoje.length>1?'s':''} vencendo!</b> ${vencHoje.map(o=>esc((o.entrega||{}).nome||codPed(o))).join(', ')} — <button class="btn ghost sm" style="margin-left:8px" onclick="A9.pf='carteira';route()">Ver carteira</button></div>`:'';
   return `<div class="box">${msgBox()}${bannerVenc}${(A9.link||!A9.linkCarregado)?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre em Mais opções > Configurações.</div>'}
   <p style="margin:0 0 10px;color:var(--muted)">Pedido entregue → <b>Pendentes</b>. Envia link → <b>Cobrança em andamento</b>. Programa data → <b>Carteira</b>. Pago → <b>Concluídos</b>.</p>
   <div class="kcards" style="margin-bottom:12px">${aba('cobrar','Pagamentos pendentes',pendentes,'#d92d20')}${aba('andamento','Cobrança em andamento',andamento,'#d97706')}${aba('carteira','<span style="font-size:.82em">Carteira · Pré-datados</span>',carteira,'#2563eb')}${aba('pagos','Concluídos (pagos)',pagos,'#16a34a')}</div>
   ${barraFiltros()}
+  <div class="fbar" style="margin-bottom:8px"><div><label for="pgQ">Buscar por nome</label><input id="pgQ" value="${esc(A9.pagQ||'')}" placeholder="Nome ou telefone" oninput="buscaLive(this,'pagQ')"></div><div><label for="pgD1">${f==='carteira'?'Vence de':'Data de'}</label><input id="pgD1" type="date" value="${esc(A9.pagD1||'')}" onchange="A9.pagD1=this.value;route()" style="width:auto"></div><div><label for="pgD2">até</label><input id="pgD2" type="date" value="${esc(A9.pagD2||'')}" onchange="A9.pagD2=this.value;route()" style="width:auto"></div>${(A9.pagQ||A9.pagD1||A9.pagD2||A9.pagSort)?'<button class="btn ghost sm" onclick="A9.pagQ=\'\';A9.pagD1=\'\';A9.pagD2=\'\';A9.pagSort=null;route()">Limpar</button>':''}<span style="align-self:center;color:var(--muted);font-size:.82rem">${lista.length} na lista</span></div>
   <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn acc sm" onclick="cobNova()">➕ Nova cobrança</button>${btnFrete}</div>
-  <div class="tbl"><table>${thead}<tbody>${listaBase.map(o=>rowPag(o,mostraFrete)).join('')||`<tr><td colspan="${mostraFrete?8:7}">Nenhum pedido nesta lista.</td></tr>`}</tbody></table></div>
+  <div class="tbl"><table>${thead}<tbody>${lista.map(o=>rowPag(o,mostraFrete)).join('')||`<tr><td colspan="${mostraFrete?9:8}">Nenhum pedido nesta lista.</td></tr>`}</tbody></table></div>
   </div>`;
 }
 function pagEnviar(id){
@@ -5342,7 +5356,7 @@ function tabDash(){
   const temPrev=o=>(o.extra||{}).pag_prev;
   const carteiraDash=L.filter(o=>temPrev(o)&&(o.pagamento||{}).status!=='pago');
   const aguardaDash=L.filter(o=>aguardaPag(o)&&temPrev(o)===hoje);
-  const concluidos100=L.filter(o=>o.status==='entregue'&&(o.pagamento||{}).status==='pago');
+  const concluidos100=L.filter(o=>o.status==='entregue'&&(o.pagamento||{}).status==='pago'&&!(o.extra||{}).cobranca);
   const pendSemData=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!temPrev(o));
   const tot=o=>pedTotal(o)+(freteDoPedido(o)||0);
   const k=(c,t,n,sub,go)=>`<button class="kc" style="--c:${c}" onclick="${go}"><div class="n">${n}</div><div class="t"><b>${t}</b></div><div class="t">${sub}</div></button>`;
@@ -5363,8 +5377,8 @@ function tabDash(){
    ${k('#0891b2','Entrega hoje',entH.length,'ainda pendentes para hoje',"admIr('pedidos',{fq:'pend-dia',fd:'"+hoje+"'})")}
    ${k('#0d9488','Entrega amanhã',entA.length,'data desejada é amanhã',"admIr('pedidos',{fq:'agenda',fd:'"+amanha+"'})")}
    ${ADMIN.papel==='admin'?(()=>{const fp=fielPend(L);return fp.total?`<button class="kc ${fp.novos?'pulsa':''}" style="--c:#7c3aed" onclick="A9.cliF='fiel';admTab('clientes')"><div class="n">${fp.total}</div><div class="t"><b>Clientes fiéis (${CLI_META}+ pedidos)</b></div><div class="t">${fp.novos?fp.novos+' para oferecer cupom':'todos já receberam o convite'}</div></button>`:''})():''}
-   ${pendSemData.length?`<button class="kc" style="--c:#7c2d12" onclick="A9.pf='cobrar';admTab('pagamentos')"><div class="n">${pendSemData.length}</div><div class="t"><b>Pagamentos pendentes</b></div><div class="t">Entregues sem link enviado · ${brl(pendSemData.reduce((s,o)=>s+tot(o),0))}</div></button>`:''}
-   ${(()=>{const cd=carteiraDash;if(!cd.length)return '';const porDia={};cd.forEach(o=>{const pr=prevProxima(o);const d=pr?pr.data:'?';porDia[d]=(porDia[d]||0)+1});const dias=Object.keys(porDia).sort();const sub=dias.slice(0,3).map(d=>dataBr(d)+': '+porDia[d]).join(' · ')+(dias.length>3?' …':'');const pulsaCart=cd.some(o=>prevVencendo(o));return `<button class="kc${pulsaCart?' pulsa':''}" style="--c:#be123c" onclick="A9.pf='carteira';admTab('pagamentos')"><div class="n">${cd.length}</div><div class="t"><b>Carteira (pré-datados)</b></div><div class="t">${sub||brl(cd.reduce((s,o)=>s+tot(o),0))}</div></button>`})()}
+   ${pendSemData.length?`<button class="kc" style="--c:#7c2d12" onclick="A9.pf='cobrar';admTab('pagamentos')"><div class="n">${pendSemData.length}</div><div class="t"><b>Pagamentos pendentes</b></div><div class="t">Entregues sem link enviado · ${brl(pendSemData.filter(o=>!temSP(o)).reduce((s,o)=>s+tot(o),0))}${pendSemData.some(temSP)?' + '+pendSemData.filter(temSP).length+' a confirmar':''}</div></button>`:''}
+   ${(()=>{const cd=carteiraDash;if(!cd.length)return '';const porDia={};cd.forEach(o=>{const pr=prevProxima(o);const d=(pr&&pr.data)||'?';porDia[d]=(porDia[d]||0)+1});const dias=Object.keys(porDia).sort();const sub=dias.slice(0,3).map(d=>(d==='?'?'data a confirmar':dataBr(d))+': '+porDia[d]).join(' · ')+(dias.length>3?' …':'');const pulsaCart=cd.some(o=>prevVencendo(o));return `<button class="kc${pulsaCart?' pulsa':''}" style="--c:#be123c" onclick="A9.pf='carteira';admTab('pagamentos')"><div class="n">${cd.length}</div><div class="t"><b>Carteira (pré-datados)</b></div><div class="t"><b>${brl(cd.reduce((s,o)=>s+prevRestante(o,tot(o)),0))}</b> a receber</div><div class="t">${sub||''}</div></button>`})()}
    ${k('#16a34a','Pedidos concluídos',concluidos100.length,'entregues e pagos',"A9.dashView='concluidos';A9.fc='';A9.ft='';A9.fq='';A9.fs='';A9.fe='';route()")}
   </div>
   <h3 style="margin-bottom:10px">Entregas por dia</h3>
@@ -5995,10 +6009,11 @@ function pagTag(o){
 }
 /* ---- helpers pré-datados / parcelados ---- */
 function prevParcelas(o){const p=(o.extra||{}).pag_prev;if(!p)return[];if(typeof p==='string')return[{data:p,pago:false,pago_em:null}];return p}
+function dataBc(d){return d?dataBr(d):'data a confirmar'}
 function prevProxima(o){return prevParcelas(o).find(p=>!p.pago)||null}
 function prevVencendo(o){const p=prevProxima(o);return !!(p&&p.data&&p.data<=hojeS())}
 function prevVencida(o){const p=prevProxima(o);return !!(p&&p.data&&p.data<hojeS())}
-function prevStatusTxt(o){const ps=prevParcelas(o);if(!ps.length)return'';const pagas=ps.filter(p=>p.pago).length;if(ps.length===1){return ps[0].pago?'✅ pago':'📅 '+dataBr(ps[0].data);}if(pagas===0){const pr=prevProxima(o);return`${ps.length}x · próx. ${pr?dataBr(pr.data):'?'}`;}if(pagas===ps.length)return`✅ ${ps.length}x todas pagas`;return`${ps.length}x · ${pagas}/${ps.length} pagas`;}
+function prevStatusTxt(o){const ps=prevParcelas(o);if(!ps.length)return'';const pagas=ps.filter(p=>p.pago).length;if(ps.length===1){return ps[0].pago?'✅ pago':'📅 '+dataBc(ps[0].data);}if(pagas===0){const pr=prevProxima(o);return`${ps.length}x · próx. ${pr?dataBc(pr.data):'data a confirmar'}`;}if(pagas===ps.length)return`✅ ${ps.length}x todas pagas`;return`${ps.length}x · ${pagas}/${ps.length} pagas`;}
 
 function pdNum(s){s=String(s==null?'':s).trim();if(!s)return 0;if(s.indexOf(',')>-1)s=s.replace(/\./g,'').replace(',','.');const v=parseFloat(s);return isFinite(v)&&v>0?Math.round(v*100)/100:0}
 function pdMoeda(v){return v>0?v.toFixed(2).replace('.',','):''}
@@ -6654,7 +6669,7 @@ async function admCarregarClientes(){
       const c=M[k]=M[k]||{k,nome:e.nome||'',fone:e.fone||'',email:'',cidade:'',cad:null,n:0,ent:0,tot:0,pag:{},ult:null};
       if(!c.nome)c.nome=e.nome||'';if(!c.fone)c.fone=e.fone||'';if(!c.cidade)c.cidade=((e.dest||{}).cidade)||'';
       if(o.status==='cancelado')return;
-      c.n++;if(o.status==='entregue')c.ent++;
+      if((o.extra||{}).cobranca)return;c.n++;if(o.status==='entregue')c.ent++;
       try{c.tot+=pedTotal(o)+(freteDoPedido(o)||0)}catch(x){}
       const pg=(o.pagamento||{}).preferencia||(o.pagamento||{}).metodo;if(pg)c.pag[pg]=(c.pag[pg]||0)+1;
       if(!c.ult||o.criado_em>c.ult)c.ult=o.criado_em;
@@ -6685,7 +6700,7 @@ async function admCarregarClientes(){
           if(!existeK.cidade&&p.cidade)existeK.cidade=p.cidade;
         } else {
           const k='imp_'+p.id;
-          M[k]={k,nome:p.nome||'',fone:p.fone||'',email:p.email||'',cidade:p.cidade||'',cad:p.criado_em,n:0,ent:0,tot:0,pag:{},ult:null,importado:true,impId:p.id,cep:p.cep||''};
+          M[k]={k,nome:p.nome||'',fone:p.fone||'',email:p.email||'',cidade:p.cidade||'',cad:p.criado_em,n:0,ent:0,tot:0,pag:{},ult:null,importado:true,impId:p.id,cep:p.cep||'',endereco:p.endereco||'',numero:p.numero||'',complemento:p.complemento||'',bairro:p.bairro||'',uf:p.uf||''};
         }
       });
     }catch(xi){}
@@ -6769,6 +6784,8 @@ async function admProcessarPlanilha(file){
 function cliPagTop(c){const e=Object.entries(c.pag).sort((a,b)=>b[1]-a[1])[0];return e?((PAGNOME[e[0]]||e[0])+' ('+e[1]+'x)'):'—'}
 /* ---- cobrança em lote: marca os clientes na lista, informa o valor de cada um e gera tudo de uma vez ---- */
 A9.cliSel=A9.cliSel||{};
+function cliOrd(c){const s=A9.cliSort||{};A9.cliSort={c,d:s.c===c?-s.d:1};route()}
+function cliMais(){A9.cliMax=(A9.cliMax||100)+100;route()}
 function cliSelUm(k,on){if(on)A9.cliSel[k]=true;else delete A9.cliSel[k];route()}
 function cliSelTodos(on){(A9.cliLista||[]).forEach(k=>{if(on)A9.cliSel[k]=true;else delete A9.cliSel[k]});route()}
 function cobLote(){
@@ -6833,33 +6850,27 @@ function cliEditar(k){
   const c=(A9.clientes||[]).find(x=>x.k===k);if(!c)return;
   if(!c.importado||!c.impId){toast('Este cliente veio de pedidos ou do cadastro do site. Só os clientes importados podem ser editados aqui.');return}
   A9.cliEd=c;
-  const old=document.getElementById('cebox');if(old)old.remove();
-  const d=document.createElement('div');d.id='cebox';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto';
-  const campo=(id,rot,val,ph,extra)=>'<div style="flex:1;min-width:'+(extra||200)+'px"><label style="font-size:.82rem" for="'+id+'">'+rot+'</label><input id="'+id+'" value="'+esc(val||'')+'" placeholder="'+(ph||'')+'" style="width:100%"></div>';
-  d.innerHTML='<div style="background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:94vh;overflow:auto;padding:18px">'
-   +'<h3 style="margin:0 0 12px">Editar cadastro</h3>'
-   +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+campo('ceNome','Nome',c.nome,'')+campo('ceFone','Telefone (WhatsApp)',c.fone,'(12) 99999-9999')+'</div>'
-   +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+campo('ceEmail','E-mail',c.email,'',200)+campo('ceCidade','Cidade',c.cidade,'',140)+campo('ceCep','CEP',c.cep,'00000-000',110)+'</div>'
-   +'<div class="btns" style="margin-top:14px"><button class="btn acc" onclick="cliSalvar()">Salvar</button><button class="btn ghost danger" onclick="cliApagar([A9.cliEd])">Excluir cadastro</button><button class="btn ghost" onclick="document.getElementById(\'cebox\').remove()">Fechar</button></div>'
-   +'<p id="ceMsg" style="font-size:.82rem;margin:8px 0 0"></p></div>';
-  document.body.appendChild(d);
+  cliModal('cebox','Editar cadastro',cliCampos('ce',c),
+    '<button class="btn acc" onclick="cliSalvar()">Salvar</button><button class="btn ghost danger" onclick="cliApagar([A9.cliEd])">Excluir cadastro</button><button class="btn ghost" onclick="document.getElementById(\'cebox\').remove()">Fechar</button>');
 }
+
 async function cliSalvar(){
   const c=A9.cliEd;if(!c||A9.busy)return;
-  const msg=document.getElementById('ceMsg');const erro=t=>{if(msg)msg.innerHTML='<span style="color:#d92d20">'+esc(t)+'</span>'};
-  const v=id=>((document.getElementById(id)||{}).value||'').trim();
-  const nome=v('ceNome'),fone=v('ceFone'),fn=cliNormFone(fone);
-  if(!nome&&!fn){erro('Informe pelo menos o nome ou o telefone.');return}
+  const msg=document.getElementById('ceboxMsg');const erro=t=>{if(msg)msg.innerHTML='<span style="color:#d92d20">'+esc(t)+'</span>'};
+  const d=cliLer('ce'),fn=cliNormFone(d.fone);
+  if(!d.nome&&!fn){erro('Informe pelo menos o nome ou o telefone.');return}
   const outro=fn&&(A9.clientes||[]).find(x=>x.k!==c.k&&cliNormFone(x.fone)===fn);
   if(outro){erro('Já existe outro cliente com este telefone: '+(outro.nome||'(sem nome)')+'. Mantenha um cadastro só.');return}
   A9.busy=true;
-  const r=await SB.from('clientes_importados').update({nome,fone,email:v('ceEmail'),cidade:v('ceCidade'),cep:v('ceCep')}).eq('id',c.impId).select('id');
+  let r=await SB.from('clientes_importados').update(d).eq('id',c.impId).select('id'),parcial=false;
+  if(r.error&&cliErroColuna(r.error)){parcial=true;r=await SB.from('clientes_importados').update(cliBasico(d)).eq('id',c.impId).select('id')}
   A9.busy=false;
   if(r.error){erro(/cep|column|schema/i.test(r.error.message||'')?'Falta rodar o arquivo 22_editar_clientes.sql no Supabase.':'Erro ao salvar: '+r.error.message);return}
   if(!(r.data||[]).length){erro('Sem permissão para editar. Rode o arquivo 22_editar_clientes.sql no Supabase.');return}
   const el=document.getElementById('cebox');if(el)el.remove();
-  A9.cliEd=null;A9.clientes=null;toast('Cadastro salvo.');route();
+  A9.cliEd=null;A9.clientes=null;toast(parcial?'Salvo, mas falta rodar o arquivo 26 no Supabase para guardar o endereço completo.':'Cadastro salvo.');route();
 }
+
 function cliExcluir(){cliApagar((A9.clientes||[]).filter(c=>A9.cliSel[c.k]))}
 async function cliApagar(cs){
   cs=(cs||[]).filter(Boolean);if(!cs.length||A9.busy)return;
@@ -6988,18 +6999,86 @@ function revEscolher(i){
   if(cliEhRev(c)){toast('Este cliente já é revendedor.');return}
   revForm({nome:c.nome||'',cpf:'',email:c.email||'',fone:c.fone||'',cidade:c.cidade||''});
 }
+/* ---- carteira: restante, ordenar/filtrar, WhatsApp direto e cliente sem pedido ---- */
+function prevRestante(o,tot){
+  const ps=prevParcelas(o);if(!ps.length)return tot;
+  if(ps.some(p=>+p.valor>0)){const pago=ps.filter(p=>p.pago).reduce((s,p)=>s+(+p.valor||0),0);return Math.max(0,Math.round((tot-pago)*100)/100)}
+  const abertas=ps.filter(p=>!p.pago).length;return Math.round(tot*abertas/ps.length*100)/100;
+}
+function pagNz(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function pedOrd(c){const s=A9.pedSort||{};A9.pedSort={c,d:s.c===c?-s.d:1};route()}
+function pagOrd(c){const s=A9.pagSort||{};A9.pagSort={c,d:s.c===c?-s.d:1};route()}
+function pagBuscar(v){A9.pagQ=v;route()}
+var _buscaT=null;
+function buscaLive(el,chave){
+  const id=el.id,v=el.value,pos=el.selectionStart;
+  clearTimeout(_buscaT);
+  _buscaT=setTimeout(()=>{A9[chave]=v;if(chave==='cliQ')A9.cliMax=100;route();const n=document.getElementById(id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}}},150);
+}
+function waDireto(id){
+  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
+  const fw=foneWa((o.entrega||{}).fone);if(!fw){toast('Este pedido está sem telefone válido.');return}
+  waApp(fw);
+}
+/* ---- formulário de cliente com endereço: o CEP preenche rua, bairro, cidade e UF ---- */
+function cliCampos(p,c){
+  c=c||{};
+  const f=(k,rot,val,ph,w)=>'<div style="flex:1;min-width:'+(w||140)+'px"><label style="font-size:.82rem" for="'+p+k+'">'+rot+'</label><input id="'+p+k+'" value="'+esc(val||'')+'" placeholder="'+(ph||'')+'" style="width:100%"></div>';
+  const cepMap="{uf:'"+p+"Uf',cidade:'"+p+"Cidade',bairro:'"+p+"Bairro',rua:'"+p+"Rua',num:'"+p+"Num'}";
+  return '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+f('Nome','Nome',c.nome,'',200)+f('Fone','Telefone (WhatsApp)',c.fone,'(12) 99999-9999',170)+'</div>'
+   +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+f('Email','E-mail',c.email,'',200)
+   +'<div style="flex:1;min-width:120px"><label style="font-size:.82rem" for="'+p+'Cep">CEP (preenche o endereço)</label><input id="'+p+'Cep" value="'+esc(c.cep||'')+'" placeholder="00000-000" inputmode="numeric" maxlength="9" oninput="cepAuto(this,'+cepMap+')" style="width:100%"></div></div>'
+   +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+f('Rua','Rua / Avenida',c.endereco,'',220)+f('Num','Número',c.numero,'',90)+f('Comp','Complemento',c.complemento,'Apto, bloco...',120)+'</div>'
+   +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+f('Bairro','Bairro',c.bairro,'',140)+f('Cidade','Cidade',c.cidade,'',140)+f('Uf','UF',c.uf,'',60)+'</div>';
+}
+function cliLer(p){
+  const v=k=>((document.getElementById(p+k)||{}).value||'').trim();
+  return {nome:v('Nome'),fone:v('Fone'),email:v('Email'),cep:v('Cep'),endereco:v('Rua'),numero:v('Num'),complemento:v('Comp'),bairro:v('Bairro'),cidade:v('Cidade'),uf:v('Uf').toUpperCase()};
+}
+function cliBasico(d){return {nome:d.nome,fone:d.fone,email:d.email,cidade:d.cidade,cep:d.cep}}
+function cliErroColuna(e){return /column|schema|endereco|numero|bairro|complemento|\buf\b/i.test((e&&e.message)||'')}
+function cliModal(id,titulo,corpo,botoes){
+  const old=document.getElementById(id);if(old)old.remove();
+  const d=document.createElement('div');d.id=id;d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto';
+  d.innerHTML='<div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:94vh;overflow:auto;padding:18px"><h3 style="margin:0 0 12px">'+titulo+'</h3>'+corpo+'<div class="btns" style="margin-top:14px">'+botoes+'</div><p id="'+id+'Msg" style="font-size:.82rem;margin:8px 0 0"></p></div>';
+  document.body.appendChild(d);
+}
+function cliNovo(){
+  cliModal('cnbox','Novo cliente','<p style="margin:0 0 12px;color:#667085;font-size:.88rem">Só o cadastro, sem pedido. Digite o CEP e o endereço vem sozinho; falta só o número.</p>'+cliCampos('cn',{}),
+    '<button class="btn acc" onclick="cliNovoSalvar()">Salvar cliente</button><button class="btn ghost" onclick="document.getElementById(\'cnbox\').remove()">Cancelar</button>');
+}
+async function cliNovoSalvar(){
+  if(A9.busy)return;
+  const msg=document.getElementById('cnboxMsg');const erro=t=>{if(msg)msg.innerHTML='<span style="color:#d92d20">'+esc(t)+'</span>'};
+  const d=cliLer('cn'),fn=cliNormFone(d.fone);
+  if(d.nome.length<2){erro('Informe o nome do cliente.');return}
+  if(!fn){erro('Informe o telefone com DDD.');return}
+  const igual=(A9.clientes||[]).find(c=>cliNormFone(c.fone)===fn);
+  if(igual){erro('Este telefone já é do cliente '+(igual.nome||'(sem nome)')+'. Não precisa cadastrar de novo.');return}
+  A9.busy=true;
+  let r=await SB.from('clientes_importados').insert(d),parcial=false;
+  if(r.error&&cliErroColuna(r.error)){parcial=true;r=await SB.from('clientes_importados').insert(cliBasico(d))}
+  A9.busy=false;
+  if(r.error){erro('Não foi possível salvar: '+r.error.message);return}
+  const el=document.getElementById('cnbox');if(el)el.remove();
+  A9.clientes=null;toast(parcial?'Cliente salvo, mas falta rodar o arquivo 26 no Supabase para guardar o endereço completo.':'Cliente cadastrado.');route();
+}
 function tabClientes(){
   if(!A9.clientes){if(!A9.cliBusy)admCarregarClientes();return '<div class="box">Carregando clientes...</div>'}
   const q=String(A9.cliQ||'').toLowerCase(),f=A9.cliF||'';
   let L=A9.clientes.filter(c=>(!q||(c.nome+' '+c.fone+' '+c.email+' '+c.cidade+' '+(c.cep||'')).toLowerCase().includes(q))&&(f!=='fiel'||c.n>=CLI_META));
   L.sort((a,b)=>b.n-a.n||String(b.ult||'').localeCompare(String(a.ult||'')));
+  const so=A9.cliSort;
+  if(so&&so.c){const val={nome:c=>pagNz(c.nome),cidade:c=>pagNz(c.cidade),n:c=>c.n,ent:c=>c.ent,tot:c=>c.tot,ult:c=>String(c.ult||''),cad:c=>String(c.cad||'')}[so.c];L.sort((a,b)=>{const x=val(a),y=val(b);return (x<y?-1:x>y?1:0)*so.d})}
+  const Lv=L.slice(0,A9.cliMax||100);
+  const cth=(c,t)=>`<th style="cursor:pointer;user-select:none" ondblclick="cliOrd('${c}')" title="Dê dois cliques para ordenar (maior/menor)">${t}${(A9.cliSort&&A9.cliSort.c===c)?(A9.cliSort.d>0?' ▲':' ▼'):''}</th>`;
   const fiel=A9.clientes.filter(c=>c.n>=CLI_META).length,m=cupomMarcas();
   A9.cliLista=L.map(c=>c.k);const nSel=L.filter(c=>A9.cliSel[c.k]).length;
   return `<div class="box"><h2 style="margin:0 0 4px">Clientes cadastrados</h2><p style="margin:0 0 10px;color:var(--muted)">${A9.clientes.length} cliente${A9.clientes.length===1?'':'s'} · ${fiel} com ${CLI_META} pedidos ou mais. Pedidos cancelados não contam.</p>${A9.cliErro?'<div class="note err">'+esc(A9.cliErro)+'</div>':''}
   <input type="file" id="cliXlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="admProcessarPlanilha(this.files[0]);this.value=''">
-  <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" onkeydown="if(event.key==='Enter'){A9.cliQ=this.value;route()}" onchange="A9.cliQ=this.value;route()"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button><button class="btn ghost sm" onclick="admImportarClientes()" title="Importar clientes de planilha Excel ou CSV">Importar planilha</button> <button class="btn ghost" onclick="cliLimparBtn()" title="Junta e exclui cadastros importados com o mesmo telefone">Limpar duplicados</button></div>
+  <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" oninput="buscaLive(this,'cliQ')"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button><button class="btn ghost sm" onclick="admImportarClientes()" title="Importar clientes de planilha Excel ou CSV">Importar planilha</button> <button class="btn acc" onclick="cliNovo()">➕ Novo cliente</button> <button class="btn ghost" onclick="cliLimparBtn()" title="Junta e exclui cadastros importados com o mesmo telefone">Limpar duplicados</button></div>
   <div class="selbar"><button class="btn ghost sm" onclick="cliSelTodos(true)">Selecionar todos</button><button class="btn ghost sm" onclick="cliSelTodos(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><button class="btn acc sm" onclick="cobLote()" ${nSel?'':'disabled'}>Gerar cobrança${nSel?' ('+nSel+')':''}</button><button class="btn ghost sm danger" onclick="cliExcluir()" ${nSel?'':'disabled'}>Excluir cadastro${nSel?' ('+nSel+')':''}</button></div>
-  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th><th>Cliente</th><th>Contato</th><th>Cidade</th><th>Pedidos</th><th>Entregues</th><th>Total comprado</th><th>Último pedido</th><th>Cadastro</th><th></th></tr></thead><tbody>${L.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><a style="cursor:pointer;font-weight:700" onclick="cliEditar('${esc(c.k)}')" title="Editar cadastro">${esc(c.nome||'Sem nome')}</a>${cliRevStar(c)}${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" target="_blank" rel="noopener" style="color:inherit">${esc(c.fone)}</a>`:''} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> ${cliRevBtn(c)} ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div></div>`;
+  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th>${cth('nome','Cliente')}<th>Contato</th>${cth('cidade','Cidade')}${cth('n','Pedidos')}${cth('ent','Entregues')}${cth('tot','Total comprado')}${cth('ult','Último pedido')}${cth('cad','Cadastro')}<th></th></tr></thead><tbody>${Lv.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><a style="cursor:pointer;font-weight:700" onclick="cliEditar('${esc(c.k)}')" title="Editar cadastro">${esc(c.nome||'Sem nome')}</a>${cliRevStar(c)}${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" style="color:inherit">${esc(c.fone)}</a>`:''} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}${c.endereco?`<div style="color:var(--muted);font-size:.78rem">${esc(c.endereco)}${c.numero?', '+esc(c.numero):''}${c.bairro?' · '+esc(c.bairro):''}</div>`:''}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> ${cliRevBtn(c)} ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div>${L.length>Lv.length?`<p style="text-align:center;margin:12px 0 0"><button class="btn ghost" onclick="cliMais()">Mostrar mais (${L.length-Lv.length} restantes)</button></p>`:''}</div>`;
 }
 var CUPOM_TXT='Olá, {nome}, tudo bem? 😊\nPassando para agradecer de coração: você já fez {pedidos} pedidos com a gente e isso é muito especial para nós!\nComo agradecimento pela sua fidelidade, preparamos um cupom exclusivo para você: *{cupom}*.\nÉ só avisar no seu próximo pedido. Obrigado pela confiança! 💜';
 function cupomAbrir(k){
