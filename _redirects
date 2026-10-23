@@ -1,3 +1,3 @@
 /admin  /admin.html  200
 /portal  /revenda.html  200
-/revenda.html  /portal  301
+/revenda.html  /portal  301!
