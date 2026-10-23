@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-23-2452 -->
+<!-- v2026-10-23-2453 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -2912,6 +2912,7 @@ function tabRevendedores(){
                 ${rv.status==='ativo'?`<button class="btn ghost sm" onclick="admRevBloquear('${rv.id}')">Bloquear</button>`:''}
                 ${rv.status==='bloqueado'?`<button class="btn sm" onclick="admRevAtivar('${rv.id}')">Reativar</button>`:''}
                 <button class="btn ghost sm" onclick="A9.revEdit=Object.assign({},A9.revs.lista.find(r=>r.id==='${rv.id}'));route()">Editar</button>
+                <button class="btn ghost sm danger" onclick="admRevExcluir('${rv.id}')" title="Apaga o revendedor e os dados dele">🗑 Excluir</button>
                 ${rv.telefone?`<a class="btn wa sm" target="_blank" rel="noopener" href="https://wa.me/${rv.telefone.replace(/\D/g,'')}">WhatsApp</a>`:''}
               </div>
             </div>
@@ -3148,6 +3149,7 @@ function tabRevendedores(){
             <td style="white-space:nowrap">
               <button class="btn ghost sm" onclick="A9.revSel='${rv.id}';route()">Ver</button>
               ${rv.status==='pendente'?`<button class="btn acc sm" style="margin-left:4px" onclick="admRevAprovar('${rv.id}')">Aprovar</button>`:''}
+              <button class="btn ghost sm danger" style="margin-left:4px" onclick="admRevExcluir('${rv.id}')" title="Apaga o revendedor e os dados dele">🗑</button>
             </td>
           </tr>`;
         }).join('')}</tbody>
@@ -3166,6 +3168,21 @@ async function admRevAprovar(id){
   const {error}=await SB.from('revendedores').update({status:'ativo',aprovado_em:new Date().toISOString()}).eq('id',id);
   if(error){A9.msg='Erro ao aprovar.';A9.erro=true}else{A9.msg='Revendedor aprovado e ativado.';A9.erro=false;A9.revs=null}
   route();
+}
+async function admRevExcluir(id){
+  const rv=(A9.revs.lista||[]).find(r=>r.id===id);if(!rv||A9.busy)return;
+  const peds=(A9.revs.pedidos||[]).filter(p=>p.revendedor_id===id),cli=(A9.revs.clientes||[]).filter(c=>c.revendedor_id===id);
+  const enviados=peds.filter(p=>p.pedido_id).length;
+  const pl=(n,s,p)=>n+' '+(n===1?s:p);
+  if(!confirm('Excluir o revendedor "'+rv.nome+'"?\n\nIsso apaga de vez:\n• o cadastro e o acesso dele ao portal\n• '+pl(peds.length,'pedido feito no portal','pedidos feitos no portal')+'\n• '+pl(cli.length,'cliente cadastrado por ele','clientes cadastrados por ele')+'\n• os preços exclusivos e o extrato consignado\n'+(enviados?'\n'+pl(enviados,'pedido dele já foi para a logística e continua','pedidos dele já foram para a logística e continuam')+' em Pedidos.\n':'')+'\nNão dá para desfazer. Se só quer tirar o acesso, use Bloquear.'))return;
+  const t=prompt('Para confirmar, digite EXCLUIR:');
+  if(String(t||'').trim().toUpperCase()!=='EXCLUIR'){toast('Exclusão cancelada.');return}
+  A9.busy=true;
+  const r=await SB.from('revendedores').delete().eq('id',id).select('id');
+  A9.busy=false;
+  if(r.error){A9.msg='Não foi possível excluir: '+r.error.message;A9.erro=true;route();return}
+  if(!(r.data||[]).length){A9.msg='Não foi possível excluir (sem permissão).';A9.erro=true;route();return}
+  A9.revs=null;A9.revSel=null;A9.revEdit=null;A9.revCart=undefined;A9.msg='Revendedor "'+rv.nome+'" excluído.';A9.erro=false;route();
 }
 async function admRevBloquear(id){
   if(!confirm('Bloquear este revendedor?'))return;
