@@ -252,6 +252,7 @@ let SB=null;
 /* ============================= ESTADO ============================= */
 let REV_USER=null; // revendedor logado
 let PRODUTOS=[];   // produtos do catálogo
+let BASE={};      // valor de repasse definido pelo Wesley por variação
 let CART=[];       // carrinho {id, nome, qty, preco, preco_orig}
 let PAGE='login';  // página atual
 let PAGE_DATA={};  // dados extras da página
@@ -298,7 +299,7 @@ function showErr(msg){$('#root').innerHTML=`<div style="padding:40px;text-align:
 
 async function carregarDados(){
   try{
-    const [pr,pe,mo,av,pz,vd,cl,vr]=await Promise.all([
+    const [pr,pe,mo,av,pz,vd,cl,vr,rp]=await Promise.all([
       SB.from('produtos').select('id,nome,imagem,estoque,ativo,categoria,sob_consulta').eq('ativo',true),
       SB.from('pedidos_revendedor').select('*').eq('revendedor_id',REV_USER.id).order('criado_em',{ascending:false}),
       REV_USER.tipo==='consignado'?SB.from('consignado_movimentos').select('*').eq('revendedor_id',REV_USER.id).order('criado_em',{ascending:false}):Promise.resolve({data:[]}),
@@ -306,8 +307,10 @@ async function carregarDados(){
       SB.from('revendedor_precos_var').select('variacao_id,preco').eq('revendedor_id',REV_USER.id),
       SB.from('revendedor_venda_var').select('variacao_id,preco_venda').eq('revendedor_id',REV_USER.id),
       SB.from('revendedor_clientes').select('*').eq('revendedor_id',REV_USER.id).order('nome'),
-      SB.from('produto_variacoes').select('id,produto_id,nome,unidades,preco,ativo,ordem').eq('ativo',true).order('ordem')
+      SB.from('produto_variacoes').select('id,produto_id,nome,unidades,preco,ativo,ordem').eq('ativo',true).order('ordem'),
+      SB.from('catalogo_revenda').select('variacao_id,preco')
     ]);
+    BASE={};((rp&&rp.data)||[]).forEach(r=>{BASE[r.variacao_id]=+r.preco});
     PRECOS={};(pz.data||[]).forEach(r=>{PRECOS[r.variacao_id]=+r.preco});
     VENDA={};(vd.data||[]).forEach(r=>{VENDA[r.variacao_id]=+r.preco_venda});
     CLIENTES=cl.data||[];
@@ -319,7 +322,7 @@ async function carregarDados(){
       const p=(pr.data||[]).find(x=>x.id===v.produto_id);if(!p)return;
       if(cfg.produtos_visiveis&&cfg.produtos_visiveis.length&&!cfg.produtos_visiveis.includes(p.id))return;
       const preco=(v.preco==null||v.preco==='')?null:+v.preco;
-      if(preco==null&&PRECOS[v.id]==null)return; // sem valor definido, não entra no catálogo do revendedor
+      if(preco==null&&PRECOS[v.id]==null&&BASE[v.id]==null)return; // sem valor definido, não entra no catálogo do revendedor
       PRODUTOS.push({id:v.id,produto_id:p.id,nome:p.nome+' — '+v.nome,nome_produto:p.nome,nome_var:v.nome,unidades:+v.unidades||1,preco,imagem:foto(p.imagem),estoque:+p.estoque||0,categoria:p.categoria,consulta:false});
     });
     PRODUTOS.sort((a,b)=>a.nome.localeCompare(b.nome));
@@ -371,7 +374,8 @@ function precoVenda(id,custo){const v=VENDA[id];return v!=null?v:custo*(1+MARGEM
 function precoRev(p){
   if(PRECOS[p.id]!=null)return PRECOS[p.id];
   const desc=(REV_USER&&REV_USER.desconto_pct)||0;
-  return p.preco*(1-desc/100);
+  const base=BASE[p.id]!=null?BASE[p.id]:p.preco;
+  return Math.round((base||0)*(1-desc/100)*100)/100;
 }
 function cartAdd(prod){
   const item=CART.find(i=>i.id===prod.id);
