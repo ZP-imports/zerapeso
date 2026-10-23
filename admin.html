@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-23-2438 -->
+<!-- v2026-10-23-2439 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-.pgsub{font-size:.76rem;color:var(--muted);margin-top:2px}.pgcli{max-width:170px}.pgval{min-width:185px}.pgval .pgsub{white-space:nowrap}.pglnk{display:inline-block;margin-top:3px;font-size:.76rem;color:#2563eb;cursor:pointer;font-weight:600}.pgdet{margin-top:4px}.pgdet summary{cursor:pointer;font-size:.78rem;font-weight:600}.pgdet table{margin-top:5px;font-size:.76rem;border-collapse:collapse}.pgdet td{padding:2px 8px 2px 0;border:0}.btn.bs-wa{background:#ecfdf3;color:#067647;border:1px solid #abefc6}.btn.bs-ok{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}.pulsa{animation:pagpulsa 1s ease-in-out infinite}.selo{white-space:nowrap}.selo.gray{background:#e5e7eb;color:#374151}.kc.pulsa{box-shadow:0 0 0 3px rgba(124,58,237,.35)}
+.pgsub{font-size:.76rem;color:var(--muted);margin-top:2px}.pgcli{max-width:170px}.pgval{min-width:185px}.pgval .pgsub{white-space:nowrap}.pglnk{display:inline-block;margin-top:3px;font-size:.76rem;color:#2563eb;cursor:pointer;font-weight:600}.pgdet{margin-top:5px}.pgdet summary{cursor:pointer;font-size:.78rem;font-weight:600;color:#2563eb}.pgbox{margin-top:6px;padding:8px 10px;background:#f8fafc;border:1px solid var(--line);border-radius:10px;min-width:270px}.pgpt{margin-top:6px;font-size:.76rem;border-collapse:collapse}.pgpt td{padding:2px 8px 2px 0;border:0!important;white-space:nowrap;box-shadow:none!important}.pgpt tr{box-shadow:none!important;background:transparent!important}.pgbox .btn{padding:3px 10px!important;font-size:.76rem!important;min-height:0!important}.pgbtns{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.pghl{margin:8px 0 0;padding-left:16px;font-size:.78rem;line-height:1.5}.pgx{color:var(--muted)}.pgsit{min-width:90px}.btn.bs-wa{background:#ecfdf3;color:#067647;border:1px solid #abefc6}.btn.bs-ok{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}.pulsa{animation:pagpulsa 1s ease-in-out infinite}.selo{white-space:nowrap}.selo.gray{background:#e5e7eb;color:#374151}.kc.pulsa{box-shadow:0 0 0 3px rgba(124,58,237,.35)}
 .pagpulsa{display:inline-block;margin-top:4px;padding:5px 9px;border-radius:8px;background:#fee4e2;color:#b42318;font-weight:800;font-size:.78rem;cursor:pointer;animation:pagpulsa 1s ease-in-out infinite}@keyframes pagpulsa{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(1.05)}}
 .parc-venc{background:#fff5f5!important;outline:2px solid #fca5a5}.parc-venc td:first-child{border-left:4px solid #ef4444}.parc-atrs{background:#fff0f0!important;outline:2px solid #f87171}.parc-atrs td:first-child{border-left:4px solid #dc2626}.parc-chip{display:inline-block;padding:2px 7px;border-radius:6px;font-size:.75rem;font-weight:700;white-space:nowrap}.parc-paga{background:#dcfce7;color:#15803d}.parc-pend{background:#fee2e2;color:#b91c1c}.parc-ok{background:#e0f2fe;color:#0369a1}
 @keyframes vencrow{0%,100%{background:#fff5f5}50%{background:#fecaca}}
@@ -5309,36 +5309,38 @@ function tabPagamentos(){
   const semVal=o=>!!temPrev(o)&&totalPag(o)-((o.extra&&o.extra.pag_incl_frete===false)?0:(freteDoPedido(o)||0))<0.01;
   const waBtn=o=>`<button class="btn wa sm" style="padding:5px 8px" onclick="waDireto(${o.id})" title="Abrir a conversa no WhatsApp" aria-label="WhatsApp"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></button>`;
   const rowPag=(o,mF)=>{const en=o.entrega||{};const fr=freteDoPedido(o);const sp=spV(o);const pg=(o.pagamento||{}).status==='pago';
-   /* condição de pagamento (só carteira): parcelas e quanto já foi pago / falta */
-   let parcRow='',rowCls='',valExtra='';
+   const ps=temPrev(o)?prevParcelas(o):[];const venc=isCarteira&&prevVencendo(o),atrs=isCarteira&&prevVencida(o);
+   const rowCls=atrs?' class="parc-atrs"':venc?' class="parc-venc"':'';
+   /* resumo: quanto já pagou e quanto falta */
+   let resumo='',ip=-1;
    if(isCarteira){
-     const ps=prevParcelas(o);const venc=prevVencendo(o);const atrs=prevVencida(o);
-     rowCls=atrs?' class="parc-atrs"':venc?' class="parc-venc"':'';
-     if(semVal(o))valExtra='<div style="font-size:.74rem;color:#d92d20">Informe o valor em Programar.</div>';
-     else{
-       const r=prevRestante(o,total(o)),pago=Math.round((total(o)-r)*100)/100,ip=ps.findIndex(p=>!p.pago);
-       valExtra='<div class="pgsub">'+(pago>0?'Pago <b style="color:#16a34a">'+brl(pago)+'</b> · ':'')+'Falta <b style="color:#b45309">'+brl(r)+'</b></div>'+(ip>=0?'<a class="pglnk" onclick="prevParcial('+o.id+','+ip+')">+ Pagou parte</a>':'');
-     }
-     if(ps.length>1){
-       parcRow='<details class="pgdet"><summary style="color:'+(atrs?'#dc2626':venc?'#c2410c':'#2563eb')+'">'+prevStatusTxt(o)+' '+(atrs?'⚠️':venc?'🔔':'')+'</summary><table>'+ps.map((p,i)=>'<tr><td><b>'+(p.entrada?'Entrada':(i+1-(ps[0].entrada?1:0))+'ª')+'</b></td><td>'+dataBc(p.data)+'</td><td>'+(p.valor?esc(brl(p.valor)):'')+'</td><td>'+(p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':'<span class="parc-chip parc-pend">pendente</span>')+'</td><td>'+(p.pago?'<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar('+o.id+','+i+',false)">↩ desfazer</button>':'<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar('+o.id+','+i+',true)">Marcar pago</button> <button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevParcial('+o.id+','+i+')">Pagou parte</button>')+'</td></tr>').join('')+'</table></details>';
-     }
-   }else{
-     const prev=(o.extra||{}).pag_prev;
-     if(prev)parcRow='<div class="pgsub" style="color:#2563eb;font-weight:600">📅 '+prevStatusTxt(o)+'</div>';
+     if(semVal(o))resumo='<div class="pgsub" style="color:#d92d20">Informe o valor na setinha abaixo.</div>';
+     else{const r=prevRestante(o,total(o)),pago=Math.round((total(o)-r)*100)/100;ip=ps.findIndex(p=>!p.pago);
+       resumo='<div class="pgsub">'+(pago>0?'Pago <b style="color:#16a34a">'+brl(pago)+'</b> · ':'')+'Falta <b style="color:#b45309">'+brl(r)+'</b></div>'}
    }
+   /* dentro da setinha: forma, parcelas, marcar pago, programar e histórico */
+   const forma=PAGNOME[(o.pagamento||{}).preferencia]||'';
+   const tabParc=ps.length?'<table class="pgpt">'+ps.map((p,i)=>'<tr><td><b>'+(p.entrada?'Entrada':ps.length===1?'1ª':(i+1-(ps[0].entrada?1:0))+'ª')+'</b></td><td>'+dataBc(p.data)+'</td><td>'+(p.valor?esc(brl(p.valor)):'')+'</td><td>'+(p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':'<span class="parc-chip parc-pend">pendente</span>')+'</td><td>'+(p.pago?'<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar('+o.id+','+i+',false)">↩ desfazer</button>':'<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar('+o.id+','+i+',true)">Marcar pago</button> <button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevParcial('+o.id+','+i+')">Pagou parte</button>')+'</td></tr>').join('')+'</table>':'';
+   const detalhe='<details class="pgdet"><summary>Pagamento e histórico</summary><div class="pgbox">'+
+     '<div class="pgsub"><b>Forma de pagamento:</b> '+(forma?esc(forma):'não informada')+'</div>'+tabParc+
+     '<div class="pgbtns">'+(pg?'<button class="btn ghost sm" onclick="pagMarcar('+o.id+',false)">Voltar para pendente</button>':'<button class="btn sm bs-ok" onclick="pagMarcar('+o.id+',true)">Marcar pago total</button><button class="btn ghost sm" onclick="pagProg('+o.id+')">'+(ps.length?'Reprogramar':'Programar')+'</button>')+'<button class="btn ghost sm" onclick="pagHist('+o.id+')">📜 Histórico</button></div>'+
+     '<div id="pghist'+o.id+'"></div></div></details>';
    const valor=sp?'A confirmar':(isCarteira&&semVal(o))?'<span style="color:#d92d20">Sem valor</span>':brl(total(o));
    const venTxt=temPrev(o)?(()=>{const p=prevProxima(o);return p?dataBc(p.data):''})():dataBr(dataRef(o));
+   /* situação enxuta: só o andamento do pedido e o aviso do dia do pagamento */
+   const pi=pg?null:pagInfo(o);
+   const aviso=pg?'<span class="stchip" style="--c:#16a34a">Pago</span>':pi.est==='vencido'?'<div class="pgsub" style="color:#b42318;font-weight:700">⚠️ Venceu em '+dataBr(pi.prev)+'</div>':pi.est==='hoje'?'<div class="pgsub" style="color:#d97706;font-weight:700">💰 Paga hoje</div>':'';
    const oculta=o._rev?' style="display:none"':'';
-   return `<tr data-sc${rowCls} style="--sc:${STCOR[o.status]||'#999'}"><td style="white-space:nowrap"><b>${codPed(o)}</b><div>${o._rev?'<span class="selo" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed66" title="Pedido de revendedor de carteira">🏷️ Revendedor</span>':selos(o)}</div></td><td class="pgcli"><b>${esc(en.nome||'')}</b><div class="pgsub">${esc(cidadeDe(o))}</div></td>${mF?`<td>${fr!=null?brl(fr).slice(3):'<span style="color:var(--muted)">a combinar</span>'}</td>`:''}<td class="pgval"><b>${valor}</b>${valExtra}${parcRow}</td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td style="white-space:nowrap">${venTxt}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div class="pgsub" style="color:#16a34a">✅ Link enviado</div>':''}</td>
-   <td style="white-space:nowrap"><button class="btn ghost sm" onclick="admAbrirPedido(${o.id})"${oculta}>Abrir</button> ${waBtn(o)} ${pg?`<button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar p/ pendente</button>`:`<button class="btn sm bs-wa" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Enviar o link de pagamento':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})"${oculta}>${A9.pagEnv[o.id]?'Reenviar':'Link'}</button> <button class="btn sm bs-ok" onclick="pagMarcar(${o.id},true)" title="Marcar como pago por inteiro">Pago total</button> <button class="btn ghost sm" onclick="pagDia(${o.id})">Programar</button>`}${(A9.pagFoto&&temFoto(o))?` <button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button>`:''}</td></tr>`;};
+   return `<tr data-sc${rowCls} style="--sc:${STCOR[o.status]||'#999'}"><td style="white-space:nowrap"><b>${codPed(o)}</b><div>${o._rev?'<span class="selo" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed66" title="Pedido de revendedor de carteira">🏷️ Revendedor</span>':selos(o)}</div></td><td class="pgcli"><b>${esc(en.nome||'')}</b><div class="pgsub">${esc(cidadeDe(o))}</div></td>${mF?`<td>${fr!=null?brl(fr).slice(3):'<span style="color:var(--muted)">a combinar</span>'}</td>`:''}<td class="pgval"><b>${valor}</b>${resumo}${detalhe}</td><td style="white-space:nowrap">${venTxt}</td><td class="pgsit">${stChip(o.status)}${aviso}</td>
+   <td style="white-space:nowrap">${waBtn(o)}${pg?'':` <button class="btn sm bs-wa" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})"${oculta}>${A9.pagEnv[o.id]?'Reenviar link de cobrança':'Link de cobrança'}</button>`}${(A9.pagFoto&&temFoto(o))?` <button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button>`:''} <button class="btn ghost sm" onclick="admAbrirPedido(${o.id})"${oculta}>Abrir pedido</button></td></tr>`;};
   const mostraFrete=A9.pagMostraFrete||false;
   const btnFrete=`<button class="btn ghost sm" onclick="A9.pagMostraFrete=${!mostraFrete};route()" style="font-size:.82rem">${mostraFrete?'🙈 Ocultar frete':'👁 Mostrar frete'}</button>`;
   const seta=c=>(A9.pagSort&&A9.pagSort.c===c)?(A9.pagSort.d>0?' ▲':' ▼'):'';
   const th=(c,t)=>`<th style="cursor:pointer;user-select:none" ondblclick="pagOrd('${c}')" title="Dê dois cliques para ordenar (maior/menor)">${t}${seta(c)}</th>`;
-  const thead=`<thead><tr>${th('pedido','Pedido')}${th('cliente','Cliente')}${mostraFrete?'<th>Frete</th>':''}${th('total',isCarteira?'Total / restante':'Total')}<th>Forma</th>${th('data',isCarteira?'Vencimento':'Data')}<th>Situação</th><th style="white-space:nowrap">Ações <button class="btn ghost sm" style="padding:0 6px" onclick="A9.pagFoto=!A9.pagFoto;route()" title="${A9.pagFoto?'Ocultar':'Mostrar'} o botão de foto da entrega">📷 ${A9.pagFoto?'◂':'▸'}</button></th></tr></thead>`;
+  const thead=`<thead><tr>${th('pedido','Pedido')}${th('cliente','Cliente')}${mostraFrete?'<th>Frete</th>':''}${th('total',isCarteira?'Total / restante':'Total')}${th('data',isCarteira?'Vencimento':'Data')}<th>Situação</th><th style="white-space:nowrap">Ações <button class="btn ghost sm" style="padding:0 6px" onclick="A9.pagFoto=!A9.pagFoto;route()" title="${A9.pagFoto?'Ocultar':'Mostrar'} o botão de foto da entrega">📷 ${A9.pagFoto?'◂':'▸'}</button></th></tr></thead>`;
   const vencHoje=carteira.filter(o=>prevVencendo(o));
   const semValCart=carteira.filter(semVal);
-  const bannerSemVal=semValCart.length?`<div class="note" style="background:#fef3c7;border-color:#f59e0b;color:#92400e;margin-bottom:10px"><b>⚠️ ${semValCart.length} pedido${semValCart.length>1?'s':''} da Carteira ${semValCart.length>1?'estão':'está'} sem valor:</b> ${semValCart.map(o=>esc((o.entrega||{}).nome||codPed(o))).join(', ')}. Abra a aba Carteira, clique em <b>Programar</b> e informe o valor total.</div>`:'';
+  const bannerSemVal=semValCart.length?`<div class="note" style="background:#fef3c7;border-color:#f59e0b;color:#92400e;margin-bottom:10px"><b>⚠️ ${semValCart.length} pedido${semValCart.length>1?'s':''} da Carteira ${semValCart.length>1?'estão':'está'} sem valor:</b> ${semValCart.map(o=>esc((o.entrega||{}).nome||codPed(o))).join(', ')}. Em cada um, abra a setinha <b>Pagamento e histórico</b>, clique em <b>Reprogramar</b> e informe o valor total.</div>`:'';
   const bannerVenc=vencHoje.length?`<div class="note" style="background:#fee2e2;border-color:#ef4444;color:#991b1b;margin-bottom:10px"><b>⚠️ ${vencHoje.length} parcela${vencHoje.length>1?'s':''} vencendo!</b> ${vencHoje.map(o=>esc((o.entrega||{}).nome||codPed(o))).join(', ')} — <button class="btn ghost sm" style="margin-left:8px" onclick="A9.pf='carteira';route()">Ver carteira</button></div>`:'';
   return `<div class="box">${msgBox()}${bannerVenc}${bannerSemVal}${(A9.link||!A9.linkCarregado)?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre em Mais opções > Configurações.</div>'}
   <p style="margin:0 0 10px;color:var(--muted)">Pedido entregue → <b>Pendentes</b>. Envia link → <b>Cobrança em andamento</b>. Programa data → <b>Carteira</b>. Pago → <b>Concluídos</b>.</p>
@@ -5346,7 +5348,7 @@ function tabPagamentos(){
   ${barraFiltros()}
   <div class="fbar" style="margin-bottom:8px"><div><label for="pgQ">Buscar por nome</label><input id="pgQ" value="${esc(A9.pagQ||'')}" placeholder="Nome ou telefone" oninput="buscaLive(this,'pagQ')"></div><div><label for="pgD1">${f==='carteira'?'Vence de':'Data de'}</label><input id="pgD1" type="date" value="${esc(A9.pagD1||'')}" onchange="A9.pagD1=this.value;route()" style="width:auto"></div><div><label for="pgD2">até</label><input id="pgD2" type="date" value="${esc(A9.pagD2||'')}" onchange="A9.pagD2=this.value;route()" style="width:auto"></div>${(A9.pagQ||A9.pagD1||A9.pagD2||A9.pagSort)?'<button class="btn ghost sm" onclick="A9.pagQ=\'\';A9.pagD1=\'\';A9.pagD2=\'\';A9.pagSort=null;route()">Limpar</button>':''}<span style="align-self:center;color:var(--muted);font-size:.82rem">${lista.length} na lista</span></div>
   <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn acc sm" onclick="cobNova()">➕ Nova cobrança</button>${btnFrete}</div>
-  <div class="tbl"><table>${thead}<tbody>${lista.map(o=>rowPag(o,mostraFrete)).join('')||`<tr><td colspan="${mostraFrete?8:7}">Nenhum pedido nesta lista.</td></tr>`}</tbody></table></div>
+  <div class="tbl"><table>${thead}<tbody>${lista.map(o=>rowPag(o,mostraFrete)).join('')||`<tr><td colspan="${mostraFrete?7:6}">Nenhum pedido nesta lista.</td></tr>`}</tbody></table></div>
   </div>`;
 }
 function pagEnviar(id){
@@ -5356,6 +5358,31 @@ function pagEnviar(id){
   waAbrir(fw,admMsgPagamento(o));A9.pagEnv[id]=true;
   SB.from('pedido_eventos').insert({pedido_id:id,tipo:'whatsapp',publico:false,texto:'Link de pagamento aberto no WhatsApp (envio não confirmado pelo sistema)',por:ADMIN.nome}).then(()=>{},()=>{});
   route();
+}
+/* ---- histórico de pagamento/cobrança do pedido (link enviado, pagamentos). Repetidos no mesmo dia viram "2x" ---- */
+async function pagHist(id){
+  const box=document.getElementById('pghist'+id);if(!box)return;
+  if(box.dataset.open==='1'){box.innerHTML='';box.dataset.open='0';return}
+  box.dataset.open='1';box.innerHTML='<span class="pgsub">Carregando...</span>';
+  const o=pedAcha(id);let linhas=[];
+  try{
+    if(id>0){
+      const r=await SB.from('pedido_eventos').select('t,texto,tipo').eq('pedido_id',id).order('t');
+      (r.data||[]).filter(e=>e.tipo==='pagamento'||e.tipo==='whatsapp'||/link|pagamento|parcela/i.test(e.texto||'')).forEach(e=>{
+        const tx=/^Link de pagamento aberto/i.test(e.texto||'')?'Link de cobrança enviado':String(e.texto||'');
+        linhas.push({t:e.t,tx});
+      });
+    }else if(o){
+      prevParcelas(o).filter(p=>p.pago&&p.pago_em).forEach(p=>linhas.push({t:p.pago_em,tx:'Pagou '+(p.valor?brl(p.valor):'uma parcela')}));
+    }
+  }catch(e){}
+  const ag=[];linhas.forEach(l=>{const dia=String(l.t||'').slice(0,10),u=ag[ag.length-1];if(u&&u.dia===dia&&u.tx===l.tx)u.n++;else ag.push({dia,tx:l.tx,n:1,t:l.t})});
+  box.innerHTML=ag.length?'<ul class="pghl">'+ag.map(a=>'<li><b>'+esc(dataBr(a.dia))+'</b> · '+esc(a.tx)+(a.n>1?' <span class="pgx">('+a.n+'x no mesmo dia)</span>':'')+'</li>').join('')+'</ul>':'<span class="pgsub">Ainda não há histórico para este pedido.</span>';
+}
+function pagProg(id){
+  const o=pedAcha(id);if(!o)return;
+  if((o.extra||{}).pag_prev&&prevParcelas(o).some(p=>p.data)&&!confirm('Este pedido já tem data programada. Deseja reprogramar?'))return;
+  pagDia(id);
 }
 async function pagMarcar(id,v){
   if(id<0)return revPagoTotal(id,v);
