@@ -430,6 +430,24 @@ const ST_LAB={novo:'Novo',confirmado:'Confirmado',em_separacao:'Em separação',
 const ST_CLS={novo:'novo',confirmado:'confirmado',em_separacao:'confirmado',em_rota:'em-rota',entregue:'entregue',cancelado:'cancelado'};
 
 /* ============================= RENDER ============================= */
+/* ---- WhatsApp: abre direto no aplicativo instalado (nunca no WhatsApp Web), sem aviso ---- */
+const WA_ZP='551231973615';
+const WA_ICO='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>';
+function foneWaRev(f){const d=String(f||'').replace(/\D/g,'');return d?(d.length<=11?'55'+d:d):''}
+function waApp(fone,txt){
+  const n=foneWaRev(fone);if(!n)return;
+  const el=document.createElement('a');el.href='whatsapp://send?phone='+n+(txt?'&text='+encodeURIComponent(txt):'');el.rel='noopener';el.style.display='none';
+  document.body.appendChild(el);el.click();setTimeout(()=>el.remove(),500);
+}
+function waZP(txt){waApp(WA_ZP,txt||('Olá! Sou revendedor da ZP Imports ('+((REV_USER&&REV_USER.nome)||'')+').'))}
+function waPedidoZP(id){const p=PEDIDOS.find(x=>String(x.id)===String(id));waZP('Olá! Sobre o meu pedido de '+(p?fmtD(p.criado_em).slice(0,10):'')+' ('+((REV_USER&&REV_USER.nome)||'')+').')}
+function waCliente(id){const c=CLIENTES.find(x=>String(x.id)===String(id));if(c)waApp(c.telefone)}
+const btnWaZP=(t)=>'<button class="btn ghost sm" onclick="waZP()" style="display:inline-flex;align-items:center;gap:6px">'+WA_ICO+' '+(t||'Falar com a ZP Imports')+'</button>';
+/* ---- ordenar tabelas com dois cliques no título ---- */
+const ORD={};
+function ordTab(t,c){const s=ORD[t]||{};ORD[t]={c,d:s.c===c?-s.d:1};render()}
+function ordTh(t,c,txt,cls){const s=ORD[t];return '<th'+(cls?' class="'+cls+'"':'')+' style="cursor:pointer;user-select:none" ondblclick="ordTab(\''+t+'\',\''+c+'\')" title="Dê dois cliques para ordenar">'+txt+((s&&s.c===c)?(s.d>0?' ▲':' ▼'):'')+'</th>'}
+function ordLista(t,list,vals){const s=ORD[t];if(!s||!vals[s.c])return list;const v=vals[s.c];return list.slice().sort((a,b)=>{const x=v(a),y=v(b);return (x<y?-1:x>y?1:0)*s.d})}
 function rPage(p,data){PAGE=p;PAGE_DATA=data||{};render()}
 function render(){
   if(!REV_USER){renderLogin();updCartBar();return}
@@ -705,8 +723,10 @@ async function baixarImagemProduto(id){
 }
 
 /* ============================= CLIENTES ============================= */
+function enderecoCli(c){c=c||{};const rua=[c.endereco,c.numero].filter(Boolean).join(', ');return [rua,c.complemento,c.bairro,c.cidade,c.cep].filter(Boolean).join(' · ')}
+function filtraClientes(v){const q=String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();document.querySelectorAll('.cli-card').forEach(e=>{e.style.display=(!q||(e.dataset.q||'').includes(q))?'':'none'})}
 function pageClientes(){
-  if(!clientesAtivo())return '<div class="pg"><div class="note warn">O cadastro de clientes não está liberado para a sua conta. Fale com a ZP Imports.</div></div>';
+  if(!clientesAtivo())return '<div class="pg"><div class="note warn">O cadastro de clientes não está liberado para a sua conta. Fale com a ZP Imports.<div style="margin-top:8px">'+btnWaZP()+'</div></div></div>';
   return `<div class="pg">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px">
       <div>
@@ -716,9 +736,9 @@ function pageClientes(){
       <button class="btn" onclick="formCliente('')">+ Novo cliente</button>
     </div>
     ${!CLIENTES.length?`<div class="box" style="text-align:center;padding:40px"><p style="color:var(--muted)">Você ainda não cadastrou clientes.</p></div>`:
-    `<div style="display:flex;flex-direction:column;gap:10px">${CLIENTES.map(c=>{
+    `<input id="cliBusca" placeholder="Buscar cliente por nome ou telefone" oninput="filtraClientes(this.value)" style="margin-bottom:10px"><div style="display:flex;flex-direction:column;gap:10px">${CLIENTES.map(c=>{
       const n=PEDIDOS.filter(p=>p.cliente_id===c.id).length;
-      return `<div class="cli-card">
+      return `<div class="cli-card" data-q="${esc(((c.nome||'')+' '+(c.telefone||'')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''))}">
         <div style="flex:1;min-width:220px">
           <b style="color:var(--ink)">${esc(c.nome)}</b>${c.telefone?` <span style="color:var(--muted);font-size:.85rem">· ${esc(c.telefone)}</span>`:''}
           <div style="font-size:.85rem;color:var(--muted)">${esc(enderecoCli(c))}</div>
@@ -726,6 +746,7 @@ function pageClientes(){
           <div style="font-size:.78rem;color:var(--muted);margin-top:4px">${n} pedido${n!==1?'s':''} para este cliente</div>
         </div>
         <div style="display:flex;gap:6px">
+          ${c.telefone?`<button class="btn ghost sm" onclick="waCliente('${c.id}')" title="Abrir a conversa no WhatsApp" aria-label="WhatsApp" style="color:#16a34a">${WA_ICO}</button>`:''}
           <button class="btn sm" onclick="usarCliente('${c.id}')">Fazer pedido</button>
           <button class="btn ghost sm" onclick="formCliente('${c.id}')">Editar</button>
           <button class="btn ghost sm" onclick="excluirCliente('${c.id}')">✕</button>
@@ -865,16 +886,18 @@ function pagePedidos(){
     ${suc?`<div class="note" style="background:#dcfce7;color:#166534;margin-bottom:16px">✅ Pedido enviado com sucesso! A ZP Imports irá confirmar em breve.</div>`:''}
     <h2 style="margin:0 0 16px;font-size:1.4rem;color:var(--ink)">Meus Pedidos</h2>
     ${!PEDIDOS.length?`<div class="box" style="text-align:center;padding:40px"><p style="color:var(--muted)">Você ainda não fez nenhum pedido.</p><button class="btn" onclick="rPage('catalogo')">Ir ao catálogo</button></div>`:
-    `<div class="box">${renderTabelaPedidos(PEDIDOS)}</div>`}
+    `<div class="box">${renderTabelaPedidos(PEDIDOS,true)}</div>`}
   </div>`;
 }
 
-function renderTabelaPedidos(list){
+function renderTabelaPedidos(list,ord){
   if(!list.length)return '<p style="color:var(--muted);padding:10px 0">Nenhum pedido.</p>';
+  const num=p=>PEDIDOS.indexOf(p);
+  if(ord)list=ordLista('ped',list,{n:num,d:p=>String(p.criado_em||''),t:p=>+p.subtotal||0,tp:p=>p.tipo_pagamento||'',st:p=>ST_LAB[p.status]||p.status||''});
   return `<table>
-    <thead><tr><th>#</th><th>Data</th><th>Itens</th><th>Total</th><th>Tipo</th><th>Status</th><th></th></tr></thead>
+    <thead><tr>${ord?ordTh('ped','n','#')+ordTh('ped','d','Data'):'<th>#</th><th>Data</th>'}<th>Itens</th>${ord?ordTh('ped','t','Total')+ordTh('ped','tp','Tipo')+ordTh('ped','st','Status'):'<th>Total</th><th>Tipo</th><th>Status</th>'}<th></th></tr></thead>
     <tbody>${list.map((p,i)=>`<tr>
-      <td data-l="#"><b style="color:var(--p)">#${String(i+1).padStart(3,'0')}</b></td>
+      <td data-l="#"><b style="color:var(--p)">#${String(num(p)+1).padStart(3,'0')}</b></td>
       <td data-l="Data" style="font-size:.82rem">${fmtD(p.criado_em)}</td>
       <td data-l="Itens" style="font-size:.82rem">${(p.itens||[]).map(x=>x.qty+'x '+x.nome).join(', ').slice(0,60)+(p.itens&&p.itens.length>2?'…':'')}${p.cliente_nome?`<br><small style="color:var(--muted)">📍 ${esc(p.cliente_nome)}</small>`:''}</td>
       <td data-l="Total"><b>${brl(p.subtotal)}</b></td>
@@ -903,6 +926,7 @@ function verPedido(id){
     <tr><td colspan="2"><b>Seu custo</b></td><td class="r"><b>${brl(p.subtotal)}</b></td></tr>
     ${p.venda_total!=null?`<tr><td colspan="2">Venda estimada</td><td class="r">${brl(p.venda_total)}</td></tr><tr><td colspan="2">Lucro estimado</td><td class="r" style="color:var(--p)"><b>${brl(p.venda_total-p.subtotal)}</b></td></tr>`:''}</tbody></table>
     ${p.entrega?`<div class="note rev">📍 <b>Entrega para ${esc(p.entrega.nome)}</b><br>${esc(enderecoCli(p.entrega))}${p.entrega.telefone?'<br>📞 '+esc(p.entrega.telefone):''}</div>`:''}
+    <div style="margin-top:12px"><button class="btn ghost sm" onclick="waPedidoZP('${p.id}')" style="display:inline-flex;align-items:center;gap:6px">${WA_ICO} Falar com a ZP sobre este pedido</button></div>
     <h4 style="margin:16px 0 6px">Acompanhamento</h4>
     <div class="tl">
       ${stEtapas.map((s,i)=>{
@@ -944,8 +968,8 @@ function pageExtrato(){
     ${!MOVIMENTOS.length?`<div class="note">Nenhuma movimentação registrada ainda. Faça seu primeiro pedido!</div>`:`
     <div class="box">
       <table>
-        <thead><tr><th>Data</th><th>Tipo</th><th>Produto</th><th>Qtd</th><th class="r">Valor</th></tr></thead>
-        <tbody>${MOVIMENTOS.map(m=>`<tr>
+        <thead><tr>${ordTh('mov','d','Data')}${ordTh('mov','t','Tipo')}${ordTh('mov','p','Produto')}${ordTh('mov','q','Qtd')}${ordTh('mov','v','Valor','r')}</tr></thead>
+        <tbody>${ordLista('mov',MOVIMENTOS,{d:m=>String(m.criado_em||''),t:m=>m.tipo||'',p:m=>String(m.produto_nome||'').toLowerCase(),q:m=>+m.quantidade||0,v:m=>+m.valor_total||0}).map(m=>`<tr>
           <td data-l="Data" style="font-size:.8rem">${fmtD(m.criado_em)}</td>
           <td data-l="Tipo"><span class="tipo ${m.tipo}">${{saida:'📦 Saída',venda:'💰 Venda',repasse:'✅ Repasse',devolucao:'↩ Devolução'}[m.tipo]||m.tipo}</span></td>
           <td data-l="Produto">${esc(m.produto_nome||'—')}</td>
@@ -1014,7 +1038,7 @@ function pagePerfil(){
         </div>
         <div class="note" style="margin-top:14px">
           <b>Precisa de ajuda?</b><br>
-          Entre em contato com a ZP Imports pelo WhatsApp para alterar sua modalidade ou tirar dúvidas sobre sua conta.
+          Entre em contato com a ZP Imports pelo WhatsApp para alterar sua modalidade ou tirar dúvidas sobre sua conta.<div style="margin-top:8px">${btnWaZP()}</div>
         </div>
       </div>
     </div>
