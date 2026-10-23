@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-23-2433 -->
+<!-- v2026-10-23-2434 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5285,7 +5285,7 @@ function tabPagamentos(){
   if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
   if(!A9.linkCarregado&&!A9.busyL){A9.busyL=true;admCarregarLink().catch(()=>{}).finally(()=>{A9.busyL=false;A9.linkCarregado=true;route()})}
   if(A9.revCart===undefined)admCarregarRevCart();revCartPrep();
-  const L=A9.pedidos.concat(A9.revCart||[]),total=o=>pedTotal(o)+(freteDoPedido(o)||0);
+  const L=A9.pedidos.concat(A9.revCart||[]),total=o=>totalPag(o);
   const temPrev=o=>(o.extra||{}).pag_prev;
   // 4 seções: pendentes → andamento → carteira → pagos
   const pendentes=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!A9.pagEnv[o.id]&&!temPrev(o));
@@ -5323,7 +5323,7 @@ function tabPagamentos(){
      const prev=(o.extra||{}).pag_prev;
      if(prev)parcRow=`<div style="font-size:.78rem;color:#2563eb;font-weight:600">📅 ${prevStatusTxt(o)}</div>`;
    }
-   return `<tr data-sc${rowCls} style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${o._rev?'<span class="selo" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed66" title="Pedido de revendedor de carteira">🏷️ Revendedor</span>':selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${temPrev(o)?brl(pedTotal(o)):totAdm(o)}${parcRow}</td>${mF?`<td>${fr!=null?brl(fr).slice(3):'<span style="color:var(--muted)">a combinar</span>'}</td>`:''}<td><b>${sp?'A confirmar':brl(total(o))}</b>${isCarteira&&!sp?`<div style="font-size:.78rem;color:var(--muted)">Restante <b style="color:#b45309">${brl(prevRestante(o,total(o)))}</b></div>`:''}</td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td style="white-space:nowrap">${temPrev(o)?(()=>{const p=prevProxima(o);return p?dataBc(p.data):''})():dataBr(dataRef(o))}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">✅ Link enviado no WhatsApp</div>':''}</td>
+   return `<tr data-sc${rowCls} style="--sc:${STCOR[o.status]||'#999'}"><td><b>${codPed(o)}</b><div>${o._rev?'<span class="selo" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed66" title="Pedido de revendedor de carteira">🏷️ Revendedor</span>':selos(o)}</div></td><td>${esc(en.nome||'')}<div style="color:var(--muted);font-size:.8rem">${esc(cidadeDe(o))}</div></td><td>${temPrev(o)?brl(pedTotal(o)):totAdm(o)}${parcRow}</td>${mF?`<td>${fr!=null?brl(fr).slice(3):'<span style="color:var(--muted)">a combinar</span>'}</td>`:''}<td><b>${sp?'A confirmar':brl(total(o))}</b>${isCarteira&&!sp?`<div style="font-size:.78rem;color:var(--muted)">${(()=>{const r=prevRestante(o,total(o)),pg=Math.round((total(o)-r)*100)/100;return (pg>0?'Já pagou <b style="color:#16a34a">'+brl(pg)+'</b> · ':'')+'Falta <b style="color:#b45309">'+brl(r)+'</b>'})()}</div>`:''}</td><td>${esc(PAGNOME[(o.pagamento||{}).preferencia]||'')}</td><td style="white-space:nowrap">${temPrev(o)?(()=>{const p=prevProxima(o);return p?dataBc(p.data):''})():dataBr(dataRef(o))}</td><td>${stChip(o.status)} ${pagChipP(o)}${pagTag(o)}${A9.pagEnv[o.id]?'<div style="font-size:.78rem;color:#16a34a">✅ Link enviado no WhatsApp</div>':''}</td>
    <td style="white-space:nowrap">${pg?`${waBtn(o)} <button class="btn ghost sm" onclick="pagMarcar(${o.id},false)">Voltar para pendente</button>`:`<button class="btn wa sm" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})" ${o._rev?'style="display:none"':''}>${A9.pagEnv[o.id]?'Reenviar link':'Enviar link'}</button> ${waBtn(o)} <button class="btn sm" onclick="pagMarcar(${o.id},true)">Marcar pago total</button> <button class="btn ghost sm" onclick="pagDia(${o.id})">Programar</button>`} ${temFoto(o)?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button> `:''}<button class="btn ghost sm" onclick="admAbrirPedido(${o.id})" ${o._rev?'style="display:none"':''}>Abrir</button></td></tr>`;};
   const mostraFrete=A9.pagMostraFrete||false;
   const btnFrete=`<button class="btn ghost sm" onclick="A9.pagMostraFrete=${!mostraFrete};route()" style="font-size:.82rem">${mostraFrete?'🙈 Ocultar frete':'👁 Mostrar frete'}</button>`;
@@ -5408,7 +5408,7 @@ function tabDash(){
   const aguardaDash=L.filter(o=>aguardaPag(o)&&temPrev(o)===hoje);
   const concluidos100=L.filter(o=>o.status==='entregue'&&(o.pagamento||{}).status==='pago'&&!(o.extra||{}).cobranca);
   const pendSemData=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!temPrev(o));
-  const tot=o=>pedTotal(o)+(freteDoPedido(o)||0);
+  const tot=o=>totalPag(o);
   const k=(c,t,n,sub,go)=>`<button class="kc" style="--c:${c}" onclick="${go}"><div class="n">${n}</div><div class="t"><b>${t}</b></div><div class="t">${sub}</div></button>`;
   const cid={};ab.forEach(o=>{const c=cidadeDe(o)||'Sem cidade';const key=grpCid(c)||'sem';const x=cid[key]=cid[key]||{nome:key==='sjc'?'São José dos Campos + Jacareí + Caçapava':c,fc:key==='sjc'?'São José dos Campos':c,t:0};x.t++;const tn=(o.entrega||{}).turno;x[tn]=(x[tn]||0)+1});
   A9.dcid=Object.values(cid).sort((a,b)=>b.t-a.t);
@@ -6060,6 +6060,7 @@ function pagTag(o){
 /* ---- helpers pré-datados / parcelados ---- */
 function prevParcelas(o){const p=(o.extra||{}).pag_prev;if(!p)return[];if(typeof p==='string')return[{data:p,pago:false,pago_em:null}];return p}
 function dataBc(d){return d?dataBr(d):'data a confirmar'}
+function totalPag(o){return pedTotal(o)+((o.extra||{}).pag_incl_frete===false?0:(freteDoPedido(o)||0))}
 function prevProxima(o){return prevParcelas(o).find(p=>!p.pago)||null}
 function prevVencendo(o){const p=prevProxima(o);return !!(p&&p.data&&p.data<=hojeS())}
 function prevVencida(o){const p=prevProxima(o);return !!(p&&p.data&&p.data<hojeS())}
@@ -6072,12 +6073,13 @@ function pagDia(id){
   const o=pedAcha(id);if(!o)return;
   const ps=prevParcelas(o);const obs=(o.extra||{}).pag_obs||'';
   const ent=ps.find(p=>p.entrada)||null;const regulares=ps.filter(p=>!p.entrada);
-  const nAtual=regulares.length||1;const total=pedTotal(o)+(freteDoPedido(o)||0);
+  const nAtual=regulares.length||1;const totBase=pedTotal(o),frEnt=freteDoPedido(o)||0,inclFr=(o.extra||{}).pag_incl_frete!==false;const total=totBase+(inclFr?frEnt:0);
   const old=document.getElementById('pdbox');if(old)old.remove();
   const d=document.createElement('div');d.id='pdbox';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto';
   d.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:94vh;overflow:auto;padding:18px">
 <h3 style="margin:0 0 4px">Programar pagamento</h3>
-<p style="margin:0 0 12px;color:#667085;font-size:.88rem">${esc(codPed(o))} · ${esc((o.entrega||{}).nome||'')} · Total do pedido: <b>${total>0?esc(brl(total)):'a confirmar'}</b></p>
+<p style="margin:0 0 12px;color:#667085;font-size:.88rem">${esc(codPed(o))} · ${esc((o.entrega||{}).nome||'')} · Total a receber: <b id="pdTotTxt">${total>0?esc(brl(total)):'a confirmar'}</b></p>
+${frEnt>0?`<label style="display:flex;gap:8px;align-items:center;cursor:pointer;margin:0 0 12px;font-size:.88rem"><input type="checkbox" id="pdFrete" style="width:auto" ${inclFr?'checked':''} onchange="pdFreteMuda()"> Incluir a taxa de entrega (${esc(brl(frEnt))}) no valor total e dividir junto nas parcelas</label>`:''}
 <div style="display:flex;gap:10px;margin-bottom:12px;align-items:flex-end;flex-wrap:wrap">
   <div style="flex:1;min-width:120px"><label style="font-size:.82rem">Entrada (R$)</label><input id="pdEnt" inputmode="decimal" placeholder="0,00 (sem entrada)" value="${ent&&ent.valor?esc(pdMoeda(ent.valor)):''}" style="width:100%" oninput="pdGerarLinhas()"></div>
   <div style="flex:1;min-width:140px"><label style="font-size:.82rem">Data da entrada</label><input id="pdEntD" type="date" value="${esc(ent&&ent.data||hojeS())}" oninput="pdGerarLinhas()"></div>
@@ -6094,9 +6096,15 @@ function pagDia(id){
 <p id="pdMsg" style="font-size:.82rem;margin:6px 0 0"></p>
 </div>`;
   document.body.appendChild(d);
-  d._pdO=o;d._pdTotal=total;
+  d._pdO=o;d._pdTotal=total;d._pdBase=totBase;d._pdFr=frEnt;
   /* estado das linhas: guarda datas, valores e quem já pagou (os valores digitados à mão não são recalculados) */
   d._pdRows=ps.map(p=>({entrada:!!p.entrada,data:p.data||'',valor:+p.valor||0,pago:!!p.pago,pago_em:p.pago_em||null,man:!!p.valor}));
+  pdGerarLinhas();
+}
+function pdFreteMuda(){
+  const d=document.getElementById('pdbox'),c=document.getElementById('pdFrete');if(!d||!c)return;
+  d._pdTotal=(d._pdBase||0)+(c.checked?(d._pdFr||0):0);
+  const t=document.getElementById('pdTotTxt');if(t)t.textContent=d._pdTotal>0?brl(d._pdTotal):'a confirmar';
   pdGerarLinhas();
 }
 function pdAddDias(dateStr,n){
@@ -6159,7 +6167,7 @@ function pdResumo(){
   const el=document.getElementById('pdResumo'),d=document.getElementById('pdbox');if(!el||!d)return;
   const rs=pdLerLinhas();const soma=rs.reduce((s,r)=>s+(r.valor||0),0),rec=rs.filter(r=>r.pago).reduce((s,r)=>s+(r.valor||0),0);
   const tot=d._pdTotal||0;const dif=tot>0&&Math.abs(soma-tot)>0.009;
-  el.innerHTML=`Soma das parcelas: <b>${esc(brl(soma))}</b>${tot>0?` de <b>${esc(brl(tot))}</b>`:''} · Já recebido: <b style="color:#16a34a">${esc(brl(rec))}</b>${dif?`<br><span style="color:#d92d20">Atenção: a soma não bate com o total do pedido (diferença de ${esc(brl(Math.abs(tot-soma)))}).</span>`:''}`;
+  el.innerHTML=`Soma das parcelas: <b>${esc(brl(soma))}</b>${tot>0?` de <b>${esc(brl(tot))}</b>`:''} · Já recebido: <b style="color:#16a34a">${esc(brl(rec))}</b>${dif?`<br><span style="color:var(--muted)">${soma<tot?'Falta programar '+esc(brl(tot-soma))+' do total.':'As parcelas passam '+esc(brl(soma-tot))+' do total.'} Pode salvar assim mesmo.</span>`:''}`;
 }
 async function pagDiaSalvar(id){
   const d=document.getElementById('pdbox');if(!d)return;
@@ -6176,6 +6184,7 @@ async function pagDiaSalvar(id){
   }
   const ob=(document.getElementById('pdO')||{value:''}).value.trim();
   const ex=Object.assign({},o.extra||{},{pag_prev:prevForma(parcelas),pag_obs:ob||null});
+  const cf=document.getElementById('pdFrete');if(cf)ex.pag_incl_frete=cf.checked;
   if(!ex.pag_base)ex.pag_base=new Date(Date.parse(o.chegou_em||o.atualizado_em||o.criado_em)||Date.now()).toISOString();
   const upd={extra:ex};
   if(parcelas.every(p=>p.pago)&&(o.pagamento||{}).status!=='pago')upd.pagamento=Object.assign({},o.pagamento||{},{status:'pago',pago_em:new Date().toISOString()});
@@ -6262,7 +6271,7 @@ async function cobCriar(programar){
 /* ---- pagamento parcial de uma parcela: baixa o que foi pago e deixa o restante com nova data ---- */
 function prevValorParc(o,i){
   const ps=prevParcelas(o);if(!ps[i])return 0;if(+ps[i].valor>0)return +ps[i].valor;
-  const tot=pedTotal(o)+(freteDoPedido(o)||0);const conhecido=ps.reduce((s,p)=>s+(+p.valor>0?+p.valor:0),0);
+  const tot=totalPag(o);const conhecido=ps.reduce((s,p)=>s+(+p.valor>0?+p.valor:0),0);
   const sem=ps.filter(p=>!(+p.valor>0)).length||1;
   return Math.max(0,Math.round((tot-conhecido)/sem*100)/100);
 }
