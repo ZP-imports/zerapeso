@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-23-2446 -->
+<!-- v2026-10-23-2447 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+@media(min-width:700px){.tabs.adm{flex-wrap:wrap!important;overflow-x:visible!important}}.tabs.adm .qk{border:1px solid transparent;border-radius:999px;padding:.6em 1.2em;cursor:pointer;font:inherit;font-weight:600}.tabs.adm .qk-rev{background:#ede9fe;color:#6d28d9;border-color:#ddd6fe}.tabs.adm .qk-cli{background:#cffafe;color:#0e7490;border-color:#a5f3fc}.tabs.adm .qk-rev.on{background:#7c3aed;color:#fff}.tabs.adm .qk-cli.on{background:#0891b2;color:#fff}
 .pgsub{font-size:.76rem;color:var(--muted);margin-top:2px}.pgcli{max-width:170px}.pgval{min-width:185px}.pgval .pgsub{white-space:nowrap}.pglnk{display:inline-block;margin-top:3px;font-size:.76rem;color:#2563eb;cursor:pointer;font-weight:600}.pgdet{margin-top:5px}.pgdet summary{cursor:pointer;font-size:.78rem;font-weight:600;color:#2563eb}.pgbox{margin-top:6px;padding:8px 10px;background:#f8fafc;border:1px solid var(--line);border-radius:10px;min-width:270px}.pgpt{margin-top:6px;font-size:.76rem;border-collapse:collapse}.pgpt td{padding:2px 8px 2px 0;border:0!important;white-space:nowrap;box-shadow:none!important}.pgpt tr{box-shadow:none!important;background:transparent!important}.pgbox .btn{padding:3px 10px!important;font-size:.76rem!important;min-height:0!important}.pgbtns{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.pghl{margin:8px 0 0;padding-left:16px;font-size:.78rem;line-height:1.5}.pgx{color:var(--muted)}.pgsit{min-width:90px}.btn.bs-wa{background:#ecfdf3;color:#067647;border:1px solid #abefc6}.btn.bs-ok{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}.pulsa{animation:pagpulsa 1s ease-in-out infinite}.selo{white-space:nowrap}.selo.gray{background:#e5e7eb;color:#374151}.kc.pulsa{box-shadow:0 0 0 3px rgba(124,58,237,.35)}
 .pagpulsa{display:inline-block;margin-top:4px;padding:5px 9px;border-radius:8px;background:#fee4e2;color:#b42318;font-weight:800;font-size:.78rem;cursor:pointer;animation:pagpulsa 1s ease-in-out infinite}@keyframes pagpulsa{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(1.05)}}
 .parc-venc{background:#fff5f5!important;outline:2px solid #fca5a5}.parc-venc td:first-child{border-left:4px solid #ef4444}.parc-atrs{background:#fff0f0!important;outline:2px solid #f87171}.parc-atrs td:first-child{border-left:4px solid #dc2626}.parc-chip{display:inline-block;padding:2px 7px;border-radius:6px;font-size:.75rem;font-weight:700;white-space:nowrap}.parc-paga{background:#dcfce7;color:#15803d}.parc-pend{background:#fee2e2;color:#b91c1c}.parc-ok{background:#e0f2fe;color:#0369a1}
@@ -5262,7 +5263,7 @@ function selos(o){
 function pagChipP(o){const p=o.pagamento||{};return p.status==='pago'?'<span class="stchip" style="--c:#16a34a">Pago</span>':'<span class="stchip" style="--c:#d97706">Pendente</span>'}
 
 /* filtros (cidade, turno, quando) */
-A9.fc='';A9.ft='';A9.fq='';A9.mais=false;A9.pagEnv={};A9.pf='cobrar';A9.cores=A9.cores||{};
+A9.fc='';A9.ft='';A9.fq='';A9.mais=null;A9.pagEnv={};A9.pf='cobrar';A9.cores=A9.cores||{};
 var grpCid=c=>cidNorm(c);
 /* cidades soltas, com seleção por flag */
 function cidFlag(id,val,cb){const sel=String(val||'').split('|').filter(Boolean).map(cidNorm);const L=cidadesPed();
@@ -5594,10 +5595,15 @@ function corCampo(e){
   return `<div class="c3"><label for="enCor">Cor do entregador</label><div class="swatches">${COR_PAL.map(c=>`<button type="button" class="sw ${cor===c?'on':''}" data-c="${c}" style="background:${c}" onclick="entCor('${c}')" aria-label="Cor ${c}"></button>`).join('')}<input type="color" id="enCor" value="${cor}" oninput="entCor(this.value)" style="width:42px;height:32px;padding:0"></div></div>`;
 }
 function abasHtml(tabs,extra){
-  const btn=t=>`<button class="${A.tab===t[0]?'on':''}" onclick="admTab('${t[0]}')">${t[1]}</button>`;
-  const main=tabs.filter(t=>!extra.includes(t[0])),ex=tabs.filter(t=>extra.includes(t[0]));
-  const aberto=A9.mais||ex.some(t=>t[0]===A.tab);
-  return `<div class="tabs adm">${main.map(btn).join('')}${ex.length?`<button class="maisb" onclick="A9.mais=${!aberto};route()">${aberto?'Menos ▴':'Mais opções ▾'}</button>`:''}</div>${ex.length&&aberto?`<div class="tabs adm sec">${ex.map(btn).join('')}</div>`:''}`;
+  const btn=t=>`<button class="${A.tab===t[0]?'on':''}" onclick="A9.mais=null;admTab('${t[0]}')">${t[1]}</button>`;
+  /* Revendedores e Clientes ficam sempre à vista, ao lado do botão Mais/Menos, cada um com a sua cor */
+  const QK={revendedores:'qk-rev',clientes:'qk-cli'};
+  const quick=['revendedores','clientes'].map(k=>tabs.find(t=>t[0]===k)).filter(Boolean);
+  const qbtn=t=>`<button class="qk ${QK[t[0]]}${A.tab===t[0]?' on':''}" onclick="A9.mais=null;admTab('${t[0]}')">${t[1]}</button>`;
+  const main=tabs.filter(t=>!extra.includes(t[0])&&!QK[t[0]]),ex=tabs.filter(t=>extra.includes(t[0])&&!QK[t[0]]);
+  /* A9.mais: true/false = escolha da pessoa; vazio = abre sozinho quando está numa aba do grupo */
+  const aberto=A9.mais===true?true:A9.mais===false?false:ex.some(t=>t[0]===A.tab);
+  return `<div class="tabs adm">${main.map(btn).join('')}${ex.length?`<button class="maisb" onclick="A9.mais=${!aberto};route()">${aberto?'Menos ▴':'Mais opções ▾'}</button>`:''}${quick.map(qbtn).join('')}</div>${ex.length&&aberto?`<div class="tabs adm sec">${ex.map(btn).join('')}</div>`:''}`;
 }
 
 /* ======================= ANDAMENTO DO PEDIDO (BARRA DE ETAPAS) E ROTAS POR ENTREGADOR ======================= */
