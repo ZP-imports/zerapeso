@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-23-2454 -->
+<!-- v2026-10-23-2455 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5414,10 +5414,10 @@ function tabPagamentos(){
    /* dentro da setinha: forma, parcelas, marcar pago, programar e histórico */
    const forma=PAGNOME[(o.pagamento||{}).preferencia]||'';
    const tabParc=ps.length?'<table class="pgpt">'+ps.map((p,i)=>'<tr><td><b>'+(p.entrada?'Entrada':ps.length===1?'1ª':(i+1-(ps[0].entrada?1:0))+'ª')+'</b></td><td>'+dataBc(p.data)+'</td><td>'+(p.valor?esc(brl(p.valor)):'')+'</td><td>'+(p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':'<span class="parc-chip parc-pend">pendente</span>')+'</td><td>'+(p.pago?'<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar('+o.id+','+i+',false)" title="Volta o valor para a parcela, como se não tivesse sido pago">↩ desfazer</button>'+(p.parcial?' <button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevCorrigir('+o.id+','+i+')" title="Desfaz e já abre para lançar o valor certo">✏️ corrigir valor</button>':''):'<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar('+o.id+','+i+',true)">Marcar pago</button> <button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevParcial('+o.id+','+i+')">Pagou parte</button>')+'</td></tr>').join('')+'</table>':'';
-   const detalhe='<details class="pgdet"><summary>Pagamento e histórico</summary><div class="pgbox">'+
+   const detalhe='<details class="pgdet"'+((A9.pagAb&&A9.pagAb[o.id])?' open':'')+' ontoggle="pagAb('+o.id+',this.open)"><summary>Pagamento e histórico</summary><div class="pgbox">'+
      '<div class="pgsub"><b>Forma de pagamento:</b> '+(forma?esc(forma):'não informada')+'</div>'+pagUnidosHtml(o)+tabParc+
      '<div class="pgbtns">'+(pg?'<button class="btn ghost sm" onclick="pagMarcar('+o.id+',false)">Voltar para pendente</button>':'<button class="btn sm bs-ok" onclick="pagMarcar('+o.id+',true)">Marcar pago total</button><button class="btn ghost sm" onclick="pagProg('+o.id+')">'+(ps.length?'Reprogramar':'Programar')+'</button>'+(o._rev?'':'<button class="btn ghost sm" onclick="pagUnirAbrir('+o.id+')" title="Soma outra compra dele nesta cobrança">🔗 Unir cobrança</button>'))+'<button class="btn ghost sm" onclick="pagHist('+o.id+')">📜 Histórico</button></div>'+
-     '<div id="pghist'+o.id+'"></div></div></details>';
+     '<div id="pghist'+o.id+'"'+((A9.pagHistH&&A9.pagHistH[o.id])?' data-open="1">'+A9.pagHistH[o.id]:'>')+'</div></div></details>';
    const valor=sp?'A confirmar':(isCarteira&&semVal(o))?'<span style="color:#d92d20">Sem valor</span>':brl(total(o));
    const venTxt=temPrev(o)?(()=>{const p=prevProxima(o);return p?dataBc(p.data):''})():dataBr(dataRef(o));
    /* situação enxuta: só o andamento do pedido e o aviso do dia do pagamento */
@@ -5453,9 +5453,10 @@ function pagEnviar(id){
   route();
 }
 /* ---- histórico de pagamento/cobrança do pedido (link enviado, pagamentos). Repetidos no mesmo dia viram "2x" ---- */
+function pagAb(id,v){A9.pagAb=A9.pagAb||{};if(v)A9.pagAb[id]=true;else delete A9.pagAb[id]}
 async function pagHist(id){
   const box=document.getElementById('pghist'+id);if(!box)return;
-  if(box.dataset.open==='1'){box.innerHTML='';box.dataset.open='0';return}
+  if(box.dataset.open==='1'){box.innerHTML='';box.dataset.open='0';if(A9.pagHistH)delete A9.pagHistH[id];return}
   box.dataset.open='1';box.innerHTML='<span class="pgsub">Carregando...</span>';
   const o=pedAcha(id);let linhas=[];
   try{
@@ -5471,6 +5472,7 @@ async function pagHist(id){
   }catch(e){}
   const ag=[];linhas.forEach(l=>{const dia=String(l.t||'').slice(0,10),u=ag[ag.length-1];if(u&&u.dia===dia&&u.tx===l.tx)u.n++;else ag.push({dia,tx:l.tx,n:1,t:l.t})});
   box.innerHTML=ag.length?'<ul class="pghl">'+ag.map(a=>'<li><b>'+esc(dataBr(a.dia))+'</b> · '+esc(a.tx)+(a.n>1?' <span class="pgx">('+a.n+'x no mesmo dia)</span>':'')+'</li>').join('')+'</ul>':'<span class="pgsub">Ainda não há histórico para este pedido.</span>';
+  A9.pagHistH=A9.pagHistH||{};A9.pagHistH[id]=box.innerHTML;
 }
 function pagProg(id){
   const o=pedAcha(id);if(!o)return;
