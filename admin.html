@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-23-2447 -->
+<!-- v2026-10-23-2448 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -3243,7 +3243,7 @@ async function admRepasseDisparar(){
 }
 function admRepasseWa(id){
   const r=((A9.revs||{}).lista||[]).find(x=>x.id===id);if(!r||!r.telefone)return;
-  waApp(foneWa(r.telefone),'Olá, '+String(r.nome||'').split(' ')[0]+'! O catálogo de repasse da ZP Imports foi atualizado, já com o seu desconto de '+(r.desconto_pct||0)+'%. Entre no portal para ver os novos valores: '+location.origin+'/revenda.html');
+  waApp(foneWa(r.telefone),'Olá, '+String(r.nome||'').split(' ')[0]+'! O catálogo de repasse da ZP Imports foi atualizado, já com o seu desconto de '+(r.desconto_pct||0)+'%. Entre no portal para ver os novos valores: '+location.origin+'/portal');
 }
 async function admRepasseCopiar(){
   const R=A9.revs,base=repasseMapa();
