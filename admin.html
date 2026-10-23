@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-23-2453 -->
+<!-- v2026-10-23-2454 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5379,7 +5379,7 @@ function tabPagamentos(){
   if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
   if(!A9.linkCarregado&&!A9.busyL){A9.busyL=true;admCarregarLink().catch(()=>{}).finally(()=>{A9.busyL=false;A9.linkCarregado=true;route()})}
   if(A9.revCart===undefined)admCarregarRevCart();revCartPrep();
-  const L=A9.pedidos.concat(A9.revCart||[]),total=o=>totalPag(o);
+  const L=A9.pedidos.filter(o=>!(o.extra||{}).pag_unido_em).concat(A9.revCart||[]),total=o=>totalPag(o);
   const temPrev=o=>(o.extra||{}).pag_prev;
   // 4 seções: pendentes → andamento → carteira → pagos
   const pendentes=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!A9.pagEnv[o.id]&&!temPrev(o));
@@ -5415,8 +5415,8 @@ function tabPagamentos(){
    const forma=PAGNOME[(o.pagamento||{}).preferencia]||'';
    const tabParc=ps.length?'<table class="pgpt">'+ps.map((p,i)=>'<tr><td><b>'+(p.entrada?'Entrada':ps.length===1?'1ª':(i+1-(ps[0].entrada?1:0))+'ª')+'</b></td><td>'+dataBc(p.data)+'</td><td>'+(p.valor?esc(brl(p.valor)):'')+'</td><td>'+(p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':'<span class="parc-chip parc-pend">pendente</span>')+'</td><td>'+(p.pago?'<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar('+o.id+','+i+',false)" title="Volta o valor para a parcela, como se não tivesse sido pago">↩ desfazer</button>'+(p.parcial?' <button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevCorrigir('+o.id+','+i+')" title="Desfaz e já abre para lançar o valor certo">✏️ corrigir valor</button>':''):'<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar('+o.id+','+i+',true)">Marcar pago</button> <button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevParcial('+o.id+','+i+')">Pagou parte</button>')+'</td></tr>').join('')+'</table>':'';
    const detalhe='<details class="pgdet"><summary>Pagamento e histórico</summary><div class="pgbox">'+
-     '<div class="pgsub"><b>Forma de pagamento:</b> '+(forma?esc(forma):'não informada')+'</div>'+tabParc+
-     '<div class="pgbtns">'+(pg?'<button class="btn ghost sm" onclick="pagMarcar('+o.id+',false)">Voltar para pendente</button>':'<button class="btn sm bs-ok" onclick="pagMarcar('+o.id+',true)">Marcar pago total</button><button class="btn ghost sm" onclick="pagProg('+o.id+')">'+(ps.length?'Reprogramar':'Programar')+'</button>')+'<button class="btn ghost sm" onclick="pagHist('+o.id+')">📜 Histórico</button></div>'+
+     '<div class="pgsub"><b>Forma de pagamento:</b> '+(forma?esc(forma):'não informada')+'</div>'+pagUnidosHtml(o)+tabParc+
+     '<div class="pgbtns">'+(pg?'<button class="btn ghost sm" onclick="pagMarcar('+o.id+',false)">Voltar para pendente</button>':'<button class="btn sm bs-ok" onclick="pagMarcar('+o.id+',true)">Marcar pago total</button><button class="btn ghost sm" onclick="pagProg('+o.id+')">'+(ps.length?'Reprogramar':'Programar')+'</button>'+(o._rev?'':'<button class="btn ghost sm" onclick="pagUnirAbrir('+o.id+')" title="Soma outra compra dele nesta cobrança">🔗 Unir cobrança</button>'))+'<button class="btn ghost sm" onclick="pagHist('+o.id+')">📜 Histórico</button></div>'+
      '<div id="pghist'+o.id+'"></div></div></details>';
    const valor=sp?'A confirmar':(isCarteira&&semVal(o))?'<span style="color:#d92d20">Sem valor</span>':brl(total(o));
    const venTxt=temPrev(o)?(()=>{const p=prevProxima(o);return p?dataBc(p.data):''})():dataBr(dataRef(o));
@@ -5477,9 +5477,71 @@ function pagProg(id){
   if((o.extra||{}).pag_prev&&prevParcelas(o).some(p=>p.data)&&!confirm('Este pedido já tem data programada. Deseja reprogramar?'))return;
   pagDia(id);
 }
+/* ---- somar cobranças: o cliente comprou de novo, o Wesley une as compras numa cobrança só e programa o total ---- */
+function pagUnidosHtml(o){
+  const u=(o.extra||{}).pag_unidos||[];if(!u.length)return '';
+  return '<div class="pgsub" style="margin-top:6px"><b>Cobranças unidas nesta:</b><ul class="pghl" style="margin-top:2px">'+u.map(x=>'<li>'+esc(x.cod||'')+' · '+esc(brl(x.valor))+' <a class="pglnk" onclick="pagSeparar('+o.id+','+x.id+')">separar</a></li>').join('')+'</ul></div>';
+}
+function pagValorFalta(x){return temPrevX(x)?prevRestante(x,totalPag(x)):totalPag(x)}
+function temPrevX(x){return !!(x.extra||{}).pag_prev}
+function pagUnirAbrir(id){
+  const o=pedAcha(id);if(!o)return;
+  const fn=cliNormFone((o.entrega||{}).fone);
+  const lista=(A9.pedidos||[]).filter(x=>x.id!==id&&x.status!=='cancelado'&&aguardaPag(x)&&!(x.extra||{}).pag_unido_em&&!((x.extra||{}).pag_unidos||[]).length&&pagValorFalta(x)>0)
+    .map(x=>({x,igual:!!fn&&cliNormFone((x.entrega||{}).fone)===fn})).sort((a,b)=>(b.igual-a.igual)||b.x.id-a.x.id).slice(0,60);
+  if(!lista.length){toast('Não há outra cobrança em aberto para unir.');return}
+  const corpo='<p style="margin:0 0 8px;font-size:.9rem">Soma as compras abaixo na cobrança <b>'+esc(codPed(o))+'</b> ('+esc((o.entrega||{}).nome||'')+'). O valor que falta de cada uma entra no total e você programa tudo junto. As compras unidas saem da Carteira e continuam em Pedidos.</p>'+
+    lista.map(l=>'<label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:6px 0;font-size:.88rem"><input type="checkbox" name="unir" value="'+l.x.id+'" '+(l.igual?'checked':'')+' style="width:auto;margin-top:3px"><span><b>'+esc(codPed(l.x))+'</b> · '+esc((l.x.entrega||{}).nome||'')+' · falta <b>'+esc(brl(pagValorFalta(l.x)))+'</b>'+(l.igual?' <span class="selo" style="background:#dcfce7;color:#166534">mesmo cliente</span>':'')+'</span></label>').join('');
+  cliModal('unbox','Unir cobranças',corpo,'<button class="btn acc" onclick="pagUnirSalvar('+id+')">Unir e programar</button><button class="btn ghost" onclick="document.getElementById(\'unbox\').remove()">Fechar</button>');
+}
+async function pagUnirSalvar(id){
+  const o=pedAcha(id);if(!o||A9.busy)return;
+  const ids=[...document.querySelectorAll('input[name="unir"]:checked')].map(e=>+e.value);
+  if(!ids.length){toast('Marque pelo menos uma compra.');return}
+  A9.busy=true;
+  try{
+    const un=((o.extra||{}).pag_unidos||[]).slice();
+    for(const xid of ids){
+      const x=(A9.pedidos||[]).find(p=>p.id===xid);if(!x)continue;
+      const valor=Math.round(pagValorFalta(x)*100)/100;if(valor<=0)continue;
+      const exX=Object.assign({},x.extra||{},{pag_unido_em:id,pag_unido_valor:valor});
+      const r=await SB.from('pedidos').update({extra:exX}).eq('id',xid);
+      if(r.error){toast('Erro ao unir: '+r.error.message);A9.busy=false;return}
+      x.extra=exX;un.push({id:xid,valor,cod:codPed(x)});
+    }
+    const ex=Object.assign({},o.extra||{},{pag_unidos:un});
+    const r2=await SB.from('pedidos').update({extra:ex}).eq('id',id);
+    if(r2.error){toast('Erro ao unir: '+r2.error.message);A9.busy=false;return}
+    o.extra=ex;
+    pedEvento({pedido_id:id,tipo:'pagamento',publico:false,texto:'Cobranças unidas: '+un.map(u=>u.cod+' ('+brl(u.valor)+')').join(', '),por:ADMIN.nome}).then(()=>{},()=>{});
+  }catch(e){toast('Erro: '+(e.message||e));A9.busy=false;return}
+  A9.busy=false;
+  const el=document.getElementById('unbox');if(el)el.remove();
+  toast('Cobranças unidas. Total agora: '+brl(totalPag(o))+'. Programe o pagamento.');route();pagDia(id);
+}
+async function pagSeparar(id,xid){
+  const o=pedAcha(id),x=(A9.pedidos||[]).find(p=>p.id===xid);if(!o||A9.busy)return;
+  if(!confirm('Separar esta cobrança? O valor dela sai do total desta e ela volta a aparecer sozinha.'))return;
+  A9.busy=true;
+  const ex=Object.assign({},o.extra||{},{pag_unidos:((o.extra||{}).pag_unidos||[]).filter(u=>u.id!==xid)});
+  const r=await SB.from('pedidos').update({extra:ex}).eq('id',id);
+  if(!r.error&&x){const exX=Object.assign({},x.extra||{});delete exX.pag_unido_em;delete exX.pag_unido_valor;const r2=await SB.from('pedidos').update({extra:exX}).eq('id',xid);if(!r2.error)x.extra=exX}
+  A9.busy=false;
+  if(r.error){toast('Erro ao separar: '+r.error.message);return}
+  o.extra=ex;toast('Cobrança separada. Use Reprogramar para ajustar as parcelas.');route();
+}
+async function pagQuitarUnidos(o,pago){
+  const un=(o.extra||{}).pag_unidos||[];
+  for(const u of un){
+    const x=(A9.pedidos||[]).find(p=>p.id===u.id);if(!x)continue;
+    const pg=Object.assign({},x.pagamento||{},pago?{status:'pago',pago_em:new Date().toISOString()}:{status:'pendente',pago_em:null});
+    const r=await SB.from('pedidos').update({pagamento:pg}).eq('id',x.id);if(!r.error)x.pagamento=pg;
+  }
+}
 async function pagMarcar(id,v){
   if(id<0)return revPagoTotal(id,v);
   const r=await SB.rpc('registrar_pagamento',{p_pedido:id,p_pago:v});
+  const po0=pedAcha(id);if(po0&&!r.error)await pagQuitarUnidos(po0,v);
   if(r.error){A9.msg=msgRpc(r.error);A9.erro=true}else{A9.msg=v?'Pagamento registrado como recebido.':'Pagamento voltou para pendente.';A9.erro=false;A9.pedidos=null}
   route();
 }
@@ -5532,10 +5594,10 @@ function tabDash(){
   const cobrar=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!A9.pagEnv[o.id]),pend=L.filter(o=>aguardaPag(o)&&!cobrar.includes(o)),pagos=L.filter(o=>(o.pagamento||{}).status==='pago'),entregues=L.filter(o=>o.status==='entregue');
   const temPrev=o=>(o.extra||{}).pag_prev;
   if(A9.revCart===undefined)admCarregarRevCart();revCartPrep();
-  const carteiraDash=L.concat(A9.revCart||[]).filter(o=>temPrev(o)&&(o.pagamento||{}).status!=='pago');
+  const carteiraDash=L.concat(A9.revCart||[]).filter(o=>temPrev(o)&&!(o.extra||{}).pag_unido_em&&(o.pagamento||{}).status!=='pago');
   const aguardaDash=L.filter(o=>aguardaPag(o)&&temPrev(o)===hoje);
   const concluidos100=L.filter(o=>o.status==='entregue'&&(o.pagamento||{}).status==='pago'&&!(o.extra||{}).cobranca);
-  const pendSemData=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!temPrev(o));
+  const pendSemData=L.filter(o=>o.status==='entregue'&&aguardaPag(o)&&!temPrev(o)&&!(o.extra||{}).pag_unido_em);
   const tot=o=>totalPag(o);
   const k=(c,t,n,sub,go)=>`<button class="kc" style="--c:${c}" onclick="${go}"><div class="n">${n}</div><div class="t"><b>${t}</b></div><div class="t">${sub}</div></button>`;
   const cid={};ab.forEach(o=>{const c=cidadeDe(o)||'Sem cidade';const key=grpCid(c)||'sem';const x=cid[key]=cid[key]||{nome:key==='sjc'?'São José dos Campos + Jacareí + Caçapava':c,fc:key==='sjc'?'São José dos Campos':c,t:0};x.t++;const tn=(o.entrega||{}).turno;x[tn]=(x[tn]||0)+1});
@@ -6193,11 +6255,13 @@ function pagTag(o){
 /* ---- helpers pré-datados / parcelados ---- */
 function prevParcelas(o){const p=(o.extra||{}).pag_prev;if(!p)return[];if(typeof p==='string')return[{data:p,pago:false,pago_em:null}];return p}
 function dataBc(d){return d?dataBr(d):'data a confirmar'}
-function totalBase(o){const v=+((o.extra||{}).pag_valor);return v>0?v:pedTotal(o)}
+function somaUnidos(o){return ((o.extra||{}).pag_unidos||[]).reduce((s,u)=>s+(+u.valor||0),0)}
+function totalBase(o){const v=+((o.extra||{}).pag_valor);return (v>0?v:pedTotal(o))+somaUnidos(o)}
 function totalPag(o){
   const ps=prevParcelas(o);
-  if(ps.length&&ps.every(p=>+p.valor>0))return Math.round(ps.reduce((s,p)=>s+(+p.valor),0)*100)/100;
-  return totalBase(o)+((o.extra||{}).pag_incl_frete===false?0:(freteDoPedido(o)||0));
+  const cheio=totalBase(o)+((o.extra||{}).pag_incl_frete===false?0:(freteDoPedido(o)||0));
+  if(ps.length&&ps.every(p=>+p.valor>0)){const s=Math.round(ps.reduce((x,p)=>x+(+p.valor),0)*100)/100;return somaUnidos(o)>0?Math.max(s,cheio):s}
+  return cheio;
 }
 function prevProxima(o){return prevParcelas(o).find(p=>!p.pago)||null}
 function prevVencendo(o){const p=prevProxima(o);return !!(p&&p.data&&p.data<=hojeS())}
@@ -6235,14 +6299,14 @@ ${frEnt>0?`<label style="display:flex;gap:8px;align-items:center;cursor:pointer;
 <p id="pdMsg" style="font-size:.82rem;margin:6px 0 0"></p>
 </div>`;
   document.body.appendChild(d);
-  d._pdO=o;d._pdTotal=total;d._pdBase=totBase;d._pdFr=frEnt;
+  d._pdO=o;d._pdTotal=total;d._pdBase=totBase;d._pdFr=frEnt;d._pdUn=somaUnidos(o);
   /* estado das linhas: guarda datas, valores e quem já pagou (os valores digitados à mão não são recalculados) */
   d._pdRows=ps.map(p=>({entrada:!!p.entrada,data:p.data||'',valor:+p.valor||0,pago:!!p.pago,pago_em:p.pago_em||null,man:!!p.valor}));
   pdGerarLinhas();
 }
 function pdFreteMuda(){
   const d=document.getElementById('pdbox'),c=document.getElementById('pdFrete'),vt=document.getElementById('pdValTot');if(!d||(!c&&!vt))return;
-  if(vt)d._pdBase=pdNum(vt.value);
+  if(vt)d._pdBase=pdNum(vt.value)+(d._pdUn||0);
   d._pdTotal=(d._pdBase||0)+((!c||c.checked)?(d._pdFr||0):0);
   const t=document.getElementById('pdTotTxt');if(t)t.textContent=d._pdTotal>0?brl(d._pdTotal):'a confirmar';
   pdGerarLinhas();
@@ -6332,6 +6396,7 @@ async function pagDiaSalvar(id){
   const r=await pedSalva(o,id,upd);
   if(r.error){if(msg)msg.innerHTML=`<span style="color:#d92d20">Erro: ${esc(r.error.message)}</span>`;return;}
   o.extra=ex;if(upd.pagamento)o.pagamento=upd.pagamento;
+  if(upd.pagamento&&upd.pagamento.status==='pago')await pagQuitarUnidos(o,true);
   const nPagas=parcelas.filter(p=>p.pago).length;
   const temE=parcelas.some(p=>p.entrada);
   const txt=parcelas.length===1&&!temE?`Pagamento programado para ${dataBr(parcelas[0].data)}`:`Pagamento parcelado${temE?' com entrada':''} em ${parcelas.length-(temE?1:0)}x — ${nPagas}/${parcelas.length} recebidas`;
@@ -6457,6 +6522,7 @@ async function parSalvar(){
   A9.busy=true;const r=await pedSalva(o,e.id,upd);A9.busy=false;
   if(r.error){erro('Erro ao salvar: '+r.error.message);return}
   o.extra=ex;if(upd.pagamento)o.pagamento=upd.pagamento;
+  if(todasPagas)await pagQuitarUnidos(o,true);
   const txt='Pagamento parcial: '+brl(pago)+(rest>0?', restante '+brl(rest)+' até '+dataBr(data):' (parcela quitada)');
   pedEvento({pedido_id:e.id,tipo:'pagamento',publico:false,texto:txt,por:ADMIN.nome}).then(()=>{},()=>{});
   const el=document.getElementById('parbox');if(el)el.remove();A9.parcEd=null;
@@ -6485,6 +6551,7 @@ async function prevMarcar(id,idx,pago){
   const r=await pedSalva(o,id,upd);
   if(r.error){toast('Erro ao salvar.');return;}
   o.extra=ex;if(upd.pagamento)o.pagamento=upd.pagamento;
+  if(todasPagas)await pagQuitarUnidos(o,true);else if(!pago&&eraPago)await pagQuitarUnidos(o,false);
   const txt=pago?`${idx+1}ª parcela marcada como paga`:desfezParcial?`Pagamento parcial de ${brl(desfezParcial.pago)} desfeito — a parcela voltou a ser de ${brl(desfezParcial.volta)}`:`${idx+1}ª parcela revertida para pendente`;
   pedEvento({pedido_id:id,tipo:'pagamento',publico:false,texto:txt+(todasPagas?' — todas as parcelas pagas!':''),por:ADMIN.nome}).then(()=>{},()=>{});
   toast(txt+(todasPagas?' ✅ Pedido totalmente pago!':'.')+'');if(todasPagas)A9.pedidos=null;route();
@@ -7016,6 +7083,23 @@ async function admCarregarClientes(){
         }
       });
     }catch(xi){}
+    try{const cu=await SB.from('configuracao').select('valor').eq('chave','clientes_unidos').maybeSingle();A9.cliUnidos=(cu.data&&cu.data.valor&&cu.data.valor.grupos)||[]}catch(xu){A9.cliUnidos=A9.cliUnidos||[]}
+    (A9.cliUnidos||[]).forEach(g=>{
+      const achar=(k,f)=>Object.values(M).find(c=>c.k===k||(f&&cliNormFone(c.fone)&&cliNormFone(c.fone)===cliNormFone(f)));
+      const p=achar(g.k,g.f);if(!p)return;
+      p.fones=[p.fone].filter(Boolean);p.unido=true;
+      (g.outros||[]).forEach(o=>{
+        const c=achar(o.k,o.f);
+        if(c&&c!==p){
+          if(!p.email&&c.email)p.email=c.email;if(!p.cidade&&c.cidade)p.cidade=c.cidade;
+          p.n+=c.n;p.ent+=c.ent;p.tot+=c.tot;
+          if(c.ult&&(!p.ult||c.ult>p.ult))p.ult=c.ult;
+          if(c.fone&&!p.fones.some(x=>cliNormFone(x)===cliNormFone(c.fone)))p.fones.push(c.fone);
+          delete M[c.k];
+        }
+        if(o.f&&!p.fones.some(x=>cliNormFone(x)===cliNormFone(o.f)))p.fones.push(o.f);
+      });
+    });
     try{const oc=await SB.from('configuracao').select('valor').eq('chave','clientes_ocultos').maybeSingle();A9.cliOcultos=(oc.data&&oc.data.valor&&oc.data.valor.lista)||[]}catch(xo){A9.cliOcultos=A9.cliOcultos||[]}
     const oculto=c=>{const fn=cliNormFone(c.fone);return (A9.cliOcultos||[]).some(o=>(o.k===c.k||(fn&&o.f===fn))&&(!c.ult||String(c.ult)<=String(o.em)))};
     A9.clientes=Object.values(M).filter(c=>!oculto(c));
@@ -7185,6 +7269,36 @@ async function cliSalvar(){
   A9.cliEd=null;A9.clientes=null;toast(parcial?'Salvo, mas falta rodar o arquivo 26 no Supabase para guardar o endereço completo.':'Cadastro salvo.');route();
 }
 
+/* ---- unir contatos: a mesma pessoa com 2 ou 3 telefones/cadastros vira um cliente só (pedidos e totais somados) ---- */
+function cliUnirAbrir(){
+  const sel=(A9.clientes||[]).filter(c=>A9.cliSel[c.k]);
+  if(sel.length<2){toast('Marque 2 ou mais clientes para unir.');return}
+  const corpo='<p style="margin:0 0 8px;font-size:.9rem">Escolha o cadastro que <b>fica como principal</b>. Os outros telefones e os pedidos deles passam a aparecer nele. Nada é apagado e dá para separar depois.</p>'+
+    sel.map((c,i)=>'<label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:6px 0;font-size:.88rem"><input type="radio" name="unp" value="'+esc(c.k)+'" '+(i===0?'checked':'')+' style="width:auto;margin-top:3px"><span><b>'+esc(c.nome||'(sem nome)')+'</b> · '+esc(c.fone||'sem telefone')+' · '+c.n+' pedido'+(c.n===1?'':'s')+'</span></label>').join('');
+  cliModal('unibox','Unir contatos',corpo,'<button class="btn acc" onclick="cliUnirSalvar()">Unir</button><button class="btn ghost" onclick="document.getElementById(\'unibox\').remove()">Fechar</button>');
+}
+async function cliUnirSalvar(){
+  const sel=(A9.clientes||[]).filter(c=>A9.cliSel[c.k]);if(sel.length<2||A9.busy)return;
+  const m=document.querySelector('input[name="unp"]:checked');const pk=m?m.value:sel[0].k;
+  const p=sel.find(c=>c.k===pk)||sel[0];
+  const outros=sel.filter(c=>c!==p).map(c=>({k:c.k,f:c.fone||'',nome:c.nome||''}));
+  A9.busy=true;
+  const grupos=(A9.cliUnidos||[]).filter(g=>g.k!==p.k&&!outros.some(o=>o.k===g.k));
+  const ja=(A9.cliUnidos||[]).find(g=>g.k===p.k);
+  grupos.push({k:p.k,f:p.fone||'',outros:((ja&&ja.outros)||[]).concat(outros)});
+  const r=await SB.from('configuracao').upsert({chave:'clientes_unidos',valor:{grupos},publica:false,atualizado_em:new Date().toISOString()});
+  A9.busy=false;
+  if(r.error){toast('Não foi possível unir: '+r.error.message);return}
+  A9.cliUnidos=grupos;const el=document.getElementById('unibox');if(el)el.remove();
+  A9.cliSel={};A9.clientes=null;route();toast('Contatos unidos em '+(p.nome||'cliente')+'.');
+}
+async function cliSeparar(k){
+  if(!confirm('Separar os contatos deste cliente? Cada telefone volta a aparecer como cliente próprio.'))return;
+  const grupos=(A9.cliUnidos||[]).filter(g=>g.k!==k);
+  const r=await SB.from('configuracao').upsert({chave:'clientes_unidos',valor:{grupos},publica:false,atualizado_em:new Date().toISOString()});
+  if(r.error){toast('Não foi possível separar: '+r.error.message);return}
+  A9.cliUnidos=grupos;A9.clientes=null;route();toast('Contatos separados.');
+}
 function cliExcluir(){cliApagar((A9.clientes||[]).filter(c=>A9.cliSel[c.k]))}
 async function cliApagar(cs){
   cs=(cs||[]).filter(Boolean);if(!cs.length||A9.busy)return;
@@ -7438,7 +7552,7 @@ async function cliNovoSalvar(){
 function tabClientes(){
   if(!A9.clientes){if(!A9.cliBusy)admCarregarClientes();return '<div class="box">Carregando clientes...</div>'}
   const q=String(A9.cliQ||'').toLowerCase(),f=A9.cliF||'';
-  let L=A9.clientes.filter(c=>(!q||(c.nome+' '+c.fone+' '+c.email+' '+c.cidade+' '+(c.cep||'')).toLowerCase().includes(q))&&(f!=='fiel'||c.n>=CLI_META));
+  let L=A9.clientes.filter(c=>(!q||(c.nome+' '+c.fone+' '+(c.fones||[]).join(' ')+' '+c.email+' '+c.cidade+' '+(c.cep||'')).toLowerCase().includes(q))&&(f!=='fiel'||c.n>=CLI_META));
   L.sort((a,b)=>b.n-a.n||String(b.ult||'').localeCompare(String(a.ult||'')));
   const so=A9.cliSort;
   if(so&&so.c){const val={nome:c=>pagNz(c.nome),cidade:c=>pagNz(c.cidade),n:c=>c.n,ent:c=>c.ent,tot:c=>c.tot,ult:c=>String(c.ult||''),cad:c=>String(c.cad||'')}[so.c];L.sort((a,b)=>{const x=val(a),y=val(b);return (x<y?-1:x>y?1:0)*so.d})}
@@ -7449,8 +7563,8 @@ function tabClientes(){
   return `<div class="box"><h2 style="margin:0 0 4px">Clientes cadastrados</h2><p style="margin:0 0 10px;color:var(--muted)">${A9.clientes.length} cliente${A9.clientes.length===1?'':'s'} · ${fiel} com ${CLI_META} pedidos ou mais. Pedidos cancelados não contam.</p>${A9.cliErro?'<div class="note err">'+esc(A9.cliErro)+'</div>':''}
   <input type="file" id="cliXlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="admProcessarPlanilha(this.files[0]);this.value=''">
   <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" oninput="buscaLive(this,'cliQ')"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button><button class="btn ghost sm" onclick="admImportarClientes()" title="Importar clientes de planilha Excel ou CSV">Importar planilha</button> <button class="btn acc" onclick="cliNovo()">➕ Novo cliente</button> <button class="btn ghost" onclick="cliLimparBtn()" title="Mostra os telefones repetidos e deixa escolher unificar ou excluir">Limpar duplicados</button></div>
-  <div class="selbar"><button class="btn ghost sm" onclick="cliSelTodos(true)">Selecionar todos</button><button class="btn ghost sm" onclick="cliSelTodos(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><button class="btn acc sm" onclick="cobLote()" ${nSel?'':'disabled'}>Gerar cobrança${nSel?' ('+nSel+')':''}</button><button class="btn ghost sm danger" onclick="cliExcluir()" ${nSel?'':'disabled'}>Excluir cadastro${nSel?' ('+nSel+')':''}</button></div>
-  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th>${cth('nome','Cliente')}<th>Contato</th>${cth('cidade','Cidade')}${cth('n','Pedidos')}${cth('ent','Entregues')}${cth('tot','Total comprado')}${cth('ult','Último pedido')}${cth('cad','Cadastro')}<th></th></tr></thead><tbody>${Lv.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><a style="cursor:pointer;font-weight:700" onclick="cliEditar('${esc(c.k)}')" title="Editar cadastro">${esc(c.nome||'Sem nome')}</a>${cliRevStar(c)}${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" style="color:inherit">${esc(c.fone)}</a>`:''} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}${c.endereco?`<div style="color:var(--muted);font-size:.78rem">${esc(c.endereco)}${c.numero?', '+esc(c.numero):''}${c.bairro?' · '+esc(c.bairro):''}</div>`:''}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> ${cliRevBtn(c)} ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div>${L.length>Lv.length?`<p style="text-align:center;margin:12px 0 0"><button class="btn ghost" onclick="cliMais()">Mostrar mais (${L.length-Lv.length} restantes)</button></p>`:''}</div>`;
+  <div class="selbar"><button class="btn ghost sm" onclick="cliSelTodos(true)">Selecionar todos</button><button class="btn ghost sm" onclick="cliSelTodos(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><button class="btn acc sm" onclick="cobLote()" ${nSel?'':'disabled'}>Gerar cobrança${nSel?' ('+nSel+')':''}</button><button class="btn ghost sm" onclick="cliUnirAbrir()" ${nSel>1?'':'disabled'} title="Junta vários contatos do mesmo cliente em um só">🔗 Unir contatos${nSel>1?' ('+nSel+')':''}</button><button class="btn ghost sm danger" onclick="cliExcluir()" ${nSel?'':'disabled'}>Excluir cadastro${nSel?' ('+nSel+')':''}</button></div>
+  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th>${cth('nome','Cliente')}<th>Contato</th>${cth('cidade','Cidade')}${cth('n','Pedidos')}${cth('ent','Entregues')}${cth('tot','Total comprado')}${cth('ult','Último pedido')}${cth('cad','Cadastro')}<th></th></tr></thead><tbody>${Lv.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><a style="cursor:pointer;font-weight:700" onclick="cliEditar('${esc(c.k)}')" title="Editar cadastro">${esc(c.nome||'Sem nome')}</a>${cliRevStar(c)}${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${(c.fones&&c.fones.length>1)?c.fones.map(f=>`<div><a href="whatsapp://send?phone=${foneWa(f)}" style="color:inherit">${esc(f)}</a></div>`).join('')+`<a class="pglnk" onclick="cliSeparar('${esc(c.k)}')">separar contatos</a>`:''}${(c.fones&&c.fones.length>1)?'':(c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" style="color:inherit">${esc(c.fone)}</a>`:'')} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}${c.endereco?`<div style="color:var(--muted);font-size:.78rem">${esc(c.endereco)}${c.numero?', '+esc(c.numero):''}${c.bairro?' · '+esc(c.bairro):''}</div>`:''}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> ${cliRevBtn(c)} ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div>${L.length>Lv.length?`<p style="text-align:center;margin:12px 0 0"><button class="btn ghost" onclick="cliMais()">Mostrar mais (${L.length-Lv.length} restantes)</button></p>`:''}</div>`;
 }
 var CUPOM_TXT='Olá, {nome}, tudo bem? 😊\nPassando para agradecer de coração: você já fez {pedidos} pedidos com a gente e isso é muito especial para nós!\nComo agradecimento pela sua fidelidade, preparamos um cupom exclusivo para você: *{cupom}*.\nÉ só avisar no seu próximo pedido. Obrigado pela confiança! 💜';
 function cupomAbrir(k){
