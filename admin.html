@@ -1,5 +1,9 @@
 <!doctype html>
-<!-- v2026-10-23-2440 -->
+<<<<<<< HEAD
+<!-- v2026-10-23-2449 -->
+=======
+<!-- v2026-10-23-2448 -->
+>>>>>>> origin/main
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -12,7 +16,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+<<<<<<< HEAD
 .cpn-cfg{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}.copc{display:flex;gap:6px 22px;flex-wrap:wrap;align-items:center;margin-top:10px}.cck{display:flex;gap:6px;align-items:center;cursor:pointer;font-size:.9rem}.cck.forte{font-weight:600}.cck input{width:auto}.cbar{position:sticky;top:0;z-index:5;background:#fff;padding:8px 0;border-bottom:1px solid var(--line);margin-bottom:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}.csep{width:1px;height:20px;background:var(--line);margin:0 4px}.cpd{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0 0;background:#fff}.cpd.off{opacity:.55}.cph{display:flex;gap:10px;align-items:center}.cph>input{width:auto}.ctm{width:44px;height:44px;border-radius:10px;object-fit:cover;background:#f1f5f9;flex:none}.ctph{display:grid;place-items:center;color:#0a6e5c;font-weight:700;background:#dcefe9}.cpn{flex:1;min-width:0}.cpn input{width:100%;max-width:420px;font-weight:700;padding:4px 8px}.cpm{font-size:.76rem;color:var(--muted);margin-top:2px}.cvs{margin:8px 0 0 28px;display:flex;flex-direction:column;gap:5px}.cvl{display:grid;grid-template-columns:20px minmax(150px,1fr) 110px 150px;gap:8px;align-items:center}.cvl.off{opacity:.5}.cvl input[type=checkbox]{width:auto}.cvl input.cvn,.cvl input.cvv{width:100%;padding:4px 8px}.cvh{font-size:.72rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}@media(max-width:640px){.cvl{grid-template-columns:20px 1fr 90px 110px}.cvs{margin-left:0}}
+=======
+@media(min-width:700px){.tabs.adm{flex-wrap:wrap!important;overflow-x:visible!important}}.tabs.adm .qk{border:1px solid transparent;border-radius:999px;padding:.6em 1.2em;cursor:pointer;font:inherit;font-weight:600}.tabs.adm .qk-rev{background:#ede9fe;color:#6d28d9;border-color:#ddd6fe}.tabs.adm .qk-cli{background:#cffafe;color:#0e7490;border-color:#a5f3fc}.tabs.adm .qk-rev.on{background:#7c3aed;color:#fff}.tabs.adm .qk-cli.on{background:#0891b2;color:#fff}
+>>>>>>> origin/main
 .pgsub{font-size:.76rem;color:var(--muted);margin-top:2px}.pgcli{max-width:170px}.pgval{min-width:185px}.pgval .pgsub{white-space:nowrap}.pglnk{display:inline-block;margin-top:3px;font-size:.76rem;color:#2563eb;cursor:pointer;font-weight:600}.pgdet{margin-top:5px}.pgdet summary{cursor:pointer;font-size:.78rem;font-weight:600;color:#2563eb}.pgbox{margin-top:6px;padding:8px 10px;background:#f8fafc;border:1px solid var(--line);border-radius:10px;min-width:270px}.pgpt{margin-top:6px;font-size:.76rem;border-collapse:collapse}.pgpt td{padding:2px 8px 2px 0;border:0!important;white-space:nowrap;box-shadow:none!important}.pgpt tr{box-shadow:none!important;background:transparent!important}.pgbox .btn{padding:3px 10px!important;font-size:.76rem!important;min-height:0!important}.pgbtns{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.pghl{margin:8px 0 0;padding-left:16px;font-size:.78rem;line-height:1.5}.pgx{color:var(--muted)}.pgsit{min-width:90px}.btn.bs-wa{background:#ecfdf3;color:#067647;border:1px solid #abefc6}.btn.bs-ok{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}.pulsa{animation:pagpulsa 1s ease-in-out infinite}.selo{white-space:nowrap}.selo.gray{background:#e5e7eb;color:#374151}.kc.pulsa{box-shadow:0 0 0 3px rgba(124,58,237,.35)}
 .pagpulsa{display:inline-block;margin-top:4px;padding:5px 9px;border-radius:8px;background:#fee4e2;color:#b42318;font-weight:800;font-size:.78rem;cursor:pointer;animation:pagpulsa 1s ease-in-out infinite}@keyframes pagpulsa{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(1.05)}}
 .parc-venc{background:#fff5f5!important;outline:2px solid #fca5a5}.parc-venc td:first-child{border-left:4px solid #ef4444}.parc-atrs{background:#fff0f0!important;outline:2px solid #f87171}.parc-atrs td:first-child{border-left:4px solid #dc2626}.parc-chip{display:inline-block;padding:2px 7px;border-radius:6px;font-size:.75rem;font-weight:700;white-space:nowrap}.parc-paga{background:#dcfce7;color:#15803d}.parc-pend{background:#fee2e2;color:#b91c1c}.parc-ok{background:#e0f2fe;color:#0369a1}
@@ -2816,7 +2824,7 @@ function admLogoRem(){LBL.logo=null;LBL.logoKey='';saveLbl();toast('Logomarca re
 /* ======================= REVENDEDORES ======================= */
 
 async function admCarregarRevs(){
-  const [rv,pe,mo,av,pz,pr,cl,vr]=await Promise.all([
+  const [rv,pe,mo,av,pz,pr,cl,vr,rp]=await Promise.all([
     SB.from('revendedores').select('*').order('criado_em',{ascending:false}),
     SB.from('pedidos_revendedor').select('*').order('criado_em',{ascending:false}),
     SB.from('consignado_movimentos').select('*').order('criado_em',{ascending:false}),
@@ -2824,9 +2832,10 @@ async function admCarregarRevs(){
     SB.from('revendedor_precos_var').select('revendedor_id,variacao_id,preco'),
     SB.from('produtos').select('id,nome,ativo,sob_consulta').eq('ativo',true).order('nome'),
     SB.from('revendedor_clientes').select('id,revendedor_id,nome'),
-    SB.from('produto_variacoes').select('id,produto_id,nome,unidades,preco,ativo,ordem').eq('ativo',true).order('ordem')
+    SB.from('produto_variacoes').select('id,produto_id,nome,unidades,preco,ativo,ordem').eq('ativo',true).order('ordem'),
+    SB.from('catalogo_revenda').select('variacao_id,preco')
   ]);
-  A9.revs={lista:rv.data||[],pedidos:pe.data||[],movimentos:mo.data||[],avisos:av.data||[],precos:pz.data||[],produtos:pr.data||[],clientes:cl.data||[],variacoes:vr.data||[]};
+  A9.revs={lista:rv.data||[],pedidos:pe.data||[],movimentos:mo.data||[],avisos:av.data||[],precos:pz.data||[],produtos:pr.data||[],clientes:cl.data||[],variacoes:vr.data||[],repasse:(rp&&rp.data)||[]};
   route();
 }
 
@@ -2853,7 +2862,7 @@ function revDashHtml(){
   const k=(c,t,n,sub)=>`<div class="kc" style="--c:${c};cursor:default"><div class="n">${n}</div><div class="t"><b>${t}</b></div><div class="t">${sub}</div></div>`;
   const dias=[0,1,2,3,4,5,6].map(i=>addDias(hoje,i-6));
   const vals=dias.map(d=>P.filter(p=>p.status!=='cancelado'&&loc(p)===d).length);
-  const linhas=abertos.slice(0,15).map(p=>`<tr><td>${esc(fmtD(Date.parse(p.criado_em)))}</td><td><b>${esc(p.revendedor_nome||nome(p.revendedor_id))}</b></td><td>${nItens(p)}</td><td>${brl(val(p))}</td><td>${p.tipo_pagamento==='consignado'?'Consignado':'À vista'+(p.forma_pagamento?' · '+({pix:'Pix',cartao_credito:'Cartão de crédito',cartao_debito:'Cartão de débito',transferencia:'Transferência'}[p.forma_pagamento]||p.forma_pagamento):'')}</td><td><select onchange="admRevAtualizaStatus('${p.id}',this.value)" style="width:auto">${Object.keys(ST).map(s=>`<option value="${s}" ${p.status===s?'selected':''}>${ST[s]}</option>`).join('')}</select></td><td><button class="btn ghost sm" onclick="A9.revSel='${p.revendedor_id}';route()">Ver</button></td></tr>`).join('');
+  const linhas=abertos.slice(0,15).map(p=>`<tr><td>${esc(fmtD(Date.parse(p.criado_em)))}</td><td><b>${esc(p.revendedor_nome||nome(p.revendedor_id))}</b></td><td>${nItens(p)}</td><td>${brl(val(p))}</td><td>${p.tipo_pagamento==='consignado'?'Consignado':'À vista'+(p.forma_pagamento?' · '+({pix:'Pix',cartao_credito:'Cartão de crédito',cartao_debito:'Cartão de débito',transferencia:'Transferência'}[p.forma_pagamento]||p.forma_pagamento):'')}</td><td>${revAcoesPedido(p,ST)}</td><td><button class="btn ghost sm" onclick="A9.revSel='${p.revendedor_id}';route()">Ver</button></td></tr>`).join('');
   const carteira=consig.map(r=>({r,s:saldo(r)})).sort((a,b)=>b.s-a.s).map(x=>`<tr><td><b>${esc(x.r.nome)}</b></td><td>${x.s>0?`<b style="color:#b45309">${brl(x.s)}</b>`:'<span style="color:var(--muted)">em dia</span>'}</td><td><button class="btn ghost sm" onclick="A9.revSel='${x.r.id}';route()">Ver</button></td></tr>`).join('');
   const descontos=ativos.map(r=>`<tr><td><b>${esc(r.nome)}</b></td><td>${r.tipo==='consignado'?'Consignado':'Comprador'}</td><td>${r.desconto_pct||0}%</td><td>${PR.filter(x=>x.revendedor_id===r.id).length} produto${PR.filter(x=>x.revendedor_id===r.id).length===1?'':'s'}</td><td><button class="btn ghost sm" onclick="A9.revSel='${r.id}';route()">Preços</button></td></tr>`).join('');
   return `<div style="margin-bottom:20px">
@@ -2935,17 +2944,18 @@ function tabRevendedores(){
 
           ${(()=>{
             const prodNome={};(A9.revs.produtos||[]).forEach(p=>{prodNome[p.id]=p.nome});
-            const prods=(A9.revs.variacoes||[]).filter(v=>prodNome[v.produto_id]).map(v=>({id:v.id,nome:prodNome[v.produto_id]+' — '+v.nome,preco:(v.preco==null||v.preco==='')?null:+v.preco})).sort((a,b)=>a.nome.localeCompare(b.nome));
+            const bs=repasseMapa();const prods=(A9.revs.variacoes||[]).filter(v=>prodNome[v.produto_id]).map(v=>({id:v.id,nome:prodNome[v.produto_id]+' — '+v.nome,preco:(v.preco==null||v.preco==='')?null:+v.preco,rep:bs[v.id]!=null?bs[v.id]:null})).sort((a,b)=>a.nome.localeCompare(b.nome));
             const mapa={};(A9.revs.precos||[]).filter(x=>x.revendedor_id===rv.id).forEach(x=>{mapa[x.variacao_id]=+x.preco});
             const desc=rv.desconto_pct||0;
             return `<h3 style="margin:20px 0 4px">Tabela de preços exclusiva (${Object.keys(mapa).length} de ${prods.length})</h3>
-            <p style="margin:0 0 10px;color:var(--muted);font-size:.85rem">Preço que este revendedor paga por cada variação (caixa, ampola...). Em branco = preço da loja com o desconto padrão (${desc}%); variação sem preço de loja só aparece para ele se você definir o preço aqui. Salva ao sair do campo.</p>
+            <p style="margin:0 0 10px;color:var(--muted);font-size:.85rem">Preço que este revendedor paga por cada variação (caixa, ampola...). Em branco = valor de repasse (ou preço da loja, se não houver) com o desconto padrão (${desc}%); variação sem preço de loja só aparece para ele se você definir o preço aqui. Salva ao sair do campo.</p>
             <div class="box" style="max-height:420px;overflow:auto"><table>
-              <thead><tr><th>Produto</th><th>Preço loja</th><th>Padrão (${desc}%)</th><th style="width:150px">Preço exclusivo</th></tr></thead>
+              <thead><tr><th>Produto</th><th>Preço loja</th><th>Repasse</th><th>Padrão (${desc}%)</th><th style="width:150px">Preço exclusivo</th></tr></thead>
               <tbody>${prods.map(p=>`<tr>
                 <td>${esc(p.nome)}</td>
                 <td>${p.preco==null?'—':brl(p.preco)}</td>
-                <td style="color:var(--muted)">${p.preco==null?'—':brl(p.preco*(1-desc/100))}</td>
+                <td style="color:var(--muted)">${p.rep==null?'—':brl(p.rep)}</td>
+                <td style="color:var(--muted)">${(p.rep==null&&p.preco==null)?'—':brl(repasseFinal(p.rep!=null?p.rep:p.preco,desc))}</td>
                 <td><input inputmode="decimal" style="width:120px;text-align:right" value="${mapa[p.id]!=null?mapa[p.id].toFixed(2).replace('.',','):''}" placeholder="—" onchange="admRevPreco('${rv.id}','${p.id}',this.value)"></td>
               </tr>`).join('')}</tbody>
             </table></div>`;
@@ -2968,9 +2978,7 @@ function tabRevendedores(){
               <td><b>${brl(p.subtotal)}</b>${p.venda_total!=null?`<br><small style="color:var(--muted)">venda ${brl(p.venda_total)}</small>`:''}</td>
               <td><span class="badge ${p.tipo_pagamento==='consignado'?'badge-er':'badge-c'}">${p.tipo_pagamento==='consignado'?'Consig.':'À vista'}</span></td>
               <td><span class="badge ${STCLS[p.status]||'badge-n'}">${ST[p.status]||p.status}</span></td>
-              <td><select onchange="admRevAtualizaStatus('${p.id}',this.value)" style="font-size:.8rem;padding:.3em .6em;border-radius:8px;width:auto">
-                ${Object.entries(ST).map(([k,v])=>`<option value="${k}" ${p.status===k?'selected':''}>${v}</option>`).join('')}
-              </select></td>
+              <td>${revAcoesPedido(p,ST)}</td>
             </tr>`).join('')}</tbody>
           </table></div>`}
 
@@ -3097,6 +3105,7 @@ function tabRevendedores(){
     </div>`;
   }
 
+  if(abaAtual==='repasse')return revRepasseHtml();
   const listaVis=abaAtual==='pendentes'?pendentes:abaAtual==='ativos'?ativos:bloqueados;
   return `<div>
     ${msgBox()}
@@ -3104,6 +3113,7 @@ function tabRevendedores(){
       <h3 style="margin:0">Gestão de revendedores</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn acc sm" onclick="revAdicionar()">➕ Adicionar revendedor</button>
+        <button class="btn ghost sm" onclick="A9.revAba='repasse';route()">💲 Catálogo de repasse</button>
         <button class="btn ghost sm" onclick="A9.revAba='ranking';route()">📊 Ranking</button>
         <button class="btn ghost sm" onclick="A9.revAba='avisos';route()">📢 Avisos${avisos.filter(a=>a.ativo).length?` <b style="color:var(--p)">(${avisos.filter(a=>a.ativo).length})</b>`:''}</button>
         <button class="btn sm" onclick="A9.revs=null;A9.busy=false;admCarregarRevs()">↻ Atualizar</button>
@@ -3151,9 +3161,6 @@ function tabRevendedores(){
       </table>`}
     </div>
 
-    <div class="note" style="margin-top:16px">
-      <b>Portal do revendedor:</b> <code style="background:rgba(0,0,0,.06);border-radius:4px;padding:2px 6px">revenda.html</code> — onde os revendedores fazem login, consultam o catálogo e fazem pedidos. Os pedidos chegam aqui com o flag de revendedor.
-    </div>
   </div>`;
 }
 
@@ -3193,6 +3200,68 @@ async function admRevSalvar(id){
   if(error){A9.msg=sn&&/senha|funct|schema/i.test(error.message||'')?'Dados salvos, mas a senha não foi definida: '+error.message+' (rode o arquivo 24 no Supabase).':'Erro ao salvar.';A9.erro=true}else{A9.msg='Dados salvos.'+(sn?' Senha de acesso definida.':'');A9.erro=false;A9.revEdit=null;A9.revs=null}
   route();
 }
+/* ---- catálogo de repasse: um valor por variação; cada revendedor paga esse valor menos a porcentagem dele ---- */
+function repasseMapa(){const m={};((A9.revs||{}).repasse||[]).forEach(x=>{m[x.variacao_id]=+x.preco});return m}
+function repasseFinal(base,pct){return Math.round(base*(1-(pct||0)/100)*100)/100}
+function revRepasseHtml(){
+  const R=A9.revs,base=repasseMapa();
+  const nomeP={};(R.produtos||[]).forEach(p=>{nomeP[p.id]=p.nome});
+  const q=pagNz(A9.rpQ||'');
+  const prods=(R.variacoes||[]).filter(v=>nomeP[v.produto_id]).map(v=>({id:v.id,nome:nomeP[v.produto_id]+' — '+v.nome,loja:(v.preco==null||v.preco==='')?null:+v.preco})).filter(p=>!q||pagNz(p.nome).includes(q)).sort((a,b)=>a.nome.localeCompare(b.nome));
+  const ativos=(R.lista||[]).filter(r=>r.status==='ativo');
+  const rv=ativos.find(r=>r.id===A9.rpRev)||null,pct=rv?(rv.desconto_pct||0):0;
+  const excl={};if(rv)(R.precos||[]).filter(x=>x.revendedor_id===rv.id).forEach(x=>{excl[x.variacao_id]=+x.preco});
+  const nBase=Object.keys(base).length;
+  const final=p=>{if(!rv)return '';if(excl[p.id]!=null)return '<b>'+brl(excl[p.id])+'</b> <small style="color:var(--muted)">exclusivo</small>';const b=base[p.id]!=null?base[p.id]:p.loja;return b==null?'—':'<b>'+brl(repasseFinal(b,pct))+'</b>'};
+  return `<div>${msgBox()}
+    <button class="btn ghost sm" style="margin:0 0 12px" onclick="A9.revAba='ativos';route()">← Voltar aos revendedores</button>
+    <h3 style="margin:0 0 4px">Catálogo de repasse</h3>
+    <p style="margin:0 0 12px;color:var(--muted);font-size:.88rem">Defina aqui o <b>valor de repasse</b> de cada produto. Cada revendedor paga esse valor <b>menos a porcentagem dele</b> (cadastrada no perfil dele); ele vê só o valor final, sem "de tanto para tanto". Quem tem preço exclusivo continua pagando o preço exclusivo. Vale para revendedor comprador e consignado. Salva ao sair do campo. Variação sem valor de repasse usa o preço da loja.</p>
+    <div class="box" style="margin-bottom:12px"><div class="fbar" style="align-items:flex-end;margin:0">
+      <div><label for="rpQ">Buscar produto</label><input id="rpQ" value="${esc(A9.rpQ||'')}" placeholder="Nome do produto" oninput="buscaLive(this,'rpQ')"></div>
+      <div><label for="rpRev">Ver o preço final para</label><select id="rpRev" onchange="A9.rpRev=this.value;route()"><option value="">(não mostrar)</option>${ativos.map(r=>`<option value="${r.id}" ${r.id===A9.rpRev?'selected':''}>${esc(r.nome)} — ${r.desconto_pct||0}% · ${r.tipo==='consignado'?'consignado':'comprador'}</option>`).join('')}</select></div>
+      <button class="btn acc sm" onclick="admRepasseDisparar()" title="Avisa todos os revendedores ativos que o catálogo foi atualizado">📣 Disparar para todos os revendedores</button>
+      <button class="btn ghost sm" onclick="admRepasseCopiar()" title="Preenche com o preço da loja só as variações que ainda não têm valor de repasse">Preencher vazios com o preço da loja</button>
+      <span style="color:var(--muted);font-size:.82rem">${nBase} de ${(R.variacoes||[]).length} com valor de repasse</span>
+    </div></div>
+    ${ativos.length?`<details class="box" style="margin-bottom:12px"><summary style="cursor:pointer;font-weight:600">Avisar cada revendedor pelo WhatsApp (${ativos.length})</summary><div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">${ativos.map(r=>`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="min-width:160px">${esc(r.nome)}</b><span style="color:var(--muted);font-size:.85rem">${r.desconto_pct||0}% de desconto · ${r.tipo==='consignado'?'consignado':'comprador'}</span>${r.telefone?`<button class="btn ghost sm" onclick="admRepasseWa('${r.id}')">💬 WhatsApp</button>`:'<span style="color:var(--muted);font-size:.8rem">sem telefone</span>'}</div>`).join('')}</div></details>`:''}
+    <div class="box" style="max-height:560px;overflow:auto"><table>
+      <thead><tr><th>Produto</th><th>Preço da loja</th><th style="width:170px">Valor de repasse (R$)</th>${rv?`<th>Preço para ${esc(rv.nome)} (${pct}%)</th>`:''}</tr></thead>
+      <tbody>${prods.map(p=>`<tr><td>${esc(p.nome)}</td><td style="color:var(--muted)">${p.loja==null?'—':brl(p.loja)}</td><td><input inputmode="decimal" style="width:130px;text-align:right" value="${base[p.id]!=null?pdMoeda(base[p.id]):''}" placeholder="—" onchange="admRepasseSalvar('${p.id}',this.value)"></td>${rv?`<td id="rpf_${p.id}">${final(p)}</td>`:''}</tr>`).join('')||'<tr><td colspan="4" style="color:var(--muted)">Nenhum produto encontrado.</td></tr>'}</tbody>
+    </table></div></div>`;
+}
+async function admRepasseSalvar(vid,txt){
+  txt=String(txt||'').trim();let error;
+  if(!txt){({error}=await SB.from('catalogo_revenda').delete().eq('variacao_id',vid))}
+  else{const v=pdNum(txt);if(!(v>0)&&txt!=='0'&&txt!=='0,00'){toast('Valor inválido.');return}
+    ({error}=await SB.from('catalogo_revenda').upsert([{variacao_id:vid,preco:v,atualizado_em:new Date().toISOString()}],{onConflict:'variacao_id'}))}
+  if(error){toast(/catalogo_revenda|relation|schema/i.test(error.message||'')?'Falta rodar o arquivo 29_catalogo_repasse.sql no Supabase.':'Não foi possível salvar o valor.');return}
+  const lst=((A9.revs||{}).repasse||[]).filter(x=>x.variacao_id!==vid);if(txt)lst.push({variacao_id:vid,preco:pdNum(txt)});A9.revs.repasse=lst;
+  const R=A9.revs,rv=(R.lista||[]).find(r=>r.id===A9.rpRev),c=document.getElementById('rpf_'+vid);
+  if(rv&&c){const x=(R.precos||[]).find(p=>p.revendedor_id===rv.id&&p.variacao_id===vid);const b=txt?pdNum(txt):((R.variacoes||[]).find(v=>v.id===vid)||{}).preco;c.innerHTML=x?'<b>'+brl(+x.preco)+'</b> <small style="color:var(--muted)">exclusivo</small>':(b==null||b==='')?'—':'<b>'+brl(repasseFinal(+b,rv.desconto_pct||0))+'</b>'}
+  toast('Valor de repasse salvo.');
+}
+async function admRepasseDisparar(){
+  const R=A9.revs,ativos=(R.lista||[]).filter(r=>r.status==='ativo');
+  if(!ativos.length){toast('Não há revendedores ativos.');return}
+  if(!confirm('Avisar '+ativos.length+' revendedor'+(ativos.length===1?'':'es')+' ativo'+(ativos.length===1?'':'s')+' de que o catálogo de repasse foi atualizado?\n\nCada um vê os valores com a porcentagem dele. O aviso aparece no portal.'))return;
+  const {error}=await SB.from('avisos_revendedores').insert([{titulo:'Catálogo atualizado',mensagem:'Os valores do catálogo foram atualizados. Confira os novos preços no catálogo antes de fazer o seu pedido.',tipo:'info',ativo:true}]);
+  if(error){toast('Não foi possível disparar o aviso.');return}
+  A9.revs=null;toast('Aviso enviado para '+ativos.length+' revendedor'+(ativos.length===1?'':'es')+'.');route();
+}
+function admRepasseWa(id){
+  const r=((A9.revs||{}).lista||[]).find(x=>x.id===id);if(!r||!r.telefone)return;
+  waApp(foneWa(r.telefone),'Olá, '+String(r.nome||'').split(' ')[0]+'! O catálogo de repasse da ZP Imports foi atualizado, já com o seu desconto de '+(r.desconto_pct||0)+'%. Entre no portal para ver os novos valores: '+location.origin+'/portal');
+}
+async function admRepasseCopiar(){
+  const R=A9.revs,base=repasseMapa();
+  const novos=(R.variacoes||[]).filter(v=>base[v.id]==null&&v.preco!=null&&v.preco!==''&&+v.preco>0).map(v=>({variacao_id:v.id,preco:+v.preco,atualizado_em:new Date().toISOString()}));
+  if(!novos.length){toast('Nenhuma variação vazia com preço de loja.');return}
+  if(!confirm('Preencher '+novos.length+' variação(ões) sem valor de repasse com o preço da loja? Depois você ajusta o que quiser.'))return;
+  const {error}=await SB.from('catalogo_revenda').upsert(novos,{onConflict:'variacao_id'});
+  if(error){toast(/catalogo_revenda|relation|schema/i.test(error.message||'')?'Falta rodar o arquivo 29_catalogo_repasse.sql no Supabase.':'Não foi possível salvar.');return}
+  A9.revs.repasse=(R.repasse||[]).concat(novos);toast(novos.length+' valores preenchidos.');route();
+}
 async function admRevPreco(revId,prodId,txt){
   txt=(txt||'').trim();
   let error;
@@ -3228,6 +3297,18 @@ async function admRevMensagem(revId){
   if(error){toast(/revendedor_id|column|schema/i.test(error.message||'')?'Falta rodar o arquivo 25 no Supabase.':'Não foi possível enviar a mensagem.');return}
   document.getElementById('rvmT').value='';document.getElementById('rvmM').value='';
   toast('Mensagem enviada para o perfil do revendedor.');
+}
+function revAcoesPedido(p,ST){
+  if(p.pedido_id)return '<span class="selo" style="background:#0a6e5c22;color:#0a6e5c;border:1px solid #0a6e5c66">🔗 ZP-'+String(p.pedido_id).padStart(6,'0')+'</span> <button class="btn ghost sm" onclick="admAbrirPedido('+p.pedido_id+')">Abrir</button><div class="pgsub">O andamento segue o pedido da logística.</div>';
+  return (p.status==='cancelado'?'':'<button class="btn sm" onclick="admRevEnviarLog(\''+p.id+'\')" title="Cria o pedido na logística: separação, rota, etiqueta, estoque e pagamento">📦 Enviar para a logística</button> ')+'<select onchange="admRevAtualizaStatus(\''+p.id+'\',this.value)" style="font-size:.8rem;padding:.3em .6em;border-radius:8px;width:auto">'+Object.keys(ST).map(s=>'<option value="'+s+'" '+(p.status===s?'selected':'')+'>'+ST[s]+'</option>').join('')+'</select>';
+}
+async function admRevEnviarLog(id){
+  if(A9.busy)return;
+  if(!confirm('Enviar este pedido para a logística? Ele vira um pedido normal (separação, rota, etiqueta, estoque e pagamento) e o andamento volta sozinho para o portal do revendedor.'))return;
+  A9.busy=true;const r=await SB.rpc('enviar_pedido_revendedor',{p_id:id});A9.busy=false;
+  if(r.error){toast(/function|schema cache|pedido_id|column/i.test(r.error.message||'')?'Falta rodar o arquivo 28_revendedor_logistica.sql no Supabase.':'Não foi possível enviar: '+(r.error.message||''));return}
+  toast('Pedido enviado para a logística: ZP-'+String(r.data).padStart(6,'0')+'.');
+  A9.revs=null;A9.pedidos=null;A9.revCart=undefined;route();
 }
 async function admRevAtualizaStatus(pedidoId,status){
   await SB.from('pedidos_revendedor').update({status}).eq('id',pedidoId);
@@ -3896,7 +3977,7 @@ async function admCarregarRevCart(){
     const revs={};(rv.data||[]).forEach(r=>{revs[r.id]=r});
     const lista=[];let seq=0;
     (pe.data||[]).forEach(p=>{
-      const r=revs[p.revendedor_id];if(!r||!revCarteira(r)||p.status==='cancelado')return;
+      const r=revs[p.revendedor_id];if(!r||!revCarteira(r)||p.status==='cancelado'||p.pedido_id)return;
       seq++;lista.push({id:-seq,_rev:p.id,_cod:'REV-'+String(seq).padStart(3,'0'),status:p.status,criado_em:p.criado_em,
         itens:(p.itens||[]).map(i=>({nome:i.nome,qty:+i.qty||1,unit:+i.preco||0})),
         entrega:{nome:r.nome,fone:r.telefone||'',dest:{}},
@@ -5181,6 +5262,7 @@ var STCOR={realizado:'#6b7280',confirmado:'#2563eb',preparacao:'#7c3aed',separac
 function stChip(s){return `<span class="stchip" style="--c:${STCOR[s]||'#6b7280'}">${esc(ADM_LB[s]||STLB[s]||s)}</span>`}
 function selos(o){
   let h='';const n=+o.seq||1;
+  if(o.extra&&o.extra.revendedor&&!o._rev)h+='<span class="selo" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed66" title="Pedido de revendedor">🏷️ Revendedor</span>';
   if(emAtraso(o))h+='<span class="selo red" title="A data de entrega desejada já passou">Atrasado</span>';
   if(o.extra&&o.extra.manual)h+='<span class="selo orange" title="Pedido registrado pela equipe">Manual</span>';
   if(feitoHoje(o)){const tc=(o.entrega||{}).turno;const tcor=tc==='manha'?'#f59e0b':tc==='tarde'?'#dc2626':tc==='noite'?'#7c3aed':'#2563eb';const tn=tc?TURNOS[tc]:'';h+=`<span class="selo" style="background:${tcor}22;color:${tcor};border:1px solid ${tcor}66" title="Pedido feito hoje">Hoje${tn?' · '+tn:''}</span>`}
@@ -5189,7 +5271,7 @@ function selos(o){
 function pagChipP(o){const p=o.pagamento||{};return p.status==='pago'?'<span class="stchip" style="--c:#16a34a">Pago</span>':'<span class="stchip" style="--c:#d97706">Pendente</span>'}
 
 /* filtros (cidade, turno, quando) */
-A9.fc='';A9.ft='';A9.fq='';A9.mais=false;A9.pagEnv={};A9.pf='cobrar';A9.cores=A9.cores||{};
+A9.fc='';A9.ft='';A9.fq='';A9.mais=null;A9.pagEnv={};A9.pf='cobrar';A9.cores=A9.cores||{};
 var grpCid=c=>cidNorm(c);
 /* cidades soltas, com seleção por flag */
 function cidFlag(id,val,cb){const sel=String(val||'').split('|').filter(Boolean).map(cidNorm);const L=cidadesPed();
@@ -5332,7 +5414,7 @@ function tabPagamentos(){
    const pi=pg?null:pagInfo(o);
    const aviso=pg?'<span class="stchip" style="--c:#16a34a">Pago</span>':pi.est==='vencido'?'<div class="pgsub" style="color:#b42318;font-weight:700">⚠️ Venceu em '+dataBr(pi.prev)+'</div>':pi.est==='hoje'?'<div class="pgsub" style="color:#d97706;font-weight:700">💰 Paga hoje</div>':'';
    const oculta=o._rev?' style="display:none"':'';
-   return `<tr data-sc${rowCls} style="--sc:${STCOR[o.status]||'#999'}"><td style="white-space:nowrap"><b>${codPed(o)}</b><div>${o._rev?'<span class="selo" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed66" title="Pedido de revendedor de carteira">🏷️ Revendedor</span>':selos(o)}</div></td><td class="pgcli"><b>${esc(en.nome||'')}</b><div class="pgsub">${esc(cidadeDe(o))}</div></td>${mF?`<td>${fr!=null?brl(fr).slice(3):'<span style="color:var(--muted)">a combinar</span>'}</td>`:''}<td class="pgval"><b>${valor}</b>${resumo}${detalhe}</td><td style="white-space:nowrap">${venTxt}</td><td class="pgsit">${stChip(o.status)}${aviso}</td>
+   return `<tr data-sc${rowCls} style="--sc:${STCOR[o.status]||'#999'}"><td style="white-space:nowrap"><b>${codPed(o)}</b><div>${o._rev?'<span class="selo" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed66" title="Pedido de revendedor de carteira">🏷️ Revendedor</span>':selos(o)}</div></td><td class="pgcli">${(o.extra&&o.extra.revendedor&&!o._rev)?`<b>${esc(o.extra.revendedor_nome||'Revendedor')}</b><div class="pgsub">Entrega: ${esc(en.nome||'')}${cidadeDe(o)?' · '+esc(cidadeDe(o)):''}</div>`:`<b>${esc(en.nome||'')}</b><div class="pgsub">${esc(cidadeDe(o))}</div>`}</td>${mF?`<td>${fr!=null?brl(fr).slice(3):'<span style="color:var(--muted)">a combinar</span>'}</td>`:''}<td class="pgval"><b>${valor}</b>${resumo}${detalhe}</td><td style="white-space:nowrap">${venTxt}</td><td class="pgsit">${stChip(o.status)}${aviso}</td>
    <td style="white-space:nowrap">${waBtn(o)}${pg?'':` <button class="btn sm bs-wa" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})"${oculta}>${A9.pagEnv[o.id]?'Reenviar link de cobrança':'Link de cobrança'}</button>`}${(A9.pagFoto&&temFoto(o))?` <button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button>`:''} <button class="btn ghost sm" onclick="admAbrirPedido(${o.id})"${oculta}>Abrir pedido</button></td></tr>`;};
   const mostraFrete=A9.pagMostraFrete||false;
   const btnFrete=`<button class="btn ghost sm" onclick="A9.pagMostraFrete=${!mostraFrete};route()" style="font-size:.82rem">${mostraFrete?'🙈 Ocultar frete':'👁 Mostrar frete'}</button>`;
@@ -5521,10 +5603,15 @@ function corCampo(e){
   return `<div class="c3"><label for="enCor">Cor do entregador</label><div class="swatches">${COR_PAL.map(c=>`<button type="button" class="sw ${cor===c?'on':''}" data-c="${c}" style="background:${c}" onclick="entCor('${c}')" aria-label="Cor ${c}"></button>`).join('')}<input type="color" id="enCor" value="${cor}" oninput="entCor(this.value)" style="width:42px;height:32px;padding:0"></div></div>`;
 }
 function abasHtml(tabs,extra){
-  const btn=t=>`<button class="${A.tab===t[0]?'on':''}" onclick="admTab('${t[0]}')">${t[1]}</button>`;
-  const main=tabs.filter(t=>!extra.includes(t[0])),ex=tabs.filter(t=>extra.includes(t[0]));
-  const aberto=A9.mais||ex.some(t=>t[0]===A.tab);
-  return `<div class="tabs adm">${main.map(btn).join('')}${ex.length?`<button class="maisb" onclick="A9.mais=${!aberto};route()">${aberto?'Menos ▴':'Mais opções ▾'}</button>`:''}</div>${ex.length&&aberto?`<div class="tabs adm sec">${ex.map(btn).join('')}</div>`:''}`;
+  const btn=t=>`<button class="${A.tab===t[0]?'on':''}" onclick="A9.mais=null;admTab('${t[0]}')">${t[1]}</button>`;
+  /* Revendedores e Clientes ficam sempre à vista, ao lado do botão Mais/Menos, cada um com a sua cor */
+  const QK={revendedores:'qk-rev',clientes:'qk-cli'};
+  const quick=['revendedores','clientes'].map(k=>tabs.find(t=>t[0]===k)).filter(Boolean);
+  const qbtn=t=>`<button class="qk ${QK[t[0]]}${A.tab===t[0]?' on':''}" onclick="A9.mais=null;admTab('${t[0]}')">${t[1]}</button>`;
+  const main=tabs.filter(t=>!extra.includes(t[0])&&!QK[t[0]]),ex=tabs.filter(t=>extra.includes(t[0])&&!QK[t[0]]);
+  /* A9.mais: true/false = escolha da pessoa; vazio = abre sozinho quando está numa aba do grupo */
+  const aberto=A9.mais===true?true:A9.mais===false?false:ex.some(t=>t[0]===A.tab);
+  return `<div class="tabs adm">${main.map(btn).join('')}${ex.length?`<button class="maisb" onclick="A9.mais=${!aberto};route()">${aberto?'Menos ▴':'Mais opções ▾'}</button>`:''}${quick.map(qbtn).join('')}</div>${ex.length&&aberto?`<div class="tabs adm sec">${ex.map(btn).join('')}</div>`:''}`;
 }
 
 /* ======================= ANDAMENTO DO PEDIDO (BARRA DE ETAPAS) E ROTAS POR ENTREGADOR ======================= */
@@ -7221,7 +7308,7 @@ function buscaLive(el,chave){
 }
 function waDireto(id){
   const o=pedAcha(id);if(!o)return;
-  const fw=foneWa((o.entrega||{}).fone);if(!fw){toast('Este pedido está sem telefone válido.');return}
+  const fw=foneWa(((o.extra||{}).revendedor_fone)||(o.entrega||{}).fone);if(!fw){toast('Este pedido está sem telefone válido.');return}
   waApp(fw);
 }
 /* ---- formulário de cliente com endereço: o CEP preenche rua, bairro, cidade e UF ---- */
