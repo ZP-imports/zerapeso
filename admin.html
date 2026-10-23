@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-23-2444 -->
+<!-- v2026-10-23-2445 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -3214,9 +3214,11 @@ function revRepasseHtml(){
     <div class="box" style="margin-bottom:12px"><div class="fbar" style="align-items:flex-end;margin:0">
       <div><label for="rpQ">Buscar produto</label><input id="rpQ" value="${esc(A9.rpQ||'')}" placeholder="Nome do produto" oninput="buscaLive(this,'rpQ')"></div>
       <div><label for="rpRev">Ver o preço final para</label><select id="rpRev" onchange="A9.rpRev=this.value;route()"><option value="">(não mostrar)</option>${ativos.map(r=>`<option value="${r.id}" ${r.id===A9.rpRev?'selected':''}>${esc(r.nome)} — ${r.desconto_pct||0}% · ${r.tipo==='consignado'?'consignado':'comprador'}</option>`).join('')}</select></div>
+      <button class="btn acc sm" onclick="admRepasseDisparar()" title="Avisa todos os revendedores ativos que o catálogo foi atualizado">📣 Disparar para todos os revendedores</button>
       <button class="btn ghost sm" onclick="admRepasseCopiar()" title="Preenche com o preço da loja só as variações que ainda não têm valor de repasse">Preencher vazios com o preço da loja</button>
       <span style="color:var(--muted);font-size:.82rem">${nBase} de ${(R.variacoes||[]).length} com valor de repasse</span>
     </div></div>
+    ${ativos.length?`<details class="box" style="margin-bottom:12px"><summary style="cursor:pointer;font-weight:600">Avisar cada revendedor pelo WhatsApp (${ativos.length})</summary><div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">${ativos.map(r=>`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="min-width:160px">${esc(r.nome)}</b><span style="color:var(--muted);font-size:.85rem">${r.desconto_pct||0}% de desconto · ${r.tipo==='consignado'?'consignado':'comprador'}</span>${r.telefone?`<button class="btn ghost sm" onclick="admRepasseWa('${r.id}')">💬 WhatsApp</button>`:'<span style="color:var(--muted);font-size:.8rem">sem telefone</span>'}</div>`).join('')}</div></details>`:''}
     <div class="box" style="max-height:560px;overflow:auto"><table>
       <thead><tr><th>Produto</th><th>Preço da loja</th><th style="width:170px">Valor de repasse (R$)</th>${rv?`<th>Preço para ${esc(rv.nome)} (${pct}%)</th>`:''}</tr></thead>
       <tbody>${prods.map(p=>`<tr><td>${esc(p.nome)}</td><td style="color:var(--muted)">${p.loja==null?'—':brl(p.loja)}</td><td><input inputmode="decimal" style="width:130px;text-align:right" value="${base[p.id]!=null?pdMoeda(base[p.id]):''}" placeholder="—" onchange="admRepasseSalvar('${p.id}',this.value)"></td>${rv?`<td id="rpf_${p.id}">${final(p)}</td>`:''}</tr>`).join('')||'<tr><td colspan="4" style="color:var(--muted)">Nenhum produto encontrado.</td></tr>'}</tbody>
@@ -3232,6 +3234,18 @@ async function admRepasseSalvar(vid,txt){
   const R=A9.revs,rv=(R.lista||[]).find(r=>r.id===A9.rpRev),c=document.getElementById('rpf_'+vid);
   if(rv&&c){const x=(R.precos||[]).find(p=>p.revendedor_id===rv.id&&p.variacao_id===vid);const b=txt?pdNum(txt):((R.variacoes||[]).find(v=>v.id===vid)||{}).preco;c.innerHTML=x?'<b>'+brl(+x.preco)+'</b> <small style="color:var(--muted)">exclusivo</small>':(b==null||b==='')?'—':'<b>'+brl(repasseFinal(+b,rv.desconto_pct||0))+'</b>'}
   toast('Valor de repasse salvo.');
+}
+async function admRepasseDisparar(){
+  const R=A9.revs,ativos=(R.lista||[]).filter(r=>r.status==='ativo');
+  if(!ativos.length){toast('Não há revendedores ativos.');return}
+  if(!confirm('Avisar '+ativos.length+' revendedor'+(ativos.length===1?'':'es')+' ativo'+(ativos.length===1?'':'s')+' de que o catálogo de repasse foi atualizado?\n\nCada um vê os valores com a porcentagem dele. O aviso aparece no portal.'))return;
+  const {error}=await SB.from('avisos_revendedores').insert([{titulo:'Catálogo atualizado',mensagem:'Os valores do catálogo foram atualizados. Confira os novos preços no catálogo antes de fazer o seu pedido.',tipo:'info',ativo:true}]);
+  if(error){toast('Não foi possível disparar o aviso.');return}
+  A9.revs=null;toast('Aviso enviado para '+ativos.length+' revendedor'+(ativos.length===1?'':'es')+'.');route();
+}
+function admRepasseWa(id){
+  const r=((A9.revs||{}).lista||[]).find(x=>x.id===id);if(!r||!r.telefone)return;
+  waApp(foneWa(r.telefone),'Olá, '+String(r.nome||'').split(' ')[0]+'! O catálogo de repasse da ZP Imports foi atualizado, já com o seu desconto de '+(r.desconto_pct||0)+'%. Entre no portal para ver os novos valores: '+location.origin+'/revenda.html');
 }
 async function admRepasseCopiar(){
   const R=A9.revs,base=repasseMapa();
