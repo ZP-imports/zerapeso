@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-23-2441 -->
+<!-- v2026-10-23-2443 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -6912,7 +6912,9 @@ async function admCarregarClientes(){
         }
       });
     }catch(xi){}
-    A9.clientes=Object.values(M);
+    try{const oc=await SB.from('configuracao').select('valor').eq('chave','clientes_ocultos').maybeSingle();A9.cliOcultos=(oc.data&&oc.data.valor&&oc.data.valor.lista)||[]}catch(xo){A9.cliOcultos=A9.cliOcultos||[]}
+    const oculto=c=>{const fn=cliNormFone(c.fone);return (A9.cliOcultos||[]).some(o=>(o.k===c.k||(fn&&o.f===fn))&&(!c.ult||String(c.ult)<=String(o.em)))};
+    A9.clientes=Object.values(M).filter(c=>!oculto(c));
   }catch(x){A9.clientes=[];A9.cliErro='Não foi possível carregar os clientes agora.'}
   A9.cliBusy=false;route();
 }
@@ -6982,8 +6984,8 @@ async function admProcessarPlanilha(file){
       let falhas=0;
       if(toInsert.length){const r=await SB.from('clientes_importados').insert(toInsert);if(r.error){toast('Erro ao salvar: '+r.error.message);return}}
       for(const u of toUpdate){const r=await SB.from('clientes_importados').update(u.novo).eq('id',u.id);if(r.error)falhas++}
-      const dup=await cliLimparDuplicados(true);
-      toast(`${toInsert.length} cliente${toInsert.length===1?'':'s'} novo${toInsert.length===1?'':'s'}, ${toUpdate.length-falhas} atualizado${toUpdate.length-falhas===1?'':'s'} com dados que faltavam, ${skip} já existiam.${falhas?' '+falhas+' não puderam ser atualizados.':''}${dup?' '+dup+' cadastro'+(dup===1?'':'s')+' duplicado'+(dup===1?'':'s')+' excluído'+(dup===1?'':'s')+'.':''}`);
+      let dupN=0;try{const gd=await cliDupLer();dupN=gd?gd.length:0}catch(xd){}
+      toast(`${toInsert.length} cliente${toInsert.length===1?'':'s'} novo${toInsert.length===1?'':'s'}, ${toUpdate.length-falhas} atualizado${toUpdate.length-falhas===1?'':'s'} com dados que faltavam, ${skip} já existiam.${falhas?' '+falhas+' não puderam ser atualizados.':''}${dupN?' ⚠️ '+dupN+' telefone'+(dupN===1?'':'s')+' repetido'+(dupN===1?'':'s')+': clique em Limpar duplicados para escolher unificar ou excluir.':''}`);
       A9.clientes=null;route();
     }catch(x){toast('Erro ao ler planilha: '+x.message);}
   };
@@ -7082,19 +7084,36 @@ async function cliSalvar(){
 function cliExcluir(){cliApagar((A9.clientes||[]).filter(c=>A9.cliSel[c.k]))}
 async function cliApagar(cs){
   cs=(cs||[]).filter(Boolean);if(!cs.length||A9.busy)return;
-  const imp=cs.filter(c=>c.importado&&c.impId),outros=cs.length-imp.length;
-  if(!imp.length){toast('Só clientes importados podem ser excluídos aqui. Os que vieram de pedidos ou do cadastro do site ficam.');return}
-  const s=imp.length===1?'':'s';
-  if(!confirm('Excluir '+imp.length+' cadastro'+s+' importado'+s+'?\n\n'+(outros?outros+' selecionado'+(outros===1?'':'s')+' veio'+(outros===1?'':'ram')+' de pedidos ou do site e '+(outros===1?'será mantido':'serão mantidos')+'.\n\n':'')+'Isso não dá para desfazer. Pedidos e cobranças não são apagados.'))return;
+  const s=cs.length===1?'':'s';
+  const comPedido=cs.filter(c=>!c.importado||!c.impId);
+  if(!confirm('Excluir '+cs.length+' cliente'+s+'?\n\n'+(comPedido.length?'• '+comPedido.length+' deles vêm de pedidos ou do cadastro do site: somem da lista de clientes, mas os pedidos, cobranças e o histórico continuam guardados.\n':'')+'• Os que foram importados da planilha são apagados de vez.\n\nIsso não dá para desfazer.'))return;
   A9.busy=true;
-  const r=await SB.from('clientes_importados').delete().in('id',imp.map(c=>c.impId)).select('id');
+  try{
+    // cadastros importados: pelo id e também pelo mesmo telefone (o cliente pode estar unido a um pedido)
+    const imp=await SB.from('clientes_importados').select('id,fone').limit(10000);
+    const fones={};cs.forEach(c=>{const f=cliNormFone(c.fone);if(f)fones[f]=true});
+    const ids={};cs.forEach(c=>{if(c.impId)ids[c.impId]=true});
+    (imp.data||[]).forEach(p=>{const f=cliNormFone(p.fone);if(f&&fones[f])ids[p.id]=true});
+    let apagados=0;
+    const lista=Object.keys(ids);
+    if(lista.length){
+      const r=await SB.from('clientes_importados').delete().in('id',lista).select('id');
+      if(r.error){toast('Erro ao excluir: '+r.error.message);A9.busy=false;return}
+      apagados=(r.data||[]).length;
+      if(!apagados&&!comPedido.length){toast('Não foi possível excluir. Rode o arquivo 22_editar_clientes.sql no Supabase.');A9.busy=false;return}
+    }
+    // quem tem pedido ou conta no site: some da lista
+    if(comPedido.length){
+      const em=new Date().toISOString();
+      A9.cliOcultos=(A9.cliOcultos||[]).concat(comPedido.map(c=>({k:c.k,f:cliNormFone(c.fone)||'',em})));
+      const r2=await SB.from('configuracao').upsert({chave:'clientes_ocultos',valor:{lista:A9.cliOcultos},publica:false,atualizado_em:em});
+      if(r2.error)toast('O cliente saiu da lista, mas não foi possível guardar isso para as próximas vezes.');
+    }
+  }catch(x){toast('Erro ao excluir: '+(x.message||x));A9.busy=false;return}
   A9.busy=false;
-  if(r.error){toast('Erro ao excluir: '+r.error.message);return}
-  const n=(r.data||[]).length;
-  if(!n){toast('Não foi possível excluir. Rode o arquivo 22_editar_clientes.sql no Supabase.');return}
   const el=document.getElementById('cebox');if(el)el.remove();
   A9.cliEd=null;A9.cliSel={};A9.clientes=null;route();
-  toast(n+' cadastro'+(n===1?'':'s')+' excluído'+(n===1?'':'s')+'.'+(outros?' '+outros+' de pedidos ou do site '+(outros===1?'foi mantido':'foram mantidos')+'.':''));
+  toast(cs.length+' cliente'+s+' excluído'+s+'.');
 }
 /* ---- duplicados: um cadastro importado por telefone (o mais antigo fica e recebe o que faltar dos outros) ---- */
 async function cliLimparDuplicados(auto){
@@ -7120,10 +7139,51 @@ async function cliLimparDuplicados(auto){
   if(d.error||!(d.data||[]).length){if(!auto)toast('Não foi possível excluir os duplicados. Confira se o arquivo 22_editar_clientes.sql foi rodado.');return 0}
   return d.data.length;
 }
-async function cliLimparBtn(){
-  if(A9.busy)return;A9.busy=true;
-  let n=0;try{n=await cliLimparDuplicados(false)}finally{A9.busy=false}
-  if(n){A9.clientes=null;A9.cliSel={};toast(n+' cadastro'+(n===1?'':'s')+' duplicado'+(n===1?'':'s')+' excluído'+(n===1?'':'s')+'.');route()}
+async function cliLimparBtn(){cliDupAbrir()}
+async function cliDupLer(){
+  let r=await SB.from('clientes_importados').select('id,nome,fone,email,cidade,cep,criado_em').limit(10000);
+  if(r.error)r=await SB.from('clientes_importados').select('id,nome,fone,email,cidade,criado_em').limit(10000);
+  if(r.error)return null;
+  const grupos={};
+  (r.data||[]).forEach(c=>{const f=cliNormFone(c.fone);if(!f)return;(grupos[f]=grupos[f]||[]).push(c)});
+  return Object.values(grupos).filter(g=>g.length>1).map(g=>g.sort((a,b)=>String(a.criado_em||'').localeCompare(String(b.criado_em||''))||String(a.id).localeCompare(String(b.id))));
+}
+async function cliDupAbrir(){
+  if(A9.busy)return;A9.busy=true;let g;try{g=await cliDupLer()}finally{A9.busy=false}
+  if(g===null){toast('Não foi possível ler os clientes importados.');return}
+  if(!g.length){toast('Nenhum telefone repetido.');return}
+  A9.cliDup=g;
+  const corpo='<p style="margin:0 0 10px;font-size:.9rem">Encontrei <b>'+g.length+' telefone'+(g.length===1?'':'s')+' repetido'+(g.length===1?'':'s')+'</b>, com nomes iguais ou diferentes. Para cada um, escolha qual cadastro fica e o que fazer com os outros. Nada é apagado antes de você confirmar.</p>'+
+    g.map((gr,i)=>'<div style="border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0"><b>📞 '+esc(gr[0].fone||'')+'</b> <span style="color:var(--muted);font-size:.82rem">· '+gr.length+' cadastros</span>'+
+      gr.map((c,j)=>'<label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:6px 0;font-size:.88rem"><input type="radio" name="dk'+i+'" value="'+esc(c.id)+'" '+(j===0?'checked':'')+' style="width:auto;margin-top:3px"><span><b>'+esc(c.nome||'(sem nome)')+'</b>'+(c.email?' · '+esc(c.email):'')+(c.cidade?' · '+esc(c.cidade):'')+'<br><small style="color:var(--muted)">cadastrado em '+esc(String(c.criado_em||'').slice(0,10).split('-').reverse().join('/'))+'</small></span></label>').join('')+
+      '<select id="da'+i+'" style="margin-top:4px;width:100%"><option value="unir">Unificar: fica o marcado e recebe os dados que faltarem dos outros; os outros são excluídos</option><option value="excluir">Excluir os outros: fica só o marcado, sem copiar dados</option><option value="nada">Não mexer neste telefone</option></select></div>').join('');
+  cliModal('dupbox','Telefones repetidos',corpo,'<button class="btn acc" onclick="cliDupAplicar()">Aplicar escolhas</button><button class="btn ghost" onclick="document.getElementById(\'dupbox\').remove()">Fechar</button>');
+}
+async function cliDupAplicar(){
+  const g=A9.cliDup||[];if(!g.length||A9.busy)return;
+  const apagar=[],atualizar=[];let unir=0,excl=0;
+  g.forEach((gr,i)=>{
+    const acao=(document.getElementById('da'+i)||{}).value||'nada';if(acao==='nada')return;
+    const marc=document.querySelector('input[name="dk'+i+'"]:checked');const keepId=marc?marc.value:gr[0].id;
+    const keep=gr.find(c=>String(c.id)===String(keepId))||gr[0];
+    const outros=gr.filter(c=>c!==keep);
+    if(acao==='unir'){
+      const novo={};['nome','email','cidade','cep'].forEach(k=>{if(!String(keep[k]||'').trim()){const o=outros.find(x=>String(x[k]||'').trim());if(o)novo[k]=String(o[k]).trim()}});
+      if(Object.keys(novo).length)atualizar.push({id:keep.id,novo});unir++;
+    }else excl++;
+    outros.forEach(x=>apagar.push(x.id));
+  });
+  if(!apagar.length){toast('Nada a fazer: nenhum telefone foi marcado para unificar ou excluir.');return}
+  if(!confirm('Vou aplicar estas escolhas:\n• '+unir+' telefone'+(unir===1?'':'s')+' unificado'+(unir===1?'':'s')+'\n• '+excl+' telefone'+(excl===1?'':'s')+' com os outros cadastros excluídos\n\nTotal de cadastros que serão excluídos: '+apagar.length+'. Isso não dá para desfazer.\n\nContinuar?'))return;
+  A9.busy=true;
+  try{
+    for(const u of atualizar){await SB.from('clientes_importados').update(u.novo).eq('id',u.id)}
+    const d=await SB.from('clientes_importados').delete().in('id',apagar).select('id');
+    if(d.error||!(d.data||[]).length){toast('Não foi possível excluir. Confira se o arquivo 22_editar_clientes.sql foi rodado.');A9.busy=false;return}
+    A9.busy=false;
+    const el=document.getElementById('dupbox');if(el)el.remove();
+    A9.clientes=null;A9.cliSel={};A9.cliDup=null;route();toast(d.data.length+' cadastro'+(d.data.length===1?'':'s')+' repetido'+(d.data.length===1?'':'s')+' excluído'+(d.data.length===1?'':'s')+'.');
+  }catch(x){A9.busy=false;toast('Erro: '+(x.message||x))}
 }
 /* ---- revendedor a partir do cliente: botão em Clientes (com estrelinha) e "Adicionar revendedor" na aba Revendedores ---- */
 A9.cliRev=null;
@@ -7284,7 +7344,7 @@ function tabClientes(){
   A9.cliLista=L.map(c=>c.k);const nSel=L.filter(c=>A9.cliSel[c.k]).length;
   return `<div class="box"><h2 style="margin:0 0 4px">Clientes cadastrados</h2><p style="margin:0 0 10px;color:var(--muted)">${A9.clientes.length} cliente${A9.clientes.length===1?'':'s'} · ${fiel} com ${CLI_META} pedidos ou mais. Pedidos cancelados não contam.</p>${A9.cliErro?'<div class="note err">'+esc(A9.cliErro)+'</div>':''}
   <input type="file" id="cliXlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="admProcessarPlanilha(this.files[0]);this.value=''">
-  <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" oninput="buscaLive(this,'cliQ')"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button><button class="btn ghost sm" onclick="admImportarClientes()" title="Importar clientes de planilha Excel ou CSV">Importar planilha</button> <button class="btn acc" onclick="cliNovo()">➕ Novo cliente</button> <button class="btn ghost" onclick="cliLimparBtn()" title="Junta e exclui cadastros importados com o mesmo telefone">Limpar duplicados</button></div>
+  <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" oninput="buscaLive(this,'cliQ')"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button><button class="btn ghost sm" onclick="admImportarClientes()" title="Importar clientes de planilha Excel ou CSV">Importar planilha</button> <button class="btn acc" onclick="cliNovo()">➕ Novo cliente</button> <button class="btn ghost" onclick="cliLimparBtn()" title="Mostra os telefones repetidos e deixa escolher unificar ou excluir">Limpar duplicados</button></div>
   <div class="selbar"><button class="btn ghost sm" onclick="cliSelTodos(true)">Selecionar todos</button><button class="btn ghost sm" onclick="cliSelTodos(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><button class="btn acc sm" onclick="cobLote()" ${nSel?'':'disabled'}>Gerar cobrança${nSel?' ('+nSel+')':''}</button><button class="btn ghost sm danger" onclick="cliExcluir()" ${nSel?'':'disabled'}>Excluir cadastro${nSel?' ('+nSel+')':''}</button></div>
   <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th>${cth('nome','Cliente')}<th>Contato</th>${cth('cidade','Cidade')}${cth('n','Pedidos')}${cth('ent','Entregues')}${cth('tot','Total comprado')}${cth('ult','Último pedido')}${cth('cad','Cadastro')}<th></th></tr></thead><tbody>${Lv.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><a style="cursor:pointer;font-weight:700" onclick="cliEditar('${esc(c.k)}')" title="Editar cadastro">${esc(c.nome||'Sem nome')}</a>${cliRevStar(c)}${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" style="color:inherit">${esc(c.fone)}</a>`:''} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}${c.endereco?`<div style="color:var(--muted);font-size:.78rem">${esc(c.endereco)}${c.numero?', '+esc(c.numero):''}${c.bairro?' · '+esc(c.bairro):''}</div>`:''}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> ${cliRevBtn(c)} ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div>${L.length>Lv.length?`<p style="text-align:center;margin:12px 0 0"><button class="btn ghost" onclick="cliMais()">Mostrar mais (${L.length-Lv.length} restantes)</button></p>`:''}</div>`;
 }
