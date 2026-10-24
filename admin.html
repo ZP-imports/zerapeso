@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-24-2464 -->
+<!-- v2026-10-24-2465 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5398,7 +5398,7 @@ async function resumoCarregar(dia){
           const m={};criados.forEach(o=>(o.itens||[]).forEach(i=>{const k=String(i.name||i.nome||'Produto');const q=+i.qty||1;const x=m[k]=m[k]||{q:0,v:0};x.q+=q;x.v+=(+i.unit||0)*q}));
           const arr=Object.entries(m).sort((a,b)=>b[1].q-a[1].q||b[1].v-a[1].v);
           const tot=arr.reduce((s,x)=>s+x[1].q,0),val=arr.reduce((s,x)=>s+x[1].v,0);
-          return {n:tot,v:val,det:arr.slice(0,15).map(x=>[x[1].q+'× '+x[0],x[1].v]).concat(arr.length>15?[['+ '+(arr.length-15)+' outros produtos','']]:[]),nota:arr.length?arr.length+' produto'+(arr.length===1?'':'s')+' diferente'+(arr.length===1?'':'s')+' · valor sem o frete':'Nenhum produto vendido neste dia'};
+          return {n:tot,v:val,semValor:true,det:arr.slice(0,40).map(x=>[x[1].q+'× '+x[0],'']).concat(arr.length>40?[['+ '+(arr.length-40)+' outros produtos','']]:[]),nota:arr.length?arr.length+' produto'+(arr.length===1?'':'s')+' diferente'+(arr.length===1?'':'s'):'Nenhum produto vendido neste dia'};
         })()
       },
       turnos:conta(criados,o=>TURNOS[(o.entrega||{}).turno]||''),cidades:conta(criados,o=>cidadeDe(o)).slice(0,5)
@@ -5436,7 +5436,7 @@ function resumoDiaHtml(){
     const fin=(t,v,cor,sub)=>'<div class="rsfin" style="border-left:4px solid '+cor+'"><small>'+t+'</small><b>'+esc(brl(v))+'</b><small>'+sub+'</small></div>';
     const quad=(k,t,cor,q)=>{
       const fech=!!A9.resumoFech[k];
-      return '<div class="rsq"><div class="rsqt" style="background:'+cor+'" onclick="resumoQuad(\''+k+'\')" title="Abrir ou fechar"><span>'+esc(t)+'</span><span><b>'+q.n+'</b> '+(fech?'▸':'▾')+'</span></div><div class="rsqv">'+esc(brl(q.v))+'</div>'+
+      return '<div class="rsq"><div class="rsqt" style="background:'+cor+'" onclick="resumoQuad(\''+k+'\')" title="Abrir ou fechar"><span>'+esc(t)+'</span><span><b>'+q.n+'</b> '+(fech?'▸':'▾')+'</span></div><div class="rsqv">'+(q.semValor?q.n+' '+(q.n===1?'item vendido':'itens vendidos'):esc(brl(q.v)))+'</div>'+
         (fech?'':'<div class="rsqb">'+q.det.map(x=>'<div><span>'+esc(x[0])+'</span><b>'+(x[1]===''?'':typeof x[1]==='number'&&!/^(Parcelas programadas|Com pagamento|Sem pagamento|Entregues|Em rota|Faltam)/.test(x[0])?esc(brl(x[1])):esc(String(x[1])))+'</b></div>').join('')+(q.nota?'<div class="pgsub" style="margin-top:4px">'+esc(q.nota)+'</div>':'')+'</div>')+'</div>';
     };
     const lst=(t,arr)=>t+': '+(arr.length?arr.map(x=>esc(x[0])+' <b>'+x[1]+'</b>').join(' · '):'—');
