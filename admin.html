@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-24-2463 -->
+<!-- v2026-10-24-2464 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -4078,7 +4078,7 @@ function admDetalhe(){
   <h3>Itens</h3><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${(o.itens||[]).map(i=>`<tr><td>${esc(i.name)}<div style="color:var(--muted);font-size:.8rem">SKU ${esc(i.sku||'')}</div></td><td>${i.qty}</td><td class="r">${i.semPreco?'a confirmar':brl(i.unit*i.qty)}</td></tr>`).join('')}</tbody></table></div>
   <div class="tot"><span>Subtotal</span><span>${temSP(o)?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span>${o.desconto?`<span class="dsc">Desconto (${o.desconto.pct}%)</span><span class="dsc">- ${brl(o.desconto.valor)}</span>`:''}<span class="big">Total</span><span class="big">${totAdm(o)}</span></div>${freteHtmlAdm(o)}
   </div><div>
-  ${gestao?`<h3 style="margin-top:0">Status do pedido</h3>${fim?'<div class="note">Pedido encerrado. O status não muda mais.</div>':`<label>Andamento do pedido (clique na próxima etapa; depois de marcada, não volta)</label>${statusOpcoes(o)}<label for="stM">Motivo (obrigatório para cancelar)</label><input id="stM" maxlength="200"><p style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost danger" onclick="admCancelarPedido()">Cancelar pedido</button></p>`}
+  ${gestao?`<h3 style="margin-top:0">Status do pedido</h3>${fim?'<div class="note">Pedido encerrado. O status não muda mais.</div>':`<label>Andamento do pedido (clique na próxima etapa; depois de marcada, não volta)</label>${statusOpcoes(o)}<label for="stM">Motivo (obrigatório para cancelar)</label><input id="stM" maxlength="200"><p style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost danger" onclick="admCancelarPedido()">Cancelar pedido</button></p>`}${statusVoltarHtml(o)}
   <h3>Rastreio</h3>
   <p>${fone?`<a class="btn ghost sm" href="${waUrlPara(fone,msgRastreio(o))}" target="_blank" rel="noopener">Enviar link de rastreio ao cliente</a>`:'<span style="color:var(--muted)">Sem telefone do cliente.</span>'}</p>
   <h3>Pagamento</h3>
@@ -5840,6 +5840,23 @@ function statusOpcoes(o){
   }).join('');
   const env=idx>=4?`<div class="stp done"><button type="button" disabled title="O pedido já foi entregue à logística"><span class="dot">✓</span><b>Enviado ao entregador</b><small>${esc(o.entregadorNome||'')}${o.status==='programada'?' · aguardando sair':o.status==='em-rota'?' · saiu para entrega':''}</small></button></div>`:'';
   return `<div class="stepper"><div class="stp done"><button type="button" disabled><span class="dot">✓</span><b>Recebido</b><small>Pedido feito pelo cliente</small></button></div>${passos}${env}</div>`;
+}
+/* ---- clicou errado: volta o pedido para uma etapa anterior (o cliente não é avisado e ele sai da rota) ---- */
+var ST_ROT={realizado:'Recebido',confirmado:'Confirmado',preparacao:'Em preparação',separacao:'Em separação','aguardando-programacao':'Aguardando rota (programação)',programada:'Enviado ao entregador','em-rota':'Em rota',tentativa:'Tentativa de entrega',entregue:'Entregue'};
+function statusVoltarHtml(o){
+  if(o.status==='cancelado'||o.status==='realizado')return '';
+  const full=['realizado','confirmado','separacao','aguardando-programacao','programada','em-rota','entregue'];
+  const at=full.indexOf(({preparacao:'separacao',tentativa:'em-rota'})[o.status]||o.status);
+  const ant=at>0?full.slice(0,at).filter(s=>s!=='entregue'):[];
+  if(!ant.length)return '';
+  return '<div class="note" style="margin-top:10px"><b>↩ Clicou sem querer?</b> Volte o pedido para uma etapa anterior. O cliente <b>não é avisado</b>'+(o.rota_id?' e o pedido sai da rota':'')+'. O pagamento tem o botão próprio abaixo ("Voltar para pendente").<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center"><select id="stVoltaSel" style="width:auto">'+ant.map(s=>'<option value="'+s+'">'+esc(ST_ROT[s]||s)+'</option>').join('')+'</select><button class="btn ghost" onclick="stVoltar()">↩ Voltar etapa</button></div></div>';
+}
+async function stVoltar(){
+  const o=A9.po;if(!o||A9.busy)return;const s=(document.getElementById('stVoltaSel')||{}).value;if(!s)return;
+  if(!confirm('Voltar o pedido de "'+(ST_ROT[o.status]||o.status)+'" para "'+(ST_ROT[s]||s)+'"?\n\nO cliente NÃO é avisado.'+(o.rota_id?' O pedido sai da rota.':'')))return;
+  A9.busy=true;const r=await SB.rpc('voltar_status_pedido',{p_pedido:o.id,p_status:s,p_motivo:null});A9.busy=false;
+  if(r.error){A9.msg=/voltar_status_pedido|function|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 30_voltar_status.sql no Supabase.':msgRpc(r.error);A9.erro=true;route();return}
+  A9.msg='Pedido voltou para "'+(ST_ROT[s]||s)+'".';A9.erro=false;A9.pedidos=null;A9.lg=null;admAbrirPedido(o.id);
 }
 function stAvanca(s){
   const o=A9.po;if(!o||A9.busy)return;const p=PASSOS.find(x=>x[0]===s);if(!p)return;
