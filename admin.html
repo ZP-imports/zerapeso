@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-24-2457 -->
+<!-- v2026-10-24-2462 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+.rsbox{margin-bottom:12px}.rshead{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.rstog{border:0;background:var(--bg);width:32px;height:32px;border-radius:10px;cursor:pointer;font-size:1rem}.rsfins{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:12px}.rsfin{background:#f6f7f9;border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;gap:2px}.rsfin b{font-size:1.35rem}.rsfin small{color:var(--muted);font-size:.78rem}.rsgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}.rsq{background:#f6f7f9;border-radius:12px;overflow:hidden;align-self:start}.rsqt{display:flex;justify-content:space-between;align-items:center;color:#fff;padding:9px 12px;font-size:.88rem;cursor:pointer;user-select:none}.rsqt b{background:rgba(255,255,255,.25);border-radius:999px;padding:0 9px;margin-right:4px}.rsqv{padding:8px 12px 2px;font-weight:700;font-size:1.15rem}.rsqb{padding:4px 12px 10px;font-size:.84rem}.rsqb>div:not(.pgsub){display:flex;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:1px dashed #e3e5e8}.rscal{position:absolute;right:0;top:calc(100% + 6px);z-index:30;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);width:280px}.rsch{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.rscg{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}.rscw{font-size:.72rem;color:var(--muted);font-weight:600}.rscd{border:0;background:transparent;border-radius:8px;padding:7px 0;cursor:pointer;font:inherit;font-size:.85rem}.rscd:hover:not([disabled]){background:#e8f3ef}.rscd.hj{box-shadow:inset 0 0 0 1px var(--p)}.rscd.sel{background:var(--p);color:#fff}.rscd[disabled]{color:#c4c4c4;cursor:default}
 .cpn-cfg{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}.copc{display:flex;gap:6px 22px;flex-wrap:wrap;align-items:center;margin-top:10px}.cck{display:flex;gap:6px;align-items:center;cursor:pointer;font-size:.9rem}.cck.forte{font-weight:600}.cck input{width:auto}.cbar{position:sticky;top:0;z-index:5;background:#fff;padding:8px 0;border-bottom:1px solid var(--line);margin-bottom:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}.csep{width:1px;height:20px;background:var(--line);margin:0 4px}.cpd{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0 0;background:#fff}.cpd.off{opacity:.55}.cph{display:flex;gap:10px;align-items:center}.cph>input{width:auto}.ctm{width:44px;height:44px;border-radius:10px;object-fit:cover;background:#f1f5f9;flex:none}.ctph{display:grid;place-items:center;color:#0a6e5c;font-weight:700;background:#dcefe9}.cpn{flex:1;min-width:0}.cpn input{width:100%;max-width:420px;font-weight:700;padding:4px 8px}.cpm{font-size:.76rem;color:var(--muted);margin-top:2px}.cvs{margin:8px 0 0 28px;display:flex;flex-direction:column;gap:5px}.cvl{display:grid;grid-template-columns:20px minmax(150px,1fr) 110px 150px;gap:8px;align-items:center}.cvl.off{opacity:.5}.cvl input[type=checkbox]{width:auto}.cvl input.cvn,.cvl input.cvv{width:100%;padding:4px 8px}.cvh{font-size:.72rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}@media(max-width:640px){.cvl{grid-template-columns:20px 1fr 90px 110px}.cvs{margin-left:0}}
 @media(min-width:700px){.tabs.adm{flex-wrap:wrap!important;overflow-x:visible!important}}.tabs.adm .qk{border:1px solid transparent;border-radius:999px;padding:.6em 1.2em;cursor:pointer;font:inherit;font-weight:600}.tabs.adm .qk-rev{background:#ede9fe;color:#6d28d9;border-color:#ddd6fe}.tabs.adm .qk-cli{background:#cffafe;color:#0e7490;border-color:#a5f3fc}.tabs.adm .qk-rev.on{background:#7c3aed;color:#fff}.tabs.adm .qk-cli.on{background:#0891b2;color:#fff}
 .pgsub{font-size:.76rem;color:var(--muted);margin-top:2px}.pgcli{max-width:170px}.pgval{min-width:185px}.pgval .pgsub{white-space:nowrap}.pglnk{display:inline-block;margin-top:3px;font-size:.76rem;color:#2563eb;cursor:pointer;font-weight:600}.pgdet{margin-top:5px}.pgdet summary{cursor:pointer;font-size:.78rem;font-weight:600;color:#2563eb}.pgbox{margin-top:6px;padding:8px 10px;background:#f8fafc;border:1px solid var(--line);border-radius:10px;min-width:270px}.pgpt{margin-top:6px;font-size:.76rem;border-collapse:collapse}.pgpt td{padding:2px 8px 2px 0;border:0!important;white-space:nowrap;box-shadow:none!important}.pgpt tr{box-shadow:none!important;background:transparent!important}.pgbox .btn{padding:3px 10px!important;font-size:.76rem!important;min-height:0!important}.pgbtns{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.pghl{margin:8px 0 0;padding-left:16px;font-size:.78rem;line-height:1.5}.pgx{color:var(--muted)}.pgsit{min-width:90px}.btn.bs-wa{background:#ecfdf3;color:#067647;border:1px solid #abefc6}.btn.bs-ok{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}.pulsa{animation:pagpulsa 1s ease-in-out infinite}.selo{white-space:nowrap}.selo.gray{background:#e5e7eb;color:#374151}.kc.pulsa{box-shadow:0 0 0 3px rgba(124,58,237,.35)}
@@ -4095,7 +4096,7 @@ var ENC=o=>['entregue','cancelado'].includes(o.status);
 var emAtraso=o=>!ENC(o)&&(o.entrega||{}).data&&(o.entrega||{}).data<hojeS();
 var aguardaPag=o=>o.status!=='cancelado'&&(o.pagamento||{}).status!=='pago';
 function motivoCancel(o){const ev=(o.eventos||[]).slice().reverse().find(e=>e.tipo==='status'&&e.para==='cancelado');return ev&&ev.motivo?ev.motivo:''}
-function tabPedidos(){return listaPed(o=>A9.fs==='cancelado'?o.status==='cancelado':(A9.fq==='agenda'||!ENC(o)),'Pedidos em aberto. Use o filtro Cancelados para ver pedidos cancelados.')}
+function tabPedidos(){return resumoDiaHtml()+listaPed(o=>A9.fs==='cancelado'?o.status==='cancelado':(A9.fq==='agenda'||!ENC(o)),'Pedidos em aberto. Use o filtro Cancelados para ver pedidos cancelados.')}
 function tabAberto(){return listaPed(o=>!ENC(o),'Pedidos ainda não encerrados (não entregues e não cancelados).')}
 function tabAtrasados(){return listaPed(emAtraso,'Pedidos não encerrados cuja data de entrega desejada já passou.')}
 async function admSalvaLink(){
@@ -5332,6 +5333,108 @@ function pedGrupoCab(o,ix,l){
   return `<tr class="grupocab"><td colspan="20" style="background:#eef5f2;font-weight:700;color:var(--p);padding:8px 12px">${PED_GRUPO_LB[g]} <span style="font-weight:500;color:var(--muted)">(${n})</span></td></tr>`;
 }
 /* lista de pedidos (Pedidos e Em aberto) */
+/* ======================= RESUMO DO DIA (aba Pedidos): controle financeiro do dia, quadradinhos que abrem e fecham ======================= */
+A9.resumoAb=(function(){try{return localStorage.getItem('zp_resumo_ab')!=='0'}catch(e){return true}})();A9.resumoDia='';A9.resumoCache={};A9.resumoCal=null;
+A9.resumoFech=(function(){try{return JSON.parse(localStorage.getItem('zp_resumo_fech')||'{}')}catch(e){return {}}})();
+function resumoToggle(){A9.resumoAb=!A9.resumoAb;try{localStorage.setItem('zp_resumo_ab',A9.resumoAb?'1':'0')}catch(e){}route()}
+function resumoQuad(k){if(A9.resumoFech[k])delete A9.resumoFech[k];else A9.resumoFech[k]=1;try{localStorage.setItem('zp_resumo_fech',JSON.stringify(A9.resumoFech))}catch(e){}route()}
+function resumoIr(d){A9.resumoDia=d||hojeS();A9.resumoCal=null;route()}
+function resumoMais(n){const d=addDias(A9.resumoDia||hojeS(),n);A9.resumoDia=d>hojeS()?hojeS():d;route()}
+function resumoAtualizar(){delete A9.resumoCache[A9.resumoDia||hojeS()];route()}
+function resumoCalToggle(){const dia=A9.resumoDia||hojeS();A9.resumoCal=A9.resumoCal?null:{mes:dia.slice(0,7)};route()}
+function resumoCalMes(n){const [y,m]=A9.resumoCal.mes.split('-').map(Number);const d=new Date(y,m-1+n,1);A9.resumoCal.mes=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');route()}
+function resumoValor(o){try{return pedTotal(o)+(freteDoPedido(o)||0)}catch(e){return 0}}
+async function resumoCarregar(dia){
+  const c=A9.resumoCache[dia];if(c&&c.busy)return;
+  A9.resumoCache[dia]={busy:true};
+  try{
+    const ini=new Date(dia+'T00:00:00'),fim=new Date(ini.getTime()+86400000),I=ini.toISOString(),F=fim.toISOString();
+    const [pc,ev]=await Promise.all([
+      SB.from('pedidos').select('id,status,criado_em,itens,entrega,pagamento,extra').gte('criado_em',I).lt('criado_em',F).order('id').limit(2000),
+      SB.from('pedido_eventos').select('pedido_id,tipo,texto,para,t').gte('t',I).lt('t',F).order('t').limit(10000)
+    ]);
+    if(pc.error)throw pc.error;
+    const E=ev.error?[]:(ev.data||[]);
+    const P={};(pc.data||[]).forEach(o=>{P[o.id]=o});
+    const faltam=[...new Set(E.map(e=>e.pedido_id))].filter(id=>!P[id]);
+    for(let i=0;i<faltam.length;i+=200){const r=await SB.from('pedidos').select('id,status,criado_em,itens,entrega,pagamento,extra').in('id',faltam.slice(i,i+200));(r.data||[]).forEach(o=>{P[o.id]=o})}
+    const ord=ids=>ids.map(id=>P[id]).filter(Boolean);
+    const idsEv=f=>[...new Set(E.filter(f).map(e=>e.pedido_id))];
+    const soma=l=>l.reduce((s,o)=>s+resumoValor(o),0);
+    const frete=o=>{try{return freteDoPedido(o)||0}catch(e){return 0}};
+    const criados=(pc.data||[]).filter(o=>!(o.extra||{}).cobranca&&o.status!=='cancelado');
+    const ent=ord(idsEv(e=>e.tipo==='status'&&e.para==='entregue'));
+    const pagos=ord(idsEv(e=>e.tipo==='pagamento'&&/^Pagamento recebido/i.test(e.texto||'')));
+    const prog=ord(idsEv(e=>e.tipo==='pagamento'&&/^Pagamento (programado|parcelado)/i.test(e.texto||'')));
+    const rota=ord(idsEv(e=>e.tipo==='status'&&e.para==='em-rota'));
+    const abertos=criados.filter(o=>(o.pagamento||{}).status!=='pago');
+    const comProg=abertos.filter(o=>(o.extra||{}).pag_prev);
+    // parcelas recebidas no dia (valor de cada parcela paga naquela data)
+    let parN=0,parV=0;
+    ord(idsEv(e=>e.tipo==='pagamento'&&/parcela marcada como paga|Pagamento parcial/i.test(e.texto||''))).forEach(o=>{
+      const pp=(o.extra||{}).pag_prev;if(!Array.isArray(pp))return;
+      pp.forEach(p=>{if(p.pago&&String(p.pago_em||'').slice(0,10)===dia){parN++;parV+=(+p.valor||0)}});
+    });
+    const nParc=prog.reduce((s,o)=>{const pp=(o.extra||{}).pag_prev;return s+(Array.isArray(pp)?pp.length:(pp?1:0))},0);
+    const conta=(arr,fn)=>{const m={};arr.forEach(o=>{const k=fn(o)||'—';m[k]=(m[k]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1])};
+    const vCriados=soma(criados),vFrete=criados.reduce((s,o)=>s+frete(o),0),vPagos=soma(pagos);
+    A9.resumoCache[dia]={busy:false,em:new Date(),d:{
+      entrou:vPagos+parV,faturado:vCriados,aReceber:soma(abertos),
+      q:{
+        entraram:{n:criados.length,v:vCriados,det:[['Produtos',vCriados-vFrete],['Frete',vFrete],['Ticket médio',criados.length?vCriados/criados.length:0],['Maior pedido',criados.reduce((m,o)=>Math.max(m,resumoValor(o)),0)]],
+          nota:'Site '+criados.filter(o=>!(o.extra||{}).manual&&!(o.extra||{}).revendedor).length+' · manual '+criados.filter(o=>(o.extra||{}).manual&&!(o.extra||{}).revendedor).length+' · revendedor '+criados.filter(o=>(o.extra||{}).revendedor).length},
+        entregues:{n:ent.length,v:soma(ent),det:[['Ticket médio',ent.length?soma(ent)/ent.length:0]],nota:criados.length?Math.round(100*ent.filter(o=>P[o.id]&&String(o.criado_em).slice(0,10)===dia).length/criados.length)+'% dos que entraram hoje já foram entregues':''},
+        pagos:{n:pagos.length,v:vPagos,det:[['Parcelas recebidas ('+parN+')',parV],['Total que entrou no dia',vPagos+parV]],nota:''},
+        programado:{n:prog.length,v:soma(prog),det:[['Parcelas programadas',nParc]],nota:'Pedidos que ganharam data ou parcelas no dia'},
+        aberto:{n:abertos.length,v:soma(abertos),det:[['Com pagamento programado',comProg.length],['Sem pagamento programado',abertos.length-comProg.length]],nota:'Dos pedidos que entraram no dia e ainda não foram pagos'},
+        rota:{n:rota.length,v:soma(rota),det:[],nota:'Pedidos que saíram para entrega no dia'}
+      },
+      turnos:conta(criados,o=>TURNOS[(o.entrega||{}).turno]||''),cidades:conta(criados,o=>cidadeDe(o)).slice(0,5)
+    }};
+  }catch(e){A9.resumoCache[dia]={busy:false,erro:String((e&&e.message)||e)}}
+  route();
+}
+function resumoCalHtml(dia){
+  const cal=A9.resumoCal;if(!cal)return '';
+  const [y,m]=cal.mes.split('-').map(Number),prim=new Date(y,m-1,1),dias=new Date(y,m,0).getDate(),hoje=hojeS();
+  const nomes=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  let cel='';for(let i=0;i<prim.getDay();i++)cel+='<span></span>';
+  for(let d=1;d<=dias;d++){
+    const iso=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const fut=iso>hoje,sel=iso===dia,hj=iso===hoje;
+    cel+='<button class="rscd'+(sel?' sel':'')+(hj?' hj':'')+'" '+(fut?'disabled':'onclick="resumoIr(\''+iso+'\')"')+'>'+d+'</button>';
+  }
+  const proxOk=(y*12+m)<(+hoje.slice(0,4)*12+ +hoje.slice(5,7));
+  return '<div class="rscal"><div class="rsch"><button class="btn ghost sm" onclick="resumoCalMes(-1)">◀</button><b>'+nomes[m-1]+' de '+y+'</b><button class="btn ghost sm" onclick="resumoCalMes(1)" '+(proxOk?'':'disabled')+'>▶</button></div><div class="rscg">'+['D','S','T','Q','Q','S','S'].map(x=>'<span class="rscw">'+x+'</span>').join('')+cel+'</div></div>';
+}
+function resumoDiaHtml(){
+  const dia=A9.resumoDia||(A9.resumoDia=hojeS());const ab=!!A9.resumoAb;
+  const semana=['domingo','segunda','terça','quarta','quinta','sexta','sábado'][new Date(dia+'T12:00').getDay()];
+  const cab='<div class="rshead"><button class="rstog" onclick="resumoToggle()" title="'+(ab?'Recolher':'Abrir')+' o resumo">'+(ab?'▾':'▸')+'</button><h3 style="margin:0">Resumo do dia</h3>'+
+    '<span style="flex:1"></span>'+(ab?'<button class="btn ghost sm" onclick="resumoMais(-1)" title="Dia anterior">◀</button><span style="position:relative"><button class="btn ghost" onclick="resumoCalToggle()" title="Abrir o calendário">📅 '+esc(semana)+', '+esc(dataBr(dia))+(dia===hojeS()?' (hoje)':'')+'</button>'+resumoCalHtml(dia)+'</span><button class="btn ghost sm" onclick="resumoMais(1)" '+(dia>=hojeS()?'disabled':'')+' title="Próximo dia">▶</button><button class="btn sm" onclick="resumoAtualizar()">↻ Atualizar</button>':'<span style="color:var(--muted);font-size:.85rem">'+esc(dataBr(dia))+'</span>')+'</div>';
+  if(!ab)return '<div class="box rsbox">'+cab+'</div>';
+  const c=A9.resumoCache[dia];
+  if(!c||(!c.busy&&!c.d&&!c.erro))setTimeout(()=>resumoCarregar(dia),0);
+  else if(c.d&&dia===hojeS()&&(Date.now()-c.em.getTime())>300000)setTimeout(()=>{delete A9.resumoCache[dia];resumoCarregar(dia)},0);
+  let corpo;
+  if(!c||c.busy)corpo='<p style="color:var(--muted);margin:12px 0 0">Carregando o resumo...</p>';
+  else if(c.erro)corpo='<div class="note err" style="margin-top:12px">Não foi possível montar o resumo: '+esc(c.erro)+'</div>';
+  else{
+    const d=c.d,hh=c.em.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const fin=(t,v,cor,sub)=>'<div class="rsfin" style="border-left:4px solid '+cor+'"><small>'+t+'</small><b>'+esc(brl(v))+'</b><small>'+sub+'</small></div>';
+    const quad=(k,t,cor,q)=>{
+      const fech=!!A9.resumoFech[k];
+      return '<div class="rsq"><div class="rsqt" style="background:'+cor+'" onclick="resumoQuad(\''+k+'\')" title="Abrir ou fechar"><span>'+esc(t)+'</span><span><b>'+q.n+'</b> '+(fech?'▸':'▾')+'</span></div><div class="rsqv">'+esc(brl(q.v))+'</div>'+
+        (fech?'':'<div class="rsqb">'+q.det.map(x=>'<div><span>'+esc(x[0])+'</span><b>'+(typeof x[1]==='number'&&!/Parcelas programadas|Com pagamento|Sem pagamento/.test(x[0])?esc(brl(x[1])):esc(String(x[1])))+'</b></div>').join('')+(q.nota?'<div class="pgsub" style="margin-top:4px">'+esc(q.nota)+'</div>':'')+'</div>')+'</div>';
+    };
+    const lst=(t,arr)=>t+': '+(arr.length?arr.map(x=>esc(x[0])+' <b>'+x[1]+'</b>').join(' · '):'—');
+    corpo='<p style="margin:8px 0 10px;color:var(--muted);font-size:.8rem">Atualizado às '+hh+' · clique em ↻ Atualizar para ver os números mais recentes. Clique no título de cada quadrado para abrir ou fechar.</p>'+
+      '<div class="rsfins">'+fin('Faturamento do dia',d.faturado,'#2563eb','pedidos que entraram no dia')+fin('Faturamento programado',d.aReceber,'#d97706','a receber dos pedidos do dia')+'</div>'+
+      '<div class="rsgrid">'+quad('entraram','Entraram','#2563eb',d.q.entraram)+quad('entregues','Entregues','#16a34a',d.q.entregues)+quad('pagos','Pagos','#0a6e5c',d.q.pagos)+quad('programado','Pagamento programado','#7c3aed',d.q.programado)+'</div>'+
+      '<div class="pgsub" style="margin-top:10px;line-height:1.7">'+lst('Horário de entrega',d.turnos)+'<br>'+lst('Cidades',d.cidades)+'</div>';
+  }
+  return '<div class="box rsbox">'+cab+corpo+'</div>';
+}
 function listaPed(filtro,intro){
   if(A9.po)return admDetalhe();
   if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
