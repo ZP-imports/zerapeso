@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-24-2465 -->
+<!-- v2026-10-24-2466 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -4724,7 +4724,7 @@ var CXDEF={taxaCredito:3.5,taxaDebito:1.5,taxaPix:0,prazoCredito:30,prazoDebito:
 A9.pagF=null;A9.cartaoCfg=null;
 async function admCarregarCartaoCfg(){const r=await SB.from('configuracao').select('valor').eq('chave','cartao').maybeSingle();A9.cartaoCfg=Object.assign({},CXDEF,r.data&&r.data.valor)}
 function admPago(v){
-  if(!v){admRpc('desfazer_recebimento',{p_pedido:A9.po.id},'Registro de pagamento desfeito.');return}
+  if(!v){const c=pagConfirmaVoltar(A9.po);if(c===null)return;if(c)pagQuitarUnidos(A9.po,false);admRpc('desfazer_recebimento',{p_pedido:A9.po.id},'Registro de pagamento desfeito (só este pedido).');return}
   const o=A9.po,c=A9.cartaoCfg||CXDEF;const f=(o.pagamento||{}).preferencia||'pix';
   A9.pagF={forma:f,parc:1,bruto:temSP(o)?'':+(pedTotal(o)+(freteDoPedido(o)||0)).toFixed(2)};
   route();
@@ -5679,10 +5679,19 @@ async function pagQuitarUnidos(o,pago){
     const r=await SB.from('pedidos').update({pagamento:pg}).eq('id',x.id);if(!r.error)x.pagamento=pg;
   }
 }
+function pagConfirmaVoltar(o){
+  const nome=(o.entrega||{}).nome||'',cod=codPed(o);
+  if(!confirm('Voltar o pagamento do pedido '+cod+(nome?' ('+nome+')':'')+' para pendente?\n\nSó este pedido será alterado.'))return null;
+  const un=(o.extra||{}).pag_unidos||[];
+  if(!un.length)return false;
+  return confirm('Este pedido tem cobranças unidas a ele ('+un.map(u=>u.cod).join(', ')+').\n\nOK = voltar também as unidas para pendente.\nCancelar = voltar só este pedido.');
+}
 async function pagMarcar(id,v){
   if(id<0)return revPagoTotal(id,v);
+  let cascata=!!v;
+  if(!v){const po=pedAcha(id);if(po){const c=pagConfirmaVoltar(po);if(c===null)return;cascata=c}}
   const r=await SB.rpc('registrar_pagamento',{p_pedido:id,p_pago:v});
-  const po0=pedAcha(id);if(po0&&!r.error)await pagQuitarUnidos(po0,v);
+  const po0=pedAcha(id);if(po0&&!r.error&&cascata)await pagQuitarUnidos(po0,v);
   if(r.error){A9.msg=msgRpc(r.error);A9.erro=true}else{A9.msg=v?'Pagamento registrado como recebido.':'Pagamento voltou para pendente.';A9.erro=false;A9.pedidos=null}
   route();
 }
@@ -6751,7 +6760,7 @@ async function prevMarcar(id,idx,pago){
   const r=await pedSalva(o,id,upd);
   if(r.error){toast('Erro ao salvar.');return;}
   o.extra=ex;if(upd.pagamento)o.pagamento=upd.pagamento;
-  if(todasPagas)await pagQuitarUnidos(o,true);else if(!pago&&eraPago)await pagQuitarUnidos(o,false);
+  if(todasPagas)await pagQuitarUnidos(o,true);else if(!pago&&eraPago&&((o.extra||{}).pag_unidos||[]).length&&confirm('As cobranças unidas a este pedido ('+((o.extra||{}).pag_unidos||[]).map(u=>u.cod).join(', ')+') também voltam para pendente?\n\nOK = sim · Cancelar = só este pedido'))await pagQuitarUnidos(o,false);
   const txt=pago?`${idx+1}ª parcela marcada como paga`:desfezParcial?`Pagamento parcial de ${brl(desfezParcial.pago)} desfeito — a parcela voltou a ser de ${brl(desfezParcial.volta)}`:`${idx+1}ª parcela revertida para pendente`;
   pedEvento({pedido_id:id,tipo:'pagamento',publico:false,texto:txt+(todasPagas?' — todas as parcelas pagas!':''),por:ADMIN.nome}).then(()=>{},()=>{});
   toast(txt+(todasPagas?' ✅ Pedido totalmente pago!':'.')+'');if(todasPagas)A9.pedidos=null;route();
