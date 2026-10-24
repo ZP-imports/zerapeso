@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-24-2461 -->
+<!-- v2026-10-24-2462 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5429,7 +5429,7 @@ function resumoDiaHtml(){
     };
     const lst=(t,arr)=>t+': '+(arr.length?arr.map(x=>esc(x[0])+' <b>'+x[1]+'</b>').join(' · '):'—');
     corpo='<p style="margin:8px 0 10px;color:var(--muted);font-size:.8rem">Atualizado às '+hh+' · clique em ↻ Atualizar para ver os números mais recentes. Clique no título de cada quadrado para abrir ou fechar.</p>'+
-      '<div class="rsfins">'+fin('Faturamento do dia',d.faturado,'#2563eb','pedidos que entraram no dia')+fin('Faturamento a receber',d.aReceber,'#d97706','dos pedidos do dia que ainda não foram pagos')+'</div>'+
+      '<div class="rsfins">'+fin('Faturamento do dia',d.faturado,'#2563eb','pedidos que entraram no dia')+fin('Faturamento programado',d.aReceber,'#d97706','a receber dos pedidos do dia')+'</div>'+
       '<div class="rsgrid">'+quad('entraram','Entraram','#2563eb',d.q.entraram)+quad('entregues','Entregues','#16a34a',d.q.entregues)+quad('pagos','Pagos','#0a6e5c',d.q.pagos)+quad('programado','Pagamento programado','#7c3aed',d.q.programado)+'</div>'+
       '<div class="pgsub" style="margin-top:10px;line-height:1.7">'+lst('Horário de entrega',d.turnos)+'<br>'+lst('Cidades',d.cidades)+'</div>';
   }
