@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-23-2456 -->
+<!-- v2026-10-24-2457 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5891,6 +5891,35 @@ function manNovo(){A9.man={q:{},f:{},busca:'',turno:'',pag:'pix',ok:null,err:''}
 function manCapta(){
   const f=A9.man.f;['mnNome','mnF','ckC','ckU','ckCi','ckB','ckR','ckN','ckCo','ckRef','mnData','mnObs'].forEach(id=>{const e=document.getElementById(id);if(e)f[id]=e.value});
   const c=document.getElementById('mnFn9');if(c)f.mnFn9=c.checked;
+  manSugere();
+}
+/* sugestões de clientes já cadastrados, por nome ou telefone */
+function manSugere(){
+  const box=document.getElementById('manSug');if(!box)return;
+  const f=A9.man.f,L=A9.clientes||[];
+  const nome=pagNz(f.mnNome||'').trim(),dig=digits(f.mnF||'');
+  const pick=A9.man.pick;
+  if(pick&&pick.n===nome&&pick.d===dig){box.innerHTML='<div class="pgsub" style="color:#16a34a;margin:6px 0">✅ Cliente cadastrado carregado. Confira o endereço abaixo.</div>';return}
+  A9.man.pick=null;
+  if(!L.length){box.innerHTML='';return}
+  const qd=dig.length>=4?dig:'';
+  if(nome.length<3&&!qd){box.innerHTML='';return}
+  const ach=L.filter(c=>{
+    const fd=digits(c.fone||'');
+    return (nome.length>=3&&pagNz(c.nome+' '+(c.fones||[]).join(' ')).includes(nome))||(qd&&((fd&&fd.includes(qd))||(c.fones||[]).some(x=>digits(x).includes(qd))));
+  }).slice(0,6);
+  box.innerHTML=ach.length?'<div style="border:1px solid var(--line);border-radius:12px;padding:6px 10px;margin:8px 0;background:#f8fafc"><div class="pgsub" style="margin:0 0 4px">Clientes cadastrados (toque para carregar):</div>'+ach.map(c=>'<div style="padding:6px 4px;cursor:pointer;border-top:1px solid var(--line)" onclick="manPuxaCli(\''+esc(c.k)+'\')"><b>'+esc(c.nome||'(sem nome)')+'</b> · '+esc(c.fone||'sem telefone')+(c.cidade?' · '+esc(c.cidade):'')+' <span class="selo" style="background:#e0f2fe;color:#075985">'+c.n+' pedido'+(c.n===1?'':'s')+'</span></div>').join('')+'</div>':(nome.length>=3?'<div class="pgsub" style="margin:6px 0">Cliente novo: ao registrar o pedido ele já entra na base de clientes.</div>':'');
+}
+function manPuxaCli(k){
+  const c=(A9.clientes||[]).find(x=>x.k===k);if(!c)return;
+  const f=A9.man.f;
+  let d=digits(c.fone||'');if(d.length>=12&&d.startsWith('55'))d=d.slice(2);
+  const sem9=d.length===10;d=d.slice(-(sem9?10:11));
+  f.mnNome=c.nome||'';f.mnFn9=sem9;f.mnF=fmtFone(d,sem9);
+  const e=c.dest||{};
+  f.ckC=e.cep?fmtCep(String(e.cep)):'';f.ckU=e.uf||'';f.ckCi=e.cidade||c.cidade||'';f.ckB=e.bairro||'';f.ckR=e.rua||'';f.ckN=String(e.num||'');f.ckCo=e.comp||'';f.ckRef=e.ref||'';
+  A9.man.pick={n:pagNz(f.mnNome).trim(),d:digits(f.mnF)};
+  route();window.scrollTo(0,0);
 }
 function manPrecoVar(v){return v.preco==null?null:(v.preco_promo!=null?+v.preco_promo:+v.preco)}
 function manItens(){
@@ -5914,16 +5943,18 @@ function manProdsHtml(){
 }
 function tabManual(){
   if(!A9.prods){if(!A9.busy){A9.busy=true;admCarregarProdutos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando produtos...</div>'}
-  const M=A9.man,f=M.f;setTimeout(manResumo,0);
+  const M=A9.man,f=M.f;setTimeout(manResumo,0);setTimeout(manSugere,0);
+  if(!A9.clientes&&!A9.cliBusy)admCarregarClientes();
   if(M.ok)return `<div class="box" style="text-align:center;padding:34px 16px">${msgBox()}<div style="font-size:2.4rem">✅</div><h2 style="margin:6px 0">Pedido ${esc(M.ok.codigo)} registrado</h2><p style="color:var(--muted);margin:0 0 18px">Ele já está em <b>Pedidos</b>, como Recebido, e segue o mesmo fluxo dos pedidos do site: confirmar, separar e enviar ao entregador.</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn acc" style="padding:1em 1.6em" onclick="A9.pedidos=null;admAbrirPedido(${M.ok.id})">Abrir o pedido</button><button class="btn" style="padding:1em 1.6em" onclick="manNovo()">Fazer outro pedido</button></div></div>`;
   const turnos=Object.keys(TURNOS).filter(t=>LOG.turnos[t]);
   const e={cep:f.ckC,uf:f.ckU,cidade:f.ckCi,bairro:f.ckB,rua:f.ckR,num:f.ckN,comp:f.ckCo,ref:f.ckRef};
   const passo=(n,t,s)=>`<div class="mst"><span class="mn">${n}</span><div><h3 style="margin:0">${t}</h3>${s?`<small style="color:var(--muted)">${s}</small>`:''}</div></div>`;
-  return `<div class="box" style="padding-bottom:6px">${msgBox()}<h2 style="margin:0">Pedido manual</h2><p style="margin:4px 0 0;color:var(--muted)">Para pedidos feitos por telefone ou WhatsApp. Preencha os 3 passos e registre. O pedido entra em Pedidos como Recebido e segue o fluxo normal.</p></div>
+  return `<div class="box" style="padding-bottom:6px">${msgBox()}<h2 style="margin:0">Pedido manual</h2><p style="margin:4px 0 0;color:var(--muted)">Para pedidos feitos por telefone ou WhatsApp. Digite o <b>nome ou o telefone</b>: se o cliente já for cadastrado, ele aparece para você tocar e carregar os dados e o endereço. Cliente novo entra na base ao registrar. Preencha os 3 passos e registre. O pedido entra em Pedidos como Recebido e segue o fluxo normal.</p></div>
   <div class="mgrid" id="manForm" oninput="manCapta()">
    <div>
     <div class="box" id="mc_cli">${passo(1,'Cliente e endereço','Nome, telefone e onde entregar')}
      <div class="fr"><div class="c2"><label for="mnNome">Nome completo</label><input id="mnNome" autocomplete="off" value="${esc(f.mnNome||'')}"></div><div class="c2"><label for="mnF">Telefone com WhatsApp</label>${foneCampo('mnF',f.mnF||'',!!f.mnFn9)}</div></div>
+     <div id="manSug"></div>
      <p style="margin:12px 0 6px;color:var(--muted);font-size:.9rem">Digite o CEP e preenchemos estado, cidade, bairro e rua.</p>${ckEndCampos(e)}</div>
     <div class="box" id="mc_prod">${passo(2,'Produtos','Escolha as quantidades de cada opção')}
      <input id="mnBusca" placeholder="Buscar produto..." value="${esc(M.busca||'')}" oninput="manBusca(this.value)" style="margin-bottom:10px"><div id="manProds">${manProdsHtml()}</div></div>
@@ -5960,7 +5991,18 @@ async function manEnviar(){
   const r=await SB.rpc('criar_pedido_manual',{p_cliente:{nome:tc(f.mnNome.trim()),fone:digits(f.mnF)},p_endereco:end,p_itens:manItens().map(i=>({var:i.v.id,qty:i.q})),p_entrega:{data:f.mnData,turno:A9.man.turno,pagamento:A9.man.pag||'pix',obs:(f.mnObs||'').trim()}});
   A9.busy=false;
   if(r.error){A9.man.err=msgRpc(r.error);if(/function.*criar_pedido_manual|schema cache/i.test(r.error.message||''))A9.man.err='Falta rodar o arquivo 19_pedido_manual.sql no Supabase.';route();return}
-  A9.man.ok=r.data;A9.pedidos=null;A9.prods=null;A9.lg=null;route();window.scrollTo(0,0);
+  try{await manCadastraCliente(f,end)}catch(x){}
+  A9.man.ok=r.data;A9.pedidos=null;A9.prods=null;A9.lg=null;A9.clientes=null;A9.man.pick=null;route();window.scrollTo(0,0);
+}
+async function manCadastraCliente(f,end){
+  const fn=cliNormFone(f.mnF);if(!fn)return;
+  const jaTem=(A9.clientes||[]).some(c=>cliNormFone(c.fone)===fn||(c.fones||[]).some(x=>cliNormFone(x)===fn));
+  if(jaTem)return;
+  const imp=await SB.from('clientes_importados').select('id,fone').limit(10000);
+  if(!imp.error&&(imp.data||[]).some(p=>cliNormFone(p.fone)===fn))return;
+  const d={nome:tc(f.mnNome.trim()),fone:digits(f.mnF),cidade:end.cidade||'',cep:end.cep||'',endereco:end.rua||'',numero:end.num||'',complemento:end.comp||'',bairro:end.bairro||'',uf:end.uf||''};
+  let r=await SB.from('clientes_importados').insert(d);
+  if(r.error&&cliErroColuna(r.error))r=await SB.from('clientes_importados').insert(cliBasico(d));
 }
 
 /* ======================= OTIMIZAR ROTA DO ENTREGADOR: ordem das paradas (arrastar) + Google Maps + WhatsApp ======================= */
@@ -7068,11 +7110,11 @@ async function admCarregarClientes(){
     for(;;){const r=await SB.from('pedidos').select('id,usuario_id,seq,status,criado_em,entrega,pagamento,itens,extra').order('id',{ascending:false}).range(ini,ini+999);if(r.error)throw r.error;ped=ped.concat(r.data||[]);if((r.data||[]).length<1000)break;ini+=1000}
     const pf=await SB.from('perfis').select('id,nome,sobrenome,fone,email,endereco,criado_em,papel').limit(5000);
     const M={};
-    (pf.data||[]).forEach(p=>{if(p.papel&&p.papel!=='cliente')return;M[p.id]={endk:endKeyDest(p.endereco),k:p.id,nome:((p.nome||'')+' '+(p.sobrenome||'')).trim(),fone:p.fone||'',email:p.email||'',cidade:((p.endereco||{}).cidade)||'',cad:p.criado_em,n:0,ent:0,tot:0,pag:{},ult:null}});
+    (pf.data||[]).forEach(p=>{if(p.papel&&p.papel!=='cliente')return;M[p.id]={dest:p.endereco||null,endk:endKeyDest(p.endereco),k:p.id,nome:((p.nome||'')+' '+(p.sobrenome||'')).trim(),fone:p.fone||'',email:p.email||'',cidade:((p.endereco||{}).cidade)||'',cad:p.criado_em,n:0,ent:0,tot:0,pag:{},ult:null}});
     ped.forEach(o=>{
       const k=cliChave(o);if(!k||k==='f')return;const e=o.entrega||{};
       const c=M[k]=M[k]||{k,nome:e.nome||'',fone:e.fone||'',email:'',cidade:'',cad:null,n:0,ent:0,tot:0,pag:{},ult:null};
-      if(!c.nome)c.nome=e.nome||'';if(!c.fone)c.fone=e.fone||'';if(!c.cidade)c.cidade=((e.dest||{}).cidade)||'';if(!c.endk)c.endk=endKeyDest(e.dest);
+      if(!c.nome)c.nome=e.nome||'';if(!c.fone)c.fone=e.fone||'';if(!c.cidade)c.cidade=((e.dest||{}).cidade)||'';if(!c.endk)c.endk=endKeyDest(e.dest);if(!c.dest&&e.dest&&(e.dest.rua||e.dest.cep))c.dest=e.dest;
       if(o.status==='cancelado')return;
       if((o.extra||{}).cobranca)return;c.n++;if(o.status==='entregue')c.ent++;
       try{c.tot+=pedTotal(o)+(freteDoPedido(o)||0)}catch(x){}
@@ -7087,7 +7129,7 @@ async function admCarregarClientes(){
       if(!principal.nome&&outro.nome)principal.nome=outro.nome;
       if(!principal.email&&outro.email)principal.email=outro.email;
       if(!principal.cidade&&outro.cidade)principal.cidade=outro.cidade;
-      if(!principal.cad&&outro.cad)principal.cad=outro.cad;if(!principal.endk&&outro.endk)principal.endk=outro.endk;
+      if(!principal.cad&&outro.cad)principal.cad=outro.cad;if(!principal.endk&&outro.endk)principal.endk=outro.endk;if(!principal.dest&&outro.dest)principal.dest=outro.dest;
       principal.n+=outro.n;principal.ent+=outro.ent;principal.tot+=outro.tot;
       Object.entries(outro.pag||{}).forEach(([pg,v])=>{principal.pag[pg]=(principal.pag[pg]||0)+v});
       if(outro.ult&&(!principal.ult||outro.ult>principal.ult))principal.ult=outro.ult;
@@ -7102,10 +7144,10 @@ async function admCarregarClientes(){
         const existeK=fNorm&&Object.values(M).find(c=>c.fone&&normF(c.fone)===fNorm);
         if(existeK){
           if(!existeK.email&&p.email)existeK.email=p.email;
-          if(!existeK.cidade&&p.cidade)existeK.cidade=p.cidade;if(!existeK.endk)existeK.endk=endKeyDest({cep:p.cep,num:p.numero,rua:p.endereco,cidade:p.cidade});
+          if(!existeK.cidade&&p.cidade)existeK.cidade=p.cidade;if(!existeK.endk)existeK.endk=endKeyDest({cep:p.cep,num:p.numero,rua:p.endereco,cidade:p.cidade});if(!existeK.dest&&(p.endereco||p.cep))existeK.dest={cep:p.cep,rua:p.endereco,num:p.numero,comp:p.complemento,bairro:p.bairro,cidade:p.cidade,uf:p.uf};
         } else {
           const k='imp_'+p.id;
-          M[k]={k,nome:p.nome||'',fone:p.fone||'',email:p.email||'',cidade:p.cidade||'',cad:p.criado_em,n:0,ent:0,tot:0,pag:{},ult:null,endk:endKeyDest({cep:p.cep,num:p.numero,rua:p.endereco,cidade:p.cidade}),importado:true,impId:p.id,cep:p.cep||'',endereco:p.endereco||'',numero:p.numero||'',complemento:p.complemento||'',bairro:p.bairro||'',uf:p.uf||''};
+          M[k]={k,nome:p.nome||'',fone:p.fone||'',email:p.email||'',cidade:p.cidade||'',cad:p.criado_em,n:0,ent:0,tot:0,pag:{},ult:null,dest:(p.endereco||p.cep)?{cep:p.cep,rua:p.endereco,num:p.numero,comp:p.complemento,bairro:p.bairro,cidade:p.cidade,uf:p.uf}:null,endk:endKeyDest({cep:p.cep,num:p.numero,rua:p.endereco,cidade:p.cidade}),importado:true,impId:p.id,cep:p.cep||'',endereco:p.endereco||'',numero:p.numero||'',complemento:p.complemento||'',bairro:p.bairro||'',uf:p.uf||''};
         }
       });
     }catch(xi){}
