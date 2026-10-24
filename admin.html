@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-24-2457 -->
+<!-- v2026-10-24-2458 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -4095,7 +4095,7 @@ var ENC=o=>['entregue','cancelado'].includes(o.status);
 var emAtraso=o=>!ENC(o)&&(o.entrega||{}).data&&(o.entrega||{}).data<hojeS();
 var aguardaPag=o=>o.status!=='cancelado'&&(o.pagamento||{}).status!=='pago';
 function motivoCancel(o){const ev=(o.eventos||[]).slice().reverse().find(e=>e.tipo==='status'&&e.para==='cancelado');return ev&&ev.motivo?ev.motivo:''}
-function tabPedidos(){return listaPed(o=>A9.fs==='cancelado'?o.status==='cancelado':(A9.fq==='agenda'||!ENC(o)),'Pedidos em aberto. Use o filtro Cancelados para ver pedidos cancelados.')}
+function tabPedidos(){return resumoDiaHtml()+listaPed(o=>A9.fs==='cancelado'?o.status==='cancelado':(A9.fq==='agenda'||!ENC(o)),'Pedidos em aberto. Use o filtro Cancelados para ver pedidos cancelados.')}
 function tabAberto(){return listaPed(o=>!ENC(o),'Pedidos ainda não encerrados (não entregues e não cancelados).')}
 function tabAtrasados(){return listaPed(emAtraso,'Pedidos não encerrados cuja data de entrega desejada já passou.')}
 async function admSalvaLink(){
@@ -5332,6 +5332,90 @@ function pedGrupoCab(o,ix,l){
   return `<tr class="grupocab"><td colspan="20" style="background:#eef5f2;font-weight:700;color:var(--p);padding:8px 12px">${PED_GRUPO_LB[g]} <span style="font-weight:500;color:var(--muted)">(${n})</span></td></tr>`;
 }
 /* lista de pedidos (Pedidos e Em aberto) */
+/* ======================= RESUMO POR DIA (aba Pedidos): abre e fecha; escolhe o dia; atualiza na hora ======================= */
+A9.resumoAb=false;A9.resumoDia='';A9.resumoCache={};
+function resumoToggle(){A9.resumoAb=!A9.resumoAb;if(A9.resumoAb&&!A9.resumoDia)A9.resumoDia=hojeS();route()}
+function resumoIr(d){A9.resumoDia=d||hojeS();route()}
+function resumoMais(n){A9.resumoDia=addDias(A9.resumoDia||hojeS(),n);route()}
+function resumoAtualizar(){delete A9.resumoCache[A9.resumoDia||hojeS()];route()}
+function resumoValor(o){try{return pedTotal(o)+(freteDoPedido(o)||0)}catch(e){return 0}}
+async function resumoCarregar(dia){
+  const c=A9.resumoCache[dia];if(c&&c.busy)return;
+  A9.resumoCache[dia]={busy:true};
+  try{
+    const ini=new Date(dia+'T00:00:00'),fim=new Date(ini.getTime()+86400000),I=ini.toISOString(),F=fim.toISOString();
+    const [pc,ev]=await Promise.all([
+      SB.from('pedidos').select('id,status,criado_em,itens,entrega,pagamento,extra').gte('criado_em',I).lt('criado_em',F).order('id').limit(2000),
+      SB.from('pedido_eventos').select('pedido_id,tipo,texto,para,t').gte('t',I).lt('t',F).order('t').limit(10000)
+    ]);
+    if(pc.error)throw pc.error;
+    const E=ev.error?[]:(ev.data||[]);
+    const criados=(pc.data||[]).filter(o=>!(o.extra||{}).cobranca);
+    const P={};(pc.data||[]).forEach(o=>{P[o.id]=o});
+    const faltam=[...new Set(E.map(e=>e.pedido_id))].filter(id=>!P[id]);
+    for(let i=0;i<faltam.length;i+=200){const r=await SB.from('pedidos').select('id,status,criado_em,itens,entrega,pagamento,extra').in('id',faltam.slice(i,i+200));(r.data||[]).forEach(o=>{P[o.id]=o})}
+    const ids=f=>[...new Set(E.filter(f).map(e=>e.pedido_id))];
+    const val=l=>l.reduce((s,id)=>s+(P[id]?resumoValor(P[id]):0),0);
+    const entreg=ids(e=>e.tipo==='status'&&e.para==='entregue'),cancel=ids(e=>e.tipo==='status'&&e.para==='cancelado');
+    const pagos=ids(e=>e.tipo==='pagamento'&&/^Pagamento recebido/i.test(e.texto||''));
+    const prog=ids(e=>e.tipo==='pagamento'&&/^Pagamento (programado|parcelado)/i.test(e.texto||''));
+    const parc=E.filter(e=>e.tipo==='pagamento'&&/parcela marcada como paga|Pagamento parcial/i.test(e.texto||'')).length;
+    const links=ids(e=>e.tipo==='whatsapp'&&/link de pagamento/i.test(e.texto||'')).length;
+    const validos=criados.filter(o=>o.status!=='cancelado');
+    const conta=(arr,fn)=>{const m={};arr.forEach(o=>{const k=fn(o)||'—';m[k]=(m[k]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1])};
+    const emAberto=validos.filter(o=>(o.pagamento||{}).status!=='pago');
+    A9.resumoCache[dia]={busy:false,em:new Date(),d:{
+      criados:validos.length,faturado:validos.reduce((s,o)=>s+resumoValor(o),0),
+      maior:validos.reduce((m,o)=>Math.max(m,resumoValor(o)),0),
+      site:validos.filter(o=>!(o.extra||{}).manual&&!(o.extra||{}).revendedor).length,
+      manual:validos.filter(o=>(o.extra||{}).manual&&!(o.extra||{}).revendedor).length,
+      rev:validos.filter(o=>(o.extra||{}).revendedor).length,
+      entregues:entreg.length,valEntregues:val(entreg),pagos:pagos.length,valPagos:val(pagos),
+      prog:prog.length,parc,cancel:cancel.length,aberto:emAberto.length,valAberto:emAberto.reduce((s,o)=>s+resumoValor(o),0),
+      cobr:criados.length-validos.length>=0?(pc.data||[]).filter(o=>(o.extra||{}).cobranca).length:0,links,
+      turnos:conta(validos,o=>TURNOS[(o.entrega||{}).turno]||''),cidades:conta(validos,o=>cidadeDe(o)).slice(0,5),
+      formas:conta(validos,o=>PAGNOME[(o.pagamento||{}).preferencia]||(o.pagamento||{}).preferencia||'')
+    }};
+  }catch(e){A9.resumoCache[dia]={busy:false,erro:String((e&&e.message)||e)}}
+  route();
+}
+function resumoDiaHtml(){
+  const ab=!!A9.resumoAb;
+  const topo='<div class="box" style="margin-bottom:12px"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn ghost" onclick="resumoToggle()">📊 Resumo do dia '+(ab?'▴':'▾')+'</button>'+(ab?'':'<span style="color:var(--muted);font-size:.85rem">Pedidos, entregas, pagamentos e valores de cada dia.</span>');
+  if(!ab)return topo+'</div></div>';
+  const dia=A9.resumoDia||(A9.resumoDia=hojeS());
+  const c=A9.resumoCache[dia];
+  if(!c||(!c.busy&&!c.d&&!c.erro))setTimeout(()=>resumoCarregar(dia),0);
+  else if(c.d&&dia===hojeS()&&(Date.now()-c.em.getTime())>300000)setTimeout(()=>{delete A9.resumoCache[dia];resumoCarregar(dia)},0);
+  const ctrl='<span style="flex:1"></span><button class="btn ghost sm" onclick="resumoMais(-1)" title="Dia anterior">◀</button><input type="date" value="'+esc(dia)+'" max="'+esc(hojeS())+'" onchange="resumoIr(this.value)" style="width:auto"><button class="btn ghost sm" onclick="resumoMais(1)" '+(dia>=hojeS()?'disabled':'')+' title="Próximo dia">▶</button><button class="btn ghost sm" onclick="resumoIr(\'\')">Hoje</button><button class="btn sm" onclick="resumoAtualizar()">↻ Atualizar</button></div>';
+  let corpo;
+  if(!c||c.busy)corpo='<p style="color:var(--muted);margin:12px 0 0">Carregando o resumo...</p>';
+  else if(c.erro)corpo='<div class="note err" style="margin-top:12px">Não foi possível montar o resumo: '+esc(c.erro)+'</div>';
+  else{
+    const d=c.d,hh=c.em.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const k=(cor,t,n,sub)=>'<div class="kc" style="--c:'+cor+';cursor:default"><div class="n">'+n+'</div><div class="t"><b>'+t+'</b></div><div class="t">'+sub+'</div></div>';
+    const lista=(t,arr)=>'<div style="flex:1;min-width:170px"><b style="font-size:.85rem">'+t+'</b>'+(arr.length?'<ul style="margin:4px 0 0;padding-left:16px;font-size:.84rem">'+arr.map(x=>'<li>'+esc(x[0])+': <b>'+x[1]+'</b></li>').join('')+'</ul>':'<div class="pgsub">sem dados</div>')+'</div>';
+    corpo='<p style="margin:10px 0 0;color:var(--muted);font-size:.82rem">'+esc(dataBr(dia))+' · atualizado às '+hh+(dia===hojeS()?' (clique em ↻ Atualizar para ver os números mais recentes)':' · dia fechado')+'</p>'+
+     '<div class="kcards" style="margin-top:10px">'+
+       k('#2563eb','Pedidos que entraram',d.criados,'faturado '+brl(d.faturado))+
+       k('#16a34a','Entregues',d.entregues,brl(d.valEntregues))+
+       k('#0a6e5c','Pagos (recebidos)',d.pagos,brl(d.valPagos))+
+       k('#7c3aed','Pagamento programado',d.prog,'pedidos com data ou parcelas')+
+       k('#d97706','Em aberto (do dia)',d.aberto,'a receber '+brl(d.valAberto))+
+       k('#dc2626','Cancelados',d.cancel,'no dia')+
+     '</div>'+
+     '<div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px">'+
+       '<div style="flex:1;min-width:170px"><b style="font-size:.85rem">Detalhes</b><ul style="margin:4px 0 0;padding-left:16px;font-size:.84rem">'+
+         '<li>Pelo site: <b>'+d.site+'</b> · manual: <b>'+d.manual+'</b> · revendedor: <b>'+d.rev+'</b></li>'+
+         '<li>Ticket médio: <b>'+brl(d.criados?d.faturado/d.criados:0)+'</b> · maior pedido: <b>'+brl(d.maior)+'</b></li>'+
+         '<li>Parcelas e pagamentos parciais recebidos: <b>'+d.parc+'</b></li>'+
+         '<li>Links de cobrança enviados (pedidos): <b>'+d.links+'</b></li>'+
+         '<li>Cobranças avulsas criadas: <b>'+d.cobr+'</b></li></ul></div>'+
+       lista('Horário de entrega',d.turnos)+lista('Cidades (top 5)',d.cidades)+lista('Forma de pagamento',d.formas)+
+     '</div>';
+  }
+  return topo+ctrl+corpo+'</div>';
+}
 function listaPed(filtro,intro){
   if(A9.po)return admDetalhe();
   if(!A9.pedidos){if(!A9.busy){A9.busy=true;admCarregarPedidos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando pedidos...</div>'}
