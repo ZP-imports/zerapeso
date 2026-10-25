@@ -252,6 +252,7 @@ let SB=null;
 /* ============================= ESTADO ============================= */
 let REV_USER=null; // revendedor logado
 let PRODUTOS=[];   // produtos do catálogo
+let RPROD={},INDIV=false;  // produtos e preços individuais definidos pelo Wesley para este revendedor
 let BASE={};      // valor de repasse definido pelo Wesley por variação
 let CART=[];       // carrinho {id, nome, qty, preco, preco_orig}
 let PAGE='login';  // página atual
@@ -299,16 +300,17 @@ function showErr(msg){$('#root').innerHTML=`<div style="padding:40px;text-align:
 
 async function carregarDados(){
   try{
-    const [pr,pe,mo,av,pz,vd,cl,vr,rp]=await Promise.all([
-      SB.from('produtos').select('id,nome,imagem,estoque,ativo,categoria,sob_consulta').eq('ativo',true),
+    const [pr,pe,mo,av,pz,vd,cl,vr,rp,rpd]=await Promise.all([
+      SB.from('produtos').select('id,nome,imagem,estoque,ativo,categoria,sob_consulta,ordem').eq('ativo',true),
       SB.from('pedidos_revendedor').select('*').eq('revendedor_id',REV_USER.id).order('criado_em',{ascending:false}),
       REV_USER.tipo==='consignado'?SB.from('consignado_movimentos').select('*').eq('revendedor_id',REV_USER.id).order('criado_em',{ascending:false}):Promise.resolve({data:[]}),
       SB.from('avisos_revendedores').select('*').eq('ativo',true).order('criado_em',{ascending:false}).limit(10),
       SB.from('revendedor_precos_var').select('variacao_id,preco').eq('revendedor_id',REV_USER.id),
       SB.from('revendedor_venda_var').select('variacao_id,preco_venda').eq('revendedor_id',REV_USER.id),
       SB.from('revendedor_clientes').select('*').eq('revendedor_id',REV_USER.id).order('nome'),
-      SB.from('produto_variacoes').select('id,produto_id,nome,unidades,preco,ativo,ordem').eq('ativo',true).order('ordem'),
-      SB.from('catalogo_revenda').select('variacao_id,preco')
+      SB.from('produto_variacoes').select('id,produto_id,nome,unidades,preco,ativo,ordem,descricao').eq('ativo',true).order('ordem'),
+      SB.from('catalogo_revenda').select('variacao_id,preco'),
+      SB.from('revendedor_produtos').select('variacao_id,habilitado,preco').eq('revendedor_id',REV_USER.id)
     ]);
     BASE={};((rp&&rp.data)||[]).forEach(r=>{BASE[r.variacao_id]=+r.preco});
     PRECOS={};(pz.data||[]).forEach(r=>{PRECOS[r.variacao_id]=+r.preco});
@@ -317,21 +319,25 @@ async function carregarDados(){
     // cada VARIAÇÃO do produto vira um item do catálogo (ex.: "Caixa fechada 5 ampolas"), com o preço dela
     const foto=f=>!f?'':(/^https?:/.test(f)?f:SB_URL+'/storage/v1/object/public/produtos/'+encodeURIComponent(f));
     const cfg=REV_USER.config||{};
+    INDIV=cfg.preco_individual===true;
+    RPROD={};((rpd&&rpd.data)||[]).forEach(r=>{RPROD[r.variacao_id]={h:r.habilitado!==false,p:r.preco==null?null:+r.preco}});
     PRODUTOS=[];
     (vr.data||[]).forEach(v=>{
       const p=(pr.data||[]).find(x=>x.id===v.produto_id);if(!p)return;
       if(cfg.produtos_visiveis&&cfg.produtos_visiveis.length&&!cfg.produtos_visiveis.includes(p.id))return;
       const preco=(v.preco==null||v.preco==='')?null:+v.preco;
-      if(preco==null&&PRECOS[v.id]==null&&BASE[v.id]==null)return; // sem valor definido, não entra no catálogo do revendedor
-      PRODUTOS.push({id:v.id,produto_id:p.id,nome:p.nome+' — '+v.nome,nome_produto:p.nome,nome_var:v.nome,unidades:+v.unidades||1,preco,imagem:foto(p.imagem),estoque:+p.estoque||0,categoria:p.categoria,consulta:false});
+      if(INDIV){const r0=RPROD[v.id];if(!r0||!r0.h||r0.p==null)return} // preços individuais: só entra o que está habilitado e com preço
+      else if(preco==null&&PRECOS[v.id]==null&&BASE[v.id]==null)return; // sem valor definido, não entra no catálogo do revendedor
+      PRODUTOS.push({id:v.id,produto_id:p.id,nome:p.nome+' — '+v.nome,nome_produto:p.nome,nome_var:v.nome,unidades:+v.unidades||1,preco,imagem:foto(p.imagem),estoque:+p.estoque||0,categoria:p.categoria,consulta:false,descricao:v.descricao||'',ordem_prod:(p.ordem==null?9999:+p.ordem),ordem_var:(v.ordem==null?9999:+v.ordem)});
     });
-    PRODUTOS.sort((a,b)=>a.nome.localeCompare(b.nome));
+    // a linha de tirzepatida (e o que o Wesley colocar primeiro) vem antes; depois segue a ordem do cadastro
+    PRODUTOS.sort((a,b)=>(a.ordem_prod-b.ordem_prod)||String(a.nome_produto).localeCompare(String(b.nome_produto))||(a.ordem_var-b.ordem_var));
     PEDIDOS=pe.data||[];
     MOVIMENTOS=mo.data||[];
     AVISOS=(av.data||[]).filter(a=>a.revendedor_id==null||a.revendedor_id===REV_USER.id);
     // mantém o carrinho com os preços atuais e sem produtos que saíram do catálogo
-    CART=CART.filter(i=>PRODUTOS.some(p=>p.id===i.id));
-    CART.forEach(i=>{const p=PRODUTOS.find(x=>x.id===i.id);i.preco=precoRev(p);i.preco_orig=p.preco});
+    CART=CART.filter(i=>i.outros||PRODUTOS.some(p=>p.id===i.id));
+    CART.forEach(i=>{if(i.outros)return;const p=PRODUTOS.find(x=>x.id===i.id);i.preco=precoRev(p);i.preco_orig=p.preco});
     lsSet('cart',CART);
   }catch(e){console.error(e)}
 }
@@ -368,10 +374,11 @@ function msgAuth(txt,tipo){const m=$('#auth-msg');if(!m)return;m.textContent=txt
 function logout(){REV_USER=null;lsSet('session',null);lsSet('cart',[]);CART=[];PAGE='login';render()}
 
 /* ============================= CARRINHO ============================= */
-const temExclusivo=p=>PRECOS[p.id]!=null;
+const temExclusivo=p=>INDIV||PRECOS[p.id]!=null;
 // preço de venda do revendedor; sem preço definido, usa o custo + margem do simulador
 function precoVenda(id,custo){const v=VENDA[id];return v!=null?v:custo*(1+MARGEM_PCT/100)}
 function precoRev(p){
+  if(INDIV){const r=RPROD[p.id];return r&&r.p!=null?r.p:0}
   if(PRECOS[p.id]!=null)return PRECOS[p.id];
   const desc=(REV_USER&&REV_USER.desconto_pct)||0;
   const base=BASE[p.id]!=null?BASE[p.id]:p.preco;
@@ -401,7 +408,7 @@ function updCartBar(){
 /* ============================= PEDIDOS ============================= */
 async function fazerPedido(obs){
   if(!CART.length)return;
-  const itens=CART.map(i=>({id:i.id,produto_id:i.produto_id,nome:i.nome,qty:i.qty,preco:i.preco,preco_orig:i.preco_orig,preco_venda:precoVenda(i.id,i.preco)}));
+  const itens=CART.map(i=>i.outros?{id:i.id,nome:i.nome,qty:i.qty,preco:0,preco_orig:0,preco_venda:0,outros:true,descricao:i.descricao||''}:{id:i.id,produto_id:i.produto_id,nome:i.nome,qty:i.qty,preco:i.preco,preco_orig:i.preco_orig,preco_venda:precoVenda(i.id,i.preco),preco_tipo:INDIV?'individual':'padrao'});
   const subtotal=cartTotal();
   const venda_total=itens.reduce((s,i)=>s+i.preco_venda*i.qty,0);
   const cli=clientesAtivo()?CLIENTES.find(c=>c.id===CLIENTE_SEL):null;
@@ -415,13 +422,12 @@ async function fazerPedido(obs){
     entrega:cli?{nome:cli.nome,telefone:cli.telefone,cep:cli.cep,endereco:cli.endereco,numero:cli.numero,complemento:cli.complemento,bairro:cli.bairro,cidade:cli.cidade}:null,
     tipo_pagamento:tipo_pag,
     forma_pagamento:tipo_pag==='consignado'?'consignado':FORMA_PAG,
-    status:'novo',
-    criado_em:new Date().toISOString()
+    status:'novo'
   }]).select().maybeSingle();
   if(error){alert(/forma_pagamento|column|schema/i.test(error.message||'')?'Falta liberar a forma de pagamento no sistema. Avise a ZP Imports.':'Erro ao enviar pedido. Tente novamente.');return}
   // Se consignado: registrar saída de estoque
   if(REV_USER.tipo==='consignado'&&data){
-    const movs=itens.map(i=>({revendedor_id:REV_USER.id,tipo:'saida',produto_id:i.produto_id,produto_nome:i.nome,quantidade:i.qty,valor_unitario:i.preco,valor_total:i.preco*i.qty,pedido_id:data.id,criado_em:new Date().toISOString()}));
+    const movs=itens.filter(i=>!i.outros).map(i=>({revendedor_id:REV_USER.id,tipo:'saida',produto_id:i.produto_id,produto_nome:i.nome,quantidade:i.qty,valor_unitario:i.preco,valor_total:i.preco*i.qty,pedido_id:data.id,criado_em:new Date().toISOString()}));
     await SB.from('consignado_movimentos').insert(movs);
   }
   CART=[];lsSet('cart',[]);updCartBar();CLIENTE_SEL='';OBS_TMP='';
@@ -484,8 +490,8 @@ function renderNav(){
     ['dashboard','Início'],
     ['catalogo','Catálogo'],
     ['meucat','Meu catálogo'],
-    ...(clientesAtivo()?[['clientes','Meus clientes']]:[]),
-    ['pedidos','Meus Pedidos'],
+    ...(clientesAtivo()?[['clientes','Clientes']]:[]),
+    ['pedidos','Pedidos'],
     ...(REV_USER.tipo==='consignado'?[['extrato','Extrato']]:[]),
     ['avisos',AVISOS.length?`Avisos <span class="nav-badge">${AVISOS.length}</span>`:'Avisos'],
     ['perfil','Meu Perfil'],
@@ -589,13 +595,13 @@ function imgProduto(g){
 }
 function linhaVariacao(v,md){
   const pr=precoRev(v),item=CART.find(i=>i.id===v.id),sem=v.estoque<=0;
-  return `<div class="vrow"><div class="vtx"><span class="vnm">${esc(v.nome_var||v.nome)}</span><span class="vpr"><b>${brl(pr)}</b>${md&&v.preco&&pr<v.preco?` <s>${brl(v.preco)}</s>`:''}</span><small class="marg-hint">Venda a ${brl(pr*(1+MARGEM_PCT/100))} → +${brl(pr*MARGEM_PCT/100)}</small></div>
+  return `<div class="vrow"><div class="vtx"><span class="vnm">${esc(v.nome_var||v.nome)}</span>${v.descricao?`<small style="display:block;color:var(--muted)">${esc(v.descricao)}</small>`:''}<span class="vpr"><b>${brl(pr)}</b>${md&&v.preco&&pr<v.preco?` <s>${brl(v.preco)}</s>`:''}</span><small class="marg-hint">Venda a ${brl(pr*(1+MARGEM_PCT/100))} → +${brl(pr*MARGEM_PCT/100)}</small></div>
     <div class="vac">${sem?'<span style="color:#b91c1c;font-size:.78rem">Sem estoque</span>':item
       ?`<div class="qty-ctrl"><button onclick="cartSet('${v.id}',${item.qty-1})">−</button><span>${item.qty}</span><button onclick="cartSet('${v.id}',${item.qty+1})">+</button></div>`
       :`<button class="btn sm" onclick="cartAdd(${JSON.stringify(v).replace(/"/g,'&quot;')})">Adicionar</button>`}</div></div>`;
 }
 function pageCatalogo(){
-  if(!PRODUTOS.length)return `<div class="pg"><div class="note">Nenhum produto disponível no momento. Entre em contato com a ZP Imports.</div></div>`;
+  if(!PRODUTOS.length)return `<div class="pg"><div class="note">Nenhum produto disponível para você no momento. Fale com a ZP Imports para liberar o seu catálogo.</div><div class="grid gp" style="margin-top:14px">${outrosCardHtml()}</div></div>`;
   const desc=REV_USER.desconto_pct||0,md=mostraDesconto();
   return `<div class="pg">
     <h2 style="margin:0 0 16px;font-size:1.4rem;color:var(--ink)">Catálogo de Produtos</h2>
@@ -617,6 +623,7 @@ function pageCatalogo(){
           ${g.vars.map(v=>linhaVariacao(v,md)).join('')}
         </div>`;
       }).join('')}
+      ${outrosCardHtml()}
     </div>
     ${CART.length?`<div style="height:80px"></div>`:''}
   </div>`;
@@ -729,13 +736,77 @@ async function baixarImagemProduto(id){
 /* ============================= CLIENTES ============================= */
 function enderecoCli(c){c=c||{};const rua=[c.endereco,c.numero].filter(Boolean).join(', ');return [rua,c.complemento,c.bairro,c.cidade,c.cep].filter(Boolean).join(' · ')}
 function filtraClientes(v){const q=String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();document.querySelectorAll('.cli-card').forEach(e=>{e.style.display=(!q||(e.dataset.q||'').includes(q))?'':'none'})}
+/* ============================= OUTROS (produto/solicitação fora do catálogo) ============================= */
+function outrosCardHtml(){
+  return '<div class="card"><div class="pimg" style="background:#fff;display:grid;place-items:center"><span style="font-size:2.2rem">➕</span></div><div class="pn">Outros</div><div style="padding:0 12px 12px"><small style="color:var(--muted);display:block;margin-bottom:8px">Pediu algo que não está na lista? Descreva o produto ou a solicitação. A ZP Imports confirma o valor.</small><button class="btn sm" onclick="outrosAbrir()">Descrever o que precisa</button></div></div>';
+}
+function outrosAbrir(){
+  openModal('<h3 style="margin-top:0">Outros — descreva o pedido</h3><div id="ou-msg" class="msg"></div><label for="ou-txt">O que você precisa? *</label><textarea id="ou-txt" rows="4" maxlength="500" placeholder="Ex.: 2 caixas do produto X, tamanho Y"></textarea><label for="ou-q" style="margin-top:8px">Quantidade</label><input id="ou-q" type="number" min="1" max="99" value="1" style="width:100px"><div style="display:flex;gap:8px;margin-top:14px"><button class="btn" onclick="outrosAdd()">Adicionar ao pedido</button><button class="btn ghost" onclick="closeModal()">Cancelar</button></div>');
+}
+function outrosAdd(){
+  const t=($('#ou-txt').value||'').trim(),q=Math.max(1,Math.min(99,+($('#ou-q').value||1)));
+  if(t.length<3){msgPerfil('ou-msg','Descreva o que você precisa.','err');return}
+  CART.push({id:'outros_'+Date.now(),outros:true,nome:'Outros: '+t.slice(0,70)+(t.length>70?'…':''),descricao:t,qty:q,preco:0,preco_orig:0});
+  lsSet('cart',CART);updCartBar();closeModal();render();
+}
+
+/* ============================= CLIENTES: detalhe, histórico e novo pedido ============================= */
+function pedidoResumo(p){return (p.itens||[]).map(x=>x.qty+'x '+(x.outros?'Outros: ':'')+x.nome).join(', ')}
+function clienteDetalhe(id){
+  const c=CLIENTES.find(x=>x.id===id);if(!c)return;
+  const ps=PEDIDOS.filter(p=>p.cliente_id===id);
+  openModal('<h3 style="margin-top:0">'+esc(c.nome)+'</h3><div style="font-size:.9rem;color:var(--muted)">'+(c.telefone?'📞 '+esc(c.telefone)+'<br>':'')+'📍 '+esc(enderecoCli(c))+(c.obs?'<br>'+esc(c.obs):'')+'</div>'+
+    '<div style="display:flex;gap:8px;margin:12px 0;flex-wrap:wrap"><button class="btn" onclick="closeModal();usarCliente(\''+id+'\')">Novo pedido</button><button class="btn ghost" onclick="closeModal();formCliente(\''+id+'\')">Editar</button></div>'+
+    '<h4 style="margin:12px 0 6px">Histórico de pedidos ('+ps.length+')</h4>'+
+    (ps.length?'<div style="max-height:46vh;overflow:auto">'+ps.map(p=>'<div style="border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;font-size:.86rem"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>'+fmtD(p.criado_em)+'</b><span class="badge '+(ST_CLS[p.status]||'novo')+'">'+(ST_LAB[p.status]||p.status)+'</span></div><div style="color:var(--muted)">'+esc(pedidoResumo(p))+'</div><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:4px"><b>'+brl(p.subtotal)+'</b><span><button class="btn ghost sm" onclick="closeModal();verPedido(\''+p.id+'\')">Ver</button> <button class="btn ghost sm" onclick="closeModal();repetirPedido(\''+p.id+'\')">Usar como base</button></span></div></div>').join('')+'</div>':'<p style="color:var(--muted)">Ainda não há pedidos para este cliente.</p>'));
+}
+function novoPedidoAbrir(){
+  if(!clientesAtivo()){CLIENTE_SEL='';rPage('catalogo');return}
+  openModal('<h3 style="margin-top:0">Novo pedido</h3><label for="np-cli">Para qual cliente?</label><select id="np-cli" style="width:100%"><option value="">Eu mesmo (endereço do meu cadastro)</option>'+CLIENTES.map(c=>'<option value="'+c.id+'">'+esc(c.nome)+(c.bairro?' — '+esc(c.bairro):'')+'</option>').join('')+'</select><div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="btn" onclick="CLIENTE_SEL=$(\'#np-cli\').value;closeModal();rPage(\'catalogo\')">Escolher produtos</button><button class="btn ghost" onclick="closeModal();formCliente(\'\')">+ Cadastrar novo cliente</button><button class="btn ghost" onclick="closeModal()">Cancelar</button></div>');
+}
+/* usa um pedido anterior como base: monta um carrinho NOVO com os preços de hoje; o original não é alterado e nada é enviado */
+function repetirPedido(id){
+  const p=PEDIDOS.find(x=>x.id===id);if(!p)return;
+  const novos=[],fora=[];
+  (p.itens||[]).forEach(x=>{
+    if(x.outros){novos.push({id:'outros_'+Date.now()+'_'+novos.length,outros:true,nome:x.nome,descricao:x.descricao||'',qty:x.qty,preco:0,preco_orig:0});return}
+    const v=PRODUTOS.find(y=>y.id===x.id);
+    if(v)novos.push({id:v.id,produto_id:v.produto_id,nome:v.nome,qty:x.qty,preco:precoRev(v),preco_orig:v.preco});
+    else fora.push(x.nome);
+  });
+  if(!novos.length){alert('Nenhum item deste pedido está disponível agora para você.');return}
+  if(CART.length&&!confirm('O carrinho atual será substituído pelos itens deste pedido. Continuar?'))return;
+  CART=novos;lsSet('cart',CART);CLIENTE_SEL=p.cliente_id||'';OBS_TMP=p.obs||'';updCartBar();
+  if(fora.length)alert('Estes itens não estão mais disponíveis e ficaram de fora:\n• '+fora.join('\n• ')+'\n\nOs preços são os de hoje. Confira e finalize: será um pedido NOVO, o original não muda.');
+  rPage('checkout');
+}
+
+/* ============================= COBRANÇA E COMPROVANTE DE ENTREGA ============================= */
+function cobrancaPedidoHtml(p){
+  const forma={pix:'Pix',cartao_credito:'Cartão de crédito',cartao_debito:'Cartão de débito',transferencia:'Transferência',consignado:'Consignado'}[p.forma_pagamento]||p.forma_pagamento||'';
+  const pp=Array.isArray(p.pag_prev)?p.pag_prev:(p.pag_prev?[{data:p.pag_prev,pago:false}]:[]);
+  return '<h4 style="margin:16px 0 6px">Cobrança e entrega</h4><div style="font-size:.88rem">'+
+    '<div>Forma de pagamento: <b>'+esc(forma||'a combinar')+'</b> · Situação: <b>'+(p.pag_status==='pago'?'pago':'pendente')+'</b></div>'+
+    (pp.length?'<table style="margin-top:6px;font-size:.84rem"><thead><tr><th>Parcela</th><th>Vence</th><th class="r">Valor</th><th>Situação</th></tr></thead><tbody>'+pp.map((x,i)=>'<tr><td>'+(x.entrada?'Entrada':(i+1)+'ª')+'</td><td>'+(x.data?x.data.split("-").reverse().join("/"):'a confirmar')+'</td><td class="r">'+(x.valor?brl(x.valor):'—')+'</td><td>'+(x.pago?'✅ pago':'pendente')+'</td></tr>').join('')+'</tbody></table>':'')+
+    '<div id="vp-foto" style="margin-top:8px"></div></div>';
+}
+async function comprovanteCarrega(p){
+  const el=document.getElementById('vp-foto');if(!el)return;
+  if(!p.pedido_id){el.innerHTML='<span style="color:var(--muted)">Comprovante de entrega: ainda não disponível.</span>';return}
+  try{
+    const r=await SB.rpc('revendedor_foto_entrega',{p_rev:REV_USER.id,p_pedido:p.id});
+    const e2=document.getElementById('vp-foto');if(!e2)return;
+    if(r.error||!r.data||!r.data.foto){e2.innerHTML='<span style="color:var(--muted)">Comprovante de entrega: ainda não registrado.</span>';return}
+    e2.innerHTML='<div style="color:var(--muted);font-size:.8rem;margin-bottom:4px">Comprovante de entrega · '+fmtD(r.data.criado_em)+'</div><img alt="Foto da entrega" src="'+esc(r.data.foto)+'" style="max-width:100%;border-radius:10px">';
+  }catch(x){const e3=document.getElementById('vp-foto');if(e3)e3.innerHTML=''}
+}
 function pageClientes(){
   if(!clientesAtivo())return '<div class="pg"><div class="note warn">O cadastro de clientes não está liberado para a sua conta. Fale com a ZP Imports.<div style="margin-top:8px">'+btnWaZP()+'</div></div></div>';
   return `<div class="pg">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px">
       <div>
-        <h2 style="margin:0 0 4px;font-size:1.4rem;color:var(--ink)">Meus clientes</h2>
-        <p style="margin:0;color:var(--muted);font-size:.88rem">Cadastre seus clientes para a ZP Imports entregar direto no endereço deles.</p>
+        <h2 style="margin:0 0 4px;font-size:1.4rem;color:var(--ink)">Clientes</h2>
+        <p style="margin:0;color:var(--muted);font-size:.88rem">Seus clientes, o histórico de pedidos de cada um e o botão Novo pedido. A entrega é feita direto no endereço deles.</p>
       </div>
       <button class="btn" onclick="formCliente('')">+ Novo cliente</button>
     </div>
@@ -751,7 +822,8 @@ function pageClientes(){
         </div>
         <div style="display:flex;gap:6px">
           ${c.telefone?`<button class="btn ghost sm" onclick="waCliente('${c.id}')" title="Abrir a conversa no WhatsApp" aria-label="WhatsApp" style="color:#16a34a">${WA_ICO}</button>`:''}
-          <button class="btn sm" onclick="usarCliente('${c.id}')">Fazer pedido</button>
+          <button class="btn sm" onclick="usarCliente('${c.id}')">Novo pedido</button>
+          <button class="btn ghost sm" onclick="clienteDetalhe('${c.id}')">Histórico</button>
           <button class="btn ghost sm" onclick="formCliente('${c.id}')">Editar</button>
           <button class="btn ghost sm" onclick="excluirCliente('${c.id}')">✕</button>
         </div>
@@ -797,6 +869,9 @@ async function salvarCliente(e,id){
   const d={nome:g('nome'),telefone:g('telefone'),cep:g('cep'),endereco:g('endereco'),numero:g('numero'),complemento:g('complemento'),bairro:g('bairro'),cidade:g('cidade'),obs:g('obs')};
   if(!d.nome){msgPerfil('cl-msg','Informe o nome do cliente.','err');return false}
   if(!d.endereco||!d.cidade){msgPerfil('cl-msg','Informe ao menos a rua e a cidade para a entrega.','err');return false}
+  const fn=String(d.telefone||'').replace(/\D/g,'').slice(-8);
+  const igual=fn.length>=8?CLIENTES.find(c=>c.id!==id&&String(c.telefone||'').replace(/\D/g,'').slice(-8)===fn):null;
+  if(igual&&!confirm('Já existe um cliente com este telefone: '+igual.nome+'.\n\nCadastrar mesmo assim? (OK = cadastrar de novo · Cancelar = voltar)'))return false;
   let q;
   if(id)q=SB.from('revendedor_clientes').update(d).eq('id',id).eq('revendedor_id',REV_USER.id).select().maybeSingle();
   else q=SB.from('revendedor_clientes').insert([{...d,revendedor_id:REV_USER.id}]).select().maybeSingle();
@@ -834,8 +909,8 @@ function pageCheckout(){
               ${CART.map(i=>`<tr>
                 <td data-l="Produto"><b>${esc(i.nome)}</b></td>
                 <td data-l="Qtd"><div class="qty-ctrl"><button onclick="cartSet('${i.id}',${i.qty-1})">−</button><span>${i.qty}</span><button onclick="cartSet('${i.id}',${i.qty+1})">+</button></div></td>
-                <td data-l="Preço">${brl(i.preco)}</td>
-                <td class="r" data-l="Subtotal">${brl(i.preco*i.qty)}</td>
+                <td data-l="Preço">${i.outros?'a combinar':brl(i.preco)}</td>
+                <td class="r" data-l="Subtotal">${i.outros?'a combinar':brl(i.preco*i.qty)}</td>
                 <td><button class="btn ghost sm" style="font-size:.75rem" onclick="cartSet('${i.id}',0)">✕</button></td>
               </tr>`).join('')}
             </tbody>
@@ -888,7 +963,7 @@ function pagePedidos(){
   const suc=PAGE_DATA&&PAGE_DATA.success;
   return `<div class="pg">
     ${suc?`<div class="note" style="background:#dcfce7;color:#166534;margin-bottom:16px">✅ Pedido enviado com sucesso! A ZP Imports irá confirmar em breve.</div>`:''}
-    <h2 style="margin:0 0 16px;font-size:1.4rem;color:var(--ink)">Meus Pedidos</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px"><h2 style="margin:0;font-size:1.4rem;color:var(--ink)">Pedidos</h2><button class="btn" onclick="novoPedidoAbrir()">➕ Novo pedido</button></div>
     ${!PEDIDOS.length?`<div class="box" style="text-align:center;padding:40px"><p style="color:var(--muted)">Você ainda não fez nenhum pedido.</p><button class="btn" onclick="rPage('catalogo')">Ir ao catálogo</button></div>`:
     `<div class="box">${renderTabelaPedidos(PEDIDOS,true)}</div>`}
   </div>`;
@@ -907,13 +982,14 @@ function renderTabelaPedidos(list,ord){
       <td data-l="Total"><b>${brl(p.subtotal)}</b></td>
       <td data-l="Tipo"><span class="badge ${p.tipo_pagamento==='consignado'?'consignado':'comprador'}">${p.tipo_pagamento==='consignado'?'Consignado':'À vista'}</span></td>
       <td data-l="Status"><span class="badge ${ST_CLS[p.status]||'novo'}">${ST_LAB[p.status]||p.status}</span></td>
-      <td><button class="btn ghost sm" onclick="verPedido('${p.id}')">Ver</button></td>
+      <td style="white-space:nowrap"><button class="btn ghost sm" onclick="verPedido('${p.id}')">Ver</button> <button class="btn ghost sm" onclick="repetirPedido('${p.id}')" title="Cria um novo pedido com os mesmos itens">Repetir</button></td>
     </tr>`).join('')}</tbody>
   </table>`;
 }
 
 function verPedido(id){
   const p=PEDIDOS.find(x=>x.id===id);if(!p)return;
+  setTimeout(()=>comprovanteCarrega(p),0);
   const stEtapas=[
     {k:'novo',l:'Pedido recebido',i:'📋'},
     {k:'confirmado',l:'Confirmado pela ZP Imports',i:'✅'},
@@ -922,7 +998,7 @@ function verPedido(id){
     {k:'entregue',l:'Entregue',i:'🎉'},
   ];
   const idx=stEtapas.findIndex(s=>s.k===p.status);
-  openModal(`<h3 style="margin-top:0">Pedido #${fmtD(p.criado_em).slice(0,10)}</h3>
+  openModal(`<h3 style="margin-top:0">Pedido de ${fmtD(p.criado_em)}</h3>
     <span class="badge ${ST_CLS[p.status]||'novo'}">${ST_LAB[p.status]||p.status}</span>
     <h4 style="margin:16px 0 6px">Itens</h4>
     <table><thead><tr><th>Produto</th><th>Qtd</th><th class="r">Subtotal</th></tr></thead>
@@ -931,6 +1007,7 @@ function verPedido(id){
     ${p.venda_total!=null?`<tr><td colspan="2">Venda estimada</td><td class="r">${brl(p.venda_total)}</td></tr><tr><td colspan="2">Lucro estimado</td><td class="r" style="color:var(--p)"><b>${brl(p.venda_total-p.subtotal)}</b></td></tr>`:''}</tbody></table>
     ${p.entrega?`<div class="note rev">📍 <b>Entrega para ${esc(p.entrega.nome)}</b><br>${esc(enderecoCli(p.entrega))}${p.entrega.telefone?'<br>📞 '+esc(p.entrega.telefone):''}</div>`:''}
     <div style="margin-top:12px"><button class="btn ghost sm" onclick="waPedidoZP('${p.id}')" style="display:inline-flex;align-items:center;gap:6px">${WA_ICO} Falar com a ZP sobre este pedido</button></div>
+    ${cobrancaPedidoHtml(p)}
     <h4 style="margin:16px 0 6px">Acompanhamento</h4>
     <div class="tl">
       ${stEtapas.map((s,i)=>{

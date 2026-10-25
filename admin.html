@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-24-2466 -->
+<!-- v2026-10-25-2473 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -2818,7 +2818,7 @@ function admLogoRem(){LBL.logo=null;LBL.logoKey='';saveLbl();toast('Logomarca re
 /* ======================= REVENDEDORES ======================= */
 
 async function admCarregarRevs(){
-  const [rv,pe,mo,av,pz,pr,cl,vr,rp]=await Promise.all([
+  const [rv,pe,mo,av,pz,pr,cl,vr,rp,rpd,lk]=await Promise.all([
     SB.from('revendedores').select('*').order('criado_em',{ascending:false}),
     SB.from('pedidos_revendedor').select('*').order('criado_em',{ascending:false}),
     SB.from('consignado_movimentos').select('*').order('criado_em',{ascending:false}),
@@ -2827,9 +2827,11 @@ async function admCarregarRevs(){
     SB.from('produtos').select('id,nome,ativo,sob_consulta').eq('ativo',true).order('nome'),
     SB.from('revendedor_clientes').select('id,revendedor_id,nome'),
     SB.from('produto_variacoes').select('id,produto_id,nome,unidades,preco,ativo,ordem').eq('ativo',true).order('ordem'),
-    SB.from('catalogo_revenda').select('variacao_id,preco')
+    SB.from('catalogo_revenda').select('variacao_id,preco'),
+    SB.from('revendedor_produtos').select('*'),
+    SB.from('links_pedido').select('*').order('criado_em',{ascending:false})
   ]);
-  A9.revs={lista:rv.data||[],pedidos:pe.data||[],movimentos:mo.data||[],avisos:av.data||[],precos:pz.data||[],produtos:pr.data||[],clientes:cl.data||[],variacoes:vr.data||[],repasse:(rp&&rp.data)||[]};
+  A9.revs={lista:rv.data||[],pedidos:pe.data||[],movimentos:mo.data||[],avisos:av.data||[],precos:pz.data||[],produtos:pr.data||[],clientes:cl.data||[],variacoes:vr.data||[],repasse:(rp&&rp.data)||[],rprod:(rpd&&rpd.data)||[],links:(lk&&lk.data)||[]};
   route();
 }
 
@@ -2937,11 +2939,12 @@ function tabRevendedores(){
             </div>`:''}
           </div>
 
-          ${(()=>{
+          ${revProdutosPrecosHtml(rv)}${(()=>{
             const prodNome={};(A9.revs.produtos||[]).forEach(p=>{prodNome[p.id]=p.nome});
             const bs=repasseMapa();const prods=(A9.revs.variacoes||[]).filter(v=>prodNome[v.produto_id]).map(v=>({id:v.id,nome:prodNome[v.produto_id]+' — '+v.nome,preco:(v.preco==null||v.preco==='')?null:+v.preco,rep:bs[v.id]!=null?bs[v.id]:null})).sort((a,b)=>a.nome.localeCompare(b.nome));
             const mapa={};(A9.revs.precos||[]).filter(x=>x.revendedor_id===rv.id).forEach(x=>{mapa[x.variacao_id]=+x.preco});
             const desc=rv.desconto_pct||0;
+            if((rv.config||{}).preco_individual===true)return '';
             return `<h3 style="margin:20px 0 4px">Tabela de preços exclusiva (${Object.keys(mapa).length} de ${prods.length})</h3>
             <p style="margin:0 0 10px;color:var(--muted);font-size:.85rem">Preço que este revendedor paga por cada variação (caixa, ampola...). Em branco = valor de repasse (ou preço da loja, se não houver) com o desconto padrão (${desc}%); variação sem preço de loja só aparece para ele se você definir o preço aqui. Salva ao sair do campo.</p>
             <div class="box" style="max-height:420px;overflow:auto"><table>
@@ -2969,7 +2972,7 @@ function tabRevendedores(){
             <thead><tr><th>Data</th><th>Itens</th><th>Total</th><th>Tipo</th><th>Status</th><th></th></tr></thead>
             <tbody>${rpeds.map(p=>`<tr>
               <td style="font-size:.82rem">${fmtD(p.criado_em)}</td>
-              <td style="font-size:.82rem">${(p.itens||[]).map(x=>x.qty+'x '+x.nome).join(', ').slice(0,50)}${p.itens&&p.itens.length>2?'…':''}${p.entrega?`<br><small style="color:var(--p)">📍 Entregar a ${esc(p.entrega.nome)} — ${esc([p.entrega.endereco,p.entrega.numero,p.entrega.bairro,p.entrega.cidade].filter(Boolean).join(', '))}${p.entrega.telefone?' · '+esc(p.entrega.telefone):''}</small>`:''}</td>
+              <td style="font-size:.82rem">${(p.itens||[]).map(x=>x.qty+'x '+x.nome).join(', ').slice(0,50)}${p.itens&&p.itens.length>2?'…':''}${p.origem==='link'?'<br><small style="color:#7c3aed">🔗 pedido feito pelo cliente no link</small>':''}${p.entrega?`<br><small style="color:var(--p)">📍 Entregar a ${esc(p.entrega.nome)} — ${esc([p.entrega.endereco,p.entrega.numero,p.entrega.bairro,p.entrega.cidade].filter(Boolean).join(', '))}${p.entrega.telefone?' · '+esc(p.entrega.telefone):''}</small>`:''}</td>
               <td><b>${brl(p.subtotal)}</b>${p.venda_total!=null?`<br><small style="color:var(--muted)">venda ${brl(p.venda_total)}</small>`:''}</td>
               <td><span class="badge ${p.tipo_pagamento==='consignado'?'badge-er':'badge-c'}">${p.tipo_pagamento==='consignado'?'Consig.':'À vista'}</span></td>
               <td><span class="badge ${STCLS[p.status]||'badge-n'}">${ST[p.status]||p.status}</span></td>
@@ -3101,6 +3104,7 @@ function tabRevendedores(){
   }
 
   if(abaAtual==='repasse')return revRepasseHtml();
+  if(abaAtual==='links')return revLinksHtml();
   const listaVis=abaAtual==='pendentes'?pendentes:abaAtual==='ativos'?ativos:bloqueados;
   return `<div>
     ${msgBox()}
@@ -3108,6 +3112,7 @@ function tabRevendedores(){
       <h3 style="margin:0">Gestão de revendedores</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn acc sm" onclick="revAdicionar()">➕ Adicionar revendedor</button>
+        <button class="btn ghost sm" onclick="A9.revAba='links';A9.linkEd=null;route()">🔗 Links de pedidos</button>
         <button class="btn ghost sm" onclick="A9.revAba='repasse';route()">💲 Catálogo de repasse</button>
         <button class="btn ghost sm" onclick="A9.revAba='ranking';route()">📊 Ranking</button>
         <button class="btn ghost sm" onclick="A9.revAba='avisos';route()">📢 Avisos${avisos.filter(a=>a.ativo).length?` <b style="color:var(--p)">(${avisos.filter(a=>a.ativo).length})</b>`:''}</button>
@@ -3241,6 +3246,75 @@ function revRepasseHtml(){
       <tbody>${prods.map(p=>`<tr><td>${esc(p.nome)}</td><td style="color:var(--muted)">${p.loja==null?'—':brl(p.loja)}</td><td><input inputmode="decimal" style="width:130px;text-align:right" value="${base[p.id]!=null?pdMoeda(base[p.id]):''}" placeholder="—" onchange="admRepasseSalvar('${p.id}',this.value)"></td>${rv?`<td id="rpf_${p.id}">${final(p)}</td>`:''}</tr>`).join('')||'<tr><td colspan="4" style="color:var(--muted)">Nenhum produto encontrado.</td></tr>'}</tbody>
     </table></div></div>`;
 }
+/* ======================= LINKS DE PEDIDOS: o Wesley gerencia produtos, ordem e campos de cada link ======================= */
+var LINK_CAMPOS=[['nome','Nome completo'],['telefone','WhatsApp'],['email','E-mail'],['cep','CEP'],['endereco','Rua / Avenida'],['numero','Número'],['complemento','Complemento'],['bairro','Bairro'],['cidade','Cidade'],['obs','Observações']];
+function linkUrl(l){return location.origin+'/pedido?l='+encodeURIComponent(l.slug)}
+function linkSlug(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)}
+function revLinksHtml(){
+  const R=A9.revs,L=R.links||[],ativos=(R.lista||[]).filter(r=>r.status==='ativo');
+  const voltar='<button class="btn ghost sm" style="margin:0 0 12px" onclick="A9.revAba=\'ativos\';A9.linkEd=null;route()">← Voltar aos revendedores</button>';
+  if(A9.linkEd)return '<div>'+msgBox()+voltar+linkEditorHtml()+'</div>';
+  const nomeRev=id=>{const r=(R.lista||[]).find(x=>x.id===id);return r?r.nome:'—'};
+  return '<div>'+msgBox()+voltar+'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><h3 style="margin:0">Links de pedidos</h3><button class="btn acc" onclick="linkNovo()">➕ Novo link</button></div>'+
+    '<p style="margin:0 0 12px;color:var(--muted);font-size:.88rem">Cada link é uma página onde o <b>cliente final</b> do revendedor escolhe os produtos e preenche os dados, sem entrar no painel nem no portal do revendedor. O pedido chega no revendedor (e para você, em Revendedores). Aqui você escolhe os produtos, a ordem e os campos de cada link.</p>'+
+    (L.length?'<div class="box"><table><thead><tr><th>Link</th><th>Revendedor</th><th>Endereço</th><th>Pedidos</th><th>Situação</th><th></th></tr></thead><tbody>'+L.map(l=>'<tr><td><b>'+esc(l.nome)+'</b></td><td>'+esc(nomeRev(l.revendedor_id))+'</td><td style="font-size:.8rem;color:var(--muted)">/pedido?l='+esc(l.slug)+'</td><td>'+(R.pedidos||[]).filter(p=>p.link_id===l.id).length+'</td><td>'+(l.ativo?'<span style="color:#16a34a;font-weight:600">ativo</span>':'<span class="pgsub">desativado</span>')+'</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="linkCopiar(\''+l.id+'\')">Copiar link</button> <a class="btn ghost sm" href="'+esc(linkUrl(l))+'" target="_blank" rel="noopener">Abrir</a> <button class="btn ghost sm" onclick="linkEditar(\''+l.id+'\')">Editar</button> <button class="btn ghost sm danger" onclick="linkExcluir(\''+l.id+'\')">Excluir</button></td></tr>').join('')+'</tbody></table></div>':'<div class="note">Nenhum link criado ainda. Clique em <b>Novo link</b>.</div>')+'</div>';
+}
+function linkNovo(){A9.linkEd={id:null,nome:'',slug:'',revendedor_id:'',ativo:true,mensagem:'',campos:{nome:true,telefone:true,email:false,cep:true,endereco:true,numero:true,complemento:true,bairro:true,cidade:true,obs:true},produtos:[],modo:'todos'};route()}
+function linkEditar(id){const l=((A9.revs||{}).links||[]).find(x=>x.id===id);if(!l)return;A9.linkEd=JSON.parse(JSON.stringify(Object.assign({},l,{produtos:l.produtos||[],campos:l.campos||{},modo:(l.produtos||[]).length?'escolher':'todos'})));route()}
+function linkEditorHtml(){
+  const E=A9.linkEd,R=A9.revs,ativos=(R.lista||[]).filter(r=>r.status==='ativo'||r.id===E.revendedor_id);
+  const nomeP={};(R.produtos||[]).forEach(p=>{nomeP[p.id]=p.nome});
+  const rv=(R.lista||[]).find(r=>r.id===E.revendedor_id),M=rv?rpdMapa(rv.id):{},ind=!!(rv&&(rv.config||{}).preco_individual===true);
+  const CF={};(E.produtos||[]).forEach(c=>{CF[c.v]=c});
+  const vars=(R.variacoes||[]).filter(v=>nomeP[v.produto_id]).map(v=>({id:v.id,nome:nomeP[v.produto_id]+' — '+v.nome,ordp:(R.produtos.find(p=>p.id===v.produto_id)||{}).ordem})).sort((a,b)=>a.nome.localeCompare(b.nome));
+  const sit=v=>{if(!ind)return '<span class="pgsub">preço padrão</span>';const r=M[v.id];return !r||!r.habilitado?'<span class="pgsub">desabilitado para ele</span>':r.preco==null?'<span style="color:#b45309">sem preço</span>':'<span style="color:#16a34a">disponível</span>'};
+  return '<div class="box"><h3 style="margin:0 0 10px">'+(E.id?'Editar link':'Novo link')+'</h3>'+
+    '<div class="fr"><div class="c2"><label for="lkN">Nome / finalidade</label><input id="lkN" value="'+esc(E.nome)+'" placeholder="Ex.: Pedidos da Rafaela" oninput="A9.linkEd.nome=this.value;if(!A9.linkEd.id&&!A9.linkEd.slugEd){const e=document.getElementById(\'lkS\');if(e){A9.linkEd.slug=linkSlug(this.value);e.value=A9.linkEd.slug}}"></div>'+
+    '<div class="c2"><label for="lkR">Revendedor</label><select id="lkR" onchange="A9.linkEd.revendedor_id=this.value;route()"><option value="">Escolha...</option>'+ativos.map(r=>'<option value="'+r.id+'" '+(r.id===E.revendedor_id?'selected':'')+'>'+esc(r.nome)+'</option>').join('')+'</select></div>'+
+    '<div class="c2"><label for="lkS">Endereço do link (final)</label><input id="lkS" value="'+esc(E.slug)+'" placeholder="rafaela" oninput="A9.linkEd.slug=linkSlug(this.value);A9.linkEd.slugEd=true"></div></div>'+
+    '<p class="pgsub" style="margin:4px 0 8px">Endereço final: '+esc(location.origin)+'/pedido?l=<b>'+esc(E.slug||'...')+'</b></p>'+
+    '<label style="display:flex;gap:8px;align-items:center;cursor:pointer;margin:6px 0"><input type="checkbox" style="width:auto" '+(E.ativo?'checked':'')+' onchange="A9.linkEd.ativo=this.checked"> Link ativo (desmarque para tirar do ar sem apagar)</label>'+
+    '<label for="lkM" style="margin-top:8px">Mensagem no topo da página (opcional)</label><textarea id="lkM" rows="2" oninput="A9.linkEd.mensagem=this.value">'+esc(E.mensagem||'')+'</textarea>'+
+    '<h4 style="margin:14px 0 6px">Campos pedidos ao cliente</h4><div style="display:flex;gap:6px 18px;flex-wrap:wrap">'+LINK_CAMPOS.map(c=>'<label style="display:flex;gap:6px;align-items:center;cursor:pointer;font-weight:500"><input type="checkbox" style="width:auto" '+(E.campos[c[0]]!==false?'checked':'')+' onchange="A9.linkEd.campos[\''+c[0]+'\']=this.checked"> '+c[1]+'</label>').join('')+'</div>'+
+    '<h4 style="margin:14px 0 6px">Produtos e ordem</h4>'+
+    '<label style="display:flex;gap:6px;align-items:center;cursor:pointer;font-weight:500"><input type="radio" name="lkModo" style="width:auto" '+(E.modo!=='escolher'?'checked':'')+' onchange="A9.linkEd.modo=\'todos\';route()"> Todos os produtos habilitados para o revendedor (a linha de tirzepatida vem primeiro)</label>'+
+    '<label style="display:flex;gap:6px;align-items:center;cursor:pointer;font-weight:500;margin-top:4px"><input type="radio" name="lkModo" style="width:auto" '+(E.modo==='escolher'?'checked':'')+' onchange="A9.linkEd.modo=\'escolher\';route()"> Escolher os produtos e a ordem neste link</label>'+
+    (E.modo==='escolher'?'<div class="box" style="max-height:380px;overflow:auto;margin-top:8px"><table><thead><tr><th style="width:70px">Mostrar</th><th style="width:80px">Ordem</th><th>Produto</th><th>Para este revendedor</th></tr></thead><tbody>'+vars.map((v,i)=>{const c=CF[v.id];return '<tr><td><input type="checkbox" style="width:auto" '+(c&&c.h!==false?'checked':'')+' onchange="linkProd(\''+v.id+'\',\'h\',this.checked)"></td><td><input type="number" min="1" style="width:64px" value="'+(c&&c.o!=null?c.o:'')+'" placeholder="'+(i+1)+'" onchange="linkProd(\''+v.id+'\',\'o\',this.value)"></td><td>'+esc(v.nome)+'</td><td>'+sit(v)+'</td></tr>'}).join('')+'</tbody></table></div><p class="pgsub">Só aparece no link o que também estiver habilitado e com preço para o revendedor (em Revendedores > Produtos e preços).</p>':'')+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn acc" onclick="linkSalvar()">Salvar link</button><button class="btn ghost" onclick="A9.linkEd=null;route()">Cancelar</button>'+(E.id?'<a class="btn ghost" target="_blank" rel="noopener" href="'+esc(linkUrl(E))+'">Abrir o link para conferir</a>':'')+'</div></div>';
+}
+function linkProd(vid,campo,valor){
+  const E=A9.linkEd;let c=(E.produtos||[]).find(x=>x.v===vid);
+  if(!c){c={v:vid,h:false,o:null};E.produtos.push(c)}
+  if(campo==='h')c.h=!!valor;else c.o=valor===''?null:+valor;
+}
+async function linkSalvar(){
+  const E=A9.linkEd;if(!E||A9.busy)return;
+  const nome=(E.nome||'').trim(),slug=linkSlug(E.slug||E.nome);
+  if(nome.length<2){toast('Dê um nome ao link.');return}
+  if(!E.revendedor_id){toast('Escolha o revendedor deste link.');return}
+  if(slug.length<2){toast('Informe o endereço do link.');return}
+  if(((A9.revs||{}).links||[]).some(l=>l.slug===slug&&l.id!==E.id)){toast('Já existe um link com este endereço. Escolha outro.');return}
+  const produtos=E.modo==='escolher'?(E.produtos||[]).filter(c=>c.h!==false).map(c=>({v:c.v,h:true,o:c.o})):[];
+  if(E.modo==='escolher'&&!produtos.length){toast('Marque pelo menos um produto, ou escolha "Todos os produtos".');return}
+  const dados={nome,slug,revendedor_id:E.revendedor_id,ativo:!!E.ativo,mensagem:(E.mensagem||'').trim()||null,campos:E.campos||{},produtos,atualizado_em:new Date().toISOString()};
+  A9.busy=true;
+  const r=E.id?await SB.from('links_pedido').update(dados).eq('id',E.id):await SB.from('links_pedido').insert([dados]);
+  A9.busy=false;
+  if(r.error){toast(/links_pedido|relation|schema/i.test(r.error.message||'')?'Falta rodar o arquivo 31_precos_individuais_links_kits.sql no Supabase.':'Não foi possível salvar: '+r.error.message);return}
+  A9.linkEd=null;A9.revs=null;toast('Link salvo. As mudanças já valem na página publicada.');route();
+}
+async function linkExcluir(id){
+  const l=((A9.revs||{}).links||[]).find(x=>x.id===id);if(!l)return;
+  if(!confirm('Excluir o link "'+l.nome+'"?\n\nQuem tiver o endereço deixa de conseguir fazer pedidos por ele. Os pedidos já feitos continuam guardados. Se só quer tirar do ar por um tempo, desative em Editar.'))return;
+  const r=await SB.from('links_pedido').delete().eq('id',id);
+  if(r.error){toast('Não foi possível excluir.');return}
+  A9.revs=null;toast('Link excluído.');route();
+}
+function linkCopiar(id){
+  const l=((A9.revs||{}).links||[]).find(x=>x.id===id);if(!l)return;
+  const u=linkUrl(l);
+  try{navigator.clipboard.writeText(u).then(()=>toast('Link copiado: '+u),()=>prompt('Copie o link:',u))}catch(e){prompt('Copie o link:',u)}
+}
 async function admRepasseSalvar(vid,txt){
   txt=String(txt||'').trim();let error;
   if(!txt){({error}=await SB.from('catalogo_revenda').delete().eq('variacao_id',vid))}
@@ -3272,6 +3346,58 @@ async function admRepasseCopiar(){
   const {error}=await SB.from('catalogo_revenda').upsert(novos,{onConflict:'variacao_id'});
   if(error){toast(/catalogo_revenda|relation|schema/i.test(error.message||'')?'Falta rodar o arquivo 29_catalogo_repasse.sql no Supabase.':'Não foi possível salvar.');return}
   A9.revs.repasse=(R.repasse||[]).concat(novos);toast(novos.length+' valores preenchidos.');route();
+}
+/* ---- Produtos e preços do revendedor: o Wesley habilita cada produto/variação e define o valor dele (sem porcentagem) ---- */
+function rpdMapa(revId){const m={};((A9.revs||{}).rprod||[]).filter(x=>x.revendedor_id===revId).forEach(x=>{m[x.variacao_id]={habilitado:x.habilitado!==false,preco:x.preco==null?null:+x.preco}});return m}
+function revProdutosPrecosHtml(rv){
+  const ind=(rv.config||{}).preco_individual===true;
+  if(!ind)return '<div class="note" style="margin:20px 0 0"><b>Preços individuais:</b> hoje este revendedor usa o desconto de '+(rv.desconto_pct||0)+'% sobre o preço de repasse (modelo antigo). Para definir o valor de cada produto só para ele, sem porcentagem: <button class="btn acc sm" style="margin-left:6px" onclick="admRevModoPreco(\''+rv.id+'\',true)">Usar produtos e preços individuais</button><div class="pgsub" style="margin-top:4px">Os preços exclusivos que ele já tinha são copiados. O que não tiver preço fica pendente e <b>não aparece</b> para ele até você preencher.</div></div>';
+  const nomeP={};(A9.revs.produtos||[]).forEach(p=>{nomeP[p.id]=p.nome});
+  const M=rpdMapa(rv.id),q=pagNz(A9.rpvQ||'');
+  const todos=(A9.revs.variacoes||[]).filter(v=>nomeP[v.produto_id]).map(v=>({id:v.id,nome:nomeP[v.produto_id]+' — '+v.nome,loja:(v.preco==null||v.preco==='')?null:+v.preco,r:M[v.id]||null})).sort((a,b)=>a.nome.localeCompare(b.nome));
+  const hab=todos.filter(x=>x.r&&x.r.habilitado&&x.r.preco!=null).length,pend=todos.filter(x=>x.r&&x.r.habilitado&&x.r.preco==null).length;
+  const lista=todos.filter(x=>!q||pagNz(x.nome).includes(q));
+  const chip=x=>!x.r||!x.r.habilitado?'<span class="pgsub">desabilitado</span>':x.r.preco==null?'<span style="color:#b45309;font-weight:600">pendente: falta o preço</span>':'<span style="color:#16a34a;font-weight:600">disponível</span>';
+  return '<h3 style="margin:20px 0 4px">Produtos e preços do revendedor</h3><p style="margin:0 0 10px;color:var(--muted);font-size:.85rem">Marque os produtos que este revendedor pode pedir e digite o <b>valor dele</b> em cada um. O valor de um revendedor não muda o de outro. Só aparece para ele o que estiver <b>habilitado e com preço</b>. <b>'+hab+'</b> disponíveis · <b>'+pend+'</b> pendentes.</p>'+
+    '<div class="fbar" style="align-items:flex-end;margin-bottom:8px"><div><label for="rpvQ">Buscar produto</label><input id="rpvQ" value="'+esc(A9.rpvQ||'')+'" placeholder="Nome do produto" oninput="buscaLive(this,\'rpvQ\')"></div><button class="btn ghost sm" onclick="admRevProdTodos(\''+rv.id+'\',true)">Habilitar todos</button><button class="btn ghost sm" onclick="admRevProdTodos(\''+rv.id+'\',false)">Desabilitar todos</button><button class="btn ghost sm" onclick="admRevModoPreco(\''+rv.id+'\',false)" title="Volta para o desconto em porcentagem">Voltar ao modelo antigo</button></div>'+
+    '<div class="box" style="max-height:480px;overflow:auto"><table><thead><tr><th style="width:90px">Habilitado</th><th>Produto</th><th>Preço da loja</th><th style="width:150px">Preço do revendedor</th><th>Situação</th></tr></thead><tbody>'+
+    (lista.map(x=>'<tr><td><input type="checkbox" style="width:auto" '+(x.r&&x.r.habilitado?'checked':'')+' onchange="admRevProdSalvar(\''+rv.id+'\',\''+x.id+'\',\'habilitado\',this.checked)" aria-label="Habilitar"></td><td>'+esc(x.nome)+'</td><td style="color:var(--muted)">'+(x.loja==null?'—':brl(x.loja))+'</td><td><input inputmode="decimal" style="width:120px;text-align:right" value="'+(x.r&&x.r.preco!=null?pdMoeda(x.r.preco):'')+'" placeholder="R$" onchange="admRevProdSalvar(\''+rv.id+'\',\''+x.id+'\',\'preco\',this.value)"></td><td id="rps_'+x.id+'">'+chip(x)+'</td></tr>').join('')||'<tr><td colspan="5" style="color:var(--muted)">Nenhum produto encontrado.</td></tr>')+
+    '</tbody></table></div>';
+}
+async function admRevProdSalvar(revId,vid,campo,valor){
+  const M=rpdMapa(revId),at=M[vid]||{habilitado:campo==='preco',preco:null};
+  const novo={habilitado:at.habilitado,preco:at.preco};
+  if(campo==='habilitado')novo.habilitado=!!valor;
+  else{const t=String(valor||'').trim();if(!t)novo.preco=null;else{const v=pdNum(t);if(!(v>0)&&t!=='0'&&t!=='0,00'){toast('Valor inválido.');return}novo.preco=v}}
+  const {error}=await SB.from('revendedor_produtos').upsert([{revendedor_id:revId,variacao_id:vid,habilitado:novo.habilitado,preco:novo.preco,atualizado_em:new Date().toISOString()}],{onConflict:'revendedor_id,variacao_id'});
+  if(error){toast(/revendedor_produtos|relation|schema/i.test(error.message||'')?'Falta rodar o arquivo 31_precos_individuais_links_kits.sql no Supabase.':'Não foi possível salvar.');return}
+  const lst=((A9.revs||{}).rprod||[]).filter(x=>!(x.revendedor_id===revId&&x.variacao_id===vid));
+  lst.push({revendedor_id:revId,variacao_id:vid,habilitado:novo.habilitado,preco:novo.preco});A9.revs.rprod=lst;
+  if(campo==='habilitado'){route();return}
+  const c=document.getElementById('rps_'+vid);if(c)c.innerHTML=!novo.habilitado?'<span class="pgsub">desabilitado</span>':novo.preco==null?'<span style="color:#b45309;font-weight:600">pendente: falta o preço</span>':'<span style="color:#16a34a;font-weight:600">disponível</span>';
+  toast('Preço salvo.');
+}
+async function admRevProdTodos(revId,on){
+  const M=rpdMapa(revId),vs=(A9.revs.variacoes||[]);
+  if(!confirm((on?'Habilitar':'Desabilitar')+' todos os produtos para este revendedor?'+(on?'\n\nOs que estiverem sem preço ficam pendentes e só aparecem para ele depois que você definir o valor.':'')))return;
+  const linhas=vs.map(v=>({revendedor_id:revId,variacao_id:v.id,habilitado:on,preco:M[v.id]?M[v.id].preco:null,atualizado_em:new Date().toISOString()}));
+  const {error}=await SB.from('revendedor_produtos').upsert(linhas,{onConflict:'revendedor_id,variacao_id'});
+  if(error){toast('Não foi possível salvar.');return}
+  A9.revs.rprod=((A9.revs.rprod||[]).filter(x=>x.revendedor_id!==revId)).concat(linhas.map(l=>({revendedor_id:revId,variacao_id:l.variacao_id,habilitado:on,preco:l.preco})));
+  toast(on?'Todos habilitados.':'Todos desabilitados.');route();
+}
+async function admRevModoPreco(revId,on){
+  const rv=(A9.revs.lista||[]).find(r=>r.id===revId);if(!rv)return;
+  if(on&&!confirm('Passar este revendedor para produtos e preços individuais?\n\nA porcentagem de desconto deixa de valer para ele. Os preços exclusivos que ele já tinha foram copiados; o que não tiver preço fica pendente e não aparece no portal dele até você preencher.'))return;
+  if(!on&&!confirm('Voltar este revendedor para o modelo antigo (porcentagem de desconto)? Os preços individuais ficam guardados.'))return;
+  if(on){ // garante a cópia dos preços exclusivos antigos (sem sobrescrever o que já foi definido)
+    const M=rpdMapa(revId),novos=(A9.revs.precos||[]).filter(x=>x.revendedor_id===revId&&!M[x.variacao_id]).map(x=>({revendedor_id:revId,variacao_id:x.variacao_id,habilitado:true,preco:+x.preco,atualizado_em:new Date().toISOString()}));
+    if(novos.length){const r0=await SB.from('revendedor_produtos').upsert(novos,{onConflict:'revendedor_id,variacao_id'});if(r0.error){toast(/revendedor_produtos|relation|schema/i.test(r0.error.message||'')?'Falta rodar o arquivo 31_precos_individuais_links_kits.sql no Supabase.':'Não foi possível copiar os preços antigos.');return}A9.revs.rprod=(A9.revs.rprod||[]).concat(novos.map(n=>({revendedor_id:n.revendedor_id,variacao_id:n.variacao_id,habilitado:true,preco:n.preco})))}
+  }
+  const cfg=Object.assign({},rv.config||{},{preco_individual:!!on});
+  const {error}=await SB.from('revendedores').update({config:cfg}).eq('id',revId);
+  if(error){toast('Não foi possível salvar.');return}
+  rv.config=cfg;toast(on?'Preços individuais ativados para este revendedor.':'Modelo antigo reativado.');route();
 }
 async function admRevPreco(revId,prodId,txt){
   txt=(txt||'').trim();
@@ -4096,7 +4222,7 @@ var ENC=o=>['entregue','cancelado'].includes(o.status);
 var emAtraso=o=>!ENC(o)&&(o.entrega||{}).data&&(o.entrega||{}).data<hojeS();
 var aguardaPag=o=>o.status!=='cancelado'&&(o.pagamento||{}).status!=='pago';
 function motivoCancel(o){const ev=(o.eventos||[]).slice().reverse().find(e=>e.tipo==='status'&&e.para==='cancelado');return ev&&ev.motivo?ev.motivo:''}
-function tabPedidos(){return resumoDiaHtml()+listaPed(o=>A9.fs==='cancelado'?o.status==='cancelado':(A9.fq==='agenda'||!ENC(o)),'Pedidos em aberto. Use o filtro Cancelados para ver pedidos cancelados.')}
+function tabPedidos(){return '<div style="margin-bottom:10px"><button class="btn acc" onclick="manNovo();admTab(\'manual\')" title="Digite o nome ou telefone para puxar o cliente">➕ Novo pedido</button></div>'+resumoDiaHtml()+listaPed(o=>A9.fs==='cancelado'?o.status==='cancelado':(A9.fq==='agenda'||!ENC(o)),'Pedidos em aberto. Use o filtro Cancelados para ver pedidos cancelados.')}
 function tabAberto(){return listaPed(o=>!ENC(o),'Pedidos ainda não encerrados (não entregues e não cancelados).')}
 function tabAtrasados(){return listaPed(emAtraso,'Pedidos não encerrados cuja data de entrega desejada já passou.')}
 async function admSalvaLink(){
@@ -4283,11 +4409,11 @@ function pageOp(){
   }
   const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['clientes','Clientes'],['revendedores','Revendedores'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
   const EXTRA_T=['cartao','atrasados','clientes','revendedores','campanhas','produtos','etiquetas','mensagens','config'];
-  if(!tabs.some(t=>t[0]===A.tab))A.tab=tabs[0][0];
+  if(!tabs.some(t=>t[0]===A.tab)&&!(A.tab==='manual'&&tabs.some(t=>t[0]==='manual')))A.tab=tabs[0][0];
   msgGarante();
   const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,manual:tabManual,pagamentos:tabPagamentos,pendentes:tabPendentes,cartao:tabCartao,campanhas:tabCampanhas,logistica:tabLogistica,entregadores:tabEntregadores,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,mensagens:tabMensagens,config:tabConfig,clientes:tabClientes,revendedores:tabRevendedores})[A.tab]();
   return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="font-size:.85rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]}) · <a style="cursor:pointer" onclick="admSair()">Sair</a></div></div>
-  ${abasHtml(tabs,EXTRA_T)}${body}</div>`;
+  ${abasHtml(tabs.filter(t=>t[0]!=='manual'),EXTRA_T)}${body}</div>`;
 }
 /* ---------- pagamento visto pelo cliente: o vendedor envia o link pelo WhatsApp ---------- */
 function payCliente(o){
@@ -5828,12 +5954,13 @@ function abasHtml(tabs,extra){
   const btn=t=>`<button class="${A.tab===t[0]?'on':''}" onclick="A9.mais=null;admTab('${t[0]}')">${t[1]}</button>`;
   /* Revendedores e Clientes ficam sempre à vista, ao lado do botão Mais/Menos, cada um com a sua cor */
   const QK={revendedores:'qk-rev',clientes:'qk-cli'};
-  const quick=['revendedores','clientes'].map(k=>tabs.find(t=>t[0]===k)).filter(Boolean);
+  const quick=['revendedores'].map(k=>tabs.find(t=>t[0]===k)).filter(Boolean);
+  const cliT=tabs.find(t=>t[0]==='clientes');const cliBtn=cliT?`<button class="qk qk-cli${A.tab==='clientes'?' on':''}" onclick="A9.mais=null;admTab('clientes')">${cliT[1]}</button>`:'';
   const qbtn=t=>`<button class="qk ${QK[t[0]]}${A.tab===t[0]?' on':''}" onclick="A9.mais=null;admTab('${t[0]}')">${t[1]}</button>`;
   const main=tabs.filter(t=>!extra.includes(t[0])&&!QK[t[0]]),ex=tabs.filter(t=>extra.includes(t[0])&&!QK[t[0]]);
   /* A9.mais: true/false = escolha da pessoa; vazio = abre sozinho quando está numa aba do grupo */
   const aberto=A9.mais===true?true:A9.mais===false?false:ex.some(t=>t[0]===A.tab);
-  return `<div class="tabs adm">${main.map(btn).join('')}${ex.length?`<button class="maisb" onclick="A9.mais=${!aberto};route()">${aberto?'Menos ▴':'Mais opções ▾'}</button>`:''}${quick.map(qbtn).join('')}</div>${ex.length&&aberto?`<div class="tabs adm sec">${ex.map(btn).join('')}</div>`:''}`;
+  return `<div class="tabs adm">${main.map(t=>btn(t)+(t[0]==='pedidos'?cliBtn:'')).join('')}${!main.some(t=>t[0]==='pedidos')?cliBtn:''}${ex.length?`<button class="maisb" onclick="A9.mais=${!aberto};route()">${aberto?'Menos ▴':'Mais opções ▾'}</button>`:''}${quick.map(qbtn).join('')}</div>${ex.length&&aberto?`<div class="tabs adm sec">${ex.map(btn).join('')}</div>`:''}`;
 }
 
 /* ======================= ANDAMENTO DO PEDIDO (BARRA DE ETAPAS) E ROTAS POR ENTREGADOR ======================= */
@@ -7256,6 +7383,7 @@ async function admCarregarClientes(){
       const k=cliChave(o);if(!k||k==='f')return;const e=o.entrega||{};
       const c=M[k]=M[k]||{k,nome:e.nome||'',fone:e.fone||'',email:'',cidade:'',cad:null,n:0,ent:0,tot:0,pag:{},ult:null};
       if(!c.nome)c.nome=e.nome||'';if(!c.fone)c.fone=e.fone||'';if(!c.cidade)c.cidade=((e.dest||{}).cidade)||'';if(!c.endk)c.endk=endKeyDest(e.dest);if(!c.dest&&e.dest&&(e.dest.rua||e.dest.cep))c.dest=e.dest;
+      if(!(o.extra||{}).cobranca){let tt=0;try{tt=pedTotal(o)+(freteDoPedido(o)||0)}catch(x){}(c.hist=c.hist||[]).push({id:o.id,t:o.criado_em,st:o.status,pg:(o.pagamento||{}).status||'pendente',prev:!!(o.extra||{}).pag_prev,rev:!!(o.extra||{}).revendedor,tot:tt,itens:(o.itens||[]).map(i=>({n:i.name||i.nome||'',q:+i.qty||1,u:+i.unit||0,v:i.var||'',p:i.id,o:i.opt||''}))})}
       if(o.status==='cancelado')return;
       if((o.extra||{}).cobranca)return;c.n++;if(o.status==='entregue')c.ent++;
       try{c.tot+=pedTotal(o)+(freteDoPedido(o)||0)}catch(x){}
@@ -7271,7 +7399,7 @@ async function admCarregarClientes(){
       if(!principal.email&&outro.email)principal.email=outro.email;
       if(!principal.cidade&&outro.cidade)principal.cidade=outro.cidade;
       if(!principal.cad&&outro.cad)principal.cad=outro.cad;if(!principal.endk&&outro.endk)principal.endk=outro.endk;if(!principal.dest&&outro.dest)principal.dest=outro.dest;
-      principal.n+=outro.n;principal.ent+=outro.ent;principal.tot+=outro.tot;
+      principal.n+=outro.n;principal.ent+=outro.ent;principal.tot+=outro.tot;if(outro.hist)principal.hist=(principal.hist||[]).concat(outro.hist);
       Object.entries(outro.pag||{}).forEach(([pg,v])=>{principal.pag[pg]=(principal.pag[pg]||0)+v});
       if(outro.ult&&(!principal.ult||outro.ult>principal.ult))principal.ult=outro.ult;
       delete M[outro.k];
@@ -7301,7 +7429,7 @@ async function admCarregarClientes(){
         const c=achar(o.k,o.f);
         if(c&&c!==p){
           if(!p.email&&c.email)p.email=c.email;if(!p.cidade&&c.cidade)p.cidade=c.cidade;
-          p.n+=c.n;p.ent+=c.ent;p.tot+=c.tot;
+          p.n+=c.n;p.ent+=c.ent;p.tot+=c.tot;if(c.hist)p.hist=(p.hist||[]).concat(c.hist);
           if(c.ult&&(!p.ult||c.ult>p.ult))p.ult=c.ult;
           if(c.fone&&!p.fones.some(x=>cliNormFone(x)===cliNormFone(c.fone)))p.fones.push(c.fone);
           delete M[c.k];
@@ -7519,6 +7647,39 @@ async function cliSugerirSalvar(){
   A9.cliUnidos=grupos;const el=document.getElementById('sugbox');if(el)el.remove();
   A9.clientes=null;route();toast(n+' grupo'+(n===1?'':'s')+' de contatos unido'+(n===1?'':'s')+'.');
 }
+/* ---- detalhe do cliente: dados, Novo pedido e histórico de pedidos reais ---- */
+var CLI_ST={realizado:'Recebido',confirmado:'Confirmado',preparacao:'Em preparação',separacao:'Em separação','aguardando-programacao':'Aguardando rota',programada:'Enviado ao entregador','em-rota':'Em rota',tentativa:'Tentativa',entregue:'Entregue',cancelado:'Cancelado'};
+function cliDetalhe(k){
+  const c=(A9.clientes||[]).find(x=>x.k===k);if(!c)return;
+  const hist=(c.hist||[]).slice().sort((a,b)=>String(b.t).localeCompare(String(a.t)));
+  const e=c.dest||{};
+  const end=[c.endereco||e.rua,c.numero||e.num,c.bairro||e.bairro,c.cidade||e.cidade,c.cep||e.cep].filter(Boolean).join(', ');
+  const corpo='<div style="font-size:.9rem;color:var(--muted)">'+((c.fones&&c.fones.length>1)?c.fones.map(f=>'📞 '+esc(f)).join('<br>'):(c.fone?'📞 '+esc(c.fone):'sem telefone'))+(c.email?'<br>✉️ '+esc(c.email):'')+(end?'<br>📍 '+esc(end):'')+'</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0"><button class="btn acc" onclick="document.getElementById(\'cdbox\').remove();manNovoDoCliente(\''+esc(k)+'\')">➕ Novo pedido</button>'+(c.importado?'<button class="btn ghost" onclick="document.getElementById(\'cdbox\').remove();cliEditar(\''+esc(k)+'\')">Editar cadastro</button>':'')+'<button class="btn ghost" onclick="document.getElementById(\'cdbox\').remove();cobNova(\''+esc(k)+'\')">Cobrar</button></div>'+
+    '<h4 style="margin:10px 0 6px">Histórico de pedidos ('+hist.length+')</h4>'+
+    (hist.length?'<div style="max-height:48vh;overflow:auto">'+hist.map(o=>'<div style="border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;font-size:.86rem"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>'+esc(fmtD(Date.parse(o.t)))+' · ZP-'+String(o.id).padStart(6,'0')+'</b><span><span class="stchip" style="--c:'+(STCOR[o.st]||'#6b7280')+'">'+esc(CLI_ST[o.st]||o.st)+'</span> <span class="stchip" style="--c:'+(o.pg==='pago'?'#16a34a':'#d97706')+'">'+(o.pg==='pago'?'Pago':o.prev?'Programado':'Pendente')+'</span>'+(o.rev?' <span class="selo" style="background:#7c3aed22;color:#7c3aed">revendedor</span>':'')+'</span></div><div style="color:var(--muted);margin:3px 0">'+o.itens.map(i=>esc(i.q+'× '+i.n)).join(', ')+'</div><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>'+esc(brl(o.tot))+'</b><span><button class="btn ghost sm" onclick="document.getElementById(\'cdbox\').remove();admAbrirPedido('+o.id+')">Abrir pedido</button> <button class="btn ghost sm" onclick="document.getElementById(\'cdbox\').remove();manUsaBase('+o.id+',\''+esc(k)+'\')" title="Cria um novo pedido com os mesmos itens; o original não muda">Usar como base</button></span></div></div>').join('')+'</div>':'<p style="color:var(--muted)">Este cliente ainda não tem pedidos.</p>');
+  cliModal('cdbox',esc(c.nome||'Cliente'),corpo,'<button class="btn ghost" onclick="document.getElementById(\'cdbox\').remove()">Fechar</button>');
+}
+/* novo pedido já com o cliente carregado (nome, telefone e endereço) */
+async function manNovoDoCliente(k){
+  if(!A9.prods){try{await admCarregarProdutos()}catch(x){}}
+  A9.man={q:{},f:{},busca:'',turno:'',pag:'pix',ok:null,err:''};
+  manPuxaCli(k);admTab('manual');window.scrollTo(0,0);
+}
+/* usa um pedido anterior como base: carrega os mesmos itens num pedido NOVO; o original não é alterado e nada é gravado até registrar */
+async function manUsaBase(oid,k){
+  const c=(A9.clientes||[]).find(x=>x.k===k);const o=c&&(c.hist||[]).find(x=>x.id===oid);if(!o)return;
+  if(!A9.prods){try{await admCarregarProdutos()}catch(x){}}
+  A9.man={q:{},f:{},busca:'',turno:'',pag:'pix',ok:null,err:''};
+  const fora=[];
+  o.itens.forEach(i=>{
+    let v=null;
+    (A9.prods||[]).forEach(p=>(p.vars||[]).forEach(x=>{if(v)return;if(i.v&&x.id===i.v)v=x;else if(!i.v&&p.id===i.p&&String(x.nome||'').toLowerCase()===String(i.o||'').toLowerCase())v=x}));
+    if(v&&v.ativo!==false)A9.man.q[v.id]=Math.min(99,(A9.man.q[v.id]||0)+i.q);else fora.push(i.q+'× '+i.n);
+  });
+  manPuxaCli(k);admTab('manual');window.scrollTo(0,0);
+  toast(fora.length?'Alguns itens não estão mais no catálogo e ficaram de fora: '+fora.join(', ')+'. Confira os valores de hoje antes de registrar.':'Itens do pedido anterior carregados num pedido novo. Confira e registre; o original não muda.');
+}
 function cliUnirAbrir(){
   const sel=(A9.clientes||[]).filter(c=>A9.cliSel[c.k]);
   if(sel.length<2){toast('Marque 2 ou mais clientes para unir.');return}
@@ -7707,6 +7868,7 @@ async function revSalvar(){
   A9.busy=false;
   if(r.error){erro(/criar_revendedor|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 23_revendedor_do_cliente.sql no Supabase.':'Não foi possível salvar: '+r.error.message);return}
   const el=document.getElementById('rvbox');if(el)el.remove();
+  if(r.data){try{await SB.from('revendedores').update({config:{preco_individual:true,clientes_ativo:true}}).eq('id',r.data)}catch(x){}}
   if(sn&&r.data){const rs=await SB.rpc('admin_definir_senha_revendedor',{p_id:r.data,p_senha:sn});if(rs.error)toast('Revendedor criado, mas a senha não foi definida: '+rs.error.message)}
   A9.revs=null;A9.cliRev=null;toast(nome+' agora é revendedor. Ele aparece em Revendedores e fica com ⭐ em Clientes.');route();
 }
@@ -7813,7 +7975,7 @@ function tabClientes(){
   <input type="file" id="cliXlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="admProcessarPlanilha(this.files[0]);this.value=''">
   <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" oninput="buscaLive(this,'cliQ')"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button><button class="btn ghost sm" onclick="admImportarClientes()" title="Importar clientes de planilha Excel ou CSV">Importar planilha</button> <button class="btn acc" onclick="cliNovo()">➕ Novo cliente</button> <button class="btn acc" onclick="cliSugerirAbrir()" title="Acha clientes com o mesmo endereço ou nome e telefones diferentes">🔎 Sugerir uniões</button> <button class="btn ghost" onclick="cliLimparBtn()" title="Mostra os telefones repetidos e deixa escolher unificar ou excluir">Limpar duplicados</button></div>
   <div class="selbar"><button class="btn ghost sm" onclick="cliSelTodos(true)">Selecionar todos</button><button class="btn ghost sm" onclick="cliSelTodos(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><button class="btn acc sm" onclick="cobLote()" ${nSel?'':'disabled'}>Gerar cobrança${nSel?' ('+nSel+')':''}</button><button class="btn ghost sm" onclick="cliUnirAbrir()" ${nSel>1?'':'disabled'} title="Junta vários contatos do mesmo cliente em um só">🔗 Unir contatos${nSel>1?' ('+nSel+')':''}</button><button class="btn ghost sm danger" onclick="cliExcluir()" ${nSel?'':'disabled'}>Excluir cadastro${nSel?' ('+nSel+')':''}</button></div>
-  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th>${cth('nome','Cliente')}<th>Contato</th>${cth('cidade','Cidade')}${cth('n','Pedidos')}${cth('ent','Entregues')}${cth('tot','Total comprado')}${cth('ult','Último pedido')}${cth('cad','Cadastro')}<th></th></tr></thead><tbody>${Lv.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><a style="cursor:pointer;font-weight:700" onclick="cliEditar('${esc(c.k)}')" title="Editar cadastro">${esc(c.nome||'Sem nome')}</a>${cliRevStar(c)}${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${(c.fones&&c.fones.length>1)?c.fones.map(f=>`<div><a href="whatsapp://send?phone=${foneWa(f)}" style="color:inherit">${esc(f)}</a></div>`).join('')+`<a class="pglnk" onclick="cliSeparar('${esc(c.k)}')">separar contatos</a>`:''}${(c.fones&&c.fones.length>1)?'':(c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" style="color:inherit">${esc(c.fone)}</a>`:'')} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}${c.endereco?`<div style="color:var(--muted);font-size:.78rem">${esc(c.endereco)}${c.numero?', '+esc(c.numero):''}${c.bairro?' · '+esc(c.bairro):''}</div>`:''}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> ${cliRevBtn(c)} ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div>${L.length>Lv.length?`<p style="text-align:center;margin:12px 0 0"><button class="btn ghost" onclick="cliMais()">Mostrar mais (${L.length-Lv.length} restantes)</button></p>`:''}</div>`;
+  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th>${cth('nome','Cliente')}<th>Contato</th>${cth('cidade','Cidade')}${cth('n','Pedidos')}${cth('ent','Entregues')}${cth('tot','Total comprado')}${cth('ult','Último pedido')}${cth('cad','Cadastro')}<th></th></tr></thead><tbody>${Lv.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><a style="cursor:pointer;font-weight:700" onclick="cliDetalhe('${esc(c.k)}')" title="Ver detalhes e histórico de pedidos">${esc(c.nome||'Sem nome')}</a>${cliRevStar(c)}${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${(c.fones&&c.fones.length>1)?c.fones.map(f=>`<div><a href="whatsapp://send?phone=${foneWa(f)}" style="color:inherit">${esc(f)}</a></div>`).join('')+`<a class="pglnk" onclick="cliSeparar('${esc(c.k)}')">separar contatos</a>`:''}${(c.fones&&c.fones.length>1)?'':(c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" style="color:inherit">${esc(c.fone)}</a>`:'')} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}${c.endereco?`<div style="color:var(--muted);font-size:.78rem">${esc(c.endereco)}${c.numero?', '+esc(c.numero):''}${c.bairro?' · '+esc(c.bairro):''}</div>`:''}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> <button class="btn ghost sm" onclick="manNovoDoCliente('${esc(c.k)}')">Novo pedido</button> ${cliRevBtn(c)} ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div>${L.length>Lv.length?`<p style="text-align:center;margin:12px 0 0"><button class="btn ghost" onclick="cliMais()">Mostrar mais (${L.length-Lv.length} restantes)</button></p>`:''}</div>`;
 }
 var CUPOM_TXT='Olá, {nome}, tudo bem? 😊\nPassando para agradecer de coração: você já fez {pedidos} pedidos com a gente e isso é muito especial para nós!\nComo agradecimento pela sua fidelidade, preparamos um cupom exclusivo para você: *{cupom}*.\nÉ só avisar no seu próximo pedido. Obrigado pela confiança! 💜';
 function cupomAbrir(k){
