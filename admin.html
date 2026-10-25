@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-24-2466 -->
+<!-- v2026-10-25-2471 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -2818,7 +2818,7 @@ function admLogoRem(){LBL.logo=null;LBL.logoKey='';saveLbl();toast('Logomarca re
 /* ======================= REVENDEDORES ======================= */
 
 async function admCarregarRevs(){
-  const [rv,pe,mo,av,pz,pr,cl,vr,rp]=await Promise.all([
+  const [rv,pe,mo,av,pz,pr,cl,vr,rp,rpd]=await Promise.all([
     SB.from('revendedores').select('*').order('criado_em',{ascending:false}),
     SB.from('pedidos_revendedor').select('*').order('criado_em',{ascending:false}),
     SB.from('consignado_movimentos').select('*').order('criado_em',{ascending:false}),
@@ -2827,9 +2827,10 @@ async function admCarregarRevs(){
     SB.from('produtos').select('id,nome,ativo,sob_consulta').eq('ativo',true).order('nome'),
     SB.from('revendedor_clientes').select('id,revendedor_id,nome'),
     SB.from('produto_variacoes').select('id,produto_id,nome,unidades,preco,ativo,ordem').eq('ativo',true).order('ordem'),
-    SB.from('catalogo_revenda').select('variacao_id,preco')
+    SB.from('catalogo_revenda').select('variacao_id,preco'),
+    SB.from('revendedor_produtos').select('*')
   ]);
-  A9.revs={lista:rv.data||[],pedidos:pe.data||[],movimentos:mo.data||[],avisos:av.data||[],precos:pz.data||[],produtos:pr.data||[],clientes:cl.data||[],variacoes:vr.data||[],repasse:(rp&&rp.data)||[]};
+  A9.revs={lista:rv.data||[],pedidos:pe.data||[],movimentos:mo.data||[],avisos:av.data||[],precos:pz.data||[],produtos:pr.data||[],clientes:cl.data||[],variacoes:vr.data||[],repasse:(rp&&rp.data)||[],rprod:(rpd&&rpd.data)||[]};
   route();
 }
 
@@ -2937,11 +2938,12 @@ function tabRevendedores(){
             </div>`:''}
           </div>
 
-          ${(()=>{
+          ${revProdutosPrecosHtml(rv)}${(()=>{
             const prodNome={};(A9.revs.produtos||[]).forEach(p=>{prodNome[p.id]=p.nome});
             const bs=repasseMapa();const prods=(A9.revs.variacoes||[]).filter(v=>prodNome[v.produto_id]).map(v=>({id:v.id,nome:prodNome[v.produto_id]+' — '+v.nome,preco:(v.preco==null||v.preco==='')?null:+v.preco,rep:bs[v.id]!=null?bs[v.id]:null})).sort((a,b)=>a.nome.localeCompare(b.nome));
             const mapa={};(A9.revs.precos||[]).filter(x=>x.revendedor_id===rv.id).forEach(x=>{mapa[x.variacao_id]=+x.preco});
             const desc=rv.desconto_pct||0;
+            if((rv.config||{}).preco_individual===true)return '';
             return `<h3 style="margin:20px 0 4px">Tabela de preços exclusiva (${Object.keys(mapa).length} de ${prods.length})</h3>
             <p style="margin:0 0 10px;color:var(--muted);font-size:.85rem">Preço que este revendedor paga por cada variação (caixa, ampola...). Em branco = valor de repasse (ou preço da loja, se não houver) com o desconto padrão (${desc}%); variação sem preço de loja só aparece para ele se você definir o preço aqui. Salva ao sair do campo.</p>
             <div class="box" style="max-height:420px;overflow:auto"><table>
@@ -3272,6 +3274,58 @@ async function admRepasseCopiar(){
   const {error}=await SB.from('catalogo_revenda').upsert(novos,{onConflict:'variacao_id'});
   if(error){toast(/catalogo_revenda|relation|schema/i.test(error.message||'')?'Falta rodar o arquivo 29_catalogo_repasse.sql no Supabase.':'Não foi possível salvar.');return}
   A9.revs.repasse=(R.repasse||[]).concat(novos);toast(novos.length+' valores preenchidos.');route();
+}
+/* ---- Produtos e preços do revendedor: o Wesley habilita cada produto/variação e define o valor dele (sem porcentagem) ---- */
+function rpdMapa(revId){const m={};((A9.revs||{}).rprod||[]).filter(x=>x.revendedor_id===revId).forEach(x=>{m[x.variacao_id]={habilitado:x.habilitado!==false,preco:x.preco==null?null:+x.preco}});return m}
+function revProdutosPrecosHtml(rv){
+  const ind=(rv.config||{}).preco_individual===true;
+  if(!ind)return '<div class="note" style="margin:20px 0 0"><b>Preços individuais:</b> hoje este revendedor usa o desconto de '+(rv.desconto_pct||0)+'% sobre o preço de repasse (modelo antigo). Para definir o valor de cada produto só para ele, sem porcentagem: <button class="btn acc sm" style="margin-left:6px" onclick="admRevModoPreco(\''+rv.id+'\',true)">Usar produtos e preços individuais</button><div class="pgsub" style="margin-top:4px">Os preços exclusivos que ele já tinha são copiados. O que não tiver preço fica pendente e <b>não aparece</b> para ele até você preencher.</div></div>';
+  const nomeP={};(A9.revs.produtos||[]).forEach(p=>{nomeP[p.id]=p.nome});
+  const M=rpdMapa(rv.id),q=pagNz(A9.rpvQ||'');
+  const todos=(A9.revs.variacoes||[]).filter(v=>nomeP[v.produto_id]).map(v=>({id:v.id,nome:nomeP[v.produto_id]+' — '+v.nome,loja:(v.preco==null||v.preco==='')?null:+v.preco,r:M[v.id]||null})).sort((a,b)=>a.nome.localeCompare(b.nome));
+  const hab=todos.filter(x=>x.r&&x.r.habilitado&&x.r.preco!=null).length,pend=todos.filter(x=>x.r&&x.r.habilitado&&x.r.preco==null).length;
+  const lista=todos.filter(x=>!q||pagNz(x.nome).includes(q));
+  const chip=x=>!x.r||!x.r.habilitado?'<span class="pgsub">desabilitado</span>':x.r.preco==null?'<span style="color:#b45309;font-weight:600">pendente: falta o preço</span>':'<span style="color:#16a34a;font-weight:600">disponível</span>';
+  return '<h3 style="margin:20px 0 4px">Produtos e preços do revendedor</h3><p style="margin:0 0 10px;color:var(--muted);font-size:.85rem">Marque os produtos que este revendedor pode pedir e digite o <b>valor dele</b> em cada um. O valor de um revendedor não muda o de outro. Só aparece para ele o que estiver <b>habilitado e com preço</b>. <b>'+hab+'</b> disponíveis · <b>'+pend+'</b> pendentes.</p>'+
+    '<div class="fbar" style="align-items:flex-end;margin-bottom:8px"><div><label for="rpvQ">Buscar produto</label><input id="rpvQ" value="'+esc(A9.rpvQ||'')+'" placeholder="Nome do produto" oninput="buscaLive(this,\'rpvQ\')"></div><button class="btn ghost sm" onclick="admRevProdTodos(\''+rv.id+'\',true)">Habilitar todos</button><button class="btn ghost sm" onclick="admRevProdTodos(\''+rv.id+'\',false)">Desabilitar todos</button><button class="btn ghost sm" onclick="admRevModoPreco(\''+rv.id+'\',false)" title="Volta para o desconto em porcentagem">Voltar ao modelo antigo</button></div>'+
+    '<div class="box" style="max-height:480px;overflow:auto"><table><thead><tr><th style="width:90px">Habilitado</th><th>Produto</th><th>Preço da loja</th><th style="width:150px">Preço do revendedor</th><th>Situação</th></tr></thead><tbody>'+
+    (lista.map(x=>'<tr><td><input type="checkbox" style="width:auto" '+(x.r&&x.r.habilitado?'checked':'')+' onchange="admRevProdSalvar(\''+rv.id+'\',\''+x.id+'\',\'habilitado\',this.checked)" aria-label="Habilitar"></td><td>'+esc(x.nome)+'</td><td style="color:var(--muted)">'+(x.loja==null?'—':brl(x.loja))+'</td><td><input inputmode="decimal" style="width:120px;text-align:right" value="'+(x.r&&x.r.preco!=null?pdMoeda(x.r.preco):'')+'" placeholder="R$" onchange="admRevProdSalvar(\''+rv.id+'\',\''+x.id+'\',\'preco\',this.value)"></td><td id="rps_'+x.id+'">'+chip(x)+'</td></tr>').join('')||'<tr><td colspan="5" style="color:var(--muted)">Nenhum produto encontrado.</td></tr>')+
+    '</tbody></table></div>';
+}
+async function admRevProdSalvar(revId,vid,campo,valor){
+  const M=rpdMapa(revId),at=M[vid]||{habilitado:false,preco:null};
+  const novo={habilitado:at.habilitado,preco:at.preco};
+  if(campo==='habilitado')novo.habilitado=!!valor;
+  else{const t=String(valor||'').trim();if(!t)novo.preco=null;else{const v=pdNum(t);if(!(v>0)&&t!=='0'&&t!=='0,00'){toast('Valor inválido.');return}novo.preco=v}}
+  const {error}=await SB.from('revendedor_produtos').upsert([{revendedor_id:revId,variacao_id:vid,habilitado:novo.habilitado,preco:novo.preco,atualizado_em:new Date().toISOString()}],{onConflict:'revendedor_id,variacao_id'});
+  if(error){toast(/revendedor_produtos|relation|schema/i.test(error.message||'')?'Falta rodar o arquivo 31_precos_individuais_links_kits.sql no Supabase.':'Não foi possível salvar.');return}
+  const lst=((A9.revs||{}).rprod||[]).filter(x=>!(x.revendedor_id===revId&&x.variacao_id===vid));
+  lst.push({revendedor_id:revId,variacao_id:vid,habilitado:novo.habilitado,preco:novo.preco});A9.revs.rprod=lst;
+  if(campo==='habilitado'){route();return}
+  const c=document.getElementById('rps_'+vid);if(c)c.innerHTML=!novo.habilitado?'<span class="pgsub">desabilitado</span>':novo.preco==null?'<span style="color:#b45309;font-weight:600">pendente: falta o preço</span>':'<span style="color:#16a34a;font-weight:600">disponível</span>';
+  toast('Preço salvo.');
+}
+async function admRevProdTodos(revId,on){
+  const M=rpdMapa(revId),vs=(A9.revs.variacoes||[]);
+  if(!confirm((on?'Habilitar':'Desabilitar')+' todos os produtos para este revendedor?'+(on?'\n\nOs que estiverem sem preço ficam pendentes e só aparecem para ele depois que você definir o valor.':'')))return;
+  const linhas=vs.map(v=>({revendedor_id:revId,variacao_id:v.id,habilitado:on,preco:M[v.id]?M[v.id].preco:null,atualizado_em:new Date().toISOString()}));
+  const {error}=await SB.from('revendedor_produtos').upsert(linhas,{onConflict:'revendedor_id,variacao_id'});
+  if(error){toast('Não foi possível salvar.');return}
+  A9.revs.rprod=((A9.revs.rprod||[]).filter(x=>x.revendedor_id!==revId)).concat(linhas.map(l=>({revendedor_id:revId,variacao_id:l.variacao_id,habilitado:on,preco:l.preco})));
+  toast(on?'Todos habilitados.':'Todos desabilitados.');route();
+}
+async function admRevModoPreco(revId,on){
+  const rv=(A9.revs.lista||[]).find(r=>r.id===revId);if(!rv)return;
+  if(on&&!confirm('Passar este revendedor para produtos e preços individuais?\n\nA porcentagem de desconto deixa de valer para ele. Os preços exclusivos que ele já tinha foram copiados; o que não tiver preço fica pendente e não aparece no portal dele até você preencher.'))return;
+  if(!on&&!confirm('Voltar este revendedor para o modelo antigo (porcentagem de desconto)? Os preços individuais ficam guardados.'))return;
+  if(on){ // garante a cópia dos preços exclusivos antigos (sem sobrescrever o que já foi definido)
+    const M=rpdMapa(revId),novos=(A9.revs.precos||[]).filter(x=>x.revendedor_id===revId&&!M[x.variacao_id]).map(x=>({revendedor_id:revId,variacao_id:x.variacao_id,habilitado:true,preco:+x.preco,atualizado_em:new Date().toISOString()}));
+    if(novos.length){const r0=await SB.from('revendedor_produtos').upsert(novos,{onConflict:'revendedor_id,variacao_id'});if(r0.error){toast(/revendedor_produtos|relation|schema/i.test(r0.error.message||'')?'Falta rodar o arquivo 31_precos_individuais_links_kits.sql no Supabase.':'Não foi possível copiar os preços antigos.');return}A9.revs.rprod=(A9.revs.rprod||[]).concat(novos.map(n=>({revendedor_id:n.revendedor_id,variacao_id:n.variacao_id,habilitado:true,preco:n.preco})))}
+  }
+  const cfg=Object.assign({},rv.config||{},{preco_individual:!!on});
+  const {error}=await SB.from('revendedores').update({config:cfg}).eq('id',revId);
+  if(error){toast('Não foi possível salvar.');return}
+  rv.config=cfg;toast(on?'Preços individuais ativados para este revendedor.':'Modelo antigo reativado.');route();
 }
 async function admRevPreco(revId,prodId,txt){
   txt=(txt||'').trim();
@@ -5828,12 +5882,13 @@ function abasHtml(tabs,extra){
   const btn=t=>`<button class="${A.tab===t[0]?'on':''}" onclick="A9.mais=null;admTab('${t[0]}')">${t[1]}</button>`;
   /* Revendedores e Clientes ficam sempre à vista, ao lado do botão Mais/Menos, cada um com a sua cor */
   const QK={revendedores:'qk-rev',clientes:'qk-cli'};
-  const quick=['revendedores','clientes'].map(k=>tabs.find(t=>t[0]===k)).filter(Boolean);
+  const quick=['revendedores'].map(k=>tabs.find(t=>t[0]===k)).filter(Boolean);
+  const cliT=tabs.find(t=>t[0]==='clientes');const cliBtn=cliT?`<button class="qk qk-cli${A.tab==='clientes'?' on':''}" onclick="A9.mais=null;admTab('clientes')">${cliT[1]}</button>`:'';
   const qbtn=t=>`<button class="qk ${QK[t[0]]}${A.tab===t[0]?' on':''}" onclick="A9.mais=null;admTab('${t[0]}')">${t[1]}</button>`;
   const main=tabs.filter(t=>!extra.includes(t[0])&&!QK[t[0]]),ex=tabs.filter(t=>extra.includes(t[0])&&!QK[t[0]]);
   /* A9.mais: true/false = escolha da pessoa; vazio = abre sozinho quando está numa aba do grupo */
   const aberto=A9.mais===true?true:A9.mais===false?false:ex.some(t=>t[0]===A.tab);
-  return `<div class="tabs adm">${main.map(btn).join('')}${ex.length?`<button class="maisb" onclick="A9.mais=${!aberto};route()">${aberto?'Menos ▴':'Mais opções ▾'}</button>`:''}${quick.map(qbtn).join('')}</div>${ex.length&&aberto?`<div class="tabs adm sec">${ex.map(btn).join('')}</div>`:''}`;
+  return `<div class="tabs adm">${main.map(t=>btn(t)+(t[0]==='pedidos'?cliBtn:'')).join('')}${!main.some(t=>t[0]==='pedidos')?cliBtn:''}${ex.length?`<button class="maisb" onclick="A9.mais=${!aberto};route()">${aberto?'Menos ▴':'Mais opções ▾'}</button>`:''}${quick.map(qbtn).join('')}</div>${ex.length&&aberto?`<div class="tabs adm sec">${ex.map(btn).join('')}</div>`:''}`;
 }
 
 /* ======================= ANDAMENTO DO PEDIDO (BARRA DE ETAPAS) E ROTAS POR ENTREGADOR ======================= */
@@ -7256,6 +7311,7 @@ async function admCarregarClientes(){
       const k=cliChave(o);if(!k||k==='f')return;const e=o.entrega||{};
       const c=M[k]=M[k]||{k,nome:e.nome||'',fone:e.fone||'',email:'',cidade:'',cad:null,n:0,ent:0,tot:0,pag:{},ult:null};
       if(!c.nome)c.nome=e.nome||'';if(!c.fone)c.fone=e.fone||'';if(!c.cidade)c.cidade=((e.dest||{}).cidade)||'';if(!c.endk)c.endk=endKeyDest(e.dest);if(!c.dest&&e.dest&&(e.dest.rua||e.dest.cep))c.dest=e.dest;
+      if(!(o.extra||{}).cobranca){let tt=0;try{tt=pedTotal(o)+(freteDoPedido(o)||0)}catch(x){}(c.hist=c.hist||[]).push({id:o.id,t:o.criado_em,st:o.status,pg:(o.pagamento||{}).status||'pendente',prev:!!(o.extra||{}).pag_prev,rev:!!(o.extra||{}).revendedor,tot:tt,itens:(o.itens||[]).map(i=>({n:i.name||i.nome||'',q:+i.qty||1,u:+i.unit||0,v:i.var||'',p:i.id,o:i.opt||''}))})}
       if(o.status==='cancelado')return;
       if((o.extra||{}).cobranca)return;c.n++;if(o.status==='entregue')c.ent++;
       try{c.tot+=pedTotal(o)+(freteDoPedido(o)||0)}catch(x){}
@@ -7271,7 +7327,7 @@ async function admCarregarClientes(){
       if(!principal.email&&outro.email)principal.email=outro.email;
       if(!principal.cidade&&outro.cidade)principal.cidade=outro.cidade;
       if(!principal.cad&&outro.cad)principal.cad=outro.cad;if(!principal.endk&&outro.endk)principal.endk=outro.endk;if(!principal.dest&&outro.dest)principal.dest=outro.dest;
-      principal.n+=outro.n;principal.ent+=outro.ent;principal.tot+=outro.tot;
+      principal.n+=outro.n;principal.ent+=outro.ent;principal.tot+=outro.tot;if(outro.hist)principal.hist=(principal.hist||[]).concat(outro.hist);
       Object.entries(outro.pag||{}).forEach(([pg,v])=>{principal.pag[pg]=(principal.pag[pg]||0)+v});
       if(outro.ult&&(!principal.ult||outro.ult>principal.ult))principal.ult=outro.ult;
       delete M[outro.k];
@@ -7301,7 +7357,7 @@ async function admCarregarClientes(){
         const c=achar(o.k,o.f);
         if(c&&c!==p){
           if(!p.email&&c.email)p.email=c.email;if(!p.cidade&&c.cidade)p.cidade=c.cidade;
-          p.n+=c.n;p.ent+=c.ent;p.tot+=c.tot;
+          p.n+=c.n;p.ent+=c.ent;p.tot+=c.tot;if(c.hist)p.hist=(p.hist||[]).concat(c.hist);
           if(c.ult&&(!p.ult||c.ult>p.ult))p.ult=c.ult;
           if(c.fone&&!p.fones.some(x=>cliNormFone(x)===cliNormFone(c.fone)))p.fones.push(c.fone);
           delete M[c.k];
@@ -7519,6 +7575,39 @@ async function cliSugerirSalvar(){
   A9.cliUnidos=grupos;const el=document.getElementById('sugbox');if(el)el.remove();
   A9.clientes=null;route();toast(n+' grupo'+(n===1?'':'s')+' de contatos unido'+(n===1?'':'s')+'.');
 }
+/* ---- detalhe do cliente: dados, Novo pedido e histórico de pedidos reais ---- */
+var CLI_ST={realizado:'Recebido',confirmado:'Confirmado',preparacao:'Em preparação',separacao:'Em separação','aguardando-programacao':'Aguardando rota',programada:'Enviado ao entregador','em-rota':'Em rota',tentativa:'Tentativa',entregue:'Entregue',cancelado:'Cancelado'};
+function cliDetalhe(k){
+  const c=(A9.clientes||[]).find(x=>x.k===k);if(!c)return;
+  const hist=(c.hist||[]).slice().sort((a,b)=>String(b.t).localeCompare(String(a.t)));
+  const e=c.dest||{};
+  const end=[c.endereco||e.rua,c.numero||e.num,c.bairro||e.bairro,c.cidade||e.cidade,c.cep||e.cep].filter(Boolean).join(', ');
+  const corpo='<div style="font-size:.9rem;color:var(--muted)">'+((c.fones&&c.fones.length>1)?c.fones.map(f=>'📞 '+esc(f)).join('<br>'):(c.fone?'📞 '+esc(c.fone):'sem telefone'))+(c.email?'<br>✉️ '+esc(c.email):'')+(end?'<br>📍 '+esc(end):'')+'</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0"><button class="btn acc" onclick="document.getElementById(\'cdbox\').remove();manNovoDoCliente(\''+esc(k)+'\')">➕ Novo pedido</button>'+(c.importado?'<button class="btn ghost" onclick="document.getElementById(\'cdbox\').remove();cliEditar(\''+esc(k)+'\')">Editar cadastro</button>':'')+'<button class="btn ghost" onclick="document.getElementById(\'cdbox\').remove();cobNova(\''+esc(k)+'\')">Cobrar</button></div>'+
+    '<h4 style="margin:10px 0 6px">Histórico de pedidos ('+hist.length+')</h4>'+
+    (hist.length?'<div style="max-height:48vh;overflow:auto">'+hist.map(o=>'<div style="border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;font-size:.86rem"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>'+esc(fmtD(Date.parse(o.t)))+' · ZP-'+String(o.id).padStart(6,'0')+'</b><span><span class="stchip" style="--c:'+(STCOR[o.st]||'#6b7280')+'">'+esc(CLI_ST[o.st]||o.st)+'</span> <span class="stchip" style="--c:'+(o.pg==='pago'?'#16a34a':'#d97706')+'">'+(o.pg==='pago'?'Pago':o.prev?'Programado':'Pendente')+'</span>'+(o.rev?' <span class="selo" style="background:#7c3aed22;color:#7c3aed">revendedor</span>':'')+'</span></div><div style="color:var(--muted);margin:3px 0">'+o.itens.map(i=>esc(i.q+'× '+i.n)).join(', ')+'</div><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>'+esc(brl(o.tot))+'</b><span><button class="btn ghost sm" onclick="document.getElementById(\'cdbox\').remove();admAbrirPedido('+o.id+')">Abrir pedido</button> <button class="btn ghost sm" onclick="document.getElementById(\'cdbox\').remove();manUsaBase('+o.id+',\''+esc(k)+'\')" title="Cria um novo pedido com os mesmos itens; o original não muda">Usar como base</button></span></div></div>').join('')+'</div>':'<p style="color:var(--muted)">Este cliente ainda não tem pedidos.</p>');
+  cliModal('cdbox',esc(c.nome||'Cliente'),corpo,'<button class="btn ghost" onclick="document.getElementById(\'cdbox\').remove()">Fechar</button>');
+}
+/* novo pedido já com o cliente carregado (nome, telefone e endereço) */
+async function manNovoDoCliente(k){
+  if(!A9.prods){try{await admCarregarProdutos()}catch(x){}}
+  A9.man={q:{},f:{},busca:'',turno:'',pag:'pix',ok:null,err:''};
+  manPuxaCli(k);admTab('manual');window.scrollTo(0,0);
+}
+/* usa um pedido anterior como base: carrega os mesmos itens num pedido NOVO; o original não é alterado e nada é gravado até registrar */
+async function manUsaBase(oid,k){
+  const c=(A9.clientes||[]).find(x=>x.k===k);const o=c&&(c.hist||[]).find(x=>x.id===oid);if(!o)return;
+  if(!A9.prods){try{await admCarregarProdutos()}catch(x){}}
+  A9.man={q:{},f:{},busca:'',turno:'',pag:'pix',ok:null,err:''};
+  const fora=[];
+  o.itens.forEach(i=>{
+    let v=null;
+    (A9.prods||[]).forEach(p=>(p.vars||[]).forEach(x=>{if(v)return;if(i.v&&x.id===i.v)v=x;else if(!i.v&&p.id===i.p&&String(x.nome||'').toLowerCase()===String(i.o||'').toLowerCase())v=x}));
+    if(v&&v.ativo!==false)A9.man.q[v.id]=Math.min(99,(A9.man.q[v.id]||0)+i.q);else fora.push(i.q+'× '+i.n);
+  });
+  manPuxaCli(k);admTab('manual');window.scrollTo(0,0);
+  toast(fora.length?'Alguns itens não estão mais no catálogo e ficaram de fora: '+fora.join(', ')+'. Confira os valores de hoje antes de registrar.':'Itens do pedido anterior carregados num pedido novo. Confira e registre; o original não muda.');
+}
 function cliUnirAbrir(){
   const sel=(A9.clientes||[]).filter(c=>A9.cliSel[c.k]);
   if(sel.length<2){toast('Marque 2 ou mais clientes para unir.');return}
@@ -7707,6 +7796,7 @@ async function revSalvar(){
   A9.busy=false;
   if(r.error){erro(/criar_revendedor|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 23_revendedor_do_cliente.sql no Supabase.':'Não foi possível salvar: '+r.error.message);return}
   const el=document.getElementById('rvbox');if(el)el.remove();
+  if(r.data){try{await SB.from('revendedores').update({config:{preco_individual:true,clientes_ativo:true}}).eq('id',r.data)}catch(x){}}
   if(sn&&r.data){const rs=await SB.rpc('admin_definir_senha_revendedor',{p_id:r.data,p_senha:sn});if(rs.error)toast('Revendedor criado, mas a senha não foi definida: '+rs.error.message)}
   A9.revs=null;A9.cliRev=null;toast(nome+' agora é revendedor. Ele aparece em Revendedores e fica com ⭐ em Clientes.');route();
 }
@@ -7813,7 +7903,7 @@ function tabClientes(){
   <input type="file" id="cliXlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="admProcessarPlanilha(this.files[0]);this.value=''">
   <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" oninput="buscaLive(this,'cliQ')"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button><button class="btn ghost sm" onclick="admImportarClientes()" title="Importar clientes de planilha Excel ou CSV">Importar planilha</button> <button class="btn acc" onclick="cliNovo()">➕ Novo cliente</button> <button class="btn acc" onclick="cliSugerirAbrir()" title="Acha clientes com o mesmo endereço ou nome e telefones diferentes">🔎 Sugerir uniões</button> <button class="btn ghost" onclick="cliLimparBtn()" title="Mostra os telefones repetidos e deixa escolher unificar ou excluir">Limpar duplicados</button></div>
   <div class="selbar"><button class="btn ghost sm" onclick="cliSelTodos(true)">Selecionar todos</button><button class="btn ghost sm" onclick="cliSelTodos(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><button class="btn acc sm" onclick="cobLote()" ${nSel?'':'disabled'}>Gerar cobrança${nSel?' ('+nSel+')':''}</button><button class="btn ghost sm" onclick="cliUnirAbrir()" ${nSel>1?'':'disabled'} title="Junta vários contatos do mesmo cliente em um só">🔗 Unir contatos${nSel>1?' ('+nSel+')':''}</button><button class="btn ghost sm danger" onclick="cliExcluir()" ${nSel?'':'disabled'}>Excluir cadastro${nSel?' ('+nSel+')':''}</button></div>
-  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th>${cth('nome','Cliente')}<th>Contato</th>${cth('cidade','Cidade')}${cth('n','Pedidos')}${cth('ent','Entregues')}${cth('tot','Total comprado')}${cth('ult','Último pedido')}${cth('cad','Cadastro')}<th></th></tr></thead><tbody>${Lv.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><a style="cursor:pointer;font-weight:700" onclick="cliEditar('${esc(c.k)}')" title="Editar cadastro">${esc(c.nome||'Sem nome')}</a>${cliRevStar(c)}${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${(c.fones&&c.fones.length>1)?c.fones.map(f=>`<div><a href="whatsapp://send?phone=${foneWa(f)}" style="color:inherit">${esc(f)}</a></div>`).join('')+`<a class="pglnk" onclick="cliSeparar('${esc(c.k)}')">separar contatos</a>`:''}${(c.fones&&c.fones.length>1)?'':(c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" style="color:inherit">${esc(c.fone)}</a>`:'')} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}${c.endereco?`<div style="color:var(--muted);font-size:.78rem">${esc(c.endereco)}${c.numero?', '+esc(c.numero):''}${c.bairro?' · '+esc(c.bairro):''}</div>`:''}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> ${cliRevBtn(c)} ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div>${L.length>Lv.length?`<p style="text-align:center;margin:12px 0 0"><button class="btn ghost" onclick="cliMais()">Mostrar mais (${L.length-Lv.length} restantes)</button></p>`:''}</div>`;
+  <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th>${cth('nome','Cliente')}<th>Contato</th>${cth('cidade','Cidade')}${cth('n','Pedidos')}${cth('ent','Entregues')}${cth('tot','Total comprado')}${cth('ult','Último pedido')}${cth('cad','Cadastro')}<th></th></tr></thead><tbody>${Lv.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><a style="cursor:pointer;font-weight:700" onclick="cliDetalhe('${esc(c.k)}')" title="Ver detalhes e histórico de pedidos">${esc(c.nome||'Sem nome')}</a>${cliRevStar(c)}${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${(c.fones&&c.fones.length>1)?c.fones.map(f=>`<div><a href="whatsapp://send?phone=${foneWa(f)}" style="color:inherit">${esc(f)}</a></div>`).join('')+`<a class="pglnk" onclick="cliSeparar('${esc(c.k)}')">separar contatos</a>`:''}${(c.fones&&c.fones.length>1)?'':(c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" style="color:inherit">${esc(c.fone)}</a>`:'')} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}${c.endereco?`<div style="color:var(--muted);font-size:.78rem">${esc(c.endereco)}${c.numero?', '+esc(c.numero):''}${c.bairro?' · '+esc(c.bairro):''}</div>`:''}</td><td><b>${c.n}</b>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="cobNova('${esc(c.k)}')">Cobrar</button> ${cliRevBtn(c)} ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div>${L.length>Lv.length?`<p style="text-align:center;margin:12px 0 0"><button class="btn ghost" onclick="cliMais()">Mostrar mais (${L.length-Lv.length} restantes)</button></p>`:''}</div>`;
 }
 var CUPOM_TXT='Olá, {nome}, tudo bem? 😊\nPassando para agradecer de coração: você já fez {pedidos} pedidos com a gente e isso é muito especial para nós!\nComo agradecimento pela sua fidelidade, preparamos um cupom exclusivo para você: *{cupom}*.\nÉ só avisar no seu próximo pedido. Obrigado pela confiança! 💜';
 function cupomAbrir(k){
