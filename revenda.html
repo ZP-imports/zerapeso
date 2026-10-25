@@ -252,6 +252,7 @@ let SB=null;
 /* ============================= ESTADO ============================= */
 let REV_USER=null; // revendedor logado
 let PRODUTOS=[];   // produtos do catálogo
+let ENVIO_ZP=true;  // entrega feita pela ZP Imports direto no cliente do revendedor
 let RPROD={},INDIV=false;  // produtos e preços individuais definidos pelo Wesley para este revendedor
 let BASE={};      // valor de repasse definido pelo Wesley por variação
 let CART=[];       // carrinho {id, nome, qty, preco, preco_orig}
@@ -419,7 +420,7 @@ async function fazerPedido(obs){
     itens,subtotal,obs:obs||'',
     custo_total:subtotal,venda_total,
     cliente_id:cli?cli.id:null,cliente_nome:cli?cli.nome:null,
-    entrega:cli?{nome:cli.nome,telefone:cli.telefone,cep:cli.cep,endereco:cli.endereco,numero:cli.numero,complemento:cli.complemento,bairro:cli.bairro,cidade:cli.cidade}:null,
+    entrega:(cli&&ENVIO_ZP)?{nome:cli.nome,telefone:cli.telefone,cep:cli.cep,endereco:cli.endereco,numero:cli.numero,complemento:cli.complemento,bairro:cli.bairro,cidade:cli.cidade,envio_zp:true}:null,
     tipo_pagamento:tipo_pag,
     forma_pagamento:tipo_pag==='consignado'?'consignado':FORMA_PAG,
     status:'novo'
@@ -430,7 +431,7 @@ async function fazerPedido(obs){
     const movs=itens.filter(i=>!i.outros).map(i=>({revendedor_id:REV_USER.id,tipo:'saida',produto_id:i.produto_id,produto_nome:i.nome,quantidade:i.qty,valor_unitario:i.preco,valor_total:i.preco*i.qty,pedido_id:data.id,criado_em:new Date().toISOString()}));
     await SB.from('consignado_movimentos').insert(movs);
   }
-  CART=[];lsSet('cart',[]);updCartBar();CLIENTE_SEL='';OBS_TMP='';
+  CART=[];lsSet('cart',[]);updCartBar();CLIENTE_SEL='';OBS_TMP='';ENVIO_ZP=true;
   await carregarDados();
   PAGE='pedidos';PAGE_DATA={success:data.id};render();
 }
@@ -492,6 +493,7 @@ function renderNav(){
     ['meucat','Meu catálogo'],
     ...(clientesAtivo()?[['clientes','Clientes']]:[]),
     ['pedidos','Pedidos'],
+    ...(clientesAtivo()?[['envio','Envio pela ZP']]:[]),
     ...(REV_USER.tipo==='consignado'?[['extrato','Extrato']]:[]),
     ['avisos',AVISOS.length?`Avisos <span class="nav-badge">${AVISOS.length}</span>`:'Avisos'],
     ['perfil','Meu Perfil'],
@@ -507,6 +509,7 @@ function renderPage(){
     case 'clientes':return pageClientes();
     case 'checkout':return pageCheckout();
     case 'pedidos':return pagePedidos();
+    case 'envio':return pageEnvioZP();
     case 'extrato':return pageExtrato();
     case 'avisos':return pageAvisos();
     case 'perfil':return pagePerfil();
@@ -800,6 +803,14 @@ async function comprovanteCarrega(p){
     e2.innerHTML='<div style="color:var(--muted);font-size:.8rem;margin-bottom:4px">Comprovante de entrega · '+fmtD(r.data.criado_em)+'</div><img alt="Foto da entrega" src="'+esc(r.data.foto)+'" style="max-width:100%;border-radius:10px">';
   }catch(x){const e3=document.getElementById('vp-foto');if(e3)e3.innerHTML=''}
 }
+/* ============================= ENVIO PELA ZP: o Wesley separa e entrega direto no cliente do revendedor ============================= */
+function pageEnvioZP(){
+  const ps=PEDIDOS.filter(p=>p.entrega&&p.entrega.nome);
+  return '<div class="pg"><h2 style="margin:0 0 6px;font-size:1.4rem;color:var(--ink)">Envio pela ZP Imports</h2><p style="margin:0 0 14px;color:var(--muted);font-size:.9rem">Quando o seu cliente quer receber o produto, a ZP Imports (Wesley) separa e entrega direto no endereço dele. Faça o pedido escolhendo o cliente e deixe marcado <b>"A ZP Imports envia direto para o cliente"</b>. O pedido chega direto para o Wesley.</p>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"><button class="btn" onclick="ENVIO_ZP=true;novoPedidoAbrir()">➕ Novo pedido com envio pela ZP</button><button class="btn ghost" onclick="waZP(\'Olá, Wesley! Preciso de um envio pela ZP para um cliente meu.\')" style="display:inline-flex;align-items:center;gap:6px">'+WA_ICO+' Falar com o Wesley</button></div>'+
+    '<h3 style="margin:0 0 8px;font-size:1.05rem">Envios pedidos por você ('+ps.length+')</h3>'+
+    (ps.length?'<div class="box">'+ps.map(p=>'<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line);font-size:.88rem"><div><b>'+esc(p.entrega.nome)+'</b> · '+fmtD(p.criado_em)+'<div style="color:var(--muted)">'+esc(pedidoResumo(p))+'</div><div style="color:var(--muted)">📍 '+esc(enderecoCli(p.entrega))+'</div></div><div style="text-align:right"><span class="badge '+(ST_CLS[p.status]||'novo')+'">'+(ST_LAB[p.status]||p.status)+'</span><div style="margin-top:6px"><button class="btn ghost sm" onclick="verPedido(\''+p.id+'\')">Ver</button></div></div></div>').join('')+'</div>':'<div class="note">Você ainda não pediu nenhum envio pela ZP.</div>')+'</div>';
+}
 function pageClientes(){
   if(!clientesAtivo())return '<div class="pg"><div class="note warn">O cadastro de clientes não está liberado para a sua conta. Fale com a ZP Imports.<div style="margin-top:8px">'+btnWaZP()+'</div></div></div>';
   return `<div class="pg">
@@ -927,7 +938,7 @@ function pageCheckout(){
             <option value="">Eu mesmo (endereço do meu cadastro)</option>
             ${CLIENTES.map(c=>`<option value="${c.id}" ${CLIENTE_SEL===c.id?'selected':''}>${esc(c.nome)}${c.bairro?' — '+esc(c.bairro):''}</option>`).join('')}
           </select>
-          ${cli?`<div class="note rev">📍 Entrega direta da matriz para <b>${esc(cli.nome)}</b><br>${esc(enderecoCli(cli))}${cli.telefone?'<br>📞 '+esc(cli.telefone):''}</div>`:''}
+          ${cli?`<div style="margin:10px 0 4px;font-weight:600">Quem faz a entrega?</div><label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:4px 0"><input type="radio" name="envio" style="width:auto;margin-top:3px" ${ENVIO_ZP?'checked':''} onchange="ENVIO_ZP=true;render()"><span><b>A ZP Imports envia direto para o cliente</b><br><small style="color:var(--muted)">O pedido vai para o Wesley, que separa e entrega no endereço do cliente.</small></span></label><label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:4px 0"><input type="radio" name="envio" style="width:auto;margin-top:3px" ${ENVIO_ZP?'':'checked'} onchange="ENVIO_ZP=false;render()"><span><b>Eu recebo e entrego</b><br><small style="color:var(--muted)">A entrega é feita no endereço do seu cadastro.</small></span></label>${ENVIO_ZP?`<div class="note rev">📍 Entrega direta da matriz para <b>${esc(cli.nome)}</b><br>${esc(enderecoCli(cli))}${cli.telefone?'<br>📞 '+esc(cli.telefone):''}</div>`:''}`:''}
           <button class="btn ghost sm" style="margin-top:8px" onclick="formCliente('')">+ Cadastrar novo cliente</button>
         </div>`}
       </div>
@@ -1033,6 +1044,7 @@ function pageExtrato(){
   const repasses=MOVIMENTOS.filter(m=>m.tipo==='repasse');
   return `<div class="pg">
     <h2 style="margin:0 0 16px;font-size:1.4rem;color:var(--ink)">Extrato Consignado</h2>
+    ${acertoRevHtml(saldo)}
     <div class="saldo-box">
       <div>
         <div class="s-lbl">Saldo a repassar à ZP Imports</div>
@@ -1045,6 +1057,7 @@ function pageExtrato(){
       <div class="kpi"><div class="lbl">Vendas registradas</div><div class="val">${brl(vendas.reduce((s,m)=>s+m.valor_total,0))}</div><div class="sub">${vendas.length} movimentos</div></div>
       <div class="kpi"><div class="lbl">Repasses feitos</div><div class="val">${brl(repasses.reduce((s,m)=>s+m.valor_total,0))}</div><div class="sub">${repasses.length} repasses</div></div>
     </div>
+    ${estoqueRevHtml()}
     <h2 class="sec-t">Movimentações</h2>
     ${!MOVIMENTOS.length?`<div class="note">Nenhuma movimentação registrada ainda. Faça seu primeiro pedido!</div>`:`
     <div class="box">
@@ -1066,6 +1079,16 @@ function pageExtrato(){
   </div>`;
 }
 
+function acertoRevHtml(saldo){
+  const d=((REV_USER&&REV_USER.config)||{}).acerto_data;if(!d||!(saldo>0))return '';
+  const hoje=new Date().toISOString().slice(0,10),atras=d<hoje;
+  return '<div class="note '+(atras?'warn':'rev')+'" style="margin-bottom:12px">'+(atras?'⚠️ O acerto estava marcado para <b>'+d.split('-').reverse().join('/')+'</b> e ainda há saldo a repassar. Fale com a ZP Imports.':'📅 Próximo acerto com a ZP Imports: <b>'+d.split('-').reverse().join('/')+'</b>.')+'</div>';
+}
+function estoqueRevHtml(){
+  const m={};MOVIMENTOS.forEach(x=>{const k=x.produto_nome||'—';const q=+x.quantidade||0;m[k]=(m[k]||0)+(x.tipo==='saida'?q:(x.tipo==='venda'||x.tipo==='devolucao')?-q:0)});
+  const l=Object.entries(m).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
+  return '<h2 class="sec-t">Estoque com você</h2>'+(l.length?'<div class="box"><table><thead><tr><th>Produto</th><th class="r">Unidades com você</th></tr></thead><tbody>'+l.map(x=>'<tr><td>'+esc(x[0])+'</td><td class="r"><b>'+x[1]+'</b></td></tr>').join('')+'</tbody></table></div><p style="font-size:.8rem;color:var(--muted)">Saídas menos vendas e devoluções registradas pela ZP Imports.</p>':'<div class="note">Nenhuma unidade com você no momento.</div>');
+}
 function calcSaldo(){
   const saidas=MOVIMENTOS.filter(m=>m.tipo==='saida').reduce((s,m)=>s+(m.valor_total||0),0);
   const repasses=MOVIMENTOS.filter(m=>['repasse','devolucao'].includes(m.tipo)).reduce((s,m)=>s+(m.valor_total||0),0);

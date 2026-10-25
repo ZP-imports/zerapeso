@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-25-2474 -->
+<!-- v2026-10-25-2476 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -2859,7 +2859,7 @@ function revDashHtml(){
   const dias=[0,1,2,3,4,5,6].map(i=>addDias(hoje,i-6));
   const vals=dias.map(d=>P.filter(p=>p.status!=='cancelado'&&loc(p)===d).length);
   const linhas=abertos.slice(0,15).map(p=>`<tr><td>${esc(fmtD(Date.parse(p.criado_em)))}</td><td><b>${esc(p.revendedor_nome||nome(p.revendedor_id))}</b></td><td>${nItens(p)}</td><td>${brl(val(p))}</td><td>${p.tipo_pagamento==='consignado'?'Consignado':'À vista'+(p.forma_pagamento?' · '+({pix:'Pix',cartao_credito:'Cartão de crédito',cartao_debito:'Cartão de débito',transferencia:'Transferência'}[p.forma_pagamento]||p.forma_pagamento):'')}</td><td>${revAcoesPedido(p,ST)}</td><td><button class="btn ghost sm" onclick="A9.revSel='${p.revendedor_id}';route()">Ver</button></td></tr>`).join('');
-  const carteira=consig.map(r=>({r,s:saldo(r)})).sort((a,b)=>b.s-a.s).map(x=>`<tr><td><b>${esc(x.r.nome)}</b></td><td>${x.s>0?`<b style="color:#b45309">${brl(x.s)}</b>`:'<span style="color:var(--muted)">em dia</span>'}</td><td><button class="btn ghost sm" onclick="A9.revSel='${x.r.id}';route()">Ver</button></td></tr>`).join('');
+  const carteira=consig.map(r=>({r,s:saldo(r)})).sort((a,b)=>b.s-a.s).map(x=>`<tr><td><b>${esc(x.r.nome)}</b></td><td>${x.s>0?`<b style="color:#b45309">${brl(x.s)}</b>`:'<span style="color:var(--muted)">em dia</span>'}</td><td>${(()=>{const d=(x.r.config||{}).acerto_data;if(!d)return '<span style="color:var(--muted)">—</span>';const atras=x.s>0&&d<hojeS();return `<span style="${atras?'color:#dc2626;font-weight:700':''}">${atras?'⚠️ ':''}${dataBr(d)}</span>`})()}</td><td><button class="btn ghost sm" onclick="A9.revSel='${x.r.id}';route()">Ver</button></td></tr>`).join('');
   const descontos=ativos.map(r=>`<tr><td><b>${esc(r.nome)}</b></td><td>${r.tipo==='consignado'?'Consignado':'Comprador'}</td><td>${r.desconto_pct||0}%</td><td>${PR.filter(x=>x.revendedor_id===r.id).length} produto${PR.filter(x=>x.revendedor_id===r.id).length===1?'':'s'}</td><td><button class="btn ghost sm" onclick="A9.revSel='${r.id}';route()">Preços</button></td></tr>`).join('');
   return `<div style="margin-bottom:20px">
    <h3 style="margin:0 0 10px">Visão geral dos revendedores</h3>
@@ -2873,7 +2873,7 @@ function revDashHtml(){
    </div>
    <div class="two" style="gap:18px;align-items:start;margin-top:14px">
     <div class="box" style="box-shadow:none;border:1px solid var(--line)"><h4 style="margin:0 0 8px">Pedidos por dia (últimos 7 dias)</h4>${chartBars(dias.map(d=>d.slice(8)+'/'+d.slice(5,7)),vals,'#0a6e5c')}</div>
-    <div class="box" style="box-shadow:none;border:1px solid var(--line)"><h4 style="margin:0 0 8px">Carteira dos consignados</h4>${carteira?`<div class="tbl"><table><thead><tr><th>Revendedor</th><th>A receber</th><th></th></tr></thead><tbody>${carteira}</tbody></table></div>`:'<p style="color:var(--muted);margin:0">Nenhum revendedor consignado ativo.</p>'}<p style="font-size:.8rem;color:var(--muted);margin:8px 0 0">Datas, parcelas e alertas de cobrança entram na próxima etapa.</p></div>
+    <div class="box" style="box-shadow:none;border:1px solid var(--line)"><h4 style="margin:0 0 8px">Carteira dos consignados</h4>${carteira?`<div class="tbl"><table><thead><tr><th>Revendedor</th><th>A receber</th><th>Acerto</th><th></th></tr></thead><tbody>${carteira}</tbody></table></div>`:'<p style="color:var(--muted);margin:0">Nenhum revendedor consignado ativo.</p>'}<p style="font-size:.8rem;color:var(--muted);margin:8px 0 0">Defina a data do próximo acerto no perfil de cada revendedor consignado. Em vermelho: acerto vencido com saldo a receber.</p></div>
    </div>
    <div class="box" style="box-shadow:none;border:1px solid var(--line);margin-top:14px"><h4 style="margin:0 0 8px">Pedidos para atender${abertos.length>15?' (15 mais antigos de '+abertos.length+')':''}</h4>${linhas?`<div class="tbl"><table><thead><tr><th>Data</th><th>Revendedor</th><th>Itens</th><th>Total</th><th>Pagamento</th><th>Situação</th><th></th></tr></thead><tbody>${linhas}</tbody></table></div>`:'<p style="color:var(--muted);margin:0">Nenhum pedido de revendedor para atender agora.</p>'}</div>
    <div class="box" style="box-shadow:none;border:1px solid var(--line);margin-top:14px"><h4 style="margin:0 0 8px">Descontos e preços por revendedor</h4>${descontos?`<div class="tbl"><table><thead><tr><th>Revendedor</th><th>Tipo</th><th>Desconto padrão</th><th>Preços exclusivos</th><th></th></tr></thead><tbody>${descontos}</tbody></table></div>`:'<p style="color:var(--muted);margin:0">Nenhum revendedor ativo.</p>'}</div>
@@ -2981,6 +2981,8 @@ function tabRevendedores(){
           </table></div>`}
 
           ${rv.tipo==='consignado'?`<h3 style="margin:20px 0 10px">Extrato consignado</h3>
+          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px"><div><label for="rvAc" style="font-size:.82rem">Data do próximo acerto</label><input id="rvAc" type="date" value="${esc((rv.config||{}).acerto_data||'')}" onchange="admRevAcerto('${rv.id}',this.value)"></div><span class="pgsub">Aparece para ele no portal e vira alerta vermelho aqui se passar da data com saldo.</span></div>
+          ${(()=>{const m={};rmovs.forEach(x=>{const k=x.produto_nome||'—';const q=+x.quantidade||0;m[k]=(m[k]||0)+(x.tipo==='saida'?q:(x.tipo==='venda'||x.tipo==='devolucao')?-q:0)});const l=Object.entries(m).filter(x=>x[1]>0);return l.length?`<div class="pgsub" style="margin-bottom:8px"><b>Estoque com o revendedor:</b> ${l.map(x=>esc(x[0])+' <b>'+x[1]+'</b>').join(' · ')}</div>`:''})()}
           <div style="background:linear-gradient(135deg,var(--p),var(--pd));color:#fff;border-radius:14px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
             <div><div style="font-size:.8rem;opacity:.85">Saldo a repassar</div><div style="font-size:1.8rem;font-weight:700">${brl(saldo)}</div></div>
             <button class="btn acc sm" onclick="admRevAddMov('${rv.id}','repasse')">Registrar repasse</button>
@@ -3105,6 +3107,7 @@ function tabRevendedores(){
 
   if(abaAtual==='repasse')return revRepasseHtml();
   if(abaAtual==='links')return revLinksHtml();
+  if(abaAtual==='pedidos')return revPedidosHtml();
   const listaVis=abaAtual==='pendentes'?pendentes:abaAtual==='ativos'?ativos:bloqueados;
   return `<div>
     ${msgBox()}
@@ -3112,6 +3115,7 @@ function tabRevendedores(){
       <h3 style="margin:0">Gestão de revendedores</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn acc sm" onclick="revAdicionar()">➕ Adicionar revendedor</button>
+        <button class="btn acc sm" onclick="A9.revAba='pedidos';route()">📥 Pedidos dos revendedores${(()=>{const n=(A9.revs&&A9.revs.pedidos||[]).filter(p=>p.status==='novo').length;return n?` <b>(${n} novo${n===1?'':'s'})</b>`:''})()}</button>
         <button class="btn ghost sm" onclick="A9.revAba='links';A9.linkEd=null;route()">🔗 Links de pedidos</button>
         <button class="btn ghost sm" onclick="A9.revAba='repasse';route()">💲 Catálogo de repasse</button>
         <button class="btn ghost sm" onclick="A9.revAba='ranking';route()">📊 Ranking</button>
@@ -3398,6 +3402,25 @@ async function admRevModoPreco(revId,on){
   const {error}=await SB.from('revendedores').update({config:cfg}).eq('id',revId);
   if(error){toast('Não foi possível salvar.');return}
   rv.config=cfg;toast(on?'Preços individuais ativados para este revendedor.':'Modelo antigo reativado.');route();
+}
+/* ---- pedidos dos revendedores: tudo o que eles pedem (inclusive envio pela ZP) fica aqui, direto para o Wesley ---- */
+function revPedidosHtml(){
+  const R=A9.revs,P=(R.pedidos||[]).slice(),ST={novo:'Novo',confirmado:'Confirmado',em_separacao:'Em separação',em_rota:'Em rota',entregue:'Entregue',cancelado:'Cancelado'};
+  const f=A9.rpvSt||'abertos';
+  const lista=P.filter(p=>f==='todos'||(f==='abertos'?['novo','confirmado','em_separacao','em_rota'].includes(p.status):p.status===f)).sort((a,b)=>String(b.criado_em).localeCompare(String(a.criado_em)));
+  const nome=id=>{const r=(R.lista||[]).find(x=>x.id===id);return r?r.nome:'—'};
+  const op=(v,t)=>'<option value="'+v+'" '+(f===v?'selected':'')+'>'+t+'</option>';
+  return '<div>'+msgBox()+'<button class="btn ghost sm" style="margin:0 0 12px" onclick="A9.revAba=\'ativos\';route()">← Voltar aos revendedores</button>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><h3 style="margin:0">Pedidos dos revendedores ('+lista.length+')</h3><select onchange="A9.rpvSt=this.value;route()" style="width:auto">'+op('abertos','Em andamento')+op('novo','Novos')+op('confirmado','Confirmados')+op('em_separacao','Em separação')+op('em_rota','Em rota')+op('entregue','Entregues')+op('cancelado','Cancelados')+op('todos','Todos')+'</select></div>'+
+    '<p style="margin:0 0 10px;color:var(--muted);font-size:.86rem">Aqui chegam os pedidos feitos dentro do portal e pelos links. Os marcados com <b>envio pela ZP</b> são para o Wesley separar e entregar direto no cliente: clique em <b>📦 Enviar para a logística</b> e ele entra em Pedidos, rotas e etiquetas.</p>'+
+    (lista.length?'<div class="box"><table><thead><tr><th>Data</th><th>Revendedor</th><th>Entrega</th><th>Itens</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>'+lista.map(p=>{const e=p.entrega||{};return '<tr><td style="font-size:.82rem;white-space:nowrap">'+esc(fmtD(Date.parse(p.criado_em)))+'</td><td><b>'+esc(p.revendedor_nome||nome(p.revendedor_id))+'</b>'+(p.origem==='link'?'<br><small style="color:#7c3aed">🔗 via link</small>':'')+'</td><td style="font-size:.82rem">'+(e.nome?'<span class="selo" style="background:#0a6e5c22;color:#0a6e5c">envio pela ZP</span><br><b>'+esc(e.nome)+'</b>'+(e.telefone?' · '+esc(e.telefone):'')+'<br><small style="color:var(--muted)">'+esc([e.endereco,e.numero,e.bairro,e.cidade].filter(Boolean).join(', '))+'</small>':'<span style="color:var(--muted)">entrega ao revendedor</span>')+'</td><td style="font-size:.82rem">'+(p.itens||[]).map(x=>esc(x.qty+'× '+(x.outros?'Outros: ':'')+x.nome)).join('<br>')+'</td><td><b>'+esc(brl(p.subtotal))+'</b>'+(p.venda_total!=null?'<br><small style="color:var(--muted)">venda '+esc(brl(p.venda_total))+'</small>':'')+'</td><td><span class="badge">'+esc(ST[p.status]||p.status)+'</span></td><td>'+revAcoesPedido(p,ST)+'</td></tr>'}).join('')+'</tbody></table></div>':'<div class="note">Nenhum pedido neste filtro.</div>')+'</div>';
+}
+async function admRevAcerto(revId,data){
+  const rv=(A9.revs.lista||[]).find(r=>r.id===revId);if(!rv)return;
+  const cfg=Object.assign({},rv.config||{},{acerto_data:data||null});
+  const {error}=await SB.from('revendedores').update({config:cfg}).eq('id',revId);
+  if(error){toast('Não foi possível salvar a data.');return}
+  rv.config=cfg;toast(data?'Data do acerto salva.':'Data do acerto removida.');
 }
 async function admRevPreco(revId,prodId,txt){
   txt=(txt||'').trim();
@@ -4222,7 +4245,7 @@ var ENC=o=>['entregue','cancelado'].includes(o.status);
 var emAtraso=o=>!ENC(o)&&(o.entrega||{}).data&&(o.entrega||{}).data<hojeS();
 var aguardaPag=o=>o.status!=='cancelado'&&(o.pagamento||{}).status!=='pago';
 function motivoCancel(o){const ev=(o.eventos||[]).slice().reverse().find(e=>e.tipo==='status'&&e.para==='cancelado');return ev&&ev.motivo?ev.motivo:''}
-function tabPedidos(){return '<div style="margin-bottom:10px"><button class="btn acc" onclick="manNovo();admTab(\'manual\')" title="Digite o nome ou telefone para puxar o cliente">➕ Novo pedido</button></div>'+resumoDiaHtml()+listaPed(o=>A9.fs==='cancelado'?o.status==='cancelado':(A9.fq==='agenda'||!ENC(o)),'Pedidos em aberto. Use o filtro Cancelados para ver pedidos cancelados.')}
+function tabPedidos(){return resumoDiaHtml()+listaPed(o=>A9.fs==='cancelado'?o.status==='cancelado':(A9.fq==='agenda'||!ENC(o)),'Pedidos em aberto. Use o filtro Cancelados para ver pedidos cancelados.')}
 function tabAberto(){return listaPed(o=>!ENC(o),'Pedidos ainda não encerrados (não entregues e não cancelados).')}
 function tabAtrasados(){return listaPed(emAtraso,'Pedidos não encerrados cuja data de entrega desejada já passou.')}
 async function admSalvaLink(){
@@ -6217,7 +6240,7 @@ function tabManual(){
   const turnos=Object.keys(TURNOS).filter(t=>LOG.turnos[t]);
   const e={cep:f.ckC,uf:f.ckU,cidade:f.ckCi,bairro:f.ckB,rua:f.ckR,num:f.ckN,comp:f.ckCo,ref:f.ckRef};
   const passo=(n,t,s)=>`<div class="mst"><span class="mn">${n}</span><div><h3 style="margin:0">${t}</h3>${s?`<small style="color:var(--muted)">${s}</small>`:''}</div></div>`;
-  return `<div class="box" style="padding-bottom:6px">${msgBox()}<h2 style="margin:0">Pedido manual</h2><p style="margin:4px 0 0;color:var(--muted)">Para pedidos feitos por telefone ou WhatsApp. Digite o <b>nome ou o telefone</b>: se o cliente já for cadastrado, ele aparece para você tocar e carregar os dados e o endereço. Cliente novo entra na base ao registrar. Preencha os 3 passos e registre. O pedido entra em Pedidos como Recebido e segue o fluxo normal.</p></div>
+  return `<div class="box" style="padding-bottom:6px">${msgBox()}<h2 style="margin:0">Novo pedido</h2><p style="margin:4px 0 0;color:var(--muted)">Para pedidos feitos por telefone ou WhatsApp. Digite o <b>nome ou o telefone</b>: se o cliente já for cadastrado, ele aparece para você tocar e carregar os dados e o endereço. Cliente novo entra na base ao registrar. Preencha os 3 passos e registre. O pedido entra em Pedidos como Recebido e segue o fluxo normal.</p></div>
   <div class="mgrid" id="manForm" oninput="manCapta()">
    <div>
     <div class="box" id="mc_cli">${passo(1,'Cliente e endereço','Nome, telefone e onde entregar')}
@@ -7657,7 +7680,7 @@ function cliDetalhe(k){
   const corpo='<div style="font-size:.9rem;color:var(--muted)">'+((c.fones&&c.fones.length>1)?c.fones.map(f=>'📞 '+esc(f)).join('<br>'):(c.fone?'📞 '+esc(c.fone):'sem telefone'))+(c.email?'<br>✉️ '+esc(c.email):'')+(end?'<br>📍 '+esc(end):'')+'</div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0"><button class="btn acc" onclick="document.getElementById(\'cdbox\').remove();manNovoDoCliente(\''+esc(k)+'\')">➕ Novo pedido</button>'+(c.importado?'<button class="btn ghost" onclick="document.getElementById(\'cdbox\').remove();cliEditar(\''+esc(k)+'\')">Editar cadastro</button>':'')+'<button class="btn ghost" onclick="document.getElementById(\'cdbox\').remove();cobNova(\''+esc(k)+'\')">Cobrar</button></div>'+
     '<h4 style="margin:10px 0 6px">Histórico de pedidos ('+hist.length+')</h4>'+
-    (hist.length?'<div style="max-height:48vh;overflow:auto">'+hist.map(o=>'<div style="border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;font-size:.86rem"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>'+esc(fmtD(Date.parse(o.t)))+' · ZP-'+String(o.id).padStart(6,'0')+'</b><span><span class="stchip" style="--c:'+(STCOR[o.st]||'#6b7280')+'">'+esc(CLI_ST[o.st]||o.st)+'</span> <span class="stchip" style="--c:'+(o.pg==='pago'?'#16a34a':'#d97706')+'">'+(o.pg==='pago'?'Pago':o.prev?'Programado':'Pendente')+'</span>'+(o.rev?' <span class="selo" style="background:#7c3aed22;color:#7c3aed">revendedor</span>':'')+'</span></div><div style="color:var(--muted);margin:3px 0">'+o.itens.map(i=>esc(i.q+'× '+i.n)).join(', ')+'</div><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>'+esc(brl(o.tot))+'</b><span><button class="btn ghost sm" onclick="document.getElementById(\'cdbox\').remove();admAbrirPedido('+o.id+')">Abrir pedido</button> <button class="btn ghost sm" onclick="document.getElementById(\'cdbox\').remove();manUsaBase('+o.id+',\''+esc(k)+'\')" title="Cria um novo pedido com os mesmos itens; o original não muda">Usar como base</button></span></div></div>').join('')+'</div>':'<p style="color:var(--muted)">Este cliente ainda não tem pedidos.</p>');
+    (hist.length?'<div style="max-height:48vh;overflow:auto">'+hist.map(o=>'<div style="border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;font-size:.86rem"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>'+esc(fmtD(Date.parse(o.t)))+' · ZP-'+String(o.id).padStart(6,'0')+'</b><span><span class="stchip" style="--c:'+(STCOR[o.st]||'#6b7280')+'">'+esc(CLI_ST[o.st]||o.st)+'</span> <span class="stchip" style="--c:'+(o.pg==='pago'?'#16a34a':'#d97706')+'">'+(o.pg==='pago'?'Pago':o.prev?'Programado':'Pendente')+'</span>'+(o.rev?' <span class="selo" style="background:#7c3aed22;color:#7c3aed">revendedor</span>':'')+'</span></div><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>'+esc(brl(o.tot))+'</b><span><button class="btn ghost sm" onclick="document.getElementById(\'cdbox\').remove();admAbrirPedido('+o.id+')">Abrir pedido</button> <button class="btn ghost sm" onclick="document.getElementById(\'cdbox\').remove();manUsaBase('+o.id+',\''+esc(k)+'\')" title="Cria um novo pedido com os mesmos itens; o original não muda">Usar como base</button></span></div></div>').join('')+'</div>':'<p style="color:var(--muted)">Este cliente ainda não tem pedidos.</p>');
   cliModal('cdbox',esc(c.nome||'Cliente'),corpo,'<button class="btn ghost" onclick="document.getElementById(\'cdbox\').remove()">Fechar</button>');
 }
 /* novo pedido já com o cliente carregado (nome, telefone e endereço) */
@@ -7679,6 +7702,18 @@ async function manUsaBase(oid,k){
   });
   manPuxaCli(k);admTab('manual');window.scrollTo(0,0);
   toast(fora.length?'Alguns itens não estão mais no catálogo e ficaram de fora: '+fora.join(', ')+'. Confira os valores de hoje antes de registrar.':'Itens do pedido anterior carregados num pedido novo. Confira e registre; o original não muda.');
+}
+/* Novo pedido (ao lado de Novo cliente): escolhe quem é o cliente e já abre o pedido com nome, telefone e endereço */
+function cliNovoPedidoPick(){
+  if(!A9.clientes){toast('Carregando clientes... tente de novo em instantes.');return}
+  cliModal('npbox','Novo pedido: para qual cliente?','<input id="npQ" placeholder="Digite o nome ou o telefone" oninput="cliNPFiltra(this.value)" autocomplete="off" style="width:100%"><div id="npLista" style="margin-top:8px;max-height:46vh;overflow:auto"></div><p class="pgsub" style="margin-top:8px">Cliente novo? Feche e use <b>Novo cliente</b>.</p>','<button class="btn ghost" onclick="document.getElementById(\'npbox\').remove()">Fechar</button>');
+  cliNPFiltra('');setTimeout(()=>{const e=document.getElementById('npQ');if(e)e.focus()},50);
+}
+function cliNPFiltra(v){
+  const el=document.getElementById('npLista');if(!el)return;
+  const q=pagNz(v).trim(),qd=String(v||'').replace(/\D/g,'');
+  const L=(A9.clientes||[]).filter(c=>(!q&&!qd)||(q&&pagNz(c.nome+' '+(c.fones||[]).join(' ')).includes(q))||(qd.length>=3&&(String(c.fone||'').replace(/\D/g,'').includes(qd)||(c.fones||[]).some(x=>String(x).replace(/\D/g,'').includes(qd))))).slice(0,30);
+  el.innerHTML=L.length?L.map(c=>'<div style="padding:8px 6px;cursor:pointer;border-top:1px solid var(--line)" onclick="document.getElementById(\'npbox\').remove();manNovoDoCliente(\''+esc(c.k)+'\')"><b>'+esc(c.nome||'(sem nome)')+'</b> · '+esc(c.fone||'sem telefone')+(c.cidade?' · '+esc(c.cidade):'')+' <span class="selo" style="background:#e0f2fe;color:#075985">'+c.n+' pedido'+(c.n===1?'':'s')+'</span></div>').join(''):'<p style="color:var(--muted)">Nenhum cliente encontrado.</p>';
 }
 function cliUnirAbrir(){
   const sel=(A9.clientes||[]).filter(c=>A9.cliSel[c.k]);
@@ -7973,7 +8008,7 @@ function tabClientes(){
   A9.cliLista=L.map(c=>c.k);const nSel=L.filter(c=>A9.cliSel[c.k]).length;
   return `<div class="box"><h2 style="margin:0 0 4px">Clientes cadastrados</h2><p style="margin:0 0 10px;color:var(--muted)">${A9.clientes.length} cliente${A9.clientes.length===1?'':'s'} · ${fiel} com ${CLI_META} pedidos ou mais. Pedidos cancelados não contam.</p>${A9.cliErro?'<div class="note err">'+esc(A9.cliErro)+'</div>':''}
   <input type="file" id="cliXlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="admProcessarPlanilha(this.files[0]);this.value=''">
-  <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" oninput="buscaLive(this,'cliQ')"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button><button class="btn ghost sm" onclick="admImportarClientes()" title="Importar clientes de planilha Excel ou CSV">Importar planilha</button> <button class="btn acc" onclick="cliNovo()">➕ Novo cliente</button></div>
+  <div class="fbar"><div><label for="cq">Buscar</label><input id="cq" value="${esc(A9.cliQ||'')}" placeholder="Nome, telefone, cidade" oninput="buscaLive(this,'cliQ')"></div><div><label for="cf">Mostrar</label><select id="cf" onchange="A9.cliF=this.value;route()"><option value="">Todos</option><option value="fiel" ${f==='fiel'?'selected':''}>${CLI_META}+ pedidos (fidelidade)</option></select></div><button class="btn ghost sm" onclick="A9.clientes=null;route()">Atualizar</button><button class="btn ghost sm" onclick="admImportarClientes()" title="Importar clientes de planilha Excel ou CSV">Importar planilha</button> <button class="btn acc" onclick="cliNovo()">➕ Novo cliente</button> <button class="btn acc" onclick="cliNovoPedidoPick()" title="Escolhe o cliente e abre o pedido com os dados dele">➕ Novo pedido</button></div>
   <div class="selbar"><button class="btn ghost sm" onclick="cliSelTodos(true)">Selecionar todos</button><button class="btn ghost sm" onclick="cliSelTodos(false)">Limpar</button><span class="selcnt">${nSel} selecionado${nSel===1?'':'s'}</span><button class="btn acc sm" onclick="cobLote()" ${nSel?'':'disabled'}>Gerar cobrança${nSel?' ('+nSel+')':''}</button><button class="btn ghost sm" onclick="cliUnirAbrir()" ${nSel>1?'':'disabled'} title="Junta vários contatos do mesmo cliente em um só">🔗 Unir contatos${nSel>1?' ('+nSel+')':''}</button><button class="btn ghost sm danger" onclick="cliExcluir()" ${nSel?'':'disabled'}>Excluir cadastro${nSel?' ('+nSel+')':''}</button></div>
   <div class="tbl"><table><thead><tr><th><input type="checkbox" class="selck" aria-label="Selecionar todos" ${L.length&&nSel===L.length?'checked':''} onchange="cliSelTodos(this.checked)"></th>${cth('nome','Cliente')}<th>Contato</th>${cth('cidade','Cidade')}${cth('n','Pedidos')}${cth('ent','Entregues')}${cth('tot','Total comprado')}${cth('ult','Último pedido')}${cth('cad','Cadastro')}<th></th></tr></thead><tbody>${Lv.map(c=>`<tr><td><input type="checkbox" class="selck" aria-label="Selecionar ${esc(c.nome||'cliente')}" ${A9.cliSel[c.k]?'checked':''} onchange="cliSelUm('${esc(c.k)}',this.checked)"></td><td><a style="cursor:pointer;font-weight:700" onclick="cliDetalhe('${esc(c.k)}')" title="Ver detalhes e histórico de pedidos">${esc(c.nome||'Sem nome')}</a>${cliRevStar(c)}${c.importado?' <span class="selo" style="background:#e8e8e8;color:#555">importado</span>':''}</td><td>${(c.fones&&c.fones.length>1)?c.fones.map(f=>`<div><a href="whatsapp://send?phone=${foneWa(f)}" style="color:inherit">${esc(f)}</a></div>`).join('')+`<a class="pglnk" onclick="cliSeparar('${esc(c.k)}')">separar contatos</a>`:''}${(c.fones&&c.fones.length>1)?'':(c.fone?`<a href="whatsapp://send?phone=${foneWa(c.fone)}" style="color:inherit">${esc(c.fone)}</a>`:'')} ${c.fone?`<button class="btn wa sm" style="padding:2px 7px;font-size:.75rem" onclick="waAbrir('${foneWa(c.fone)}','Olá, ${esc(String(c.nome||'').split(' ')[0]||'')}')" title="Abrir WhatsApp">WA</button>`:''} ${c.email?'<div style="color:var(--muted);font-size:.78rem">'+esc(c.email)+'</div>':''}</td><td>${esc(c.cidade||'')}${c.endereco?`<div style="color:var(--muted);font-size:.78rem">${esc(c.endereco)}${c.numero?', '+esc(c.numero):''}${c.bairro?' · '+esc(c.bairro):''}</div>`:''}</td><td><a style="cursor:pointer;font-weight:700;color:#2563eb;text-decoration:underline" onclick="cliDetalhe('${esc(c.k)}')" title="Ver o histórico de pedidos">${c.n}</a>${c.n>=CLI_META?' <span class="selo purple">Fiel</span>':''}</td><td>${c.ent}</td><td>${brl(c.tot)}</td><td>${c.ult?esc(fmtD(Date.parse(c.ult))):'—'}</td><td>${c.cad?esc(fmtD(Date.parse(c.cad))):'—'}</td><td style="white-space:nowrap"> ${cliRevBtn(c)} ${c.n>=CLI_META&&c.fone?`<button class="btn sm ${m[c.k]?'ghost':'acc pulsa'}" onclick="cupomAbrir('${esc(c.k)}')">${m[c.k]?'Enviar de novo':'Oferecer cupom'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="10">Nenhum cliente encontrado.</td></tr>'}</tbody></table></div>${L.length>Lv.length?`<p style="text-align:center;margin:12px 0 0"><button class="btn ghost" onclick="cliMais()">Mostrar mais (${L.length-Lv.length} restantes)</button></p>`:''}</div>`;
 }
