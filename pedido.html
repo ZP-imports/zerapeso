@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0a6e5c">
+<title>Fazer pedido | ZP Imports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--p:#0a6e5c;--pd:#085748;--ink:#1f2937;--muted:#6b7280;--line:#e5e7eb;--bg:#f4f7f6;--acc:#ffb703;--bad:#b91c1c}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Poppins",Arial,sans-serif;background:var(--bg);color:var(--ink)}
+.top{background:var(--p);color:#fff;padding:14px 16px}.top b{font-size:1.05rem}.top small{opacity:.85;display:block}
+.wrap{max-width:760px;margin:0 auto;padding:14px 14px 120px}
+.box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+h2{margin:0 0 8px;font-size:1.1rem}
+label{display:block;font-size:.82rem;font-weight:600;margin:10px 0 3px}
+input,textarea,select{width:100%;padding:10px 12px;border:1px solid #cfd8d5;border-radius:10px;font:inherit;background:#fff}
+textarea{resize:vertical}
+.fr{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.c6{grid-column:span 6}.c4{grid-column:span 4}.c3{grid-column:span 3}.c2{grid-column:span 2}
+@media(max-width:560px){.c4,.c3,.c2{grid-column:span 6}}
+.prod{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line)}.prod:first-of-type{border-top:0}
+.pimg{width:64px;height:64px;border-radius:10px;background:#eef5f3;object-fit:contain;flex:none;display:grid;place-items:center;color:var(--p);font-weight:700}
+.pn{font-weight:600}.pd{font-size:.8rem;color:var(--muted)}
+.vr{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed var(--line)}.vr:first-of-type{border-top:0}
+.vn{flex:1}.vn small{display:block;color:var(--muted)}
+.qty{display:flex;align-items:center;gap:8px}.qty button{width:32px;height:32px;border-radius:50%;border:1px solid var(--p);background:#fff;color:var(--p);font-size:1.1rem;cursor:pointer}
+.qty span{min-width:20px;text-align:center;font-weight:600}
+.btn{border:0;background:var(--p);color:#fff;padding:13px 18px;border-radius:12px;font:inherit;font-weight:600;cursor:pointer;width:100%}
+.btn:disabled{opacity:.55}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+.bar>div{font-size:.9rem}
+.note{padding:10px 12px;border-radius:10px;background:#e8f3ef;color:#0f5132;font-size:.88rem}.err{background:#fee2e2;color:#991b1b}
+.ok{text-align:center;padding:26px 10px}.ok .big{font-size:2.6rem}
+</style>
+</head>
+<body>
+<div class="top"><b id="tt">Fazer pedido</b><small id="tt2"></small></div>
+<div class="wrap" id="root"><div class="box">Carregando...</div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+/* Link de pedidos do cliente final. A configuração (produtos, ordem e campos) vem do painel administrativo (tabela links_pedido). */
+const SB_URL='https://nnajpgujipucpymhoinq.supabase.co';
+const SB_KEY='sb_publishable_vu1Dxk2lC2tkVrLtJgq2tA_V94HsJY0';
+let SB=null,LINK=null,REV=null,ITENS=[],QTD={},OUTROS='',ENV=false;
+const $=s=>document.querySelector(s);
+const esc=s=>s==null?'':(s+'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const brl=v=>'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const dig=s=>String(s||'').replace(/\D/g,'');
+const CAMPOS_PADRAO={nome:true,telefone:true,email:false,cep:true,endereco:true,numero:true,complemento:true,bairro:true,cidade:true,obs:true};
+
+window.addEventListener('DOMContentLoaded',async()=>{
+  if(typeof supabase==='undefined'){erro('Não foi possível carregar. Verifique a internet e tente de novo.');return}
+  SB=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+  const slug=new URLSearchParams(location.search).get('l')||'';
+  if(!slug){erro('Link inválido.');return}
+  try{
+    const lk=await SB.from('links_pedido').select('*').eq('slug',slug).eq('ativo',true).maybeSingle();
+    if(lk.error||!lk.data){erro('Este link de pedidos não está disponível. Fale com quem enviou o link.');return}
+    LINK=lk.data;
+    if(!LINK.revendedor_id){erro('Este link ainda não está ligado a um revendedor.');return}
+    const rv=await SB.from('revendedores').select('id,nome,telefone,tipo,desconto_pct,config,status').eq('id',LINK.revendedor_id).eq('status','ativo').maybeSingle();
+    if(rv.error||!rv.data){erro('Este link não está ativo no momento.');return}
+    REV=rv.data;
+    await carregarCatalogo();
+    $('#tt').textContent=LINK.nome||'Fazer pedido';$('#tt2').textContent='Pedido para '+REV.nome;
+    render();
+  }catch(e){console.error(e);erro('Não foi possível carregar o catálogo. Tente de novo em instantes.')}
+});
+function erro(m){$('#root').innerHTML='<div class="box note err">'+esc(m)+'</div>'}
+
+async function carregarCatalogo(){
+  const [pr,vr,rp,pz,vd,bs]=await Promise.all([
+    SB.from('produtos').select('id,nome,imagem,estoque,ativo,ordem').eq('ativo',true),
+    SB.from('produto_variacoes').select('id,produto_id,nome,unidades,preco,ativo,ordem,descricao').eq('ativo',true).order('ordem'),
+    SB.from('revendedor_produtos').select('variacao_id,habilitado,preco').eq('revendedor_id',REV.id),
+    SB.from('revendedor_precos_var').select('variacao_id,preco').eq('revendedor_id',REV.id),
+    SB.from('revendedor_venda_var').select('variacao_id,preco_venda').eq('revendedor_id',REV.id),
+    SB.from('catalogo_revenda').select('variacao_id,preco')
+  ]);
+  const RP={};(rp.data||[]).forEach(r=>{RP[r.variacao_id]={h:r.habilitado!==false,p:r.preco==null?null:+r.preco}});
+  const PZ={};(pz.data||[]).forEach(r=>{PZ[r.variacao_id]=+r.preco});
+  const VD={};(vd.data||[]).forEach(r=>{VD[r.variacao_id]=+r.preco_venda});
+  const BS={};(bs.data||[]).forEach(r=>{BS[r.variacao_id]=+r.preco});
+  const indiv=(REV.config||{}).preco_individual===true,desc=REV.desconto_pct||0;
+  const foto=f=>!f?'':(/^https?:/.test(f)?f:SB_URL+'/storage/v1/object/public/produtos/'+encodeURIComponent(f));
+  const conf=Array.isArray(LINK.produtos)?LINK.produtos:[];
+  const CF={};conf.forEach(c=>{CF[c.v]=c});
+  const lista=[];
+  (vr.data||[]).forEach(v=>{
+    const p=(pr.data||[]).find(x=>x.id===v.produto_id);if(!p)return;
+    const loja=(v.preco==null||v.preco==='')?null:+v.preco;
+    let custo=null;
+    if(indiv){const r=RP[v.id];if(!r||!r.h||r.p==null)return;custo=r.p}
+    else{
+      if(PZ[v.id]!=null)custo=PZ[v.id];
+      else{const base=BS[v.id]!=null?BS[v.id]:loja;if(base==null)return;custo=Math.round(base*(1-desc/100)*100)/100}
+    }
+    if(conf.length){const c=CF[v.id];if(!c||c.h===false)return}
+    lista.push({id:v.id,produto_id:p.id,nome_produto:p.nome,nome_var:v.nome,descricao:v.descricao||'',imagem:foto(p.imagem),estoque:+p.estoque||0,loja,custo,venda:VD[v.id]!=null?VD[v.id]:null,
+      ord_link:conf.length&&CF[v.id]&&CF[v.id].o!=null?+CF[v.id].o:null,ordem_prod:p.ordem==null?9999:+p.ordem,ordem_var:v.ordem==null?9999:+v.ordem});
+  });
+  lista.sort((a,b)=>conf.length?((a.ord_link==null?9999:a.ord_link)-(b.ord_link==null?9999:b.ord_link)):((a.ordem_prod-b.ordem_prod)||String(a.nome_produto).localeCompare(String(b.nome_produto))||(a.ordem_var-b.ordem_var)));
+  ITENS=lista;
+}
+function campos(){return Object.assign({},CAMPOS_PADRAO,LINK.campos||{})}
+function agrupa(){const g=[],m={};ITENS.forEach(i=>{if(!m[i.produto_id]){m[i.produto_id]={id:i.produto_id,nome:i.nome_produto,imagem:i.imagem,vars:[]};g.push(m[i.produto_id])}m[i.produto_id].vars.push(i)});return g}
+function qtdTotal(){return Object.values(QTD).reduce((s,q)=>s+q,0)}
+function totalVenda(){let t=0,ok=true;ITENS.forEach(i=>{const q=QTD[i.id]||0;if(!q)return;if(i.venda==null)ok=false;else t+=i.venda*q});return {t,ok}}
+function setQ(id,d){const q=Math.max(0,Math.min(99,(QTD[id]||0)+d));if(q)QTD[id]=q;else delete QTD[id];atualizaQ(id);barra()}
+function atualizaQ(id){const e=document.getElementById('q_'+id);if(e)e.textContent=QTD[id]||0}
+function barra(){
+  const b=$('#bar');if(!b)return;const n=qtdTotal()+(OUTROS.trim()?1:0),tv=totalVenda();
+  b.querySelector('div').innerHTML='<b>'+n+' ite'+(n===1?'m':'ns')+'</b>'+(n&&tv.ok&&tv.t>0?' · '+brl(tv.t):'');
+}
+function render(){
+  const c=campos(),g=agrupa();
+  const campo=(k,l,cls,tipo,ph)=>c[k]?'<div class="'+cls+'"><label for="f_'+k+'">'+l+'</label><input id="f_'+k+'" type="'+(tipo||'text')+'" placeholder="'+(ph||'')+'" autocomplete="off"'+(k==='cep'?' inputmode="numeric" maxlength="9" oninput="cepAuto(this)"':'')+(k==='telefone'?' inputmode="tel"':'')+'></div>':'';
+  $('#root').innerHTML=
+    (LINK.mensagem?'<div class="box note">'+esc(LINK.mensagem)+'</div>':'')+
+    '<div class="box"><h2>1. Escolha os produtos</h2>'+
+    (g.length?g.map(p=>'<div class="prod"><div class="pimg">'+(p.imagem?'<img src="'+esc(p.imagem)+'" alt="" style="width:64px;height:64px;object-fit:contain;border-radius:10px">':esc((p.nome||'?').charAt(0)))+'</div><div style="flex:1"><div class="pn">'+esc(p.nome)+'</div>'+
+      p.vars.map(v=>'<div class="vr"><div class="vn">'+esc(v.nome_var)+(v.descricao?'<small>'+esc(v.descricao)+'</small>':'')+(v.venda!=null?'<small><b>'+brl(v.venda)+'</b></small>':'')+'</div><div class="qty"><button onclick="setQ(\''+v.id+'\',-1)" aria-label="Menos">−</button><span id="q_'+v.id+'">'+(QTD[v.id]||0)+'</span><button onclick="setQ(\''+v.id+'\',1)" aria-label="Mais">+</button></div></div>').join('')+'</div></div>').join(''):'<p style="color:var(--muted)">Nenhum produto disponível neste link no momento.</p>')+
+    '<div class="prod"><div class="pimg">➕</div><div style="flex:1"><div class="pn">Outros</div><div class="pd">Precisa de algo que não está na lista? Descreva aqui.</div><textarea id="f_outros" rows="2" maxlength="500" placeholder="Ex.: 2 caixas do produto X" oninput="OUTROS=this.value;barra()">'+esc(OUTROS)+'</textarea></div></div></div>'+
+    '<div class="box"><h2>2. Seus dados</h2><div class="fr">'+campo('nome','Nome completo *','c6')+campo('telefone','WhatsApp *','c3','tel','(11) 99999-9999')+campo('email','E-mail','c3','email')+campo('cep','CEP','c2')+campo('endereco','Rua / Avenida','c4')+campo('numero','Número','c2')+campo('complemento','Complemento','c2')+campo('bairro','Bairro','c2')+campo('cidade','Cidade','c4')+
+    (c.obs?'<div class="c6"><label for="f_obs">Observações</label><textarea id="f_obs" rows="2" placeholder="Ponto de referência, horário..."></textarea></div>':'')+'</div><div id="msg"></div></div>'+
+    '<div class="bar" id="bar"><div></div><button class="btn" style="width:auto" id="btnEnv" onclick="enviar()">Enviar pedido</button></div>';
+  barra();
+}
+async function cepAuto(el){
+  const d=dig(el.value);el.value=d.length>5?d.slice(0,5)+'-'+d.slice(5,8):d;if(d.length!==8)return;
+  try{const r=await fetch('https://viacep.com.br/ws/'+d+'/json/');const j=await r.json();if(j.erro)return;
+    const set=(k,v)=>{const e=document.getElementById('f_'+k);if(e&&v&&!e.value)e.value=v};
+    set('endereco',j.logradouro);set('bairro',j.bairro);set('cidade',j.localidade)}catch(e){}
+}
+function msg(t){$('#msg').innerHTML=t?'<div class="note err" style="margin-top:10px">'+esc(t)+'</div>':''}
+async function enviar(){
+  if(ENV)return;const c=campos(),g=k=>{const e=document.getElementById('f_'+k);return e?e.value.trim():''};
+  const cli={nome:g('nome'),telefone:g('telefone'),email:g('email'),cep:g('cep'),endereco:g('endereco'),numero:g('numero'),complemento:g('complemento'),bairro:g('bairro'),cidade:g('cidade'),obs:g('obs')};
+  const sel=ITENS.filter(i=>QTD[i.id]);const outros=OUTROS.trim();
+  if(!sel.length&&!outros){msg('Escolha pelo menos um produto ou descreva o que precisa em "Outros".');return}
+  if(c.nome&&cli.nome.length<3){msg('Informe o seu nome completo.');return}
+  if(c.telefone&&dig(cli.telefone).length<10){msg('Informe o WhatsApp com DDD.');return}
+  if(c.endereco&&!cli.endereco){msg('Informe a rua para a entrega.');return}
+  if(c.cidade&&!cli.cidade){msg('Informe a cidade.');return}
+  ENV=true;$('#btnEnv').disabled=true;$('#btnEnv').textContent='Enviando...';msg('');
+  try{
+    const itens=sel.map(i=>({id:i.id,produto_id:i.produto_id,nome:i.nome_produto+' — '+i.nome_var,qty:QTD[i.id],preco:i.custo,preco_orig:i.loja,preco_venda:i.venda,preco_tipo:(REV.config||{}).preco_individual===true?'individual':'padrao'}));
+    if(outros)itens.push({id:'outros_'+Date.now(),nome:'Outros: '+outros.slice(0,70)+(outros.length>70?'…':''),qty:1,preco:0,preco_orig:0,preco_venda:0,outros:true,descricao:outros});
+    const subtotal=itens.reduce((s,i)=>s+(i.preco||0)*i.qty,0);
+    const vendaOk=itens.every(i=>i.outros||i.preco_venda!=null);
+    const venda_total=vendaOk?itens.reduce((s,i)=>s+(i.preco_venda||0)*i.qty,0):null;
+    // o cliente entra na lista de clientes do revendedor (sem duplicar pelo telefone)
+    let clienteId=null;
+    const fn=dig(cli.telefone).slice(-8);
+    if(fn.length>=8){
+      const ex=await SB.from('revendedor_clientes').select('id,telefone').eq('revendedor_id',REV.id);
+      const igual=(ex.data||[]).find(x=>dig(x.telefone).slice(-8)===fn);
+      if(igual)clienteId=igual.id;
+    }
+    if(!clienteId&&cli.nome){
+      const nv=await SB.from('revendedor_clientes').insert([{revendedor_id:REV.id,nome:cli.nome,telefone:cli.telefone,cep:cli.cep,endereco:cli.endereco,numero:cli.numero,complemento:cli.complemento,bairro:cli.bairro,cidade:cli.cidade,obs:cli.obs}]).select('id').maybeSingle();
+      if(!nv.error&&nv.data)clienteId=nv.data.id;
+    }
+    const tipo=REV.tipo==='consignado'?'consignado':'avista';
+    const ins=await SB.from('pedidos_revendedor').insert([{
+      revendedor_id:REV.id,revendedor_nome:REV.nome,itens,subtotal,custo_total:subtotal,venda_total,obs:cli.obs||'',
+      cliente_id:clienteId,cliente_nome:cli.nome,
+      entrega:{nome:cli.nome,telefone:cli.telefone,cep:cli.cep,endereco:cli.endereco,numero:cli.numero,complemento:cli.complemento,bairro:cli.bairro,cidade:cli.cidade},
+      tipo_pagamento:tipo,forma_pagamento:tipo==='consignado'?'consignado':'a combinar',status:'novo',origem:'link',link_id:LINK.id
+    }]).select('id').maybeSingle();
+    if(ins.error||!ins.data)throw ins.error||new Error('sem retorno');
+    if(tipo==='consignado'){
+      const movs=itens.filter(i=>!i.outros).map(i=>({revendedor_id:REV.id,tipo:'saida',produto_id:i.produto_id,produto_nome:i.nome,quantidade:i.qty,valor_unitario:i.preco,valor_total:i.preco*i.qty,pedido_id:ins.data.id}));
+      if(movs.length)await SB.from('consignado_movimentos').insert(movs);
+    }
+    $('#root').innerHTML='<div class="box ok"><div class="big">✅</div><h2>Pedido enviado!</h2><p style="color:var(--muted)">Recebemos o seu pedido. '+esc(REV.nome)+' vai entrar em contato para combinar o pagamento e a entrega.</p>'+
+      '<div style="text-align:left;margin:12px 0">'+itens.map(i=>'<div style="padding:4px 0;border-top:1px dashed var(--line)">'+i.qty+'× '+esc(i.nome)+'</div>').join('')+'</div>'+
+      (REV.telefone?'<a class="btn" style="display:block;text-align:center;text-decoration:none" href="whatsapp://send?phone='+(dig(REV.telefone).length<=11?'55':'')+dig(REV.telefone)+'">Falar no WhatsApp</a>':'')+'</div>';
+    const b=$('#bar');if(b)b.remove();window.scrollTo(0,0);
+  }catch(e){
+    console.error(e);ENV=false;const bt=$('#btnEnv');if(bt){bt.disabled=false;bt.textContent='Enviar pedido'}
+    msg('Não foi possível enviar o pedido agora. Tente de novo em instantes.');
+  }
+}
+</script>
+</body>
+</html>
