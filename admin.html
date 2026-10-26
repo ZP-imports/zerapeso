@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-25-2476 -->
+<!-- v2026-10-26-2481 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -2902,7 +2902,7 @@ function tabRevendedores(){
           <div class="box">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
               <div>
-                <h3 style="margin:0 0 4px">${esc(rv.nome)}</h3>
+                <h3 style="margin:0 0 4px">${esc(rv.nome)} <button class="btn wa sm" style="padding:2px 8px;font-size:.78rem" onclick="admRevEnviarAcesso('${rv.id}')" title="Enviar o link e uma senha nova pelo WhatsApp">💬 Enviar acesso</button></h3>
                 <div style="color:var(--muted);font-size:.88rem">${esc(rv.email)} · ${esc(rv.telefone||'—')}</div>
                 <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
                   <span class="badge ${rv.status==='ativo'?'badge-e':rv.status==='pendente'?'badge-n':'badge-x'}">${{ativo:'Ativo',pendente:'Aguardando aprovação',bloqueado:'Bloqueado'}[rv.status]||rv.status}</span>
@@ -3047,7 +3047,7 @@ function tabRevendedores(){
           <thead><tr><th>#</th><th>Revendedor</th><th>Tipo</th><th>Pedidos</th><th>Volume total</th><th>Último pedido</th><th>Atividade</th></tr></thead>
           <tbody>${ranking.map(({rv,rpeds,vol,ultimo,diasSemPedido},i)=>`<tr>
             <td><b style="color:var(--muted)">#${i+1}</b></td>
-            <td><b>${esc(rv.nome)}</b><br><small style="color:var(--muted)">${esc(rv.email)}</small></td>
+            <td><b>${esc(rv.nome)}</b> <button class="btn wa sm" style="padding:2px 8px;font-size:.75rem" onclick="admRevEnviarAcesso('${rv.id}')" title="Enviar o link e uma senha nova pelo WhatsApp">WA</button><br><small style="color:var(--muted)">${esc(rv.email)}</small></td>
             <td><span class="badge ${rv.tipo==='consignado'?'badge-er':'badge-c'}">${rv.tipo==='consignado'?'Consig.':'Comprador'}</span></td>
             <td style="font-size:.9rem">${rpeds.length}</td>
             <td><b style="color:var(--p)">${brl(vol)}</b></td>
@@ -3117,7 +3117,7 @@ function tabRevendedores(){
         <button class="btn acc sm" onclick="revAdicionar()">➕ Adicionar revendedor</button>
         <button class="btn acc sm" onclick="A9.revAba='pedidos';route()">📥 Pedidos dos revendedores${(()=>{const n=(A9.revs&&A9.revs.pedidos||[]).filter(p=>p.status==='novo').length;return n?` <b>(${n} novo${n===1?'':'s'})</b>`:''})()}</button>
         <button class="btn ghost sm" onclick="A9.revAba='links';A9.linkEd=null;route()">🔗 Links de pedidos</button>
-        <button class="btn ghost sm" onclick="A9.revAba='repasse';route()">💲 Catálogo de repasse</button>
+        <button class="btn ghost sm" onclick="A9.revAba='repasse';route()">💲 Tabela de preços (todos)</button>
         <button class="btn ghost sm" onclick="A9.revAba='ranking';route()">📊 Ranking</button>
         <button class="btn ghost sm" onclick="A9.revAba='avisos';route()">📢 Avisos${avisos.filter(a=>a.ativo).length?` <b style="color:var(--p)">(${avisos.filter(a=>a.ativo).length})</b>`:''}</button>
         <button class="btn sm" onclick="A9.revs=null;A9.busy=false;admCarregarRevs()">↻ Atualizar</button>
@@ -3150,7 +3150,7 @@ function tabRevendedores(){
           const rpeds=pedidos.filter(p=>p.revendedor_id===rv.id);
           const saldo=rv.tipo==='consignado'?calcSaldoAdm(movimentos.filter(m=>m.revendedor_id===rv.id)):null;
           return `<tr>
-            <td><b>${esc(rv.nome)}</b>${rv.tipo==='consignado'?'<br><small style="color:var(--p)">Consignado</small>':'<br><small style="color:#166534">Comprador</small>'}</td>
+            <td><b>${esc(rv.nome)}</b> <button class="btn wa sm" style="padding:2px 8px;font-size:.75rem" onclick="admRevEnviarAcesso('${rv.id}')" title="Enviar o link e uma senha nova pelo WhatsApp">WA</button>${rv.tipo==='consignado'?'<br><small style="color:var(--p)">Consignado</small>':'<br><small style="color:#166534">Comprador</small>'}</td>
             <td style="font-size:.82rem">${esc(rv.email)}<br>${esc(rv.telefone||'—')}${rv.cpf?'<br>CPF '+esc(cpfFmt(rv.cpf)):''}</td>
             <td><span class="badge ${rv.tipo==='consignado'?'badge-er':'badge-c'}">${rv.tipo==='consignado'?'Consignado':'Comprador'}</span></td>
             <td style="font-size:.88rem">${rpeds.length} pedidos${saldo!=null?`<br><b style="color:var(--p);font-size:.82rem">Saldo: ${brl(saldo)}</b>`:''}</td>
@@ -3223,31 +3223,43 @@ async function admRevSalvar(id){
 /* ---- catálogo de repasse: um valor por variação; cada revendedor paga esse valor menos a porcentagem dele ---- */
 function repasseMapa(){const m={};((A9.revs||{}).repasse||[]).forEach(x=>{m[x.variacao_id]=+x.preco});return m}
 function repasseFinal(base,pct){return Math.round(base*(1-(pct||0)/100)*100)/100}
+function repasseFinalHtml(rv,vid,loja){
+  if(!rv)return '';
+  const M=rpdMapa(rv.id),r=M[vid],base=repasseMapa();
+  const ex=((A9.revs||{}).precos||[]).find(x=>x.revendedor_id===rv.id&&x.variacao_id===vid);
+  if(r&&!r.habilitado)return '<span class="pgsub">desabilitado só para ele</span>';
+  if(r&&r.preco!=null)return '<b>'+brl(r.preco)+'</b> <small style="color:var(--muted)">individual</small>';
+  if(ex)return '<b>'+brl(+ex.preco)+'</b> <small style="color:var(--muted)">exclusivo</small>';
+  if(base[vid]!=null)return '<b>'+brl(base[vid])+'</b>';
+  if((rv.config||{}).preco_individual===true||loja==null)return '<span class="pgsub">sem valor na tabela</span>';
+  return '<b>'+brl(repasseFinal(loja,rv.desconto_pct||0))+'</b> <small style="color:var(--muted)">modelo antigo</small>';
+}
 function revRepasseHtml(){
   const R=A9.revs,base=repasseMapa();
   const nomeP={};(R.produtos||[]).forEach(p=>{nomeP[p.id]=p.nome});
   const q=pagNz(A9.rpQ||'');
   const prods=(R.variacoes||[]).filter(v=>nomeP[v.produto_id]).map(v=>({id:v.id,nome:nomeP[v.produto_id]+' — '+v.nome,loja:(v.preco==null||v.preco==='')?null:+v.preco})).filter(p=>!q||pagNz(p.nome).includes(q)).sort((a,b)=>a.nome.localeCompare(b.nome));
   const ativos=(R.lista||[]).filter(r=>r.status==='ativo');
-  const rv=ativos.find(r=>r.id===A9.rpRev)||null,pct=rv?(rv.desconto_pct||0):0;
-  const excl={};if(rv)(R.precos||[]).filter(x=>x.revendedor_id===rv.id).forEach(x=>{excl[x.variacao_id]=+x.preco});
+  const rv=ativos.find(r=>r.id===A9.rpRev)||null;
   const nBase=Object.keys(base).length;
-  const final=p=>{if(!rv)return '';if(excl[p.id]!=null)return '<b>'+brl(excl[p.id])+'</b> <small style="color:var(--muted)">exclusivo</small>';const b=base[p.id]!=null?base[p.id]:p.loja;return b==null?'—':'<b>'+brl(repasseFinal(b,pct))+'</b>'};
   return `<div>${msgBox()}
     <button class="btn ghost sm" style="margin:0 0 12px" onclick="A9.revAba='ativos';route()">← Voltar aos revendedores</button>
-    <h3 style="margin:0 0 4px">Catálogo de repasse</h3>
-    <p style="margin:0 0 12px;color:var(--muted);font-size:.88rem">Defina aqui o <b>valor de repasse</b> de cada produto. Cada revendedor paga esse valor <b>menos a porcentagem dele</b> (cadastrada no perfil dele); ele vê só o valor final, sem "de tanto para tanto". Quem tem preço exclusivo continua pagando o preço exclusivo. Vale para revendedor comprador e consignado. Salva ao sair do campo. Variação sem valor de repasse usa o preço da loja.</p>
+    <h3 style="margin:0 0 4px">Tabela de preços dos revendedores</h3>
+    <p style="margin:0 0 12px;color:var(--muted);font-size:.88rem">Uma tabela só, <b>valendo para todos os revendedores de uma vez</b>: você digita o valor de cada produto (ou importa a planilha) e todos passam a pagar esse valor, sem porcentagem e sem mexer um por um. Para dar um preço diferente a alguém, use <b>Produtos e preços do revendedor</b> no perfil dele. Variação sem valor na tabela não aparece para os revendedores.</p>
     <div class="box" style="margin-bottom:12px"><div class="fbar" style="align-items:flex-end;margin:0">
+      <button class="btn acc" onclick="repasseModelo()" title="Baixa uma planilha com todos os produtos e os valores atuais">📥 Baixar tabela modelo</button>
+      <button class="btn acc" onclick="document.getElementById('rpArq').click()" title="Sobe a planilha preenchida e atualiza os valores de todos os revendedores">📤 Importar tabela</button>
+      <input id="rpArq" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="repasseImportar(this.files[0]);this.value=''">
       <div><label for="rpQ">Buscar produto</label><input id="rpQ" value="${esc(A9.rpQ||'')}" placeholder="Nome do produto" oninput="buscaLive(this,'rpQ')"></div>
-      <div><label for="rpRev">Ver o preço final para</label><select id="rpRev" onchange="A9.rpRev=this.value;route()"><option value="">(não mostrar)</option>${ativos.map(r=>`<option value="${r.id}" ${r.id===A9.rpRev?'selected':''}>${esc(r.nome)} — ${r.desconto_pct||0}% · ${r.tipo==='consignado'?'consignado':'comprador'}</option>`).join('')}</select></div>
-      <button class="btn acc sm" onclick="admRepasseDisparar()" title="Avisa todos os revendedores ativos que o catálogo foi atualizado">📣 Disparar para todos os revendedores</button>
-      <button class="btn ghost sm" onclick="admRepasseCopiar()" title="Preenche com o preço da loja só as variações que ainda não têm valor de repasse">Preencher vazios com o preço da loja</button>
-      <span style="color:var(--muted);font-size:.82rem">${nBase} de ${(R.variacoes||[]).length} com valor de repasse</span>
+      <div><label for="rpRev">Ver o preço final para</label><select id="rpRev" onchange="A9.rpRev=this.value;route()"><option value="">(não mostrar)</option>${ativos.map(r=>`<option value="${r.id}" ${r.id===A9.rpRev?'selected':''}>${esc(r.nome)}</option>`).join('')}</select></div>
+      <button class="btn acc sm" onclick="admRepasseDisparar()" title="Avisa todos os revendedores ativos que a tabela foi atualizada">📣 Avisar os revendedores</button>
+      <button class="btn ghost sm" onclick="admRepasseCopiar()" title="Preenche com o preço da loja só as variações que ainda não têm valor">Preencher vazios com o preço da loja</button>
+      <span style="color:var(--muted);font-size:.82rem">${nBase} de ${(R.variacoes||[]).length} com valor</span>
     </div></div>
-    ${ativos.length?`<details class="box" style="margin-bottom:12px"><summary style="cursor:pointer;font-weight:600">Avisar cada revendedor pelo WhatsApp (${ativos.length})</summary><div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">${ativos.map(r=>`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="min-width:160px">${esc(r.nome)}</b><span style="color:var(--muted);font-size:.85rem">${r.desconto_pct||0}% de desconto · ${r.tipo==='consignado'?'consignado':'comprador'}</span>${r.telefone?`<button class="btn ghost sm" onclick="admRepasseWa('${r.id}')">💬 WhatsApp</button>`:'<span style="color:var(--muted);font-size:.8rem">sem telefone</span>'}</div>`).join('')}</div></details>`:''}
+    ${ativos.length?`<details class="box" style="margin-bottom:12px"><summary style="cursor:pointer;font-weight:600">Avisar cada revendedor pelo WhatsApp (${ativos.length})</summary><div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">${ativos.map(r=>`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="min-width:160px">${esc(r.nome)}</b>${r.telefone?`<button class="btn ghost sm" onclick="admRepasseWa('${r.id}')">💬 WhatsApp</button>`:'<span style="color:var(--muted);font-size:.8rem">sem telefone</span>'}</div>`).join('')}</div></details>`:''}
     <div class="box" style="max-height:560px;overflow:auto"><table>
-      <thead><tr><th>Produto</th><th>Preço da loja</th><th style="width:170px">Valor de repasse (R$)</th>${rv?`<th>Preço para ${esc(rv.nome)} (${pct}%)</th>`:''}</tr></thead>
-      <tbody>${prods.map(p=>`<tr><td>${esc(p.nome)}</td><td style="color:var(--muted)">${p.loja==null?'—':brl(p.loja)}</td><td><input inputmode="decimal" style="width:130px;text-align:right" value="${base[p.id]!=null?pdMoeda(base[p.id]):''}" placeholder="—" onchange="admRepasseSalvar('${p.id}',this.value)"></td>${rv?`<td id="rpf_${p.id}">${final(p)}</td>`:''}</tr>`).join('')||'<tr><td colspan="4" style="color:var(--muted)">Nenhum produto encontrado.</td></tr>'}</tbody>
+      <thead><tr><th>Produto</th><th>Preço da loja</th><th style="width:170px">Valor para revendedores (R$)</th>${rv?`<th>Preço para ${esc(rv.nome)}</th>`:''}</tr></thead>
+      <tbody>${prods.map(p=>`<tr><td>${esc(p.nome)}</td><td style="color:var(--muted)">${p.loja==null?'—':brl(p.loja)}</td><td><input inputmode="decimal" style="width:130px;text-align:right" value="${base[p.id]!=null?pdMoeda(base[p.id]):''}" placeholder="—" onchange="admRepasseSalvar('${p.id}',this.value)"></td>${rv?`<td id="rpf_${p.id}">${repasseFinalHtml(rv,p.id,p.loja)}</td>`:''}</tr>`).join('')||'<tr><td colspan="4" style="color:var(--muted)">Nenhum produto encontrado.</td></tr>'}</tbody>
     </table></div></div>`;
 }
 /* ======================= LINKS DE PEDIDOS: o Wesley gerencia produtos, ordem e campos de cada link ======================= */
@@ -3327,8 +3339,8 @@ async function admRepasseSalvar(vid,txt){
   if(error){toast(/catalogo_revenda|relation|schema/i.test(error.message||'')?'Falta rodar o arquivo 29_catalogo_repasse.sql no Supabase.':'Não foi possível salvar o valor.');return}
   const lst=((A9.revs||{}).repasse||[]).filter(x=>x.variacao_id!==vid);if(txt)lst.push({variacao_id:vid,preco:pdNum(txt)});A9.revs.repasse=lst;
   const R=A9.revs,rv=(R.lista||[]).find(r=>r.id===A9.rpRev),c=document.getElementById('rpf_'+vid);
-  if(rv&&c){const x=(R.precos||[]).find(p=>p.revendedor_id===rv.id&&p.variacao_id===vid);const b=txt?pdNum(txt):((R.variacoes||[]).find(v=>v.id===vid)||{}).preco;c.innerHTML=x?'<b>'+brl(+x.preco)+'</b> <small style="color:var(--muted)">exclusivo</small>':(b==null||b==='')?'—':'<b>'+brl(repasseFinal(+b,rv.desconto_pct||0))+'</b>'}
-  toast('Valor de repasse salvo.');
+  if(rv&&c){const v=(R.variacoes||[]).find(x=>x.id===vid)||{};c.innerHTML=repasseFinalHtml(rv,vid,(v.preco==null||v.preco==='')?null:+v.preco)}
+  toast('Valor salvo na tabela.');
 }
 async function admRepasseDisparar(){
   const R=A9.revs,ativos=(R.lista||[]).filter(r=>r.status==='ativo');
@@ -3341,6 +3353,77 @@ async function admRepasseDisparar(){
 function admRepasseWa(id){
   const r=((A9.revs||{}).lista||[]).find(x=>x.id===id);if(!r||!r.telefone)return;
   waApp(foneWa(r.telefone),'Olá, '+String(r.nome||'').split(' ')[0]+'! O catálogo de repasse da ZP Imports foi atualizado, já com o seu desconto de '+(r.desconto_pct||0)+'%. Entre no portal para ver os novos valores: '+location.origin+'/portal');
+}
+/* ---- tabela modelo (planilha) e importação: o Wesley só preenche o valor e sobe; vale para todos os revendedores ---- */
+function repasseLinhas(){
+  const R=A9.revs,base=repasseMapa(),nomeP={},ordP={};
+  (R.produtos||[]).forEach(p=>{nomeP[p.id]=p.nome;ordP[p.id]=p.ordem==null?9999:+p.ordem});
+  return (R.variacoes||[]).filter(v=>nomeP[v.produto_id]).sort((a,b)=>(ordP[a.produto_id]-ordP[b.produto_id])||String(nomeP[a.produto_id]).localeCompare(String(nomeP[b.produto_id]))||((a.ordem==null?9999:+a.ordem)-(b.ordem==null?9999:+b.ordem)))
+    .map(v=>({'Código':v.id,'Produto':nomeP[v.produto_id],'Variação':v.nome,'Preço da loja (R$)':(v.preco==null||v.preco==='')?'':+v.preco,'Valor para revendedores (R$)':base[v.id]!=null?base[v.id]:''}));
+}
+function repasseModelo(){
+  if(typeof XLSX==='undefined'){toast('A biblioteca de planilhas não carregou. Atualize a página e tente de novo.');return}
+  const dados=repasseLinhas();if(!dados.length){toast('Nenhum produto para exportar.');return}
+  const ws=XLSX.utils.json_to_sheet(dados,{header:['Código','Produto','Variação','Preço da loja (R$)','Valor para revendedores (R$)']});
+  ws['!cols']=[{wch:38},{wch:44},{wch:30},{wch:18},{wch:28}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Tabela de preços');
+  XLSX.writeFile(wb,'tabela-precos-revendedores.xlsx');
+  toast('Planilha baixada. Preencha a coluna "Valor para revendedores" e use Importar tabela.');
+}
+function repasseImportar(file){
+  if(!file)return;
+  if(typeof XLSX==='undefined'){toast('A biblioteca de planilhas não carregou. Atualize a página e tente de novo.');return}
+  const rd=new FileReader();const csv=/\.csv$/i.test(file.name||'');
+  rd.onload=function(e){
+    try{
+      const wb=csv?XLSX.read(e.target.result,{type:'string',raw:true}):XLSX.read(e.target.result,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!rows.length){toast('A planilha está vazia.');return}
+      const chaves=Object.keys(rows[0]);const norm=s=>pagNz(String(s).replace(/\ufeff/g,'')).replace(/\s+/g,' ').trim();
+      const kCod=chaves.find(k=>/^(codigo|cod|id)\b/.test(norm(k)));
+      const kVal=chaves.find(k=>/revend/.test(norm(k)))||chaves.find(k=>/^(valor|preco)\b/.test(norm(k))&&!/loja/.test(norm(k)));
+      const kProd=chaves.find(k=>/^produto/.test(norm(k))),kVar=chaves.find(k=>/^variac/.test(norm(k)));
+      if(!kVal){toast('Não achei a coluna "Valor para revendedores (R$)". Use a tabela modelo.');return}
+      const R=A9.revs,base=repasseMapa();
+      const porCod={},porNome={};
+      (R.variacoes||[]).forEach(v=>{const p=(R.produtos||[]).find(x=>x.id===v.produto_id);if(!p)return;porCod[String(v.id)]=v;porNome[norm(p.nome+' '+v.nome)]=v});
+      const novos=[],mudam=[],iguais=[],semMatch=[],invalidos=[];let vazios=0;
+      rows.forEach((r,i)=>{
+        const bruto=r[kVal];if(bruto===''||bruto==null){vazios++;return}
+        let val=typeof bruto==='number'?bruto:pdNum(String(bruto).replace('R$','').trim());
+        if(!(val>0)&&String(bruto).trim()!=='0'){invalidos.push('linha '+(i+2)+': "'+bruto+'"');return}
+        val=Math.round(val*100)/100;
+        let v=kCod&&r[kCod]?porCod[String(r[kCod]).trim()]:null;
+        if(!v&&kProd&&kVar)v=porNome[norm(r[kProd]+' '+r[kVar])];
+        if(!v){semMatch.push(String((kProd&&r[kProd])||(kCod&&r[kCod])||'linha '+(i+2))+(kVar&&r[kVar]?' — '+r[kVar]:''));return}
+        if(base[v.id]==null)novos.push({v,val});else if(Math.abs(base[v.id]-val)>0.004)mudam.push({v,val,ant:base[v.id]});else iguais.push(v.id);
+      });
+      A9.repasseImp=novos.concat(mudam);
+      const resumo='<p style="margin:0 0 8px"><b>'+novos.length+'</b> valor'+(novos.length===1?'':'es')+' novo'+(novos.length===1?'':'s')+' · <b>'+mudam.length+'</b> alterado'+(mudam.length===1?'':'s')+' · '+iguais.length+' '+(iguais.length===1?'igual':'iguais')+' · '+vazios+' sem valor (ignorados)</p>'+
+        (mudam.length?'<div style="max-height:30vh;overflow:auto;font-size:.84rem;margin-bottom:8px"><b>Alterados:</b><ul style="margin:4px 0;padding-left:18px">'+mudam.slice(0,40).map(m=>'<li>'+esc(m.v.nome)+': '+brl(m.ant)+' → <b>'+brl(m.val)+'</b></li>').join('')+(mudam.length>40?'<li>… e mais '+(mudam.length-40)+'</li>':'')+'</ul></div>':'')+
+        (semMatch.length?'<p class="pgsub" style="color:#b45309">⚠️ '+semMatch.length+' linha'+(semMatch.length===1?'':'s')+' não bateu com nenhum produto e será ignorada: '+esc(semMatch.slice(0,5).join('; '))+(semMatch.length>5?'…':'')+'</p>':'')+
+        (invalidos.length?'<p class="pgsub" style="color:#b45309">⚠️ Valor inválido em: '+esc(invalidos.slice(0,5).join('; '))+'</p>':'')+
+        '<p class="pgsub">Ao confirmar, <b>todos os revendedores</b> passam a pagar esses valores. Preços individuais que você definiu para alguém continuam valendo.</p>';
+      cliModal('rpimp','Importar tabela de preços',resumo,(A9.repasseImp.length?'<button class="btn acc" onclick="repasseImportarAplica()">Atualizar '+A9.repasseImp.length+' preço'+(A9.repasseImp.length===1?'':'s')+'</button>':'')+'<button class="btn ghost" onclick="document.getElementById(\'rpimp\').remove()">'+(A9.repasseImp.length?'Cancelar':'Fechar')+'</button>');
+    }catch(x){toast('Não consegui ler a planilha: '+(x.message||x))}
+  };
+  if(csv)rd.readAsText(file,'utf-8');else rd.readAsArrayBuffer(file);
+}
+async function repasseImportarAplica(){
+  const L=A9.repasseImp||[];if(!L.length||A9.busy)return;
+  A9.busy=true;let ok=0;
+  for(let i=0;i<L.length;i+=200){
+    const lote=L.slice(i,i+200).map(x=>({variacao_id:x.v.id,preco:x.val,atualizado_em:new Date().toISOString()}));
+    const {error}=await SB.from('catalogo_revenda').upsert(lote,{onConflict:'variacao_id'});
+    if(error){A9.busy=false;toast(/catalogo_revenda|relation|schema/i.test(error.message||'')?'Falta rodar o arquivo 29_catalogo_repasse.sql no Supabase.':'Não foi possível salvar: '+error.message);return}
+    ok+=lote.length;
+  }
+  A9.busy=false;
+  const mapa={};(A9.revs.repasse||[]).forEach(x=>{mapa[x.variacao_id]=x});
+  L.forEach(x=>{mapa[x.v.id]={variacao_id:x.v.id,preco:x.val}});
+  A9.revs.repasse=Object.values(mapa);A9.repasseImp=null;
+  const el=document.getElementById('rpimp');if(el)el.remove();
+  toast(ok+' preço'+(ok===1?'':'s')+' atualizado'+(ok===1?'':'s')+' para todos os revendedores.');route();
 }
 async function admRepasseCopiar(){
   const R=A9.revs,base=repasseMapa();
@@ -3459,8 +3542,38 @@ async function admRevMensagem(revId){
   toast('Mensagem enviada para o perfil do revendedor.');
 }
 function revAcoesPedido(p,ST){
-  if(p.pedido_id)return '<span class="selo" style="background:#0a6e5c22;color:#0a6e5c;border:1px solid #0a6e5c66">🔗 ZP-'+String(p.pedido_id).padStart(6,'0')+'</span> <button class="btn ghost sm" onclick="admAbrirPedido('+p.pedido_id+')">Abrir</button><div class="pgsub">O andamento segue o pedido da logística.</div>';
-  return (p.status==='cancelado'?'':'<button class="btn sm" onclick="admRevEnviarLog(\''+p.id+'\')" title="Cria o pedido na logística: separação, rota, etiqueta, estoque e pagamento">📦 Enviar para a logística</button> ')+'<select onchange="admRevAtualizaStatus(\''+p.id+'\',this.value)" style="font-size:.8rem;padding:.3em .6em;border-radius:8px;width:auto">'+Object.keys(ST).map(s=>'<option value="'+s+'" '+(p.status===s?'selected':'')+'>'+ST[s]+'</option>').join('')+'</select>';
+  const cancel='<button class="btn ghost sm danger" onclick="admRevCancelar(\''+p.id+'\')" title="Cancela o pedido (pede o motivo)">Cancelar</button>';
+  const excl='<button class="btn ghost sm danger" onclick="admRevExcluirPedido(\''+p.id+'\')" title="Apaga o pedido de vez">Excluir</button>';
+  if(p.pedido_id)return '<span class="selo" style="background:#0a6e5c22;color:#0a6e5c;border:1px solid #0a6e5c66">🔗 ZP-'+String(p.pedido_id).padStart(6,'0')+'</span> <button class="btn ghost sm" onclick="admAbrirPedido('+p.pedido_id+')">Abrir</button>'+(p.status==='cancelado'?'':' '+cancel)+'<div class="pgsub">O andamento segue o pedido da logística.</div>';
+  return (p.status==='cancelado'?'':'<button class="btn sm" onclick="admRevEnviarLog(\''+p.id+'\')" title="Cria o pedido na logística: separação, rota, etiqueta, estoque e pagamento">📦 Enviar para a logística</button> ')+'<select onchange="admRevAtualizaStatus(\''+p.id+'\',this.value)" style="font-size:.8rem;padding:.3em .6em;border-radius:8px;width:auto">'+Object.keys(ST).map(s=>'<option value="'+s+'" '+(p.status===s?'selected':'')+'>'+ST[s]+'</option>').join('')+'</select> '+(p.status==='cancelado'?'':cancel+' ')+excl;
+}
+async function admRevCancelar(id){
+  const p=((A9.revs||{}).pedidos||[]).find(x=>x.id===id);if(!p||A9.busy)return;
+  const motivo=(prompt('Motivo do cancelamento (obrigatório). O pedido volta o estoque e sai das cobranças.')||'').trim();
+  if(!motivo){toast('Cancelamento não feito: informe o motivo.');return}
+  A9.busy=true;
+  try{
+    if(p.pedido_id){
+      const r=await SB.rpc('alterar_status_pedido',{p_pedido:p.pedido_id,p_status:'cancelado',p_motivo:motivo});
+      if(r.error){toast('Não foi possível cancelar: '+(r.error.message||''));A9.busy=false;return}
+    }else{
+      const r=await SB.from('pedidos_revendedor').update({status:'cancelado'}).eq('id',id);
+      if(r.error){toast('Não foi possível cancelar.');A9.busy=false;return}
+      await SB.from('consignado_movimentos').delete().eq('pedido_id',id).eq('tipo','saida');
+    }
+  }catch(x){toast('Erro ao cancelar.');A9.busy=false;return}
+  A9.busy=false;A9.revs=null;A9.pedidos=null;A9.revCart=undefined;toast('Pedido cancelado.');route();
+}
+async function admRevExcluirPedido(id){
+  const p=((A9.revs||{}).pedidos||[]).find(x=>x.id===id);if(!p||A9.busy)return;
+  if(p.pedido_id){toast('Este pedido já está na logística. Cancele em vez de excluir.');return}
+  if(!confirm('Excluir este pedido de vez?\n\nNão dá para desfazer. As saídas de estoque do consignado ligadas a ele também são apagadas. Se só quer desistir dele, use Cancelar.'))return;
+  A9.busy=true;
+  await SB.from('consignado_movimentos').delete().eq('pedido_id',id);
+  const r=await SB.from('pedidos_revendedor').delete().eq('id',id);
+  A9.busy=false;
+  if(r.error){toast('Não foi possível excluir.');return}
+  A9.revs=null;A9.revCart=undefined;toast('Pedido excluído.');route();
 }
 async function admRevEnviarLog(id){
   if(A9.busy)return;
@@ -7887,6 +8000,29 @@ function revForm(b){
    +'<p id="rvMsg" style="font-size:.82rem;margin:8px 0 0"></p></div>';
   document.body.appendChild(d);
 }
+function gerarSenhaRev(){
+  const c='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789',a=new Uint32Array(8);(window.crypto||window.msCrypto).getRandomValues(a);
+  return Array.from(a).map(x=>c[x%c.length]).join('');
+}
+function revAcessoMsg(nome,email,senha){return 'Olá, '+String(nome||'').split(' ')[0]+'! Seu acesso ao portal de revendedores da ZP Imports:\n\nLink: '+location.origin+'/portal\nLogin (e-mail): '+email+'\nSenha: '+senha+'\n\nVocê pode trocar a senha no seu perfil depois de entrar.'}
+function revAcessoModal(i){
+  const corpo='<p style="margin:0 0 8px">Acesso criado. Guarde ou envie agora: <b>a senha não fica visível depois</b> (para mandar de novo, o botão do WhatsApp ao lado do nome cria uma senha nova).</p><div style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.92rem"><div>🔗 <b>'+esc(location.origin)+'/portal</b></div><div>👤 Login: <b>'+esc(i.email)+'</b></div><div>🔑 Senha: <b>'+esc(i.senha)+'</b></div></div>';
+  A9.rvAcesso=i;
+  cliModal('rvacbox','Revendedor cadastrado: '+esc(i.nome),corpo,(i.fone?'<button class="btn wa" onclick="revAcessoWa()">💬 Enviar acesso no WhatsApp</button>':'')+'<button class="btn ghost" onclick="try{navigator.clipboard.writeText(revAcessoMsg(A9.rvAcesso.nome,A9.rvAcesso.email,A9.rvAcesso.senha));toast(\'Mensagem copiada.\')}catch(e){}">Copiar mensagem</button><button class="btn ghost" onclick="document.getElementById(\'rvacbox\').remove()">Fechar</button>');
+}
+function revAcessoWa(){const i=A9.rvAcesso;if(!i||!i.fone)return;waApp(foneWa(i.fone),revAcessoMsg(i.nome,i.email,i.senha))}
+/* botão do WhatsApp ao lado do nome: cria uma senha nova e abre a conversa com o link e a senha */
+async function admRevEnviarAcesso(id){
+  const rv=((A9.revs||{}).lista||[]).find(r=>r.id===id);if(!rv)return;
+  if(!rv.email){toast('Este revendedor está sem e-mail (é com ele que entra). Cadastre o e-mail em Editar.');return}
+  if(!rv.telefone){toast('Este revendedor está sem WhatsApp cadastrado.');return}
+  if(!confirm('Enviar o acesso para '+rv.nome+'?\n\nVai ser criada uma SENHA NOVA (a anterior deixa de valer) e o WhatsApp abre com o link e a senha.'))return;
+  const senha=gerarSenhaRev();
+  const r=await SB.rpc('admin_definir_senha_revendedor',{p_id:id,p_senha:senha});
+  if(r.error){toast('Não foi possível definir a senha: '+r.error.message);return}
+  waApp(foneWa(rv.telefone),revAcessoMsg(rv.nome,rv.email,senha));
+  toast('Senha nova criada e WhatsApp aberto.');
+}
 async function revSalvar(){
   if(A9.busy)return;
   const msg=document.getElementById('rvMsg');const erro=t=>{if(msg)msg.innerHTML='<span style="color:#d92d20">'+esc(t)+'</span>'};
@@ -7904,8 +8040,11 @@ async function revSalvar(){
   if(r.error){erro(/criar_revendedor|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 23_revendedor_do_cliente.sql no Supabase.':'Não foi possível salvar: '+r.error.message);return}
   const el=document.getElementById('rvbox');if(el)el.remove();
   if(r.data){try{await SB.from('revendedores').update({config:{preco_individual:true,clientes_ativo:true}}).eq('id',r.data)}catch(x){}}
-  if(sn&&r.data){const rs=await SB.rpc('admin_definir_senha_revendedor',{p_id:r.data,p_senha:sn});if(rs.error)toast('Revendedor criado, mas a senha não foi definida: '+rs.error.message)}
+  let senhaFinal=sn;if(!senhaFinal&&email)senhaFinal=gerarSenhaRev();
+  let senhaOk=false;
+  if(senhaFinal&&r.data){const rs=await SB.rpc('admin_definir_senha_revendedor',{p_id:r.data,p_senha:senhaFinal});if(rs.error)toast('Revendedor criado, mas a senha não foi definida: '+rs.error.message);else senhaOk=true}
   A9.revs=null;A9.cliRev=null;toast(nome+' agora é revendedor. Ele aparece em Revendedores e fica com ⭐ em Clientes.');route();
+  if(senhaOk)revAcessoModal({nome,email,fone,senha:senhaFinal});
 }
 /* na aba Revendedores: escolhe um cliente da base e abre o mesmo cadastro */
 function revAdicionar(){

@@ -327,8 +327,7 @@ async function carregarDados(){
       const p=(pr.data||[]).find(x=>x.id===v.produto_id);if(!p)return;
       if(cfg.produtos_visiveis&&cfg.produtos_visiveis.length&&!cfg.produtos_visiveis.includes(p.id))return;
       const preco=(v.preco==null||v.preco==='')?null:+v.preco;
-      if(INDIV){const r0=RPROD[v.id];if(!r0||!r0.h||r0.p==null)return} // preços individuais: só entra o que está habilitado e com preço
-      else if(preco==null&&PRECOS[v.id]==null&&BASE[v.id]==null)return; // sem valor definido, não entra no catálogo do revendedor
+      if(precoDeRev(v.id,preco)==null)return; // sem valor definido (tabela única, preço individual ou modelo antigo), não entra no catálogo
       PRODUTOS.push({id:v.id,produto_id:p.id,nome:p.nome+' — '+v.nome,nome_produto:p.nome,nome_var:v.nome,unidades:+v.unidades||1,preco,imagem:foto(p.imagem),estoque:+p.estoque||0,categoria:p.categoria,consulta:false,descricao:v.descricao||'',ordem_prod:(p.ordem==null?9999:+p.ordem),ordem_var:(v.ordem==null?9999:+v.ordem)});
     });
     // a linha de tirzepatida (e o que o Wesley colocar primeiro) vem antes; depois segue a ordem do cadastro
@@ -375,16 +374,22 @@ function msgAuth(txt,tipo){const m=$('#auth-msg');if(!m)return;m.textContent=txt
 function logout(){REV_USER=null;lsSet('session',null);lsSet('cart',[]);CART=[];PAGE='login';render()}
 
 /* ============================= CARRINHO ============================= */
-const temExclusivo=p=>INDIV||PRECOS[p.id]!=null;
+const temExclusivo=p=>!!(RPROD[p.id]&&RPROD[p.id].p!=null)||PRECOS[p.id]!=null;
 // preço de venda do revendedor; sem preço definido, usa o custo + margem do simulador
 function precoVenda(id,custo){const v=VENDA[id];return v!=null?v:custo*(1+MARGEM_PCT/100)}
-function precoRev(p){
-  if(INDIV){const r=RPROD[p.id];return r&&r.p!=null?r.p:0}
-  if(PRECOS[p.id]!=null)return PRECOS[p.id];
+/* Preço que ESTE revendedor paga, em ordem: desabilitado só para ele → some; preço individual (exceção); preço exclusivo antigo;
+   TABELA ÚNICA do Wesley (vale para todos, sem porcentagem); por último o modelo antigo com porcentagem (só para quem ainda não tem valor na tabela). */
+function precoDeRev(vid,loja){
+  const r=RPROD[vid];
+  if(r&&!r.h)return null;
+  if(r&&r.p!=null)return r.p;
+  if(PRECOS[vid]!=null)return PRECOS[vid];
+  if(BASE[vid]!=null)return BASE[vid];
+  if(INDIV)return null;
   const desc=(REV_USER&&REV_USER.desconto_pct)||0;
-  const base=BASE[p.id]!=null?BASE[p.id]:p.preco;
-  return Math.round((base||0)*(1-desc/100)*100)/100;
+  return loja==null?null:Math.round(loja*(1-desc/100)*100)/100;
 }
+function precoRev(p){const v=precoDeRev(p.id,p.preco);return v==null?0:v}
 function cartAdd(prod){
   const item=CART.find(i=>i.id===prod.id);
   if(item)item.qty++;
@@ -754,6 +759,16 @@ function outrosAdd(){
 }
 
 /* ============================= CLIENTES: detalhe, histórico e novo pedido ============================= */
+/* cancelar enquanto a ZP ainda não confirmou (status Novo); depois disso, o cancelamento é com o Wesley */
+async function cancelarPedidoRev(id){
+  const p=PEDIDOS.find(x=>x.id===id);if(!p)return;
+  if(p.status!=='novo'){alert('Este pedido já foi confirmado pela ZP Imports. Fale com o Wesley para cancelar.');return}
+  if(!confirm('Cancelar este pedido?\n\nEle sai da lista de pedidos da ZP Imports.'))return;
+  const r=await SB.from('pedidos_revendedor').update({status:'cancelado'}).eq('id',id).eq('revendedor_id',REV_USER.id).eq('status','novo').select('id');
+  if(r.error||!(r.data||[]).length){alert('Não foi possível cancelar: o pedido pode já ter sido confirmado. Fale com a ZP Imports.');await carregarDados();render();return}
+  await SB.from('consignado_movimentos').delete().eq('pedido_id',id).eq('tipo','saida');
+  await carregarDados();render();
+}
 function pedidoResumo(p){return (p.itens||[]).map(x=>x.qty+'x '+(x.outros?'Outros: ':'')+x.nome).join(', ')}
 function clienteDetalhe(id){
   const c=CLIENTES.find(x=>x.id===id);if(!c)return;
@@ -993,7 +1008,7 @@ function renderTabelaPedidos(list,ord){
       <td data-l="Total"><b>${brl(p.subtotal)}</b></td>
       <td data-l="Tipo"><span class="badge ${p.tipo_pagamento==='consignado'?'consignado':'comprador'}">${p.tipo_pagamento==='consignado'?'Consignado':'À vista'}</span></td>
       <td data-l="Status"><span class="badge ${ST_CLS[p.status]||'novo'}">${ST_LAB[p.status]||p.status}</span></td>
-      <td style="white-space:nowrap"><button class="btn ghost sm" onclick="verPedido('${p.id}')">Ver</button> <button class="btn ghost sm" onclick="repetirPedido('${p.id}')" title="Cria um novo pedido com os mesmos itens">Repetir</button></td>
+      <td style="white-space:nowrap"><button class="btn ghost sm" onclick="verPedido('${p.id}')">Ver</button> <button class="btn ghost sm" onclick="repetirPedido('${p.id}')" title="Cria um novo pedido com os mesmos itens">Repetir</button>${p.status==='novo'?` <button class="btn ghost sm" style="color:#b91c1c" onclick="cancelarPedidoRev('${p.id}')">Cancelar</button>`:''}</td>
     </tr>`).join('')}</tbody>
   </table>`;
 }
@@ -1017,7 +1032,7 @@ function verPedido(id){
     <tr><td colspan="2"><b>Seu custo</b></td><td class="r"><b>${brl(p.subtotal)}</b></td></tr>
     ${p.venda_total!=null?`<tr><td colspan="2">Venda estimada</td><td class="r">${brl(p.venda_total)}</td></tr><tr><td colspan="2">Lucro estimado</td><td class="r" style="color:var(--p)"><b>${brl(p.venda_total-p.subtotal)}</b></td></tr>`:''}</tbody></table>
     ${p.entrega?`<div class="note rev">📍 <b>Entrega para ${esc(p.entrega.nome)}</b><br>${esc(enderecoCli(p.entrega))}${p.entrega.telefone?'<br>📞 '+esc(p.entrega.telefone):''}</div>`:''}
-    <div style="margin-top:12px"><button class="btn ghost sm" onclick="waPedidoZP('${p.id}')" style="display:inline-flex;align-items:center;gap:6px">${WA_ICO} Falar com a ZP sobre este pedido</button></div>
+    <div style="margin-top:12px">${p.status==='novo'?`<button class="btn ghost sm" style="color:#b91c1c" onclick="closeModal();cancelarPedidoRev('${p.id}')">Cancelar este pedido</button> `:''}<button class="btn ghost sm" onclick="waPedidoZP('${p.id}')" style="display:inline-flex;align-items:center;gap:6px">${WA_ICO} Falar com a ZP sobre este pedido</button></div>
     ${cobrancaPedidoHtml(p)}
     <h4 style="margin:16px 0 6px">Acompanhamento</h4>
     <div class="tl">
