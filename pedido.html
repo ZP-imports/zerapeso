@@ -92,12 +92,13 @@ async function carregarCatalogo(){
   (vr.data||[]).forEach(v=>{
     const p=(pr.data||[]).find(x=>x.id===v.produto_id);if(!p)return;
     const loja=(v.preco==null||v.preco==='')?null:+v.preco;
-    let custo=null;
-    if(indiv){const r=RP[v.id];if(!r||!r.h||r.p==null)return;custo=r.p}
-    else{
-      if(PZ[v.id]!=null)custo=PZ[v.id];
-      else{const base=BS[v.id]!=null?BS[v.id]:loja;if(base==null)return;custo=Math.round(base*(1-desc/100)*100)/100}
-    }
+    let custo=null;const r0=RP[v.id];
+    if(r0&&!r0.h)return;                          // desabilitado só para este revendedor
+    if(r0&&r0.p!=null)custo=r0.p;                // preço individual (exceção)
+    else if(PZ[v.id]!=null)custo=PZ[v.id];       // preço exclusivo antigo
+    else if(BS[v.id]!=null)custo=BS[v.id];       // tabela única do Wesley (vale para todos)
+    else if(!indiv&&loja!=null)custo=Math.round(loja*(1-desc/100)*100)/100; // modelo antigo com porcentagem
+    if(custo==null)return;
     if(conf.length){const c=CF[v.id];if(!c||c.h===false)return}
     lista.push({id:v.id,produto_id:p.id,nome_produto:p.nome,nome_var:v.nome,descricao:v.descricao||'',imagem:foto(p.imagem),estoque:+p.estoque||0,loja,custo,venda:VD[v.id]!=null?VD[v.id]:null,
       ord_link:conf.length&&CF[v.id]&&CF[v.id].o!=null?+CF[v.id].o:null,ordem_prod:p.ordem==null?9999:+p.ordem,ordem_var:v.ordem==null?9999:+v.ordem});
