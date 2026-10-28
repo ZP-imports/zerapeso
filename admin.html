@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-28-2484 -->
+<!-- v2026-10-28-2485 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -630,6 +630,8 @@ var MSG_DEF={
   p:'Olá, {nome}! 😊\n\nPassando para lembrar que o seu pagamento combinado para o dia {data} está pendente.\n\nPedido: {pedido}\nValor desta parcela: {parcela}\n{pago}Falta pagar: {falta}\n\nPara realizar o pagamento, é só usar o link abaixo:\n{link}\n\nSe você já pagou, é só nos avisar por aqui. Obrigado! 🙏'},
  parcela_lembrete:{g:'adm',t:'Lembrete de parcela a vencer (carteira)',q:'Botão "Link de cobrança" na Carteira, quando a parcela ainda vai vencer.',v:['nome','pedido','data','parcela','pago','falta','total','link'],ex:{nome:'Natália',pedido:'ZP-000114',data:'10/11/2026',parcela:'R$ 800,00',pago:'R$ 200,00',falta:'R$ 800,00',total:'R$ 1.000,00',link:'https://link.mercadopago.com.br/...'},
   p:'Olá, {nome}! 😊\n\nLembrete: o seu pagamento está combinado para o dia {data}.\n\nPedido: {pedido}\nValor desta parcela: {parcela}\n{pago}Falta pagar: {falta}\n\nQuando chegar o dia, é só pagar pelo link abaixo:\n{link}\n\nQualquer dúvida, é só chamar. Obrigado! 🙏'},
+ devolucao:{g:'adm',t:'Devolução de pedido',q:'Abre ao clicar em Devolução de pedido, na aba Pagamentos.',v:['nome','pedido'],ex:{nome:'Natália',pedido:'ZP-000114'},
+  p:'Olá, {nome}! 😊\n\nVocê entrou em contato pedindo a devolução do seu pedido {pedido}. Nosso motoboy vai chegar aí em breve para retirar.\n\nQualquer dúvida, é só chamar. Obrigado! 🙏'},
  etiqueta:{g:'adm',t:'Etiqueta enviada ao cliente',q:'Mensagem que abre junto com o PDF da etiqueta (aba Etiquetas do pedido).',v:['nome','pedido','loja','data','turno'],ex:{nome:'Sirlene',pedido:'ZP-000114',loja:'ZP Imports',data:'17/10/2026',turno:'Tarde'},
   p:'Olá, {nome}! 😊\n\nRecebemos o seu pedido {pedido} na {loja}.\nData e horário solicitados: {data}, {turno}.'},
  s_pedido:{g:'site',t:'Pedido enviado pelo cliente à loja',q:'Mensagem que abre no WhatsApp quando o cliente finaliza o pedido no site.',v:['pedido','itens','valores','data','turno','pagamento','frete','endereco','cliente','obs','link'],ex:{pedido:'ZP-000114',itens:'1x TG Tirzepatida (Caixa) - A confirmar',valores:'',data:'17/10/2026',turno:'Tarde',pagamento:'Pix',frete:'R$ 15,00 (São José dos Campos), pago junto, na entrega',endereco:'Rua A, 10, Centro, São José dos Campos/SP',cliente:'Sirlene Souza (12) 9 9999-8888',obs:'',link:'https://zpimports.netlify.app/#/acompanhar/...'},
@@ -4340,7 +4342,7 @@ function admDetalhe(){
   <h3 style="margin-top:0">Cliente e entrega</h3>
   <p style="margin:0"><b>${esc(en.nome||'')}</b><br>${fone?`<a href="https://wa.me/${fone}" target="_blank" rel="noopener">${esc(en.fone)}</a>`:esc(en.fone||'')}</p>
   <p>${esc(d.rua||'')}, ${esc(d.num||'')}${d.comp?', '+esc(d.comp):''}<br>${esc(d.bairro||'')}<br>${esc(d.cidade||'')}/${esc(d.uf||'')}, CEP ${esc(d.cep||'')}${d.ref?'<br>Referência: '+esc(d.ref):''}${en.secundario?'<br><i>Endereço secundário informado pelo cliente</i>':''}</p>
-  ${['entregue','cancelado'].includes(o.status)?'':'<p style="margin:-6px 0 10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="admEndAbrir(\'atual\')">✏️ Editar endereço</button><button class="btn ghost sm" onclick="admEndAbrir(\'novo\')">➕ Novo endereço de entrega</button></p>'}
+  ${['entregue','cancelado'].includes(o.status)?'':'<p style="margin:-6px 0 10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="admEndAbrir(\'atual\')">✏️ Editar endereço</button><button class="btn ghost sm" onclick="neAbrir()" title="Vale só para este pedido. Não muda o cadastro do cliente.">➕ Novo endereço de entrega</button></p>'}
   <p style="margin:0">Entrega desejada: <b>${dataBr(en.data)} (${esc(TURNOS[en.turno]||'')})</b>${o.entregadorNome?'<br>Entregador: <b>'+esc(o.entregadorNome)+'</b>':''}<br>Forma de pagamento escolhida: <b>${esc(PAGNOME[pg.preferencia]||'não informada')}</b>${en.obs?'<br>Observação do cliente: '+esc(en.obs):''}</p>
   <h3>Itens</h3><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${(o.itens||[]).map(i=>`<tr><td>${esc(i.name)}<div style="color:var(--muted);font-size:.8rem">SKU ${esc(i.sku||'')}</div></td><td>${i.qty}</td><td class="r">${i.semPreco?'a confirmar':brl(i.unit*i.qty)}</td></tr>`).join('')}</tbody></table></div>
   <div class="tot"><span>Subtotal</span><span>${temSP(o)?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span>${o.desconto?`<span class="dsc">Desconto (${o.desconto.pct}%)</span><span class="dsc">- ${brl(o.desconto.valor)}</span>`:''}<span class="big">Total</span><span class="big">${totAdm(o)}</span></div>${freteHtmlAdm(o)}
@@ -5040,7 +5042,7 @@ function editHtml(o){
   <div id="addProdsLista" style="max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:6px">${admAddProdsHtml()}</div>
   ${Object.values(A9.addQ).some(q=>q>0)?`<div style="margin-top:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px"><b>Selecionados para adicionar:</b><ul style="margin:6px 0 0;padding-left:18px">${admAddSelecionados()}</ul></div>`:''}<div style="margin-top:8px;display:flex;gap:8px;align-items:center"><label for="addMot" style="margin:0;font-weight:600">Motivo</label><input id="addMot" placeholder="Ex.: cliente pediu para adicionar" style="flex:1"><button class="btn sm acc" onclick="admSalvaAddItens()">Adicionar ao pedido</button></div>
   </div>`:'<div class="note warn">Itens não podem ser adicionados depois que o pedido saiu para entrega.</div>'}
-  <h4 id="edEndTit">Endereço de entrega</h4><div class="btns" style="margin-bottom:8px"><button class="btn ghost sm" onclick="admEndModo('atual')">Endereço atual</button><button class="btn ghost sm" onclick="admEndModo('novo')">➕ Novo endereço</button>${en.principal&&en.principal.rua&&en.principal.rua!==d.rua?'<button class="btn ghost sm" onclick="admEndModo(\'principal\')">Usar o principal do cliente</button>':''}${en.secundario&&en.secundario.rua&&en.secundario.rua!==d.rua?'<button class="btn ghost sm" onclick="admEndModo(\'secundario\')">Usar o secundário</button>':''}</div><div class="fr"><div class="c2"><label for="edCep">CEP</label><input id="edCep" value="${esc(d.cep||'')}" oninput="cepAuto(this,{uf:'edUf',cidade:'edCid',bairro:'edBai',rua:'edRua',num:'edNum'})"></div><div class="c2"><label for="edUf">UF</label><input id="edUf" maxlength="2" value="${esc(d.uf||'')}"></div><div class="c2"><label for="edCid">Cidade</label><input id="edCid" value="${esc(d.cidade||'')}"></div><div class="c3"><label for="edBai">Bairro</label><input id="edBai" value="${esc(d.bairro||'')}"></div><div class="c4"><label for="edRua">Rua</label><input id="edRua" value="${esc(d.rua||'')}"></div><div class="c2"><label for="edNum">Número</label><input id="edNum" value="${esc(d.num||'')}"></div><div class="c2"><label for="edCom">Complemento</label><input id="edCom" value="${esc(d.comp||'')}"></div><div class="c3"><label for="edRef">Referência</label><input id="edRef" value="${esc(d.ref||'')}"></div></div>
+  <h4 id="edEndTit">Endereço de entrega</h4><div class="btns" style="margin-bottom:8px"><button class="btn ghost sm" onclick="admEndModo('atual')">Endereço atual</button>${en.principal&&en.principal.rua&&en.principal.rua!==d.rua?'<button class="btn ghost sm" onclick="admEndModo(\'principal\')">Usar o principal do cliente</button>':''}${en.secundario&&en.secundario.rua&&en.secundario.rua!==d.rua?'<button class="btn ghost sm" onclick="admEndModo(\'secundario\')">Usar o secundário</button>':''}</div><div class="fr"><div class="c2"><label for="edCep">CEP</label><input id="edCep" value="${esc(d.cep||'')}" oninput="cepAuto(this,{uf:'edUf',cidade:'edCid',bairro:'edBai',rua:'edRua',num:'edNum'})"></div><div class="c2"><label for="edUf">UF</label><input id="edUf" maxlength="2" value="${esc(d.uf||'')}"></div><div class="c2"><label for="edCid">Cidade</label><input id="edCid" value="${esc(d.cidade||'')}"></div><div class="c3"><label for="edBai">Bairro</label><input id="edBai" value="${esc(d.bairro||'')}"></div><div class="c4"><label for="edRua">Rua</label><input id="edRua" value="${esc(d.rua||'')}"></div><div class="c2"><label for="edNum">Número</label><input id="edNum" value="${esc(d.num||'')}"></div><div class="c2"><label for="edCom">Complemento</label><input id="edCom" value="${esc(d.comp||'')}"></div><div class="c3"><label for="edRef">Referência</label><input id="edRef" value="${esc(d.ref||'')}"></div></div>
   <label for="edObs">Observação para o entregador</label><input id="edObs" maxlength="300" value="${esc(en.obsEntregador||'')}">
   <label for="edM">Motivo (o cliente vê este texto)</label><input id="edM" maxlength="200" placeholder="Ex.: cliente corrigiu o número da casa"><p><button class="btn sm" onclick="admSalvaEndereco()">Salvar endereço</button></p>
   <p style="font-size:.82rem;color:var(--muted)">Depois de salvar, a etiqueta fica marcada como desatualizada: gere a versão nova.</p></details>`;
@@ -5076,6 +5078,54 @@ function admEndModo(modo){
 function admEndAbrir(modo){
   A9.editOpen=true;const d=document.querySelector('.editbox');if(d)d.open=true;
   admEndModo(modo);const t=document.getElementById('edEndTit');if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
+}
+/* ======================= NOVO ENDEREÇO SÓ DE ENTREGA (não mexe no cadastro do cliente) ======================= */
+function neAbrir(){
+  const o=A9.po;if(!o)return;const en=o.entrega||{};
+  const old=document.getElementById('nebox');if(old)old.remove();
+  const f=(id,l,c,ph)=>'<div class="'+c+'"><label for="'+id+'">'+l+'</label><input id="'+id+'" '+(ph||'')+'></div>';
+  const d=document.createElement('div');d.id='nebox';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px';
+  d.innerHTML='<div style="background:#fff;border-radius:16px;max-width:620px;width:100%;max-height:94vh;overflow:auto;padding:16px">'
+   +'<h3 style="margin:0 0 4px">Novo endereço de entrega</h3><p style="margin:0 0 10px;color:#667085;font-size:.88rem">'+esc(codPed(o))+' · '+esc(en.nome||'')+'. Vale só para este pedido: o endereço cadastrado do cliente não muda.</p>'
+   +'<div class="fr">'+f('neCep','CEP','c2','oninput="cepAuto(this,{uf:\'neUf\',cidade:\'neCid\',bairro:\'neBai\',rua:\'neRua\',num:\'neNum\'})"')+f('neUf','UF','c2','maxlength="2"')+f('neCid','Cidade','c2')+f('neBai','Bairro','c3')+f('neRua','Rua','c4')+f('neNum','Número','c2')+f('neCom','Complemento','c2')+f('neRef','Referência','c3')+'</div>'
+   +'<label for="neObs">Observação para o entregador</label><input id="neObs" maxlength="300" value="'+esc(en.obsEntregador||'')+'">'
+   +'<div class="btns" style="margin-top:12px"><button class="btn acc" onclick="neSalvar()">Usar nesta entrega</button><button class="btn ghost" onclick="document.getElementById(\'nebox\').remove()">Fechar</button></div></div>';
+  document.body.appendChild(d);const c=document.getElementById('neCep');if(c)c.focus();
+}
+function neSalvar(){
+  const o=A9.po;if(!o)return;
+  const dest={cep:v_('neCep').trim(),uf:v_('neUf').trim(),cidade:v_('neCid').trim(),bairro:v_('neBai').trim(),rua:v_('neRua').trim(),num:v_('neNum').trim(),comp:v_('neCom').trim(),ref:v_('neRef').trim()};
+  if(!dest.rua||!dest.num||!dest.cidade){toast('Preencha pelo menos rua, número e cidade.');return}
+  const obs=v_('neObs').trim();const b=document.getElementById('nebox');if(b)b.remove();
+  admRpc('editar_endereco_pedido',{p_pedido:o.id,p_dest:dest,p_obs_entregador:obs,p_motivo:'Novo endereço de entrega informado para este pedido'},'Novo endereço de entrega salvo só neste pedido. O cadastro do cliente não mudou.');
+}
+
+/* ======================= DEVOLUÇÃO DE PEDIDO (Pagamentos): avisa o cliente e cancela o pedido ======================= */
+function devAbrir(id){
+  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
+  const fw=foneWa((o.entrega||{}).fone);
+  const nome=String((o.entrega||{}).nome||'').split(' ')[0]||'cliente';
+  const txt=nl(msgTxt('devolucao',{nome,pedido:codPed(o)}));
+  A9.dev={id,fw};
+  const old=document.getElementById('devbox');if(old)old.remove();
+  const d=document.createElement('div');d.id='devbox';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px';
+  d.innerHTML='<div style="background:#fff;border-radius:16px;max-width:540px;width:100%;max-height:94vh;overflow:auto;padding:16px">'
+   +'<h3 style="margin:0 0 4px">Devolução de pedido</h3><p style="margin:0 0 10px;color:#667085;font-size:.88rem">'+esc(codPed(o))+' · '+esc((o.entrega||{}).nome||'')+'. Ao confirmar, o pedido vai para <b>cancelados</b>, o estoque volta e a mensagem abaixo abre no WhatsApp.</p>'
+   +(fw?'':'<div class="note warn">Este pedido está sem telefone válido: o pedido será cancelado, mas nenhuma mensagem será aberta.</div>')
+   +'<label for="devTxt" style="font-size:.85rem">Mensagem para o cliente (você pode editar)</label><textarea id="devTxt" rows="8" style="width:100%">'+esc(txt)+'</textarea>'
+   +'<div class="btns" style="margin-top:10px"><button class="btn acc" onclick="devConfirmar()">Enviar e cancelar o pedido</button><button class="btn ghost" onclick="devFechar()">Fechar</button></div></div>';
+  document.body.appendChild(d);
+}
+function devFechar(){const d=document.getElementById('devbox');if(d)d.remove();A9.dev=null}
+async function devConfirmar(){
+  const p=A9.dev;if(!p||A9.busy)return;
+  const t=(document.getElementById('devTxt')||{}).value||'';
+  if(p.fw&&t.trim())waAbrir(p.fw,t);
+  devFechar();A9.busy=true;
+  const r=await SB.rpc('devolver_pedido',{p_pedido:p.id,p_motivo:'Devolução do pedido a pedido do cliente'});
+  A9.busy=false;
+  if(r.error){A9.msg=/devolver_pedido|function|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 32 no Supabase para liberar a devolução de pedido.':msgRpc(r.error);A9.erro=true;route();return}
+  A9.pedidos=null;A9.msg='Devolução registrada: o pedido foi para cancelados e o estoque voltou.';A9.erro=false;route();
 }
 function admSalvaEndereco(){
   const dest={cep:v_('edCep').trim(),uf:v_('edUf').trim(),cidade:v_('edCid').trim(),bairro:v_('edBai').trim(),rua:v_('edRua').trim(),num:v_('edNum').trim(),comp:v_('edCom').trim(),ref:v_('edRef').trim()};
@@ -5824,7 +5874,7 @@ function tabPagamentos(){
    const tabParc=ps.length?'<table class="pgpt">'+ps.map((p,i)=>'<tr><td><b>'+(p.entrada?'Entrada':ps.length===1?'1ª':(i+1-(ps[0].entrada?1:0))+'ª')+'</b></td><td>'+dataBc(p.data)+'</td><td>'+(p.valor?esc(brl(p.valor)):'')+'</td><td>'+(p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':'<span class="parc-chip parc-pend">pendente</span>')+'</td><td>'+(p.pago?'<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar('+o.id+','+i+',false)" title="Volta o valor para a parcela, como se não tivesse sido pago">↩ desfazer</button>'+(p.parcial?' <button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevCorrigir('+o.id+','+i+')" title="Desfaz e já abre para lançar o valor certo">✏️ corrigir valor</button>':''):'<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar('+o.id+','+i+',true)">Marcar pago</button> <button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevParcial('+o.id+','+i+')">Pagou parte</button>')+'</td></tr>').join('')+'</table>':'';
    const detalhe='<details class="pgdet"'+((A9.pagAb&&A9.pagAb[o.id])?' open':'')+' ontoggle="pagAb('+o.id+',this.open)"><summary>Pagamento e histórico</summary><div class="pgbox">'+
      '<div class="pgsub"><b>Forma de pagamento:</b> '+(forma?esc(forma):'não informada')+'</div>'+pagUnidosHtml(o)+tabParc+
-     '<div class="pgbtns">'+(pg?'<button class="btn ghost sm" onclick="pagMarcar('+o.id+',false)">Voltar para pendente</button>':'<button class="btn sm bs-ok" onclick="pagMarcar('+o.id+',true)">Marcar pago total</button><button class="btn ghost sm" onclick="pagProg('+o.id+')">'+(ps.length?'Reprogramar':'Programar')+'</button>'+(o._rev?'':'<button class="btn ghost sm" onclick="pagUnirAbrir('+o.id+')" title="Soma outra compra dele nesta cobrança">🔗 Unir cobrança</button>'))+'<button class="btn ghost sm" onclick="pagHist('+o.id+')">📜 Histórico</button></div>'+
+     '<div class="pgbtns">'+(pg?'<button class="btn ghost sm" onclick="pagMarcar('+o.id+',false)">Voltar para pendente</button>':'<button class="btn sm bs-ok" onclick="pagMarcar('+o.id+',true)">Marcar pago total</button><button class="btn ghost sm" onclick="pagProg('+o.id+')">'+(ps.length?'Reprogramar':'Programar')+'</button>'+(o._rev?'':'<button class="btn ghost sm" onclick="pagUnirAbrir('+o.id+')" title="Soma outra compra dele nesta cobrança">🔗 Unir cobrança</button>'))+'<button class="btn ghost sm" onclick="pagHist('+o.id+')">📜 Histórico</button>'+((o._rev||o.id<0||o.status==='cancelado')?'':'<button class="btn ghost sm" style="opacity:.65" onclick="devAbrir('+o.id+')" title="O cliente pediu para devolver o pedido">↩ Devolução de pedido</button>')+'</div>'+
      '<div id="pghist'+o.id+'"'+((A9.pagHistH&&A9.pagHistH[o.id])?' data-open="1">'+A9.pagHistH[o.id]:'>')+'</div></div></details>';
    const valor=sp?'A confirmar':(isCarteira&&semVal(o))?'<span style="color:#d92d20">Sem valor</span>':brl(total(o));
    const venTxt=temPrev(o)?(()=>{const p=prevProxima(o);return p?dataBc(p.data):''})():dataBr(dataRef(o));
