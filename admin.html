@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-28-2482 -->
+<!-- v2026-10-28-2483 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -626,6 +626,10 @@ var MSG_DEF={
   p:'Olá, {nome}! 😊\n\nSegue o link para pagamento do pedido {pedido}:\n{link}\n\nValor dos produtos: {valor}\nFrete: {frete}\nTotal a pagar: {total}\n\nForma escolhida: {forma}.\nSe houver campo de descrição, informe o código {pedido}. 🙏'},
  pagamento_entregue:{g:'adm',t:'Cobrança depois da entrega',q:'Botão "Enviar link de pagamento" na aba Pagamentos, para pedidos já entregues. Inclui o frete combinado.',v:['nome','pedido','valor','frete','total','forma','link'],ex:{nome:'Sirlene',pedido:'ZP-000114',valor:'R$ 350,00',frete:'R$ 15,00 (São José dos Campos)',total:'R$ 365,00',forma:'Pix',link:'https://link.mercadopago.com.br/...'},
   p:'Olá, {nome}! 💚\n\nO seu pedido {pedido} chegou com segurança! 📦✅\nObrigado pela confiança! 🙏\n\nPara finalizar, é só pagar pelo link abaixo:\n{link}\n\nValor dos produtos: {valor}\nFrete combinado: {frete}\nTotal a pagar: {total}\n\nForma escolhida: {forma}.\nSe houver campo de descrição, informe o código {pedido}. 😊'},
+ parcela_vencida:{g:'adm',t:'Cobrança de parcela vencida (carteira)',q:'Botão "Link de cobrança" na Carteira, quando a parcela já passou da data combinada.',v:['nome','pedido','data','parcela','pago','falta','total','link'],ex:{nome:'Natália',pedido:'ZP-000114',data:'10/10/2026',parcela:'R$ 800,00',pago:'R$ 200,00',falta:'R$ 800,00',total:'R$ 1.000,00',link:'https://link.mercadopago.com.br/...'},
+  p:'Olá, {nome}! 😊\n\nPassando para lembrar que o seu pagamento combinado para o dia {data} está pendente.\n\nPedido: {pedido}\nValor desta parcela: {parcela}\n{pago}Falta pagar: {falta}\n\nPara realizar o pagamento, é só usar o link abaixo:\n{link}\n\nSe você já pagou, é só nos avisar por aqui. Obrigado! 🙏'},
+ parcela_lembrete:{g:'adm',t:'Lembrete de parcela a vencer (carteira)',q:'Botão "Link de cobrança" na Carteira, quando a parcela ainda vai vencer.',v:['nome','pedido','data','parcela','pago','falta','total','link'],ex:{nome:'Natália',pedido:'ZP-000114',data:'10/11/2026',parcela:'R$ 800,00',pago:'R$ 200,00',falta:'R$ 800,00',total:'R$ 1.000,00',link:'https://link.mercadopago.com.br/...'},
+  p:'Olá, {nome}! 😊\n\nLembrete: o seu pagamento está combinado para o dia {data}.\n\nPedido: {pedido}\nValor desta parcela: {parcela}\n{pago}Falta pagar: {falta}\n\nQuando chegar o dia, é só pagar pelo link abaixo:\n{link}\n\nQualquer dúvida, é só chamar. Obrigado! 🙏'},
  etiqueta:{g:'adm',t:'Etiqueta enviada ao cliente',q:'Mensagem que abre junto com o PDF da etiqueta (aba Etiquetas do pedido).',v:['nome','pedido','loja','data','turno'],ex:{nome:'Sirlene',pedido:'ZP-000114',loja:'ZP Imports',data:'17/10/2026',turno:'Tarde'},
   p:'Olá, {nome}! 😊\n\nRecebemos o seu pedido {pedido} na {loja}.\nData e horário solicitados: {data}, {turno}.'},
  s_pedido:{g:'site',t:'Pedido enviado pelo cliente à loja',q:'Mensagem que abre no WhatsApp quando o cliente finaliza o pedido no site.',v:['pedido','itens','valores','data','turno','pagamento','frete','endereco','cliente','obs','link'],ex:{pedido:'ZP-000114',itens:'1x TG Tirzepatida (Caixa) - A confirmar',valores:'',data:'17/10/2026',turno:'Tarde',pagamento:'Pix',frete:'R$ 15,00 (São José dos Campos), pago junto, na entrega',endereco:'Rua A, 10, Centro, São José dos Campos/SP',cliente:'Sirlene Souza (12) 9 9999-8888',obs:'',link:'https://zpimports.netlify.app/#/acompanhar/...'},
@@ -5749,6 +5753,16 @@ function pagVars(o){
   return {nome:nome||'cliente',pedido:codPed(o),valor:brl(base),frete:brl(fr)+(cidade?' ('+freteNome(cidade)+')':''),total:brl(+(base+fr).toFixed(2)),link:A9.link,forma:(PAGNOME[(o.pagamento||{}).preferencia]||'a combinar')};
 }
 function admMsgPagamento(o){return nl(msgTxt(o.status==='entregue'?'pagamento_entregue':'pagamento',pagVars(o)))}
+/* carteira / pré-datado: mensagem conforme a situação da parcela (vencida, a vencer) com o que já foi pago e o que falta */
+function pagTipoAuto(o){const p=prevProxima(o);if(!p||!(o.extra||{}).pag_prev)return 'normal';return prevVencida(o)?'vencida':'lembrete'}
+function admMsgParcela(o,tipo){
+  const p=prevProxima(o);if(!p||tipo==='normal')return admMsgPagamento(o);
+  const tot=totalPag(o),falta=prevRestante(o,tot),pago=Math.max(0,Math.round((tot-falta)*100)/100);
+  const abertas=prevParcelas(o).filter(x=>!x.pago).length||1;
+  const parc=+p.valor>0?+p.valor:Math.round(falta/abertas*100)/100;
+  const v=Object.assign(pagVars(o),{data:dataBc(p.data),parcela:brl(parc),pago:pago>0?'Já pago: '+brl(pago)+'\n':'',falta:brl(falta),total:brl(tot)});
+  return nl(msgTxt(tipo==='vencida'?'parcela_vencida':'parcela_lembrete',v));
+}
 
 /* aba Pagamentos: cobrar depois da entrega */
 function tabPagamentos(){
@@ -6723,17 +6737,19 @@ async function pagPrevia(id){
   if(!A9.link&&typeof CFG!=='undefined'&&CFG.linkPag)A9.link=CFG.linkPag;
   if(!A9.link){toast('Cadastre o link de pagamento na aba Site ou em Configurações.');return}
   const fw=foneWa((o.entrega||{}).fone);if(!fw){toast('Este pedido está sem telefone válido.');return}
-  const base=admMsgPagamento(o);
+  const tp=pagTipoAuto(o);const base=tp==='normal'?admMsgPagamento(o):admMsgParcela(o,tp);
   A9.pv={id,fw,base,aberto:false};
   const old=document.getElementById('pvbox');if(old)old.remove();
   const d=document.createElement('div');d.id='pvbox';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px';
   d.innerHTML='<div style="background:#fff;border-radius:16px;max-width:540px;width:100%;max-height:94vh;overflow:auto;padding:16px">'
    +'<h3 style="margin:0 0 4px">Enviar link de pagamento</h3><p style="margin:0 0 10px;color:#667085;font-size:.88rem">'+esc(codPed(o))+' · '+esc((o.entrega||{}).nome||'')+'</p>'
+   +(tp==='normal'?'':'<label for="pvTipo" style="font-size:.85rem">Tipo de mensagem</label><select id="pvTipo" onchange="pvTipo(\''+id+'\')" style="width:100%;margin-bottom:8px"><option value="vencida"'+(tp==='vencida'?' selected':'')+'>Cobrança de parcela vencida</option><option value="lembrete"'+(tp==='lembrete'?' selected':'')+'>Lembrete de parcela a vencer</option><option value="normal">Cobrança comum (link de pagamento)</option></select>')
    +'<label for="pvTxt" style="font-size:.85rem">Mensagem (você pode editar)</label><textarea id="pvTxt" rows="12" style="width:100%">'+esc(base)+'</textarea>'
    +'<div class="btns" style="margin-top:10px"><button class="btn wa" onclick="pvEnviar()">Abrir no WhatsApp</button><button class="btn ghost" onclick="pvFechar()">Fechar</button></div>'
    +'<p id="pvDica" style="margin:8px 0 0;color:#667085;font-size:.8rem"></p></div>';
   document.body.appendChild(d);
 }
+function pvTipo(id){const o=(A9.pedidos||[]).find(x=>x.id===+id);if(!o)return;const t=document.getElementById('pvTxt'),s=document.getElementById('pvTipo');if(t&&s)t.value=admMsgParcela(o,s.value)}
 function pvFechar(){const d=document.getElementById('pvbox');if(d)d.remove();A9.pv=null;route()}
 function pvEnviar(){
   const p=A9.pv;if(!p)return;const t=document.getElementById('pvTxt').value;
