@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-26-2481 -->
+<!-- v2026-10-28-2482 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -6140,8 +6140,30 @@ function rotaHtmlG(r){const L=A9.lg;
 const en=L.ent.find(x=>x.id===r.entregador_id)||{nome:'?',whats:''};const ps=r.pedidos.map(id=>L.peds[id]).filter(Boolean);
     const fim=ps.length&&ps.every(o=>ENC(o));const uber=ehUber(en);const fw=uber?'':foneWa(en.whats);
     const cr=corEnt(r.entregador_id);return `<div class="box" style="box-shadow:none;background:#fafafa;margin-top:12px;border-left:8px solid ${cr}"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div><b>Rota ${r.n}</b> · ${dataBr(r.data)} · <span class="entdot" style="background:${cr}"></span><b style="color:${cr}">${esc(en.nome)}</b><div style="color:var(--muted);font-size:.82rem">${r.saiu_em?'Saiu em '+fmtD(Date.parse(r.saiu_em)):'Ainda não saiu'}${fim?' · Concluída':''}</div></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">${!fim?`<button class="btn wa sm" onclick="avAbrir('${r.id}')">Avisar clientes</button>`:''}${fw&&!fim?`<a class="btn wa sm" href="${waUrlPara(fw,msgRota(r))}" target="_blank" rel="noopener" onclick="admEnviouRota('${r.id}')">Enviar rota ao entregador</a>`:''}${!r.saiu_em?`<button class="btn acc sm" onclick="admSaiuRota('${r.id}')">Saiu para entrega</button>`:''}${!fim?`<button class="btn ghost sm" onclick="entCopiarLink('${r.id}')">Copiar link do entregador</button><button class="btn ghost sm" onclick="rotaCopiar('${r.id}')">Copiar mensagem da rota</button>`:''}${!r.saiu_em?`<button class="btn ghost sm" onclick="admDesfazRota('${r.id}')">Desfazer rota</button>`:''}${ADMIN.papel==='admin'?`<button class="btn ghost sm danger" onclick="rotaExcluir('${r.id}')">Excluir rota</button>`:''}</div></div>
-    <div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Endereço</th><th>Horário</th><th>Situação</th><th></th></tr></thead><tbody>${ps.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td style="box-shadow:inset 5px 0 0 ${cr}"><b>${codPed(o)}</b></td><td>${esc(e.nome||'')}${e.fone?`<div style="color:var(--muted);font-size:.8rem">${esc(e.fone)}</div>`:''}</td><td>${esc((d.rua||'')+', '+(d.num||'')+' - '+(d.bairro||'')+', '+(d.cidade||''))}</td><td>${esc(TURNOS[e.turno]||'')}</td><td>${esc(ADM_LB[o.status]||STLB[o.status]||o.status)}${o.chegou_em?'<div style="color:var(--muted);font-size:.78rem">Chegou às '+horaBr(o.chegou_em)+'</div>':''}</td><td style="white-space:nowrap">${uber&&!['entregue','cancelado'].includes(o.status)?`<a class="btn wa sm" href="${uberUrl(o)}" target="_blank" rel="noopener">🚗 Chamar Uber</a> `:''}${['em-rota','tentativa'].includes(o.status)?`<button class="btn sm" onclick="admResultado(${o.id},'entregue')">Entregue</button> `:''}${o.status==='em-rota'?`<button class="btn ghost sm" onclick="admResultado(${o.id},'tentativa')">Tentativa</button> `:''}${o.status==='tentativa'?`<button class="btn ghost sm" onclick="admVoltarRota(${o.id},'em-rota')">Voltar p/ em rota</button> <button class="btn ghost sm" onclick="admVoltarRota(${o.id},'confirmado')">Voltar p/ confirmado</button> `:''}${!['entregue','cancelado'].includes(o.status)?`<button class="btn ghost sm" onclick="admTirarRota(${o.id})">Tirar da rota</button> `:''}${o.chegou_em?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">Ver foto</button> `:''}<button class="btn ghost sm" onclick="A9.po=null;A.tab='pedidos';admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div>${A9.av&&A9.av.rota===r.id?avPanel(r,ps):''}</div>`
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${!fim?`<button class="btn wa sm" onclick="avAbrir('${r.id}')">Avisar clientes</button>`:''}${fw&&!fim?`<a class="btn wa sm" href="${waUrlPara(fw,msgRota(r))}" target="_blank" rel="noopener" onclick="admEnviouRota('${r.id}')">Enviar rota ao entregador</a>`:''}${!r.saiu_em?`<button class="btn acc sm" onclick="admSaiuRota('${r.id}')">Saiu para entrega</button>`:''}${!fim?`<button class="btn ghost sm" onclick="entCopiarLink('${r.id}')">Copiar link do entregador</button><button class="btn ghost sm" onclick="rotaCopiar('${r.id}')">Copiar mensagem da rota</button>`:''}${!fim?`<button class="btn ghost sm" onclick="rotaTrfAbrir('${r.id}')">Passar para outro entregador</button>`:''}${!r.saiu_em?`<button class="btn ghost sm" onclick="admDesfazRota('${r.id}')">Desfazer rota</button>`:''}${ADMIN.papel==='admin'?`<button class="btn ghost sm danger" onclick="rotaExcluir('${r.id}')">Excluir rota</button>`:''}</div></div>
+    ${A9.trf===r.id?rotaTrfHtml(r):''}<div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Endereço</th><th>Horário</th><th>Situação</th><th></th></tr></thead><tbody>${ps.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td style="box-shadow:inset 5px 0 0 ${cr}"><b>${codPed(o)}</b></td><td>${esc(e.nome||'')}${e.fone?`<div style="color:var(--muted);font-size:.8rem">${esc(e.fone)}</div>`:''}</td><td>${esc((d.rua||'')+', '+(d.num||'')+' - '+(d.bairro||'')+', '+(d.cidade||''))}</td><td>${esc(TURNOS[e.turno]||'')}</td><td>${esc(ADM_LB[o.status]||STLB[o.status]||o.status)}${o.chegou_em?'<div style="color:var(--muted);font-size:.78rem">Chegou às '+horaBr(o.chegou_em)+'</div>':''}</td><td style="white-space:nowrap">${uber&&!['entregue','cancelado'].includes(o.status)?`<a class="btn wa sm" href="${uberUrl(o)}" target="_blank" rel="noopener">🚗 Chamar Uber</a> `:''}${['em-rota','tentativa'].includes(o.status)?`<button class="btn sm" onclick="admResultado(${o.id},'entregue')">Entregue</button> `:''}${o.status==='em-rota'?`<button class="btn ghost sm" onclick="admResultado(${o.id},'tentativa')">Tentativa</button> `:''}${o.status==='tentativa'?`<button class="btn ghost sm" onclick="admVoltarRota(${o.id},'em-rota')">Voltar p/ em rota</button> <button class="btn ghost sm" onclick="admVoltarRota(${o.id},'confirmado')">Voltar p/ confirmado</button> `:''}${!['entregue','cancelado'].includes(o.status)?`<button class="btn ghost sm" onclick="admTirarRota(${o.id})">Tirar da rota</button> `:''}${o.chegou_em?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">Ver foto</button> `:''}<button class="btn ghost sm" onclick="A9.po=null;A.tab='pedidos';admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div>${A9.av&&A9.av.rota===r.id?avPanel(r,ps):''}</div>`
+}
+A9.trf=null;
+function rotaTrfAbrir(rid){A9.trf=A9.trf===rid?null:rid;route()}
+function rotaTrfHtml(r){
+  const L=A9.lg,ops=L.ent.filter(x=>x.ativo&&x.id!==r.entregador_id);
+  if(!ops.length)return '<div class="note" style="margin-top:10px">Não há outro entregador ativo. Cadastre ou ative um em Entregadores.</div>';
+  return `<div style="margin-top:10px;padding:10px;border:1px dashed var(--line);border-radius:10px"><label for="rtTrfE" style="font-size:.85rem"><b>Passar esta rota (com a mesma ordem das paradas) para:</b></label><div class="btns" style="margin-top:6px"><select id="rtTrfE" style="max-width:260px">${ops.map(x=>`<option value="${x.id}">${esc(x.nome)}</option>`).join('')}</select><button class="btn acc sm" onclick="rotaTrfOk('${r.id}')">Passar rota</button><button class="btn ghost sm" onclick="rotaTrfAbrir('${r.id}')">Cancelar</button></div></div>`;
+}
+async function rotaTrfOk(rid){
+  if(A9.busy)return;
+  const L=A9.lg,r=L.rotas.find(x=>x.id===rid),en=v_('rtTrfE'),novo=L.ent.find(x=>x.id===en),velho=L.ent.find(x=>x.id===(r||{}).entregador_id)||{nome:'o entregador atual'};
+  if(!r||!novo)return;
+  if(!confirm('Passar a Rota '+r.n+' de '+velho.nome+' para '+novo.nome+'?\n\nAs paradas e a ordem continuam as mesmas. O link antigo deixa de funcionar e você envia a rota ao novo entregador.'))return;
+  A9.busy=true;
+  const up={entregador_id:en,enviada_em:null};if(r.token&&window.crypto&&crypto.randomUUID)up.token=crypto.randomUUID();
+  let x=await SB.from('rotas').update(up).eq('id',rid);
+  if(x.error&&up.token){delete up.token;x=await SB.from('rotas').update(up).eq('id',rid)}
+  if(!x.error&&r.pedidos.length)x=await SB.from('pedidos').update({entregador_id:en}).in('id',r.pedidos);
+  A9.busy=false;
+  if(x.error){A9.msg=msgRpc(x.error);A9.erro=true;route();return}
+  A9.trf=null;A9.lg=null;A9.pedidos=null;A9.otim=null;A9.entSel={};A9.entSel[en]=true;
+  A9.msg='Rota '+r.n+' passada para '+novo.nome+'. Agora clique em "Enviar rota ao entregador" para mandar a ele.';A9.erro=false;route();
 }
 async function rotaExcluir(rid){
   if(!confirm('Excluir esta rota?\n\nOs pedidos que ainda não foram entregues voltam para a fila da Logística. Pedidos já entregues continuam entregues.'))return;
@@ -6416,7 +6438,11 @@ function otAbrir(eid,quiet){
   const rs=L.rotas.filter(r=>r.entregador_id===eid).filter(r=>!r.pedidos.map(i=>L.peds[i]).filter(Boolean).every(ENC)).sort((a,b)=>a.n-b.n);
   const ids=[];rs.forEach(r=>r.pedidos.forEach(id=>{const o=L.peds[id];if(o&&!ENC(o)&&!ids.includes(id))ids.push(id)}));
   A9.otim={ent:eid,ids,drag:-1,salvo:false};if(!quiet)route();
+  const feitas=otFeitas();
+  if(ids.length>1&&rs.some(r=>!feitas[r.id]))setTimeout(()=>{if(A9.otim&&A9.otim.ent===eid&&!A9.otim.calc)otSugerir()},80);
 }
+function otFeitas(){try{return JSON.parse(localStorage.getItem('zp_otim')||'{}')}catch(x){return{}}}
+function otMarca(ids){const f=otFeitas();ids.forEach(i=>{f[i]=1});try{localStorage.setItem('zp_otim',JSON.stringify(f))}catch(x){}}
 function otFechar(){A9.otim=null;route()}
 function otPs(){const T=A9.otim,L=A9.lg;return T.ids.map(id=>L.peds[id]).filter(Boolean)}
 function mapsTrecho(lista,origem){
@@ -6475,6 +6501,7 @@ async function otSalvar(quiet){
     if(!Object.keys(up).length)continue;
     const x=await SB.from('rotas').update(up).eq('id',r.id);if(x.error)erro++;else if(mudou)r.pedidos=novo;
   }
+  if(!erro)otMarca(rs.map(r=>r.id));
   T.salvo=!erro;otRef();
   toast(erro?'Não foi possível salvar a ordem de '+erro+' rota(s).':'Ordem da rota salva.');
 }
@@ -6497,6 +6524,11 @@ function geoCache(){try{return JSON.parse(localStorage.getItem('zp_geo')||'{}')}
 function geoSalva(c){try{localStorage.setItem('zp_geo',JSON.stringify(c))}catch(x){}}
 var geoUlt=0;
 async function geoBusca(q){
+  if(q.indexOf('cep:')===0){
+    const r=await fetch('https://cep.awesomeapi.com.br/json/'+q.slice(4));
+    if(r.status===404)return null;if(!r.ok)throw new Error('geo');
+    const j=await r.json();return j&&+j.lat&&+j.lng?{lat:+j.lat,lon:+j.lng}:null;
+  }
   const espera=geoUlt+1150-Date.now();if(espera>0)await new Promise(r=>setTimeout(r,espera));geoUlt=Date.now();
   const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q='+encodeURIComponent(q));
   if(!r.ok)throw new Error('geo');const j=await r.json();return j[0]?{lat:+j[0].lat,lon:+j[0].lon}:null;
@@ -6512,7 +6544,17 @@ async function geoTexto(tentativas){
   return null;
 }
 function geoDest(d){d=d||{};const j=a=>a.filter(Boolean).join(', ');
-  return [j([d.rua,d.num,d.bairro,d.cidade,d.uf,'Brasil']),j([d.rua,d.bairro,d.cidade,d.uf,'Brasil']),j([d.bairro,d.cidade,d.uf,'Brasil']),j([d.cep,'Brasil']),j([d.cidade,d.uf,'Brasil'])]}
+  const cep=String(d.cep||'').replace(/\D/g,'');
+  return [j([d.rua,d.num,d.bairro,d.cidade,d.uf,'Brasil']),j([d.rua,d.bairro,d.cidade,d.uf,'Brasil']),cep.length===8?'cep:'+cep:'',j([d.bairro,d.cidade,d.uf,'Brasil']),j([d.cidade,d.uf,'Brasil'])]}
+/* local de saída (endereço cadastrado da loja): rua, CEP e cidade em várias tentativas */
+function geoSaidaTent(txt){
+  const flat=String(txt||'').replace(/\s*\n\s*/g,', ').replace(/\s+/g,' ').trim();
+  const cep=(flat.match(/\b(\d{5})-?(\d{3})\b/)||[]).slice(1,3).join('');
+  const m=flat.match(/,\s*([^,\-]+?)\s*-\s*(?:BR-)?([A-Za-z]{2})\b/);
+  const rua=flat.split(',').slice(0,2).join(',').replace(/\bloja\b.*$/i,'').replace(/[,\s]+$/,'');
+  const cid=m?m[1].trim()+', '+m[2].toUpperCase()+', Brasil':'';
+  return [rua&&cid?rua+', '+cid:'',cep.length===8?'cep:'+cep:'',flat.replace(/\bBR-/i,'')+', Brasil',cid,flat];
+}
 function geoKm(a,b){const R=6371,t=x=>x*Math.PI/180,dl=t(b.lat-a.lat),dn=t(b.lon-a.lon);const h=Math.sin(dl/2)**2+Math.cos(t(a.lat))*Math.cos(t(b.lat))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
 /* vizinho mais próximo a partir do local de saída, depois melhora trocando trechos (2-opt) */
 function geoOrdem(ini,pts){
@@ -6528,7 +6570,7 @@ function geoOrdem(ini,pts){
 }
 /* items: [{id,dest}] ; devolve os ids na ordem da rota (quem não for localizado vai no fim, por CEP) */
 async function geoOrdenar(items,saidaTxt,prog){
-  const ini=await geoTexto([saidaTxt+', Brasil',saidaTxt]);
+  const ini=await geoTexto(geoSaidaTent(saidaTxt));
   if(!ini)throw new Error('saida');
   const ok=[],sem=[];let k=0;
   for(const it of items){
@@ -6539,7 +6581,7 @@ async function geoOrdenar(items,saidaTxt,prog){
   sem.sort((a,b)=>String((a.dest||{}).cep).localeCompare(String((b.dest||{}).cep))).forEach(x=>ord.push(x.id));
   return ord;
 }
-function saidaPadrao(){let s='';try{s=localStorage.getItem('zp_saida')||''}catch(x){}return s||(typeof LBL!=='undefined'&&LBL.remEnd)||'Jacareí, SP'}
+function saidaPadrao(){let s='';try{s=localStorage.getItem('zp_saida')||''}catch(x){}return (s||(typeof LBL!=='undefined'&&LBL.remEnd)||'Jacareí, SP').replace(/\s*\n\s*/g,', ')}
 async function otSugerir(){
   const T=A9.otim,L=A9.lg;if(!T||T.calc)return;
   T.saida=(v_('otSaida')||T.saida||saidaPadrao()).trim();try{localStorage.setItem('zp_saida',T.saida)}catch(x){}
