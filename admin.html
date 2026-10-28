@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-28-2483 -->
+<!-- v2026-10-28-2484 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -4340,6 +4340,7 @@ function admDetalhe(){
   <h3 style="margin-top:0">Cliente e entrega</h3>
   <p style="margin:0"><b>${esc(en.nome||'')}</b><br>${fone?`<a href="https://wa.me/${fone}" target="_blank" rel="noopener">${esc(en.fone)}</a>`:esc(en.fone||'')}</p>
   <p>${esc(d.rua||'')}, ${esc(d.num||'')}${d.comp?', '+esc(d.comp):''}<br>${esc(d.bairro||'')}<br>${esc(d.cidade||'')}/${esc(d.uf||'')}, CEP ${esc(d.cep||'')}${d.ref?'<br>Referência: '+esc(d.ref):''}${en.secundario?'<br><i>Endereço secundário informado pelo cliente</i>':''}</p>
+  ${['entregue','cancelado'].includes(o.status)?'':'<p style="margin:-6px 0 10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="admEndAbrir(\'atual\')">✏️ Editar endereço</button><button class="btn ghost sm" onclick="admEndAbrir(\'novo\')">➕ Novo endereço de entrega</button></p>'}
   <p style="margin:0">Entrega desejada: <b>${dataBr(en.data)} (${esc(TURNOS[en.turno]||'')})</b>${o.entregadorNome?'<br>Entregador: <b>'+esc(o.entregadorNome)+'</b>':''}<br>Forma de pagamento escolhida: <b>${esc(PAGNOME[pg.preferencia]||'não informada')}</b>${en.obs?'<br>Observação do cliente: '+esc(en.obs):''}</p>
   <h3>Itens</h3><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${(o.itens||[]).map(i=>`<tr><td>${esc(i.name)}<div style="color:var(--muted);font-size:.8rem">SKU ${esc(i.sku||'')}</div></td><td>${i.qty}</td><td class="r">${i.semPreco?'a confirmar':brl(i.unit*i.qty)}</td></tr>`).join('')}</tbody></table></div>
   <div class="tot"><span>Subtotal</span><span>${temSP(o)?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span>${o.desconto?`<span class="dsc">Desconto (${o.desconto.pct}%)</span><span class="dsc">- ${brl(o.desconto.valor)}</span>`:''}<span class="big">Total</span><span class="big">${totAdm(o)}</span></div>${freteHtmlAdm(o)}
@@ -5039,7 +5040,7 @@ function editHtml(o){
   <div id="addProdsLista" style="max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:6px">${admAddProdsHtml()}</div>
   ${Object.values(A9.addQ).some(q=>q>0)?`<div style="margin-top:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px"><b>Selecionados para adicionar:</b><ul style="margin:6px 0 0;padding-left:18px">${admAddSelecionados()}</ul></div>`:''}<div style="margin-top:8px;display:flex;gap:8px;align-items:center"><label for="addMot" style="margin:0;font-weight:600">Motivo</label><input id="addMot" placeholder="Ex.: cliente pediu para adicionar" style="flex:1"><button class="btn sm acc" onclick="admSalvaAddItens()">Adicionar ao pedido</button></div>
   </div>`:'<div class="note warn">Itens não podem ser adicionados depois que o pedido saiu para entrega.</div>'}
-  <h4>Endereço de entrega</h4><div class="fr"><div class="c2"><label for="edCep">CEP</label><input id="edCep" value="${esc(d.cep||'')}" oninput="cepAuto(this,{uf:'edUf',cidade:'edCid',bairro:'edBai',rua:'edRua',num:'edNum'})"></div><div class="c2"><label for="edUf">UF</label><input id="edUf" maxlength="2" value="${esc(d.uf||'')}"></div><div class="c2"><label for="edCid">Cidade</label><input id="edCid" value="${esc(d.cidade||'')}"></div><div class="c3"><label for="edBai">Bairro</label><input id="edBai" value="${esc(d.bairro||'')}"></div><div class="c4"><label for="edRua">Rua</label><input id="edRua" value="${esc(d.rua||'')}"></div><div class="c2"><label for="edNum">Número</label><input id="edNum" value="${esc(d.num||'')}"></div><div class="c2"><label for="edCom">Complemento</label><input id="edCom" value="${esc(d.comp||'')}"></div><div class="c3"><label for="edRef">Referência</label><input id="edRef" value="${esc(d.ref||'')}"></div></div>
+  <h4 id="edEndTit">Endereço de entrega</h4><div class="btns" style="margin-bottom:8px"><button class="btn ghost sm" onclick="admEndModo('atual')">Endereço atual</button><button class="btn ghost sm" onclick="admEndModo('novo')">➕ Novo endereço</button>${en.principal&&en.principal.rua&&en.principal.rua!==d.rua?'<button class="btn ghost sm" onclick="admEndModo(\'principal\')">Usar o principal do cliente</button>':''}${en.secundario&&en.secundario.rua&&en.secundario.rua!==d.rua?'<button class="btn ghost sm" onclick="admEndModo(\'secundario\')">Usar o secundário</button>':''}</div><div class="fr"><div class="c2"><label for="edCep">CEP</label><input id="edCep" value="${esc(d.cep||'')}" oninput="cepAuto(this,{uf:'edUf',cidade:'edCid',bairro:'edBai',rua:'edRua',num:'edNum'})"></div><div class="c2"><label for="edUf">UF</label><input id="edUf" maxlength="2" value="${esc(d.uf||'')}"></div><div class="c2"><label for="edCid">Cidade</label><input id="edCid" value="${esc(d.cidade||'')}"></div><div class="c3"><label for="edBai">Bairro</label><input id="edBai" value="${esc(d.bairro||'')}"></div><div class="c4"><label for="edRua">Rua</label><input id="edRua" value="${esc(d.rua||'')}"></div><div class="c2"><label for="edNum">Número</label><input id="edNum" value="${esc(d.num||'')}"></div><div class="c2"><label for="edCom">Complemento</label><input id="edCom" value="${esc(d.comp||'')}"></div><div class="c3"><label for="edRef">Referência</label><input id="edRef" value="${esc(d.ref||'')}"></div></div>
   <label for="edObs">Observação para o entregador</label><input id="edObs" maxlength="300" value="${esc(en.obsEntregador||'')}">
   <label for="edM">Motivo (o cliente vê este texto)</label><input id="edM" maxlength="200" placeholder="Ex.: cliente corrigiu o número da casa"><p><button class="btn sm" onclick="admSalvaEndereco()">Salvar endereço</button></p>
   <p style="font-size:.82rem;color:var(--muted)">Depois de salvar, a etiqueta fica marcada como desatualizada: gere a versão nova.</p></details>`;
@@ -5061,6 +5062,20 @@ function admExcluiItem(k){
   if(!confirm('Excluir "'+it.name+'" do pedido?\n\nO estoque é devolvido, o desconto é recalculado e o cliente é avisado.'))return;
   const q=(o.itens||[]).map((x,j)=>{if(j===k)return 0;const n=parseInt(v_('eq'+j),10);return isNaN(n)||n<0||n>99?x.qty:n});
   admRpc('editar_itens_pedido',{p_pedido:o.id,p_qtds:q,p_motivo:m},'Item excluído. O cliente foi avisado e a etiqueta ficou desatualizada.');
+}
+/* endereço do pedido: editar o atual ou informar um novo (o antigo continua no histórico e como endereço principal do cliente) */
+function admEndModo(modo){
+  const o=A9.po;if(!o)return;const en=o.entrega||{};
+  const src=modo==='novo'?{}:modo==='principal'?(en.principal||{}):modo==='secundario'?(en.secundario||{}):(en.dest||{});
+  const m={edCep:'cep',edUf:'uf',edCid:'cidade',edBai:'bairro',edRua:'rua',edNum:'num',edCom:'comp',edRef:'ref'};
+  Object.keys(m).forEach(id=>{const e=document.getElementById(id);if(e)e.value=src[m[id]]||''});
+  const mo=document.getElementById('edM');if(mo)mo.value=modo==='novo'?'Novo endereço de entrega informado pelo cliente':modo==='atual'?'':'Cliente pediu para entregar em outro endereço';
+  const t=document.getElementById('edEndTit');if(t)t.textContent=modo==='novo'?'Novo endereço de entrega':'Endereço de entrega';
+  const c=document.getElementById(modo==='novo'?'edCep':'edM');if(c)c.focus();
+}
+function admEndAbrir(modo){
+  A9.editOpen=true;const d=document.querySelector('.editbox');if(d)d.open=true;
+  admEndModo(modo);const t=document.getElementById('edEndTit');if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function admSalvaEndereco(){
   const dest={cep:v_('edCep').trim(),uf:v_('edUf').trim(),cidade:v_('edCid').trim(),bairro:v_('edBai').trim(),rua:v_('edRua').trim(),num:v_('edNum').trim(),comp:v_('edCom').trim(),ref:v_('edRef').trim()};
