@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-28-2485 -->
+<!-- v2026-10-31-2487 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -1232,6 +1232,10 @@ class Pg{
     lh=lh||size*0.42;lin.forEach((l,i)=>this.text(x,y+i*lh,l,size,bold));
     return y+lin.length*lh;
   }
+  star(cx,cy,r){
+    const p=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*0.42:r;p.push(this.X(cx+rr*Math.cos(a))+' '+this.Y(cy+rr*Math.sin(a)))}
+    this.ops.push(p.map((q,i)=>q+(i?' l':' m')).join(' ')+' h f');
+  }
   rect(x,y,w,h,mode,lw,gray){
     if(gray!=null)this.ops.push(gray+' g');
     if(mode==='S'||mode==='B')this.ops.push((lw||0.3)*K+' w');
@@ -1300,7 +1304,7 @@ function snapOrder(o){
   const itens=o.items.map(i=>({qtd:i.qty,nome:i.base||i.name,opt:i.opt||(i.base?'':''),sku:i.sku}));
   return {id:o.id,at:o.at,codigo:codigoPedido(o),nome:e.nome,fone:e.fone,
    dest:{rua:d.rua,num:d.num,comp:d.comp||'',bairro:d.bairro,cidade:d.cidade,uf:String(d.uf).toUpperCase(),cep:d.cep,ref:d.ref||''},
-   sec:!!e.secundario,data:e.data,turno:e.turno,janela:e.janela||'',
+   sec:!!e.secundario,data:e.data,turno:e.turno,janela:e.janela||'',...(o.rev?{rev:1}:{}),
    obsEntregador:e.obsEntregador!=null?e.obsEntregador:(e.obs||''),
    itens,totalItens:itens.reduce((s,i)=>s+i.qtd,0),pag:{metodo:pag.metodo,status:pag.status},obs:e.obs||'',obsInt:o.obsInt||'',obsSep:o.obsSep||''};
 }
@@ -1454,6 +1458,7 @@ function etiquetaInterna(S,cfg,logo){
   const novo=cont=>{
     const pg=new Pg(W,H);pg.rect(1.6,1.6,W-3.2,H-3.2,'S',0.5);pages.push(pg);
     pg.text(m,m+4.6,cfg.remetente||'ZP IMPORTS',fs+3,true);pg.text(W-m,m+4.6,S.codigo,fs+3,true,{align:'right'});
+    if(S.rev&&!cont){const tx='REVENDEDOR',sz=6.2,w=tw(tx,sz,true),tot=4.4+1.4+w,x0=W/2-tot/2;pg.star(x0+2.2,m+3.1,2.2);pg.text(x0+5.8,m+4.6,tx,sz,true)}
     if(cont)pg.text(W/2,m+4.6,'continuação',6.5,false,{align:'center',gray:0.45});
     pg.line(m,m+7,W-m,m+7,0.5);
     let y=m+9.5;
@@ -4343,6 +4348,7 @@ function admDetalhe(){
   <p style="margin:0"><b>${esc(en.nome||'')}</b><br>${fone?`<a href="https://wa.me/${fone}" target="_blank" rel="noopener">${esc(en.fone)}</a>`:esc(en.fone||'')}</p>
   <p>${esc(d.rua||'')}, ${esc(d.num||'')}${d.comp?', '+esc(d.comp):''}<br>${esc(d.bairro||'')}<br>${esc(d.cidade||'')}/${esc(d.uf||'')}, CEP ${esc(d.cep||'')}${d.ref?'<br>Referência: '+esc(d.ref):''}${en.secundario?'<br><i>Endereço secundário informado pelo cliente</i>':''}</p>
   ${['entregue','cancelado'].includes(o.status)?'':'<p style="margin:-6px 0 10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="admEndAbrir(\'atual\')">✏️ Editar endereço</button><button class="btn ghost sm" onclick="neAbrir()" title="Vale só para este pedido. Não muda o cadastro do cliente.">➕ Novo endereço de entrega</button></p>'}
+  <p style="margin:-2px 0 10px"><button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Ver foto do entregador</button></p>
   <p style="margin:0">Entrega desejada: <b>${dataBr(en.data)} (${esc(TURNOS[en.turno]||'')})</b>${o.entregadorNome?'<br>Entregador: <b>'+esc(o.entregadorNome)+'</b>':''}<br>Forma de pagamento escolhida: <b>${esc(PAGNOME[pg.preferencia]||'não informada')}</b>${en.obs?'<br>Observação do cliente: '+esc(en.obs):''}</p>
   <h3>Itens</h3><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${(o.itens||[]).map(i=>`<tr><td>${esc(i.name)}<div style="color:var(--muted);font-size:.8rem">SKU ${esc(i.sku||'')}</div></td><td>${i.qty}</td><td class="r">${i.semPreco?'a confirmar':brl(i.unit*i.qty)}</td></tr>`).join('')}</tbody></table></div>
   <div class="tot"><span>Subtotal</span><span>${temSP(o)?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span>${o.desconto?`<span class="dsc">Desconto (${o.desconto.pct}%)</span><span class="dsc">- ${brl(o.desconto.valor)}</span>`:''}<span class="big">Total</span><span class="big">${totAdm(o)}</span></div>${freteHtmlAdm(o)}
@@ -4689,7 +4695,7 @@ function tabLogistica(){
 
 
 /* ---------- etiquetas de envio (versões gravadas no banco, PDF gerado no navegador) ---------- */
-var ordAdm=o=>({id:o.id,items:o.itens||[],entrega:o.entrega||{},obsInt:o.obs_interna||'',obsSep:o.obs_separacao||''});
+var ordAdm=o=>({rev:!!(o.extra&&o.extra.revendedor),id:o.id,items:o.itens||[],entrega:o.entrega||{},obsInt:o.obs_interna||'',obsSep:o.obs_separacao||''});
 var etqUlt=o=>(o.etiquetas||[]).slice(-1)[0]||null;
 function etqDesat(o){const u=etqUlt(o);if(!u)return true;return u.hash!==snapHash(snapOrder(ordAdm(o)),cfgSnap())}
 function etqDiffAdm(u,S){
@@ -5883,7 +5889,7 @@ function tabPagamentos(){
    const aviso=pg?'<span class="stchip" style="--c:#16a34a">Pago</span>':pi.est==='vencido'?'<div class="pgsub" style="color:#b42318;font-weight:700">⚠️ Venceu em '+dataBr(pi.prev)+'</div>':pi.est==='hoje'?'<div class="pgsub" style="color:#d97706;font-weight:700">💰 Paga hoje</div>':'';
    const oculta=o._rev?' style="display:none"':'';
    return `<tr data-sc${rowCls} style="--sc:${STCOR[o.status]||'#999'}"><td style="white-space:nowrap"><b>${codPed(o)}</b><div>${o._rev?'<span class="selo" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed66" title="Pedido de revendedor de carteira">🏷️ Revendedor</span>':selos(o)}</div></td><td class="pgcli">${(o.extra&&o.extra.revendedor&&!o._rev)?`<b>${esc(o.extra.revendedor_nome||'Revendedor')}</b><div class="pgsub">Entrega: ${esc(en.nome||'')}${cidadeDe(o)?' · '+esc(cidadeDe(o)):''}</div>`:`<b>${esc(en.nome||'')}</b><div class="pgsub">${esc(cidadeDe(o))}</div>`}</td>${mF?`<td>${fr!=null?brl(fr).slice(3):'<span style="color:var(--muted)">a combinar</span>'}</td>`:''}<td class="pgval"><b>${valor}</b>${resumo}${detalhe}</td><td style="white-space:nowrap">${venTxt}</td><td class="pgsit">${stChip(o.status)}${aviso}</td>
-   <td style="white-space:nowrap">${waBtn(o)}${pg?'':` <button class="btn sm bs-wa" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})"${oculta}>${A9.pagEnv[o.id]?'Reenviar link de cobrança':'Link de cobrança'}</button>`}${(A9.pagFoto&&temFoto(o))?` <button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button>`:''} <button class="btn ghost sm" onclick="admAbrirPedido(${o.id})"${oculta}>Abrir pedido</button></td></tr>`;};
+   <td style="white-space:nowrap">${waBtn(o)}${pg?'':` <button class="btn sm bs-wa" ${(A9.link||CFG.linkPag)?'':'disabled'} title="${(A9.link||CFG.linkPag)?'Mostra a mensagem de cobrança antes de abrir o WhatsApp':'Cadastre o link de pagamento'}" onclick="pagEnviar(${o.id})"${oculta}>${A9.pagEnv[o.id]?'Reenviar link de cobrança':'Link de cobrança'}</button>`}${temFoto(o)?` <button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Foto</button>`:''} <button class="btn ghost sm" onclick="admAbrirPedido(${o.id})"${oculta}>Abrir pedido</button></td></tr>`;};
   const mostraFrete=A9.pagMostraFrete||false;
   const btnFrete=`<button class="btn ghost sm" onclick="A9.pagMostraFrete=${!mostraFrete};route()" style="font-size:.82rem">${mostraFrete?'🙈 Ocultar frete':'👁 Mostrar frete'}</button>`;
   const seta=c=>(A9.pagSort&&A9.pagSort.c===c)?(A9.pagSort.d>0?' ▲':' ▼'):'';
@@ -6190,7 +6196,8 @@ function statusOpcoes(o){
     return `<div class="stp ${feito?'done':prox?'next':'lock'}"><button type="button" ${prox?'':'disabled'} title="${esc(p[2])}" onclick="stAvanca('${p[0]}')"><span class="dot">${feito?'✓':i+2}</span><b>${esc(nome)}</b><small>${feito?'Concluído':prox?'Clique para marcar':'Aguarde a etapa anterior'}</small></button></div>`;
   }).join('');
   const env=idx>=4?`<div class="stp done"><button type="button" disabled title="O pedido já foi entregue à logística"><span class="dot">✓</span><b>Enviado ao entregador</b><small>${esc(o.entregadorNome||'')}${o.status==='programada'?' · aguardando sair':o.status==='em-rota'?' · saiu para entrega':''}</small></button></div>`:'';
-  return `<div class="stepper"><div class="stp done"><button type="button" disabled><span class="dot">✓</span><b>Recebido</b><small>Pedido feito pelo cliente</small></button></div>${passos}${env}</div>`;
+  const direto=['entregue','cancelado'].includes(o.status)?'':'<div style="margin-top:8px"><button type="button" class="btn ghost sm" onclick="stEntregueDireto()" title="Para entrega feita sem rota (retirada, entrega própria...)">✅ Marcar como entregue (sem rota)</button></div>';
+  return `<div class="stepper"><div class="stp done"><button type="button" disabled><span class="dot">✓</span><b>Recebido</b><small>Pedido feito pelo cliente</small></button></div>${passos}${env}</div>${direto}`;
 }
 /* ---- clicou errado: volta o pedido para uma etapa anterior (o cliente não é avisado e ele sai da rota) ---- */
 var ST_ROT={realizado:'Recebido',confirmado:'Confirmado',preparacao:'Em preparação',separacao:'Em separação','aguardando-programacao':'Aguardando rota (programação)',programada:'Enviado ao entregador','em-rota':'Em rota',tentativa:'Tentativa de entrega',entregue:'Entregue'};
@@ -6208,6 +6215,33 @@ async function stVoltar(){
   A9.busy=true;const r=await SB.rpc('voltar_status_pedido',{p_pedido:o.id,p_status:s,p_motivo:null});A9.busy=false;
   if(r.error){A9.msg=/voltar_status_pedido|function|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 30_voltar_status.sql no Supabase.':msgRpc(r.error);A9.erro=true;route();return}
   A9.msg='Pedido voltou para "'+(ST_ROT[s]||s)+'".';A9.erro=false;A9.pedidos=null;A9.lg=null;admAbrirPedido(o.id);
+}
+function stEntregueDireto(){
+  const o=A9.po;if(!o||A9.busy)return;
+  const old=document.getElementById('edbox');if(old)old.remove();
+  const rd=(v,t,c)=>'<label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;cursor:pointer"><input type="radio" name="edPg" value="'+v+'"'+(c?' checked':'')+' style="margin-top:3px"><span>'+t+'</span></label>';
+  const d=document.createElement('div');d.id='edbox';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px';
+  d.innerHTML='<div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:94vh;overflow:auto;padding:16px">'
+   +'<h3 style="margin:0 0 4px">Finalizar sem rota</h3><p style="margin:0 0 10px;color:#667085;font-size:.88rem">'+esc(codPed(o))+' · '+esc((o.entrega||{}).nome||'')+'. O pedido fica como <b>entregue</b> e o cliente é avisado. Como será o pagamento?</p>'
+   +rd('pago','<b>Pagou na hora</b> · marcar como pago',false)+rd('depois','<b>Vai pagar depois</b> · fica em Pagamentos pendentes',true)+rd('pre','<b>Pré-datado</b> · escolher as datas das parcelas',false)
+   +'<div class="btns" style="margin-top:12px"><button class="btn acc" onclick="stEntregueOk()">Finalizar pedido</button><button class="btn ghost" onclick="document.getElementById(\'edbox\').remove()">Fechar</button></div></div>';
+  document.body.appendChild(d);
+}
+async function stEntregueOk(){
+  const o=A9.po;if(!o||A9.busy)return;
+  const sel=document.querySelector('input[name="edPg"]:checked'),como=sel?sel.value:'depois';
+  const bx=document.getElementById('edbox');if(bx)bx.remove();
+  A9.busy=true;
+  let r=await SB.rpc('alterar_status_pedido',{p_pedido:o.id,p_status:'entregue',p_motivo:'Entrega confirmada pela loja, sem rota'});
+  if(!r.error&&como==='pago')r=await SB.rpc('registrar_pagamento',{p_pedido:o.id,p_pago:true});
+  A9.busy=false;
+  if(r.error){A9.msg=msgRpc(r.error);A9.erro=true;route();return}
+  A9.pedidos=null;A9.lg=null;
+  if(como==='pre'){
+    await admCarregarPedidos();admTab('pagamentos');A9.pf='cobrar';route();pagDia(o.id);return;
+  }
+  A9.msg=como==='pago'?'Pedido entregue e pagamento marcado como recebido.':'Pedido entregue. A cobrança está em Pagamentos pendentes.';A9.erro=false;
+  await admAbrirPedido(o.id);
 }
 function stAvanca(s){
   const o=A9.po;if(!o||A9.busy)return;const p=PASSOS.find(x=>x[0]===s);if(!p)return;
