@@ -5379,8 +5379,8 @@ var BASE_ZP='Base ZP';
 var retAtivo=o=>['rota','retirado','taxa'].includes((o.extra||{}).ret);
 A9.ret=null;A9.retTrf=null;
 async function retCarregar(){
-  const r=await SB.from('retiradas').select('*').order('ordem');
-  if(r.error){A9.ret={rows:[],peds:{},falta:/retiradas|relation|schema cache/i.test(r.error.message||'')};route();return}
+  const r=await SB.from('retiradas_pedido').select('*').order('ordem');
+  if(r.error){A9.ret={rows:[],peds:{},falta:/retiradas_pedido|relation|schema cache/i.test(r.error.message||'')};route();return}
   const rows=r.data||[],ids=[...new Set(rows.map(x=>x.pedido_id))],peds={};
   if(ids.length){const p=await SB.from('pedidos').select('*').in('id',ids);(p.data||[]).forEach(o=>{peds[o.id]=o})}
   A9.ret={rows,peds};route();
@@ -5476,7 +5476,7 @@ async function retEnviar(rota){
   const g=retGrupoPorRota(rota);if(!g)return;
   const en=A9.lg.ent.find(x=>x.id===g.ent)||{};const fw=foneWa(en.whats);if(!fw){toast('Cadastre o WhatsApp do entregador.');return}
   waAbrir(fw,retMsgRota(g));
-  SB.from('retiradas').update({enviada_em:new Date().toISOString()}).in('id',g.rows.map(x=>x.id)).then(()=>{},()=>{});
+  SB.from('retiradas_pedido').update({enviada_em:new Date().toISOString()}).in('id',g.rows.map(x=>x.id)).then(()=>{},()=>{});
 }
 function retCopiar(rota){
   const g=retGrupoPorRota(rota);if(!g)return;const u=retUrl(g.rows[0]);
