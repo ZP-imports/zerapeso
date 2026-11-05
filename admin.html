@@ -4707,7 +4707,7 @@ function tabLogistica(){
   <h3>Rotas por entregador</h3><p style="margin:0 0 8px;color:var(--muted);font-size:.88rem">Clique em um ou mais entregadores para ver todas as rotas dele. Sem seleção, aparecem as rotas em andamento.</p>
   <div class="entgrid">${L.ent.map(x=>{const rs=rotas.filter(r=>r.entregador_id===x.id);const na=rs.filter(r=>andamento.includes(r)).length;const cor=corEnt(x.id);return `<div class="entq${A9.entSel[x.id]?' sel':''}" style="border-top:6px solid ${cor};padding:10px" onclick="entSelTog('${x.id}')"><div class="entq-h"><span class="entq-av" style="background:${cor}">${esc((x.nome||'?').trim().charAt(0).toUpperCase())}</span><div><b>${esc(x.nome)}</b><div style="color:var(--muted);font-size:.8rem">${na} em andamento · ${rs.length-na} concluída${rs.length-na===1?'':'s'}</div></div></div></div>`}).join('')||'<p>Nenhum entregador cadastrado.</p>'}</div>
   ${L.ent.some(x=>A9.entSel[x.id])?entRotas():`<h3>Rotas em andamento</h3>${andamento.map(rotaHtml).join('')||'<p style="color:var(--muted)">Nenhuma rota em andamento.</p>'}
-  ${concluidas.length?`<details style="margin-top:14px"><summary style="cursor:pointer;font-weight:700">Rotas concluídas (${concluidas.length})</summary>${concluidas.slice(0,10).map(rotaHtml).join('')}</details>`:''}`}</div>`;
+  ${concluidas.length?`<details style="margin-top:14px"><summary style="cursor:pointer;font-weight:700">Rotas concluídas (${concluidas.length})</summary>${concluidas.slice(0,10).map(rotaHtml).join('')}</details>`:''}`}${retLogHtml()}</div>`;
 }
 
 
@@ -5746,9 +5746,9 @@ function pendWa(id){
 function retEscolherAbrir(){
   if(!A9.lg){if(!A9.busy){A9.busy=true;admCarregarLog().finally(()=>{A9.busy=false;retEscolherAbrir()})}toast('Carregando os entregadores...');return}
   const ents=A9.lg.ent.filter(x=>x.ativo);if(!ents.length){toast('Cadastre ou ative um entregador primeiro.');return}
-  const L=(A9.pedidos||[]).filter(o=>o.id>0&&aguardaPag(o)&&(o.extra||{}).pag_prev&&!(o.extra||{}).pag_unido_em).sort((a,b)=>b.id-a.id).slice(0,150);
-  if(!L.length){toast('Não há pedido na Carteira.');return}
-  zpModal('rtbox','<h3 style="margin:0 0 4px">Enviar para a rota de devolução</h3><p style="margin:0 0 8px;color:#667085;font-size:.88rem">Marque os pedidos que o motoboy vai buscar na casa do cliente (o cliente vai devolver o produto). Eles saem da Carteira.</p><input id="pkBusca" placeholder="Buscar pelo nome ou telefone" oninput="pkFiltra(this.value)" style="width:100%;margin-bottom:6px"><div style="max-height:36vh;overflow:auto">'+L.map(o=>'<label class="pklin" data-q="'+esc(pagNz(((o.entrega||{}).nome||'')+' '+((o.entrega||{}).fone||'')))+'" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:6px 0;font-size:.88rem"><input type="checkbox" name="pkr" value="'+o.id+'" style="width:auto;margin-top:3px"><span><b>'+esc(codPed(o))+'</b> · '+esc((o.entrega||{}).nome||'')+' · '+brl(prevRestante(o,totalPag(o)))+'</span></label>').join('')+'</div><label for="rtE" style="margin-top:8px;display:block">Entregador</label><select id="rtE">'+ents.map(x=>'<option value="'+x.id+'">'+esc(x.nome)+'</option>').join('')+'</select><div class="btns" style="margin-top:10px"><button class="btn acc" onclick="retAtribuirLote()">Enviar para a retirada</button><button class="btn ghost" onclick="document.getElementById(\'rtbox\').remove()">Fechar</button></div>',560);
+  const L=pendLista().sort((a,b)=>String((a.extra.pend||{}).data||'9999').localeCompare(String((b.extra.pend||{}).data||'9999'))||b.id-a.id).slice(0,150);
+  if(!L.length){toast('Não há pedido em Outras pendências. Adicione primeiro com 📌 Adicionar em outras pendências.');return}
+  zpModal('rtbox','<h3 style="margin:0 0 4px">Enviar para a rota de devolução</h3><p style="margin:0 0 8px;color:#667085;font-size:.88rem">Aparecem só os pedidos de <b>Outras pendências</b>. Marque os que o motoboy vai buscar na casa do cliente. A rota vai para o entregador e aparece na <b>Logística</b>, em Rotas de devolução.</p><input id="pkBusca" placeholder="Buscar pelo nome ou telefone" oninput="pkFiltra(this.value)" style="width:100%;margin-bottom:6px"><div style="max-height:36vh;overflow:auto">'+L.map(o=>{const p=(o.extra||{}).pend||{};return '<label class="pklin" data-q="'+esc(pagNz(((o.entrega||{}).nome||'')+' '+((o.entrega||{}).fone||'')))+'" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:6px 0;font-size:.88rem"><input type="checkbox" name="pkr" value="'+o.id+'" style="width:auto;margin-top:3px"><span><b>'+esc(codPed(o))+'</b> · '+esc((o.entrega||{}).nome||'')+' · '+brl(totalPag(o))+'<div class="pgsub">'+esc(p.obs||'')+(p.data?' · combinado '+esc(dataBr(p.data)):'')+'</div></span></label>'}).join('')+'</div><label for="rtE" style="margin-top:8px;display:block">Entregador</label><select id="rtE">'+ents.map(x=>'<option value="'+x.id+'">'+esc(x.nome)+'</option>').join('')+'</select><div class="btns" style="margin-top:10px"><button class="btn acc" onclick="retAtribuirLote()">Enviar para a rota de devolução</button><button class="btn ghost" onclick="document.getElementById(\'rtbox\').remove()">Fechar</button></div>',560);
 }
 async function retAtribuirLote(){
   const ids=[...document.querySelectorAll('input[name="pkr"]:checked')].map(e=>+e.value),en=v_('rtE');
@@ -5756,9 +5756,16 @@ async function retAtribuirLote(){
   if(A9.busy)return;A9.busy=true;let erros=0,rota=null;
   for(const id of ids){const r=await SB.rpc('atribuir_retirada',{p_pedido:id,p_entregador:en});if(r.error){erros++;A9.msg=msgRpc(r.error)}else rota=(r.data||{}).rota||rota}
   A9.busy=false;const b=document.getElementById('rtbox');if(b)b.remove();
-  A9.pedidos=null;A9.ret=null;admTab('retirada');
+  A9.pedidos=null;A9.ret=null;admTab('logistica');
   A9.msg=erros?erros+' pedido(s) não puderam ser enviados. '+(A9.msg||''):ids.length+' pedido'+(ids.length>1?'s':'')+' enviado'+(ids.length>1?'s':'')+' para a rota de devolução.';A9.erro=!!erros;
   try{await retCarregar();if(rota)await retOtimiza(rota,true)}catch(x){}
+}
+/* as rotas de devolução também aparecem na Logística, junto com as outras rotas */
+function retLogHtml(){
+  if(!A9.ret){if(!A9.retBusy){A9.retBusy=true;retCarregar().finally(()=>{A9.retBusy=false})}return ''}
+  if(A9.ret.falta)return '';
+  const g=retGrupos();
+  return '<h3 style="margin-top:22px">Rotas de devolução ('+g.length+')</h3>'+(g.map(retGrupoHtml).join('')||'<p style="color:var(--muted)">Nenhuma rota de devolução em andamento.</p>');
 }
 function retMsgConc(id){const x=A9.ret.rows.find(r=>r.id===id);if(x)retAbreWa(x,'retirada_ok')}
 
