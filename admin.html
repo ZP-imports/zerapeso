@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-05-2497 -->
+<!-- v2026-11-05-2499 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -4309,6 +4309,7 @@ async function admRevCarteira(revId,on){
 }
 {const c0=codPed;codPed=o=>o._cod||c0(o)}
 async function admCarregarPedidos(){
+  revFoneCarregar();
   const r=await SB.from('pedidos').select('*').order('id',{ascending:false}).limit(300);
   A9.pedidos=r.error?[]:r.data;if(r.error){A9.msg='Não foi possível carregar os pedidos.';A9.erro=true}
   try{const ev=await SB.from('pedido_eventos').select('pedido_id').ilike('texto','Link de pagamento aberto%').limit(3000);A9.pagEnv=A9.pagEnv||{};(ev.data||[]).forEach(e=>{A9.pagEnv[e.pedido_id]=true})}catch(x){}
@@ -4711,7 +4712,21 @@ function tabLogistica(){
 
 
 /* ---------- etiquetas de envio (versões gravadas no banco, PDF gerado no navegador) ---------- */
-var ordAdm=o=>({rev:!!(o.extra&&o.extra.revendedor),id:o.id,items:o.itens||[],entrega:o.entrega||{},obsInt:o.obs_interna||'',obsSep:o.obs_separacao||''});
+A9.revFone=null;A9.revFoneP=null;
+function revFoneCarregar(forca){
+  if(A9.revFoneP&&!forca)return A9.revFoneP;
+  A9.revFoneP=SB.from('revendedores').select('telefone,status').then(r=>{
+    const m={};(r.data||[]).forEach(x=>{const f=String(x.telefone||'').replace(/\D/g,'').slice(-8);if(f.length===8&&x.status!=='inativo'&&x.status!=='bloqueado')m[f]=1});
+    A9.revFone=m;return m;
+  },()=>{A9.revFone=A9.revFone||{};return A9.revFone});
+  return A9.revFoneP;
+}
+function ehRevPed(o){
+  const e=o.extra||{};if(e.revendedor)return true;
+  const f=String(((o.entrega||{}).fone)||'').replace(/\D/g,'').slice(-8);
+  return !!(f.length===8&&A9.revFone&&A9.revFone[f]);
+}
+var ordAdm=o=>({rev:ehRevPed(o),id:o.id,items:o.itens||[],entrega:o.entrega||{},obsInt:o.obs_interna||'',obsSep:o.obs_separacao||''});
 var etqUlt=o=>(o.etiquetas||[]).slice(-1)[0]||null;
 function etqDesat(o){const u=etqUlt(o);if(!u)return true;return u.hash!==snapHash(snapOrder(ordAdm(o)),cfgSnap())}
 function etqDiffAdm(u,S){
@@ -4864,6 +4879,7 @@ A9.selP={};
 function selPed(id,on){if(on)A9.selP[id]=true;else delete A9.selP[id];route()}
 function selTodosPed(on){(A9.lastLista||[]).forEach(id=>{if(on)A9.selP[id]=true;else delete A9.selP[id]});route()}
 async function etqLote(){
+  await revFoneCarregar();
   if(A9.busy)return;
   const ids=(A9.lastLista||[]).filter(id=>A9.selP[id]);
   if(!ids.length){toast('Marque pelo menos um pedido.');return}
@@ -6317,7 +6333,7 @@ function tabPagamentos(){
   const bannerVenc=vencHoje.length?`<div class="note" style="background:#fee2e2;border-color:#ef4444;color:#991b1b;margin-bottom:10px"><b>⚠️ ${vencHoje.length} parcela${vencHoje.length>1?'s':''} vencendo!</b> ${vencHoje.map(o=>esc((o.entrega||{}).nome||codPed(o))).join(', ')} — <button class="btn ghost sm" style="margin-left:8px" onclick="A9.pf='carteira';route()">Ver carteira</button></div>`:'';
   const nUnidos=(A9.pedidos||[]).filter(o=>((o.extra||{}).pag_unidos||[]).length).length;
   const bannerUnidos=nUnidos?`<div class="note" style="background:#eff6ff;border-color:#3b82f6;color:#1e3a8a;margin-bottom:10px"><b>${nUnidos} pedido${nUnidos>1?'s':''} com cobranças unidas.</b> A cobrança é por pedido, cada um com o seu valor e a sua data. <button class="btn acc sm" style="margin-left:8px" onclick="pagSepararTodos()">Separar todas agora</button></div>`:'';
-  return `<div class="box">${msgBox()}${bannerVenc}${bannerSemVal}${bannerUnidos}${(A9.link||!A9.linkCarregado)?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre em Mais opções > Configurações.</div>'}
+  return `<div class="box">${msgBox()}${bannerUnidos}${(A9.link||!A9.linkCarregado)?'':'<div class="note warn">O link de pagamento ainda não foi cadastrado. Cadastre em Mais opções > Configurações.</div>'}
   <p style="margin:0 0 10px;color:var(--muted)">Pedido entregue → <b>Pendentes</b>. Envia link → <b>Cobrança em andamento</b>. Programa data → <b>Carteira</b>. Pago → <b>Concluídos</b>.</p>
   <div class="kcards" style="margin-bottom:12px">${aba('cobrar','Pagamentos pendentes',pendentes,'#d92d20')}${aba('andamento','Cobrança em andamento',andamento,'#d97706')}${aba('carteira','<span style="font-size:.82em">Carteira · Pré-datados</span>',carteira,'#2563eb')}${aba('pagos','Concluídos (pagos)',pagos,'#16a34a')}</div>
   ${barraFiltros()}
