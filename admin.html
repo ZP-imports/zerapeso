@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-04-2490 -->
+<!-- v2026-11-04-2491 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -633,7 +633,7 @@ var MSG_DEF={
   p:'Olá, {nome}! 😊\n\nLembrete: o seu pagamento está combinado para o dia {data}.\n\nPedido: {pedido}\nValor desta parcela: {parcela}\n{pago}Falta pagar: {falta}\n\nQuando chegar o dia, é só pagar pelo link abaixo:\n{link}\n\nQualquer dúvida, é só chamar. Obrigado! 🙏'},
  devolucao:{g:'adm',t:'Devolução de pedido',q:'Abre ao clicar em Devolução de pedido, na aba Pagamentos.',v:['nome','pedido'],ex:{nome:'Natália',pedido:'ZP-000114'},
   p:'Olá, {nome}! 😊\n\nVocê entrou em contato pedindo a devolução do seu pedido {pedido}. Nosso motoboy vai chegar aí em breve para retirar.\n\nQualquer dúvida, é só chamar. Obrigado! 🙏'},
- retirada_ok:{g:'adm',t:'Retirada concluída (sem taxa)',q:'Abre ao finalizar a retirada na Rota de retirada, sem taxa.',v:['nome','pedido'],ex:{nome:'Natália',pedido:'ZP-000114'},
+ retirada_ok:{g:'adm',t:'Retirada concluída (sem taxa)',q:'Abre ao finalizar a retirada na Rota de devolução, sem taxa.',v:['nome','pedido'],ex:{nome:'Natália',pedido:'ZP-000114'},
   p:'Olá, {nome}! 😊\n\nObrigado pela confiança! Seu pedido {pedido} foi retirado e já está de volta conosco.\n\nCaso precise de alguma coisa, estamos à disposição. 🙏'},
  retirada_taxa:{g:'adm',t:'Retirada concluída (com taxa)',q:'Abre ao finalizar a retirada com taxa, e no botão Enviar cobrança.',v:['nome','pedido','valor','link'],ex:{nome:'Natália',pedido:'ZP-000114',valor:'R$ 20,00',link:'https://link.mercadopago.com.br/...'},
   p:'Olá, {nome}! 😊\n\nSeu pedido {pedido} foi retirado e já está de volta conosco.\n\nValor da taxa de retirada: {valor}\nPara pagar, é só usar o link abaixo:\n{link}\n\nQualquer dúvida, é só chamar. Obrigado! 🙏'},
@@ -4563,7 +4563,7 @@ function pageOp(){
     if(me)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div class="note err">Esta conta não tem acesso à área administrativa.</div><p><button class="btn" onclick="admSair()">Sair</button></p></div></div>`;
     return '<div class="adlogin"><div class="adcard"><div class="adico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><h1>Acesso da equipe</h1><p class="adsub">Entre com o seu e-mail e senha para acessar o painel da loja.</p><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username" placeholder="voce@empresa.com"><label for="ap">Senha</label><div class="adsenha"><input id="ap" type="password" required autocomplete="current-password" placeholder="Sua senha"><button type="button" class="adver" onclick="admVerSenha(this)">Mostrar</button></div><button class="adbtn">Entrar</button></form><p class="adnota">Acesso restrito. Se você é cliente, <a href="./">volte para a loja</a>.</p></div></div>';
   }
-  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['retirada','Rota de retirada'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['clientes','Clientes'],['revendedores','Revendedores'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['retirada','Rota de retirada'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
+  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['retirada','Rota de devolução'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['clientes','Clientes'],['revendedores','Revendedores'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['retirada','Rota de devolução'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
   const EXTRA_T=['cartao','atrasados','clientes','revendedores','campanhas','produtos','etiquetas','mensagens','config'];
   if(!tabs.some(t=>t[0]===A.tab)&&!(A.tab==='manual'&&tabs.some(t=>t[0]==='manual')))A.tab=tabs[0][0];
   msgGarante();
@@ -5397,7 +5397,7 @@ function retMsgRota(g){
   const ends=ps.map(o=>endTxt(retDest(o)));
   const par=ps.map((o,k)=>{const e=o.entrega||{},d=retDest(o);const f=String(e.fone||'');
     return (k+1)+') '+(e.nome||'')+(f?'\n📞 '+f:'')+'\n🏠 '+ends[k]+(d.ref?'\n📌 Ref.: '+d.ref:'')+'\n📍 '+mapsDest(ends[k])}).join('\n\n');
-  return nl('Olá, '+(primeiro(en.nome)||'')+'! 🛵\n\nRota de RETIRADA: você vai buscar '+ps.length+' pedido'+(ps.length>1?'s':'')+' na casa do cliente e levar de volta para a '+BASE_ZP+'.\n\n'+par+(ps.length>1?'\n\n🗺️ Rota completa no Maps: '+mapsRota(ends):'')+'\n\n✅ Marque por aqui (não precisa de foto): '+retUrl(g.rows[0])+'\n\nQuando voltar com o pedido, toque em Finalizar.');
+  return nl('Olá, '+(primeiro(en.nome)||'')+'! 🛵\n\nRota de DEVOLUÇÃO: você vai buscar '+ps.length+' pedido'+(ps.length>1?'s':'')+' na casa do cliente e levar de volta para a '+BASE_ZP+'.\n\n'+par+(ps.length>1?'\n\n🗺️ Rota completa no Maps: '+mapsRota(ends):'')+'\n\n✅ Marque por aqui (não precisa de foto): '+retUrl(g.rows[0])+'\n\nQuando voltar com o pedido, toque em Finalizar.');
 }
 function retGrupos(){
   const g={};
@@ -5426,13 +5426,13 @@ function retGrupoHtml(g){
 function tabRetirada(){
   if(!A9.lg){if(!A9.busy){A9.busy=true;admCarregarLog().finally(()=>{A9.busy=false})}return '<div class="box">Carregando...</div>'}
   if(!A9.ret){if(!A9.retBusy){A9.retBusy=true;retCarregar().finally(()=>{A9.retBusy=false})}return '<div class="box">Carregando...</div>'}
-  if(A9.ret.falta)return '<div class="box"><div class="note warn">Falta rodar o arquivo 33_rota_retirada.sql no Supabase para liberar a rota de retirada.</div></div>';
+  if(A9.ret.falta)return '<div class="box"><div class="note warn">Falta rodar o arquivo 33_rota_retirada.sql no Supabase para liberar a rota de devolução.</div></div>';
   const R=A9.ret.rows,grupos=retGrupos();
   const taxa=R.filter(x=>x.status==='taxa'),conc=R.filter(x=>x.status==='concluida').sort((a,b)=>String(b.concluida_em).localeCompare(String(a.concluida_em))).slice(0,30);
   const linhaTx=x=>{const o=A9.ret.peds[x.pedido_id]||{};return `<tr>${retLinha(x,'Taxa de '+brl(x.taxa)+' a pagar')}<td style="white-space:nowrap"><button class="btn wa sm" onclick="retMsgTaxa('${x.id}')">Enviar cobrança</button> <button class="btn sm bs-ok" onclick="retTaxaPaga('${x.id}')">Taxa paga</button></td></tr>`};
   const linhaCc=x=>`<tr>${retLinha(x,x.taxa>0?'Concluída · taxa '+brl(x.taxa)+' paga':'Concluída')}<td><button class="btn ghost sm" onclick="retMsgConc('${x.id}')">Mensagem</button></td></tr>`;
   const cab='<thead><tr><th>Pedido</th><th>Cliente</th><th>Endereço</th><th>Situação</th><th></th></tr></thead>';
-  return `<div class="box">${msgBox()}<p style="margin:0 0 6px;color:var(--muted)">O motoboy busca o pedido na casa do cliente e leva de volta para a <b>${BASE_ZP}</b>. Para incluir um pedido aqui, abra a setinha <b>Pagamento e histórico</b> em Pagamentos e use <b>🏍 Rota de retirada</b>. <button class="btn ghost sm" onclick="A9.ret=null;route()">Atualizar</button></p>
+  return `<div class="box">${msgBox()}<p style="margin:0 0 6px;color:var(--muted)">O motoboy busca o pedido na casa do cliente e leva de volta para a <b>${BASE_ZP}</b>. Para incluir um pedido aqui, abra a setinha <b>Pagamento e histórico</b> em Pagamentos e use <b>🏍 Rota de devolução</b>. <button class="btn ghost sm" onclick="A9.ret=null;route()">Atualizar</button></p>
   <h3>Em rota para retirada (${grupos.length})</h3>${grupos.map(retGrupoHtml).join('')||'<p style="color:var(--muted)">Nenhuma retirada em andamento.</p>'}
   <h3 style="margin-top:22px">Taxa pendente de pagamento (${taxa.length})</h3>${taxa.length?`<div class="tbl"><table>${cab}<tbody>${taxa.map(linhaTx).join('')}</tbody></table></div>`:'<p style="color:var(--muted)">Nenhuma taxa pendente.</p>'}
   <details style="margin-top:18px"><summary style="cursor:pointer;font-weight:700">Concluídas (${conc.length})</summary>${conc.length?`<div class="tbl"><table>${cab}<tbody>${conc.map(linhaCc).join('')}</tbody></table></div>`:'<p style="color:var(--muted)">Nenhuma retirada concluída.</p>'}</details></div>`;
@@ -5445,7 +5445,7 @@ function retAtribuirAbrir(id){
   if(!ents.length){toast('Cadastre ou ative um entregador primeiro.');return}
   const old=document.getElementById('rtbox');if(old)old.remove();
   const d=document.createElement('div');d.id='rtbox';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:14px';
-  d.innerHTML='<div style="background:#fff;border-radius:16px;max-width:460px;width:100%;padding:16px"><h3 style="margin:0 0 4px">Rota de retirada</h3><p style="margin:0 0 10px;color:#667085;font-size:.88rem">'+esc(codPed(o))+' · '+esc((o.entrega||{}).nome||'')+'. O motoboy busca o pedido na casa do cliente e devolve na '+esc(BASE_ZP)+'. O pedido sai de Pagamentos e vai para a Rota de retirada.</p>'
+  d.innerHTML='<div style="background:#fff;border-radius:16px;max-width:460px;width:100%;padding:16px"><h3 style="margin:0 0 4px">Rota de devolução</h3><p style="margin:0 0 10px;color:#667085;font-size:.88rem">'+esc(codPed(o))+' · '+esc((o.entrega||{}).nome||'')+'. O motoboy busca o pedido na casa do cliente e devolve na '+esc(BASE_ZP)+'. O pedido sai de Pagamentos e vai para a Rota de devolução.</p>'
    +'<label for="rtE">Entregador</label><select id="rtE">'+ents.map(x=>'<option value="'+x.id+'">'+esc(x.nome)+'</option>').join('')+'</select>'
    +'<div class="btns" style="margin-top:12px"><button class="btn acc" onclick="retAtribuir('+id+')">Atribuir</button><button class="btn ghost" onclick="document.getElementById(\'rtbox\').remove()">Fechar</button></div></div>';
   document.body.appendChild(d);
@@ -5455,12 +5455,12 @@ async function retAtribuir(id){
   const b=document.getElementById('rtbox');if(b)b.remove();
   A9.busy=true;const r=await SB.rpc('atribuir_retirada',{p_pedido:id,p_entregador:en});A9.busy=false;
   if(r.error){A9.msg=/atribuir_retirada|function|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 33_rota_retirada.sql no Supabase.':msgRpc(r.error);A9.erro=true;route();return}
-  A9.pedidos=null;A9.ret=null;A9.msg='Pedido atribuído à rota de retirada.';A9.erro=false;
+  A9.pedidos=null;A9.ret=null;A9.msg='Pedido atribuído à rota de devolução.';A9.erro=false;
   admTab('retirada');
   try{await retCarregar();await retOtimiza(r.data&&r.data.rota,true)}catch(x){}
 }
 async function retTirar(id){
-  if(!confirm('Tirar este pedido da rota de retirada? Ele volta para Pagamentos.'))return;
+  if(!confirm('Tirar este pedido da rota de devolução? Ele volta para Pagamentos.'))return;
   const r=await SB.rpc('cancelar_retirada',{p_retirada:id});
   if(r.error){toast(msgRpc(r.error));return}
   A9.pedidos=null;A9.ret=null;A9.msg='Pedido voltou para Pagamentos.';A9.erro=false;route();
@@ -5586,13 +5586,13 @@ function pendWa(id){
     pedEvento({pedido_id:id,tipo:'whatsapp',publico:false,texto:'Mensagem de pendência aberta no WhatsApp (envio não confirmado pelo sistema)',por:ADMIN.nome}).then(()=>{},()=>{});
   });
 }
-/* vários pedidos da Carteira de uma vez para a rota de retirada */
+/* vários pedidos da Carteira de uma vez para a rota de devolução */
 function retEscolherAbrir(){
   if(!A9.lg){if(!A9.busy){A9.busy=true;admCarregarLog().finally(()=>{A9.busy=false;retEscolherAbrir()})}toast('Carregando os entregadores...');return}
   const ents=A9.lg.ent.filter(x=>x.ativo);if(!ents.length){toast('Cadastre ou ative um entregador primeiro.');return}
   const L=(A9.pedidos||[]).filter(o=>o.id>0&&aguardaPag(o)&&(o.extra||{}).pag_prev&&!(o.extra||{}).pag_unido_em).sort((a,b)=>b.id-a.id).slice(0,150);
   if(!L.length){toast('Não há pedido na Carteira.');return}
-  zpModal('rtbox','<h3 style="margin:0 0 4px">Enviar para a rota de retirada</h3><p style="margin:0 0 8px;color:#667085;font-size:.88rem">Marque os pedidos que o motoboy vai buscar na casa do cliente (o cliente vai devolver o produto). Eles saem da Carteira.</p><input id="pkBusca" placeholder="Buscar pelo nome ou telefone" oninput="pkFiltra(this.value)" style="width:100%;margin-bottom:6px"><div style="max-height:36vh;overflow:auto">'+L.map(o=>'<label class="pklin" data-q="'+esc(pagNz(((o.entrega||{}).nome||'')+' '+((o.entrega||{}).fone||'')))+'" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:6px 0;font-size:.88rem"><input type="checkbox" name="pkr" value="'+o.id+'" style="width:auto;margin-top:3px"><span><b>'+esc(codPed(o))+'</b> · '+esc((o.entrega||{}).nome||'')+' · '+brl(prevRestante(o,totalPag(o)))+'</span></label>').join('')+'</div><label for="rtE" style="margin-top:8px;display:block">Entregador</label><select id="rtE">'+ents.map(x=>'<option value="'+x.id+'">'+esc(x.nome)+'</option>').join('')+'</select><div class="btns" style="margin-top:10px"><button class="btn acc" onclick="retAtribuirLote()">Enviar para a retirada</button><button class="btn ghost" onclick="document.getElementById(\'rtbox\').remove()">Fechar</button></div>',560);
+  zpModal('rtbox','<h3 style="margin:0 0 4px">Enviar para a rota de devolução</h3><p style="margin:0 0 8px;color:#667085;font-size:.88rem">Marque os pedidos que o motoboy vai buscar na casa do cliente (o cliente vai devolver o produto). Eles saem da Carteira.</p><input id="pkBusca" placeholder="Buscar pelo nome ou telefone" oninput="pkFiltra(this.value)" style="width:100%;margin-bottom:6px"><div style="max-height:36vh;overflow:auto">'+L.map(o=>'<label class="pklin" data-q="'+esc(pagNz(((o.entrega||{}).nome||'')+' '+((o.entrega||{}).fone||'')))+'" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:6px 0;font-size:.88rem"><input type="checkbox" name="pkr" value="'+o.id+'" style="width:auto;margin-top:3px"><span><b>'+esc(codPed(o))+'</b> · '+esc((o.entrega||{}).nome||'')+' · '+brl(prevRestante(o,totalPag(o)))+'</span></label>').join('')+'</div><label for="rtE" style="margin-top:8px;display:block">Entregador</label><select id="rtE">'+ents.map(x=>'<option value="'+x.id+'">'+esc(x.nome)+'</option>').join('')+'</select><div class="btns" style="margin-top:10px"><button class="btn acc" onclick="retAtribuirLote()">Enviar para a retirada</button><button class="btn ghost" onclick="document.getElementById(\'rtbox\').remove()">Fechar</button></div>',560);
 }
 async function retAtribuirLote(){
   const ids=[...document.querySelectorAll('input[name="pkr"]:checked')].map(e=>+e.value),en=v_('rtE');
@@ -5601,15 +5601,15 @@ async function retAtribuirLote(){
   for(const id of ids){const r=await SB.rpc('atribuir_retirada',{p_pedido:id,p_entregador:en});if(r.error){erros++;A9.msg=msgRpc(r.error)}else rota=(r.data||{}).rota||rota}
   A9.busy=false;const b=document.getElementById('rtbox');if(b)b.remove();
   A9.pedidos=null;A9.ret=null;admTab('retirada');
-  A9.msg=erros?erros+' pedido(s) não puderam ser enviados. '+(A9.msg||''):ids.length+' pedido'+(ids.length>1?'s':'')+' enviado'+(ids.length>1?'s':'')+' para a rota de retirada.';A9.erro=!!erros;
+  A9.msg=erros?erros+' pedido(s) não puderam ser enviados. '+(A9.msg||''):ids.length+' pedido'+(ids.length>1?'s':'')+' enviado'+(ids.length>1?'s':'')+' para a rota de devolução.';A9.erro=!!erros;
   try{await retCarregar();if(rota)await retOtimiza(rota,true)}catch(x){}
 }
 function retMsgConc(id){const x=A9.ret.rows.find(r=>r.id===id);if(x)retAbreWa(x,'retirada_ok')}
 
-/* ---------- página do entregador para a rota de retirada (link sem login, sem foto) ---------- */
+/* ---------- página do entregador para a rota de devolução (link sem login, sem foto) ---------- */
 var RET_R={};
 function pageRetirada(rid,tk){
-  const caixa=t=>'<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota de retirada</h1>'+t+'</div>';
+  const caixa=t=>'<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota de devolução</h1>'+t+'</div>';
   if(!rid||!tk)return caixa('<div class="note err">Este link não é válido. Peça à loja o link da rota.</div>');
   if(!SB)return caixa('<p style="color:var(--muted)">Carregando...</p>');
   const key=rid+'/'+tk;
@@ -5629,7 +5629,7 @@ function pageRetirada(rid,tk){
     <div style="font-size:.88rem;margin-bottom:10px"><b>${st}</b></div>
     <div class="acts"><a class="btn sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">Google Maps</a><a class="btn ghost sm" href="${esc(wazeDest(t))}" target="_blank" rel="noopener">Waze</a>${fim?'':(p.chegou_em?'':`<button class="btn sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','cheguei')">📍 Cheguei</button>`)+`<button class="btn acc sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','finalizar')">✅ Finalizar: voltei com o pedido</button>`}</div></div>`;
   };
-  return `<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota de retirada</h1>
+  return `<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota de devolução</h1>
   <p style="margin:0 0 12px;color:var(--muted)">Busque o pedido na casa do cliente e devolva na <b>${esc(BASE_ZP)}</b>. ${ps.length-abertas.length} de ${ps.length} concluídas.</p>
   ${abertas.length>1?`<p style="margin-bottom:14px"><a class="btn acc full" style="padding:1em" href="${esc(mapsRota(abertas.map(p=>endTxt(p.dest||{}))))}" target="_blank" rel="noopener">Abrir a rota completa no Google Maps</a></p>`:''}
   ${ps.map(stop).join('')}
@@ -6156,7 +6156,7 @@ function tabPagamentos(){
    const tabParc=ps.length?'<table class="pgpt">'+ps.map((p,i)=>'<tr><td><b>'+(p.entrada?'Entrada':ps.length===1?'1ª':(i+1-(ps[0].entrada?1:0))+'ª')+'</b></td><td>'+dataBc(p.data)+'</td><td>'+(p.valor?esc(brl(p.valor)):'')+'</td><td>'+(p.pago?'<span class="parc-chip parc-paga">✅ pago</span>':'<span class="parc-chip parc-pend">pendente</span>')+'</td><td>'+(p.pago?'<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar('+o.id+','+i+',false)" title="Volta o valor para a parcela, como se não tivesse sido pago">↩ desfazer</button>'+(p.parcial?' <button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevCorrigir('+o.id+','+i+')" title="Desfaz e já abre para lançar o valor certo">✏️ corrigir valor</button>':''):'<button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevMarcar('+o.id+','+i+',true)">Marcar pago</button> <button class="btn ghost" style="padding:0 6px;font-size:.72rem" onclick="prevParcial('+o.id+','+i+')">Pagou parte</button>')+'</td></tr>').join('')+'</table>':'';
    const detalhe='<details class="pgdet"'+((A9.pagAb&&A9.pagAb[o.id])?' open':'')+' ontoggle="pagAb('+o.id+',this.open)"><summary>Pagamento e histórico</summary><div class="pgbox">'+
      '<div class="pgsub"><b>Forma de pagamento:</b> '+(forma?esc(forma):'não informada')+'</div>'+pagUnidosHtml(o)+tabParc+
-     '<div class="pgbtns">'+(pg?'<button class="btn ghost sm" onclick="pagMarcar('+o.id+',false)">Voltar para pendente</button>':'<button class="btn sm bs-ok" onclick="pagMarcar('+o.id+',true)">Marcar pago total</button><button class="btn ghost sm" onclick="pagProg('+o.id+')">'+(ps.length?'Reprogramar':'Programar')+'</button>'+(o._rev?'':'<button class="btn ghost sm" onclick="pagUnirAbrir('+o.id+')" title="Soma outra compra dele nesta cobrança">🔗 Unir cobrança</button>'))+'<button class="btn ghost sm" onclick="pagHist('+o.id+')">📜 Histórico</button>'+((o._rev||o.id<0||o.status==='cancelado')?'':'<button class="btn ghost sm" style="opacity:.65" onclick="retAtribuirAbrir('+o.id+')" title="Um motoboy busca o pedido na casa do cliente">🏍 Rota de retirada</button><button class="btn ghost sm" style="opacity:.65" onclick="pendAbrir('+o.id+')" title="Sem forma de pagamento definida">📌 Outra pendência</button><button class="btn ghost sm" style="opacity:.65" onclick="devAbrir('+o.id+')" title="O cliente pediu para devolver o pedido">↩ Devolução de pedido</button>')+'</div>'+
+     '<div class="pgbtns">'+(pg?'<button class="btn ghost sm" onclick="pagMarcar('+o.id+',false)">Voltar para pendente</button>':'<button class="btn sm bs-ok" onclick="pagMarcar('+o.id+',true)">Marcar pago total</button><button class="btn ghost sm" onclick="pagProg('+o.id+')">'+(ps.length?'Reprogramar':'Programar')+'</button>'+(o._rev?'':'<button class="btn ghost sm" onclick="pagUnirAbrir('+o.id+')" title="Soma outra compra dele nesta cobrança">🔗 Unir cobrança</button>'))+'<button class="btn ghost sm" onclick="pagHist('+o.id+')">📜 Histórico</button>'+((o._rev||o.id<0||o.status==='cancelado')?'':'<button class="btn ghost sm" style="opacity:.65" onclick="retAtribuirAbrir('+o.id+')" title="Um motoboy busca o pedido na casa do cliente">🏍 Rota de devolução</button><button class="btn ghost sm" style="opacity:.65" onclick="pendAbrir('+o.id+')" title="Sem forma de pagamento definida">📌 Outra pendência</button><button class="btn ghost sm" style="opacity:.65" onclick="devAbrir('+o.id+')" title="O cliente pediu para devolver o pedido">↩ Devolução de pedido</button>')+'</div>'+
      '<div id="pghist'+o.id+'"'+((A9.pagHistH&&A9.pagHistH[o.id])?' data-open="1">'+A9.pagHistH[o.id]:'>')+'</div></div></details>';
    const valor=sp?'A confirmar':(isCarteira&&semVal(o))?'<span style="color:#d92d20">Sem valor</span>':brl(total(o));
    const venTxt=temPrev(o)?(()=>{const p=prevProxima(o);return p?dataBc(p.data):''})():dataBr(dataRef(o));
@@ -6183,7 +6183,7 @@ function tabPagamentos(){
   ${barraFiltros()}
   <div class="fbar" style="margin-bottom:8px"><div><label for="pgQ">Buscar por nome</label><input id="pgQ" value="${esc(A9.pagQ||'')}" placeholder="Nome ou telefone" oninput="buscaLive(this,'pagQ')"></div><div><label for="pgD1">${f==='carteira'?'Vence de':'Data de'}</label><input id="pgD1" type="date" value="${esc(A9.pagD1||'')}" onchange="A9.pagD1=this.value;route()" style="width:auto"></div><div><label for="pgD2">até</label><input id="pgD2" type="date" value="${esc(A9.pagD2||'')}" onchange="A9.pagD2=this.value;route()" style="width:auto"></div>${(A9.pagQ||A9.pagD1||A9.pagD2||A9.pagSort)?'<button class="btn ghost sm" onclick="A9.pagQ=\'\';A9.pagD1=\'\';A9.pagD2=\'\';A9.pagSort=null;route()">Limpar</button>':''}<span style="align-self:center;color:var(--muted);font-size:.82rem">${lista.length} na lista</span></div>
   ${isCarteira?pendChipsHtml():''}
-  <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn acc sm" onclick="cobNova()">➕ Nova cobrança</button>${btnFrete}${isCarteira?'<button class="btn ghost sm" onclick="retEscolherAbrir()">🏍 Enviar para rota de retirada</button><button class="btn ghost sm" onclick="pendEscolherAbrir()">📌 Adicionar em outras pendências</button>':''}</div>
+  <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn acc sm" onclick="cobNova()">➕ Nova cobrança</button>${btnFrete}${isCarteira?'<button class="btn ghost sm" onclick="retEscolherAbrir()">🏍 Enviar para rota de devolução</button><button class="btn ghost sm" onclick="pendEscolherAbrir()">📌 Adicionar em outras pendências</button>':''}</div>
   ${(isCarteira&&A9.cartSub==='pend')?pendTabelaHtml():`<div class="tbl"><table>${thead}<tbody>${lista.map(o=>rowPag(o,mostraFrete)).join('')||`<tr><td colspan="${mostraFrete?7:6}">Nenhum pedido nesta lista.</td></tr>`}</tbody></table></div>`}
   </div>`;
 }
