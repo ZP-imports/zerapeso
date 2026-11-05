@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-05-2494 -->
+<!-- v2026-11-05-2495 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -490,6 +490,7 @@ tr[data-sc] td:first-child{box-shadow:inset 4px 0 0 var(--sc)}
 .stopts{display:grid;gap:8px;margin:6px 0 10px}.stopt{text-align:left;border:2px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;cursor:pointer;font:inherit;color:inherit}
 .stopt b{display:block}.stopt span{font-size:.82rem;color:var(--muted)}.stopt.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 10%,#fff)}.stopt:disabled{opacity:.55;cursor:default}
 .btn.danger{border-color:#d92d20;color:#d92d20}
+.gearwrap{position:relative;display:inline-block}.gearbtn{background:#fff;border:1px solid var(--line);border-radius:10px;font-size:1.25rem;line-height:1;padding:8px 11px;cursor:pointer}.gearbtn.on{border-color:var(--p);background:#eef5f2}.gearmenu{position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.16);min-width:230px;z-index:60;padding:6px}.gearmenu button{display:block;width:100%;text-align:left;background:none;border:0;padding:10px 12px;border-radius:8px;font-size:.95rem;cursor:pointer}.gearmenu button:hover{background:#f3f4f6}.gearmenu button.on{background:#eef5f2;font-weight:700}
 .tabs.adm.sec{margin-top:-8px}.maisb{background:#fff!important;border:1px dashed var(--line)!important}
 
 /* ===== barra de etapas do pedido e quadros de entregador selecionáveis ===== */
@@ -4567,11 +4568,14 @@ function pageOp(){
     return '<div class="adlogin"><div class="adcard"><div class="adico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><h1>Acesso da equipe</h1><p class="adsub">Entre com o seu e-mail e senha para acessar o painel da loja.</p><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username" placeholder="voce@empresa.com"><label for="ap">Senha</label><div class="adsenha"><input id="ap" type="password" required autocomplete="current-password" placeholder="Sua senha"><button type="button" class="adver" onclick="admVerSenha(this)">Mostrar</button></div><button class="adbtn">Entrar</button></form><p class="adnota">Acesso restrito. Se você é cliente, <a href="./">volte para a loja</a>.</p></div></div>';
   }
   const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['retirada','Rota de devolução'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['clientes','Clientes'],['revendedores','Revendedores'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações'],['usuarios','Usuários']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['retirada','Rota de devolução'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
-  const EXTRA_T=['cartao','atrasados','clientes','revendedores','campanhas','produtos','etiquetas','mensagens','config'];
+  const EXTRA_T=['cartao','atrasados','clientes','revendedores','campanhas','produtos','etiquetas','mensagens','config','usuarios'];
+  const GEAR_T=['cartao','atrasados','campanhas','produtos','etiquetas','mensagens','config','usuarios'];
+  const gearItens=tabs.filter(t=>GEAR_T.includes(t[0]));
+  const gearHtml=gearItens.length?'<span class="gearwrap"><button class="gearbtn'+(gearItens.some(t=>t[0]===A.tab)?' on':'')+'" onclick="A9.gear=!A9.gear;route()" title="Configurações e mais opções" aria-label="Configurações">⚙️</button>'+(A9.gear?'<div class="gearmenu">'+gearItens.map(t=>'<button class="'+(A.tab===t[0]?'on':'')+'" onclick="A9.gear=false;A9.mais=null;admTab(\''+t[0]+'\')">'+(t[0]==='config'?'Configurações do site':t[1])+'</button>').join('')+'</div>':'')+'</span>':'';
   if(!tabs.some(t=>t[0]===A.tab)&&!(A.tab==='manual'&&tabs.some(t=>t[0]==='manual')))A.tab=tabs[0][0];
   msgGarante();
   const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,manual:tabManual,pagamentos:tabPagamentos,pendentes:tabPendentes,cartao:tabCartao,campanhas:tabCampanhas,logistica:tabLogistica,entregadores:tabEntregadores,retirada:tabRetirada,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,mensagens:tabMensagens,config:tabConfig,clientes:tabClientes,revendedores:tabRevendedores,usuarios:tabUsuarios})[A.tab]();
-  return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="font-size:.85rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]}) · <a style="cursor:pointer" onclick="admSair()">Sair</a></div></div>
+  return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:.9rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]})</span>${gearHtml}<button class="btn" style="font-size:1rem;padding:9px 20px" onclick="admSair()">Sair</button></div></div>
   ${abasHtml(tabs.filter(t=>t[0]!=='manual'),EXTRA_T)}${body}</div>`;
 }
 /* ---------- pagamento visto pelo cliente: o vendedor envia o link pelo WhatsApp ---------- */
@@ -5100,20 +5104,32 @@ function admEndAbrir(modo){
 /* ======================= USUÁRIOS DA EQUIPE (o nome de quem agiu aparece nos históricos) ======================= */
 var EQ_PAPEL={admin:'Administrador (tudo)',logistica:'Logística',separador:'Separação'};
 async function eqCarregar(){
-  const r=await SB.from('perfis').select('id,nome,sobrenome,email,papel,ativo,criado_em').in('papel',['admin','logistica','separador']).order('criado_em');
-  A9.eq={rows:r.data||[],erro:r.error?r.error.message:''};route();
+  const r=await SB.rpc('equipe_listar');
+  A9.eq={rows:r.data||[],erro:r.error?(/equipe_listar|function|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 36 no Supabase.':r.error.message):''};route();
 }
+function eqNome(x){return ((x.nome||'')+' '+(x.sobrenome||'')).trim()||'(sem nome)'}
+function eqAcesso(x){return x.ultimo_acesso?dataBr(String(x.ultimo_acesso).slice(0,10)):'nunca entrou'}
 function tabUsuarios(){
   if(ADMIN.papel!=='admin')return '<div class="box">Só o administrador gerencia os usuários.</div>';
   if(!A9.eq){if(!A9.eqBusy){A9.eqBusy=true;eqCarregar().finally(()=>{A9.eqBusy=false})}return '<div class="box">Carregando...</div>'}
   const eu=(A9.eq.rows.find(x=>String(x.email||'').toLowerCase()===String(ADMIN.email||'').toLowerCase())||{}).id;
   const opt=p=>Object.keys(EQ_PAPEL).map(k=>'<option value="'+k+'"'+(p===k?' selected':'')+'>'+esc(EQ_PAPEL[k])+'</option>').join('');
-  const lin=x=>'<tr'+(x.ativo?'':' style="opacity:.55"')+'><td><b>'+esc(((x.nome||'')+' '+(x.sobrenome||'')).trim()||'(sem nome)')+'</b>'+(x.id===eu?' <span class="pgsub">(você)</span>':'')+'</td><td>'+esc(x.email||'')+'</td><td><select '+(x.id===eu?'disabled ':'')+'onchange="eqDefinir(\''+x.id+'\',this.value,'+x.ativo+')" style="width:auto">'+opt(x.papel)+'</select></td><td>'+(x.ativo?'Ativo':'Desativado')+'</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="eqSenha(\''+x.id+'\')">Nova senha</button> '+(x.id===eu?'':'<button class="btn ghost sm" onclick="eqDefinir(\''+x.id+'\',\''+x.papel+'\','+!x.ativo+')">'+(x.ativo?'Desativar':'Ativar')+'</button>')+'</td></tr>';
-  return '<div class="box">'+msgBox()+(A9.eq.erro?'<div class="note err">Não foi possível carregar a equipe. Confira se o arquivo 35 foi rodado no Supabase.</div>':'')+
-   '<p style="margin:0 0 10px;color:var(--muted)">Cada pessoa da equipe tem o seu próprio acesso. O nome dela aparece no histórico das ações (por exemplo, quem editou um pedido).</p>'+
-   '<div class="box" style="box-shadow:none;background:#fafafa"><h3 style="margin-top:0">Criar acesso</h3><div class="fr"><div class="c3"><label for="eqN">Nome</label><input id="eqN" placeholder="Ex.: Wesley"></div><div class="c3"><label for="eqE">E-mail (será o login)</label><input id="eqE" type="email" autocomplete="off"></div><div class="c2"><label for="eqS">Senha</label><input id="eqS" autocomplete="off" placeholder="mínimo 6"></div><div class="c3"><label for="eqP">Perfil</label><select id="eqP">'+opt('admin')+'</select></div><div class="c3"><label for="eqF">WhatsApp da pessoa (para enviar o acesso)</label><input id="eqF" inputmode="tel" placeholder="(12) 9 9999-9999"></div></div>'+
-   '<p style="margin:10px 0 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="document.getElementById(\'eqS\').value=Math.random().toString(36).slice(2,6)+Math.random().toString(36).slice(2,6)">Gerar senha</button><button class="btn acc" onclick="eqCriar()">Criar acesso</button></p></div>'+
-   '<h3>Equipe</h3><div class="tbl"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Situação</th><th></th></tr></thead><tbody>'+(A9.eq.rows.map(lin).join('')||'<tr><td colspan="5">Nenhum usuário.</td></tr>')+'</tbody></table></div></div>';
+  const lin=x=>'<tr'+(x.ativo?'':' style="opacity:.55"')+'><td><b>'+esc(eqNome(x))+'</b>'+(x.id===eu?' <span class="pgsub">(você)</span>':'')+'</td><td>'+esc(x.email||'')+'</td><td><select '+(x.id===eu?'disabled ':'')+'onchange="eqDefinir(\''+x.id+'\',this.value,'+x.ativo+')" style="width:auto">'+opt(x.papel)+'</select></td><td>'+(x.ativo?'Ativo':'Desativado')+'<div class="pgsub">Último acesso: '+esc(eqAcesso(x))+'</div></td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="eqSenha(\''+x.id+'\')">Nova senha</button> '+(x.id===eu?'':'<button class="btn ghost sm" onclick="eqDefinir(\''+x.id+'\',\''+x.papel+'\','+!x.ativo+')">'+(x.ativo?'Desativar':'Ativar')+'</button> <button class="btn ghost sm danger" onclick="eqExcluir(\''+x.id+'\')">Excluir</button>')+'</td></tr>';
+  const res=A9.eqRes;
+  const linRes=x=>{const eq=['admin','logistica','separador'].includes(x.papel);return '<tr><td><b>'+esc(eqNome(x))+'</b></td><td>'+esc(x.email||'')+'</td><td>'+(eq?esc(EQ_PAPEL[x.papel])+' (já na equipe)':'Cliente')+'</td><td>'+(eq?'':'<select id="eqR_'+x.id+'" style="width:auto">'+opt('admin')+'</select> <button class="btn acc sm" onclick="eqDefinir(\''+x.id+'\',document.getElementById(\'eqR_'+x.id+'\').value,true)">Dar acesso</button>')+'</td></tr>'};
+  return '<div class="box">'+msgBox()+(A9.eq.erro?'<div class="note err">'+esc(A9.eq.erro)+'</div>':'')+
+   '<p style="margin:0 0 10px;color:var(--muted)">Cada pessoa da equipe tem o seu próprio acesso, com o mesmo painel. O nome dela aparece no histórico das ações (por exemplo, quem editou um pedido).</p>'+
+   '<h3 style="margin-top:0">Equipe ('+A9.eq.rows.length+')</h3><div class="tbl"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Situação</th><th></th></tr></thead><tbody>'+(A9.eq.rows.map(lin).join('')||'<tr><td colspan="5">Nenhum usuário da equipe.</td></tr>')+'</tbody></table></div>'+
+   '<div class="box" style="box-shadow:none;background:#fafafa;margin-top:14px"><h3 style="margin-top:0">Dar acesso a quem já tem cadastro</h3><p style="margin:0 0 8px;color:var(--muted);font-size:.88rem">Procure pelo nome ou e-mail de quem já se cadastrou (cliente ou não) e libere o acesso ao painel.</p><div class="btns"><input id="eqQ" placeholder="Nome ou e-mail" style="max-width:320px" onkeydown="if(event.key===\'Enter\')eqBuscar()"><button class="btn acc sm" onclick="eqBuscar()">Buscar</button></div>'+
+   (res?'<div class="tbl" style="margin-top:8px"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Situação</th><th></th></tr></thead><tbody>'+(res.map(linRes).join('')||'<tr><td colspan="4">Ninguém encontrado.</td></tr>')+'</tbody></table></div>':'')+'</div>'+
+   '<div class="box" style="box-shadow:none;background:#fafafa;margin-top:14px"><h3 style="margin-top:0">Criar acesso novo</h3><div class="fr"><div class="c3"><label for="eqN">Nome</label><input id="eqN" placeholder="Ex.: Wesley"></div><div class="c3"><label for="eqE">E-mail (será o login)</label><input id="eqE" type="email" autocomplete="off"></div><div class="c2"><label for="eqS">Senha</label><input id="eqS" autocomplete="off" placeholder="mínimo 6"></div><div class="c3"><label for="eqP">Perfil</label><select id="eqP">'+opt('admin')+'</select></div><div class="c3"><label for="eqF">WhatsApp da pessoa (para enviar o acesso)</label><input id="eqF" inputmode="tel" placeholder="(12) 9 9999-9999"></div></div>'+
+   '<p style="margin:10px 0 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="document.getElementById(\'eqS\').value=Math.random().toString(36).slice(2,6)+Math.random().toString(36).slice(2,6)">Gerar senha</button><button class="btn acc" onclick="eqCriar()">Criar acesso</button></p><p style="margin:8px 0 0;color:var(--muted);font-size:.82rem">Se o e-mail já tiver cadastro, o acesso é liberado nessa conta e a senha informada passa a valer.</p></div></div>';
+}
+async function eqBuscar(){
+  const q=v_('eqQ').trim();if(q.length<2){toast('Digite pelo menos 2 letras.');return}
+  const r=await SB.rpc('equipe_buscar',{p_q:q});
+  if(r.error){toast(/equipe_buscar|function|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 36 no Supabase.':msgRpc(r.error));return}
+  A9.eqRes=r.data||[];route();
 }
 async function eqCriar(){
   const nome=v_('eqN').trim(),email=v_('eqE').trim().toLowerCase(),senha=v_('eqS'),papel=v_('eqP'),fone=v_('eqF').trim();
@@ -5121,16 +5137,24 @@ async function eqCriar(){
   if(senha.length<6){toast('A senha precisa ter pelo menos 6 caracteres.');return}
   if(A9.busy)return;A9.busy=true;
   const r=await SB.rpc('equipe_criar_usuario',{p_nome:nome,p_email:email,p_senha:senha,p_papel:papel});A9.busy=false;
-  if(r.error){A9.msg=/equipe_criar_usuario|function|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 35 no Supabase.':msgRpc(r.error);A9.erro=true;route();return}
-  A9.eq=null;A9.msg='Acesso criado para '+nome+'.';A9.erro=false;route();
+  if(r.error){A9.msg=/equipe_criar_usuario|function|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 36 no Supabase.':msgRpc(r.error);A9.erro=true;route();return}
+  const ex=!!(r.data&&r.data.existente);
+  A9.eq=null;A9.eqRes=null;A9.msg=ex?'Esta pessoa já tinha cadastro: o acesso foi liberado e a senha informada passou a valer.':'Acesso criado para '+nome+'.';A9.erro=false;route();
   const txt='Olá, '+nome.split(' ')[0]+'! Seu acesso ao painel da ZP Imports:\n\n🔗 '+location.origin+'/admin\n📧 Login: '+email+'\n🔑 Senha: '+senha+'\n\nPor segurança, peça para trocar a senha no primeiro acesso.';
   if(fone)msgPrevia('Enviar o acesso',nome,fone,txt);
-  else zpModal('eqbox','<h3 style="margin:0 0 6px">Acesso criado</h3><p style="margin:0 0 8px;color:#667085;font-size:.88rem">Copie e envie para '+esc(nome)+'. A senha não aparece de novo.</p><textarea rows="8" style="width:100%" readonly onclick="this.select()">'+esc(txt)+'</textarea><div class="btns" style="margin-top:10px"><button class="btn ghost" onclick="document.getElementById(\'eqbox\').remove()">Fechar</button></div>');
+  else zpModal('eqbox','<h3 style="margin:0 0 6px">Acesso liberado</h3><p style="margin:0 0 8px;color:#667085;font-size:.88rem">Copie e envie para '+esc(nome)+'. A senha não aparece de novo.</p><textarea rows="8" style="width:100%" readonly onclick="this.select()">'+esc(txt)+'</textarea><div class="btns" style="margin-top:10px"><button class="btn ghost" onclick="document.getElementById(\'eqbox\').remove()">Fechar</button></div>');
 }
 async function eqDefinir(id,papel,ativo){
   const r=await SB.rpc('equipe_definir',{p_id:id,p_papel:papel,p_ativo:ativo});
   if(r.error){A9.msg=msgRpc(r.error);A9.erro=true;route();return}
-  A9.eq=null;A9.msg='Usuário atualizado.';A9.erro=false;route();
+  A9.eq=null;A9.eqRes=null;A9.msg='Usuário atualizado.';A9.erro=false;route();
+}
+async function eqExcluir(id){
+  const x=(A9.eq&&A9.eq.rows||[]).find(u=>u.id===id);
+  if(!confirm('Excluir o acesso de '+(x?eqNome(x):'este usuário')+'?\n\nEle não poderá mais entrar no painel. O histórico das ações continua. Se a pessoa também é cliente, a conta de cliente é mantida.'))return;
+  const r=await SB.rpc('equipe_excluir',{p_id:id});
+  if(r.error){A9.msg=/equipe_excluir|function|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 36 no Supabase.':msgRpc(r.error);A9.erro=true;route();return}
+  A9.eq=null;A9.eqRes=null;A9.msg=r.data==='rebaixado'?'Acesso da equipe removido. A conta de cliente foi mantida.':'Usuário excluído.';A9.erro=false;route();
 }
 async function eqSenha(id){
   const s=prompt('Nova senha para este usuário (mínimo 6 caracteres):');if(!s)return;
@@ -5139,6 +5163,8 @@ async function eqSenha(id){
   if(r.error){toast(msgRpc(r.error));return}
   toast('Senha alterada. Avise a pessoa.');
 }
+/* fecha o menu da engrenagem ao clicar fora */
+if(window.__ADMIN_APP)document.addEventListener('click',function(ev){if(A9.gear&&!(ev.target.closest&&ev.target.closest('.gearwrap'))){A9.gear=false;route()}});
 /* virou o dia: os atrasados de ontem passam a contar em hoje, sem precisar recarregar */
 (function(){let d0=hojeS();setInterval(()=>{const d=hojeS();if(d!==d0){d0=d;if(window.__ADMIN_APP&&!emEdicao())route()}},60000)})();
 /* ======================= O CLIENTE ALTERA O ENDEREÇO COM O PEDIDO EM ROTA ======================= */
@@ -6570,7 +6596,7 @@ function abasHtml(tabs,extra){
   const quick=['revendedores'].map(k=>tabs.find(t=>t[0]===k)).filter(Boolean);
   const cliT=tabs.find(t=>t[0]==='clientes');const cliBtn=cliT?`<button class="qk qk-cli${A.tab==='clientes'?' on':''}" onclick="A9.mais=null;admTab('clientes')">${cliT[1]}</button>`:'';
   const qbtn=t=>`<button class="qk ${QK[t[0]]}${A.tab===t[0]?' on':''}" onclick="A9.mais=null;admTab('${t[0]}')">${t[1]}</button>`;
-  const main=tabs.filter(t=>!extra.includes(t[0])&&!QK[t[0]]),ex=tabs.filter(t=>extra.includes(t[0])&&!QK[t[0]]);
+  const main=tabs.filter(t=>!extra.includes(t[0])&&!QK[t[0]]),ex=[];
   /* A9.mais: true/false = escolha da pessoa; vazio = abre sozinho quando está numa aba do grupo */
   const aberto=A9.mais===true?true:A9.mais===false?false:ex.some(t=>t[0]===A.tab);
   return `<div class="tabs adm">${main.map(t=>btn(t)+(t[0]==='pedidos'?cliBtn:'')).join('')}${!main.some(t=>t[0]==='pedidos')?cliBtn:''}${ex.length?`<button class="maisb" onclick="A9.mais=${!aberto};route()">${aberto?'Menos ▴':'Mais opções ▾'}</button>`:''}${quick.map(qbtn).join('')}</div>${ex.length&&aberto?`<div class="tabs adm sec">${ex.map(btn).join('')}</div>`:''}`;
