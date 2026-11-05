@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-05-2501 -->
+<!-- v2026-11-05-2502 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5686,7 +5686,7 @@ function pendTabelaHtml(){
   const hoje=hojeS();
   const linha=o=>{const p=(o.extra||{}).pend||{},e=o.entrega||{};
     const comb=p.data?'<b style="color:'+(p.data<hoje?'#b42318':p.data===hoje?'#d97706':'inherit')+'">'+esc(dataBr(p.data))+'</b>'+(p.data<hoje?'<div class="pgsub" style="color:#b42318">venceu</div>':p.data===hoje?'<div class="pgsub" style="color:#d97706">hoje</div>':''):'<span style="color:var(--muted)">—</span>';
-    return '<tr><td style="white-space:nowrap"><b>'+codPed(o)+'</b></td><td class="pgcli"><b>'+esc(e.nome||'')+'</b><div class="pgsub">'+esc(cidadeDe(o))+'</div></td><td>'+brl(totalPag(o))+'</td><td style="min-width:200px">'+esc(p.obs||'')+'<div class="pgsub">Desde '+esc(dataBr(p.em||''))+(p.por?' · '+esc(p.por):'')+'</div>'+pendHistHtml(p)+'</td><td>'+comb+'</td><td style="white-space:nowrap"><button class="btn wa sm" title="Enviar mensagem no WhatsApp" onclick="pendWa('+o.id+')">💬</button> <button class="btn ghost sm" onclick="pendEditar('+o.id+')">✏️ Editar</button> <button class="btn ghost sm" onclick="pendProgramar('+o.id+')">Programar</button> <button class="btn ghost sm" title="Mover para outro lugar" onclick="pendMover('+o.id+')">↩ Mover</button></td></tr>'};
+    return '<tr><td style="white-space:nowrap"><b>'+codPed(o)+'</b></td><td class="pgcli"><b>'+esc(e.nome||'')+'</b><div class="pgsub">'+esc(cidadeDe(o))+'</div></td><td>'+brl(totalPag(o))+'</td><td style="min-width:200px">'+esc(p.obs||'')+'<div class="pgsub">Desde '+esc(dataBr(p.em||''))+(p.por?' · '+esc(p.por):'')+'</div>'+pendHistHtml(p)+'</td><td>'+comb+'</td><td style="white-space:nowrap"><button class="btn wa sm" title="Chamar no WhatsApp (conversa em branco)" onclick="pendChat('+o.id+')"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M12.04 2a9.9 9.9 0 0 0-8.4 15.1L2 22l5-1.6A9.9 9.9 0 1 0 12.04 2zm0 1.8a8.1 8.1 0 1 1-4.2 15l-.3-.2-2.9.9.9-2.8-.2-.3A8.1 8.1 0 0 1 12.04 3.8zm-3 3.9c-.2 0-.5.1-.7.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3 2.4.9 2.9.7 3.4.7.5-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.4l-1.8-.9c-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1-.3-.1-1.1-.4-2.1-1.3-.8-.7-1.3-1.5-1.4-1.8-.2-.3 0-.4.1-.5l.4-.5.3-.4c.1-.2 0-.3 0-.5l-.8-1.9c-.2-.5-.4-.4-.6-.4z"/></svg></button> <button class="btn wa sm" title="Enviar a mensagem de pendência no WhatsApp" onclick="pendWa('+o.id+')">💬</button> <button class="btn ghost sm" onclick="pendEditar('+o.id+')">✏️ Editar</button> <button class="btn ghost sm" onclick="pendProgramar('+o.id+')">Programar</button> <button class="btn ghost sm" title="Mover para outro lugar" onclick="pendMover('+o.id+')">↩ Mover</button></td></tr>'};
   return '<div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Valor</th><th>Por que está aqui</th><th>Combinado para</th><th>Ações</th></tr></thead><tbody>'+(L.map(linha).join('')||'<tr><td colspan="6">Nenhuma pendência. Use <b>📌 Adicionar em outras pendências</b> para incluir um pedido sem forma de pagamento definida.</td></tr>')+'</tbody></table></div>';
 }
 /* editar a pendência: o que ficou combinado e a data (o histórico guarda cada alteração) */
@@ -5768,6 +5768,11 @@ async function pendTirar(id){
   const r=await SB.from('pedidos').update({extra:ex}).eq('id',id);
   if(r.error){toast('Erro: '+r.error.message);return}
   o.extra=ex;route();
+}
+function pendChat(id){
+  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
+  const fw=foneWa((o.entrega||{}).fone);if(!fw){toast('Este pedido está sem telefone válido.');return}
+  waAbrir(fw,'');
 }
 function pendWa(id){
   const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
