@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-10-31-2487 -->
+<!-- v2026-11-04-2488 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -4346,7 +4346,7 @@ function admDetalhe(){
   <div class="two" style="gap:20px"><div>
   <h3 style="margin-top:0">Cliente e entrega</h3>
   <p style="margin:0"><b>${esc(en.nome||'')}</b><br>${fone?`<a href="https://wa.me/${fone}" target="_blank" rel="noopener">${esc(en.fone)}</a>`:esc(en.fone||'')}</p>
-  <p>${esc(d.rua||'')}, ${esc(d.num||'')}${d.comp?', '+esc(d.comp):''}<br>${esc(d.bairro||'')}<br>${esc(d.cidade||'')}/${esc(d.uf||'')}, CEP ${esc(d.cep||'')}${d.ref?'<br>Referência: '+esc(d.ref):''}${en.secundario?'<br><i>Endereço secundário informado pelo cliente</i>':''}</p>
+  <p>${esc(d.rua||'')}, ${esc(d.num||'')}${d.comp?', '+esc(d.comp):''}<br>${esc(d.bairro||'')}<br>${esc(d.cidade||'')}/${esc(d.uf||'')}, CEP ${esc(d.cep||'')}${d.ref?'<br>Referência: '+esc(d.ref):''}${en.secundario?'<br><i>Endereço secundário informado pelo cliente</i>':''}${d.rua?'<br><a href="'+esc(mapsDest(endTxt(d)))+'" target="_blank" rel="noopener" style="font-size:.85rem">📍 Ver no mapa</a>':''}</p>
   ${['entregue','cancelado'].includes(o.status)?'':'<p style="margin:-6px 0 10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="admEndAbrir(\'atual\')">✏️ Editar endereço</button><button class="btn ghost sm" onclick="neAbrir()" title="Vale só para este pedido. Não muda o cadastro do cliente.">➕ Novo endereço de entrega</button></p>'}
   <p style="margin:-2px 0 10px"><button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Ver foto do entregador</button></p>
   <p style="margin:0">Entrega desejada: <b>${dataBr(en.data)} (${esc(TURNOS[en.turno]||'')})</b>${o.entregadorNome?'<br>Entregador: <b>'+esc(o.entregadorNome)+'</b>':''}<br>Forma de pagamento escolhida: <b>${esc(PAGNOME[pg.preferencia]||'não informada')}</b>${en.obs?'<br>Observação do cliente: '+esc(en.obs):''}</p>
@@ -4587,6 +4587,8 @@ async function admCarregarLog(){
   if(falta.length){const x=await SB.from('pedidos').select('*').in('id',falta);(x.data||[]).forEach(p=>{peds[p.id]=p})}
   try{await corCarregar()}catch(x){}
   A9.lg={ent:en.data,rotas:ro.data,peds,abertos:ab.data};route();
+  const idsR=[];ro.data.slice(0,12).forEach(r=>r.pedidos.forEach(id=>{if(!idsR.includes(id))idsR.push(id)}));
+  endPrepara(idsR.map(id=>((peds[id]||{}).entrega||{}).dest));
 }
 function admLgRecarrega(){A9.lg=null;A9.pedidos=null;route()}
 async function admLgRpc(nome,args,ok){
@@ -5286,8 +5288,8 @@ function endTxt(d){
   const a=[[d.rua,d.num].filter(Boolean).join(', '),d.bairro,d.cidade].filter(Boolean).join(', ');
   return a+(d.uf?' - '+String(d.uf).toUpperCase():'')+(d.cep?', '+d.cep:'');
 }
-var mapsDest=t=>'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(t)+'&travelmode=driving';
-var wazeDest=t=>'https://waze.com/ul?q='+encodeURIComponent(t)+'&navigate=yes';
+var mapsDest=t=>'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(endLoc(t)||t)+'&travelmode=driving';
+var wazeDest=t=>endLoc(t)?'https://waze.com/ul?ll='+endLoc(t)+'&navigate=yes':'https://waze.com/ul?q='+encodeURIComponent(t)+'&navigate=yes';
 /* Uber: é um "entregador" chamado Uber. O botão abre o app (ou o site, no computador) com o endereço do cliente como destino */
 var ehUber=x=>/uber/i.test(String((x||{}).nome||''));
 function uberUrl(o){const e=o.entrega||{};return 'https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[nickname]='+encodeURIComponent(e.nome||'Cliente')+'&dropoff[formatted_address]='+encodeURIComponent(endTxt(e.dest))}
@@ -5309,7 +5311,7 @@ function mapsRota(lista){
   const L=(lista||[]).filter(Boolean).slice(0,10);
   if(!L.length)return '';
   if(L.length===1)return mapsDest(L[0]);
-  return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(L[L.length-1])+'&waypoints='+encodeURIComponent(L.slice(0,-1).join('|'))+'&travelmode=driving';
+  return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(endLoc(L[L.length-1])||L[L.length-1])+'&waypoints='+encodeURIComponent(L.slice(0,-1).map(x=>endLoc(x)||x).join('|'))+'&travelmode=driving';
 }
 var entUrl=r=>r&&r.token?location.origin+'/#/entrega/'+r.id+'/'+r.token:'';
 
@@ -5393,6 +5395,7 @@ function pageEntregador(rid,tk){
   if(R===null)return caixa('<p style="color:var(--muted)">Buscando a rota...</p>');
   if(R===false)return caixa('<div class="note err">Este link não é válido ou a rota não existe mais. Peça à loja um link novo.</div>');
   const ps=R.paradas||[];const abertas=ps.filter(p=>!['entregue','cancelado'].includes(p.status));
+  endPrepara(ps.map(p=>p.dest));
   return `<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota ${R.n}</h1>
   <p style="margin:0 0 12px;color:var(--muted)">${esc(dataBr(R.data))} · ${ps.length-abertas.length} de ${ps.length} entregas concluídas</p>
   ${R.saiu?'':'<div class="note warn">Esta rota ainda não foi liberada pela loja. Quando ela sair, os botões Cheguei e Entreguei aparecem aqui.</div>'}
@@ -6254,7 +6257,7 @@ const en=L.ent.find(x=>x.id===r.entregador_id)||{nome:'?',whats:''};const ps=r.p
     const fim=ps.length&&ps.every(o=>ENC(o));const uber=ehUber(en);const fw=uber?'':foneWa(en.whats);
     const cr=corEnt(r.entregador_id);return `<div class="box" style="box-shadow:none;background:#fafafa;margin-top:12px;border-left:8px solid ${cr}"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div><b>Rota ${r.n}</b> · ${dataBr(r.data)} · <span class="entdot" style="background:${cr}"></span><b style="color:${cr}">${esc(en.nome)}</b><div style="color:var(--muted);font-size:.82rem">${r.saiu_em?'Saiu em '+fmtD(Date.parse(r.saiu_em)):'Ainda não saiu'}${fim?' · Concluída':''}</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">${!fim?`<button class="btn wa sm" onclick="avAbrir('${r.id}')">Avisar clientes</button>`:''}${fw&&!fim?`<a class="btn wa sm" href="${waUrlPara(fw,msgRota(r))}" target="_blank" rel="noopener" onclick="admEnviouRota('${r.id}')">Enviar rota ao entregador</a>`:''}${!r.saiu_em?`<button class="btn acc sm" onclick="admSaiuRota('${r.id}')">Saiu para entrega</button>`:''}${!fim?`<button class="btn ghost sm" onclick="entCopiarLink('${r.id}')">Copiar link do entregador</button><button class="btn ghost sm" onclick="rotaCopiar('${r.id}')">Copiar mensagem da rota</button>`:''}${!fim?`<button class="btn ghost sm" onclick="rotaTrfAbrir('${r.id}')">Passar para outro entregador</button>`:''}${!r.saiu_em?`<button class="btn ghost sm" onclick="admDesfazRota('${r.id}')">Desfazer rota</button>`:''}${ADMIN.papel==='admin'?`<button class="btn ghost sm danger" onclick="rotaExcluir('${r.id}')">Excluir rota</button>`:''}</div></div>
-    ${A9.trf===r.id?rotaTrfHtml(r):''}<div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Endereço</th><th>Horário</th><th>Situação</th><th></th></tr></thead><tbody>${ps.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td style="box-shadow:inset 5px 0 0 ${cr}"><b>${codPed(o)}</b></td><td>${esc(e.nome||'')}${e.fone?`<div style="color:var(--muted);font-size:.8rem">${esc(e.fone)}</div>`:''}</td><td>${esc((d.rua||'')+', '+(d.num||'')+' - '+(d.bairro||'')+', '+(d.cidade||''))}</td><td>${esc(TURNOS[e.turno]||'')}</td><td>${esc(ADM_LB[o.status]||STLB[o.status]||o.status)}${o.chegou_em?'<div style="color:var(--muted);font-size:.78rem">Chegou às '+horaBr(o.chegou_em)+'</div>':''}</td><td style="white-space:nowrap">${uber&&!['entregue','cancelado'].includes(o.status)?`<a class="btn wa sm" href="${uberUrl(o)}" target="_blank" rel="noopener">🚗 Chamar Uber</a> `:''}${['em-rota','tentativa'].includes(o.status)?`<button class="btn sm" onclick="admResultado(${o.id},'entregue')">Entregue</button> `:''}${o.status==='em-rota'?`<button class="btn ghost sm" onclick="admResultado(${o.id},'tentativa')">Tentativa</button> `:''}${o.status==='tentativa'?`<button class="btn ghost sm" onclick="admVoltarRota(${o.id},'em-rota')">Voltar p/ em rota</button> <button class="btn ghost sm" onclick="admVoltarRota(${o.id},'confirmado')">Voltar p/ confirmado</button> `:''}${!['entregue','cancelado'].includes(o.status)?`<button class="btn ghost sm" onclick="admTirarRota(${o.id})">Tirar da rota</button> `:''}${o.chegou_em?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">Ver foto</button> `:''}<button class="btn ghost sm" onclick="A9.po=null;A.tab='pedidos';admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div>${A9.av&&A9.av.rota===r.id?avPanel(r,ps):''}</div>`
+    ${A9.trf===r.id?rotaTrfHtml(r):''}<div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Endereço</th><th>Horário</th><th>Situação</th><th></th></tr></thead><tbody>${ps.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td style="box-shadow:inset 5px 0 0 ${cr}"><b>${codPed(o)}</b></td><td>${esc(e.nome||'')}${e.fone?`<div style="color:var(--muted);font-size:.8rem">${esc(e.fone)}</div>`:''}</td><td>${esc((d.rua||'')+', '+(d.num||'')+' - '+(d.bairro||'')+', '+(d.cidade||''))}${d.rua?`<div><a href="${esc(mapsDest(endTxt(d)))}" target="_blank" rel="noopener" style="font-size:.82rem">📍 Ver no mapa</a></div>`:''}</td><td>${esc(TURNOS[e.turno]||'')}</td><td>${esc(ADM_LB[o.status]||STLB[o.status]||o.status)}${o.chegou_em?'<div style="color:var(--muted);font-size:.78rem">Chegou às '+horaBr(o.chegou_em)+'</div>':''}</td><td style="white-space:nowrap">${uber&&!['entregue','cancelado'].includes(o.status)?`<a class="btn wa sm" href="${uberUrl(o)}" target="_blank" rel="noopener">🚗 Chamar Uber</a> `:''}${['em-rota','tentativa'].includes(o.status)?`<button class="btn sm" onclick="admResultado(${o.id},'entregue')">Entregue</button> `:''}${o.status==='em-rota'?`<button class="btn ghost sm" onclick="admResultado(${o.id},'tentativa')">Tentativa</button> `:''}${o.status==='tentativa'?`<button class="btn ghost sm" onclick="admVoltarRota(${o.id},'em-rota')">Voltar p/ em rota</button> <button class="btn ghost sm" onclick="admVoltarRota(${o.id},'confirmado')">Voltar p/ confirmado</button> `:''}${!['entregue','cancelado'].includes(o.status)?`<button class="btn ghost sm" onclick="admTirarRota(${o.id})">Tirar da rota</button> `:''}${o.chegou_em?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">Ver foto</button> `:''}<button class="btn ghost sm" onclick="A9.po=null;A.tab='pedidos';admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div>${A9.av&&A9.av.rota===r.id?avPanel(r,ps):''}</div>`
 }
 A9.trf=null;
 function rotaTrfAbrir(rid){A9.trf=A9.trf===rid?null:rid;route()}
@@ -6560,9 +6563,9 @@ function otFechar(){A9.otim=null;route()}
 function otPs(){const T=A9.otim,L=A9.lg;return T.ids.map(id=>L.peds[id]).filter(Boolean)}
 function mapsTrecho(lista,origem){
   const L=(lista||[]).filter(Boolean);if(!L.length)return '';
-  let u='https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+encodeURIComponent(L[L.length-1]);
-  if(origem)u+='&origin='+encodeURIComponent(origem);
-  if(L.length>1)u+='&waypoints='+encodeURIComponent(L.slice(0,-1).join('|'));
+  let u='https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+encodeURIComponent(endLoc(L[L.length-1])||L[L.length-1]);
+  if(origem)u+='&origin='+encodeURIComponent(endLoc(origem)||origem);
+  if(L.length>1)u+='&waypoints='+encodeURIComponent(L.slice(0,-1).map(x=>endLoc(x)||x).join('|'));
   return u;
 }
 function otTrechos(ends){const out=[];for(let i=0;i<ends.length;i+=10){out.push({de:i+1,ate:Math.min(i+10,ends.length),url:mapsTrecho(ends.slice(i,i+10),i?ends[i-1]:'')})}return out}
@@ -6681,16 +6684,103 @@ function geoOrdem(ini,pts){
       if(depois<antes-1e-6){const seg=P.slice(i,j+1).reverse();for(let k=0;k<seg.length;k++)P[i+k]=seg[k];mel=true}}}
   return P.slice(1);
 }
+/* ---- localização exata do endereço: o link do Maps leva coordenadas (CEP), para o Google não adivinhar o texto ---- */
+var ENDGEO=(function(){try{return JSON.parse(localStorage.getItem('zp_endgeo')||'{}')}catch(x){return{}}})();
+function endGeoSalva(){try{localStorage.setItem('zp_endgeo',JSON.stringify(ENDGEO))}catch(x){}}
+function endLoc(t){const c=ENDGEO[t];return c&&c.lat!=null?c.lat.toFixed(6)+','+c.lon.toFixed(6):''}
+async function cepCoord(cep){
+  const r=await fetch('https://cep.awesomeapi.com.br/json/'+cep);
+  if(r.status===404)return null;if(!r.ok)throw new Error('geo');
+  const j=await r.json(),la=+j.lat,lo=+j.lng;
+  return la&&lo&&la<6&&la>-34&&lo<-33&&lo>-74?{lat:la,lon:lo}:null;
+}
+/* 1ª fase (rápida): CEP. 2ª fase (devagar, 1 por segundo): rua + número, aceito só se ficar a menos de 1,5 km do ponto do CEP */
+var endQ=[],endRQ=[],endBusy=false,endRBusy=false,endT=null;
+function endPrepara(list){
+  (list||[]).forEach(d=>{
+    if(!d||!d.rua)return;const t=endTxt(d),c=ENDGEO[t];
+    if(c&&c.r)return;
+    if(c){if(!endRQ.some(x=>x.t===t))endRQ.push({t,d});return}
+    if(!endQ.some(x=>x.t===t))endQ.push({t,d});
+  });
+  endRoda();endRefina();
+}
+async function endRoda(){
+  if(endBusy)return;endBusy=true;
+  try{while(endQ.length){
+    const it=endQ.shift(),cep=String(it.d.cep||'').replace(/\D/g,'');let g=null;
+    if(cep.length===8){try{g=await cepCoord(cep)}catch(x){continue}}
+    ENDGEO[it.t]=g?{lat:g.lat,lon:g.lon,p:'cep'}:{lat:null,lon:null};endGeoSalva();
+    endRQ.push(it);clearTimeout(endT);endT=setTimeout(endRefresh,500);
+  }}finally{endBusy=false}
+}
+async function endRefina(){
+  if(endRBusy)return;endRBusy=true;
+  try{while(endRQ.length||endQ.length){
+    if(!endRQ.length){await new Promise(r=>setTimeout(r,400));continue}
+    const it=endRQ.shift(),d=it.d,c=ENDGEO[it.t]||{lat:null,lon:null};
+    if(!d.num||!d.cidade){c.r=1;ENDGEO[it.t]=c;continue}
+    let n=null;try{n=await geoBusca([d.rua+', '+d.num,d.bairro,d.cidade,d.uf,'Brasil'].filter(Boolean).join(', '))}catch(x){continue}
+    if(n&&(c.lat==null||geoKm({lat:c.lat,lon:c.lon},n)<=1.5)){c.lat=n.lat;c.lon=n.lon;c.p='num';clearTimeout(endT);endT=setTimeout(endRefresh,500)}
+    c.r=1;ENDGEO[it.t]=c;endGeoSalva();
+  }}finally{endRBusy=false}
+}
+function endRefresh(){
+  if(/^#\/entrega\//.test(location.hash)){route();return}
+  if(window.__ADMIN_APP&&typeof A!=='undefined'&&(A.tab==='logistica'||A.tab==='entregadores')&&!emEdicao())route();
+}
+/* coordenadas de uma parada para ordenar a rota (mesma regra do link) */
+async function endPonto(d){
+  endPrepara([d]);const t=endTxt(d);
+  for(let i=0;i<40&&!ENDGEO[t];i++){await new Promise(r=>setTimeout(r,250))}
+  const c=ENDGEO[t];if(c&&c.lat!=null)return {lat:c.lat,lon:c.lon};
+  return await geoTexto(geoDest(d));
+}
+/* tempo de carro entre os pontos (OSRM, gratuito). Se não responder, usa a distância em linha reta */
+async function rotaMatriz(pts){
+  const reta=()=>pts.map(a=>pts.map(b=>geoKm(a,b)*120));
+  if(pts.length>90)return reta();
+  try{
+    const c=pts.map(p=>p.lon.toFixed(5)+','+p.lat.toFixed(5)).join(';');
+    const r=await fetch('https://router.project-osrm.org/table/v1/driving/'+c+'?annotations=duration');
+    if(!r.ok)throw new Error('osrm');const j=await r.json();if(j.code!=='Ok'||!j.durations)throw new Error('osrm');
+    const R=reta();return j.durations.map((l,i)=>l.map((v,k)=>v==null?R[i][k]:v));
+  }catch(x){return reta()}
+}
+/* caminho aberto saindo do ponto 0, passando por todos, com o menor tempo total (exato até 12 paradas; acima disso, vizinho mais próximo + trocas) */
+function rotaMelhor(M){
+  const n=M.length-1;if(n<=1)return n===1?[1]:[];
+  if(n<=12){
+    const N=1<<n,dp=new Float64Array(N*n).fill(Infinity),pr=new Int8Array(N*n).fill(-1);
+    for(let i=0;i<n;i++)dp[(1<<i)*n+i]=M[0][i+1];
+    for(let m=1;m<N;m++)for(let l=0;l<n;l++){
+      const cur=dp[m*n+l];if(cur===Infinity||!(m&(1<<l)))continue;
+      for(let k=0;k<n;k++){if(m&(1<<k))continue;const nm=m|(1<<k),v=cur+M[l+1][k+1];if(v<dp[nm*n+k]){dp[nm*n+k]=v;pr[nm*n+k]=l}}
+    }
+    let m=N-1,bl=0,bv=Infinity;for(let l=0;l<n;l++)if(dp[m*n+l]<bv){bv=dp[m*n+l];bl=l}
+    const out=[];let l=bl;while(l>=0){out.unshift(l+1);const p=pr[m*n+l];m&=~(1<<l);l=p}
+    return out;
+  }
+  const rest=[];for(let i=1;i<=n;i++)rest.push(i);const ord=[];let cur=0;
+  while(rest.length){let bi=0;rest.forEach((p,i)=>{if(M[cur][p]<M[cur][rest[bi]])bi=i});cur=rest.splice(bi,1)[0];ord.push(cur)}
+  const custo=o=>{let s=M[0][o[0]];for(let i=1;i<o.length;i++)s+=M[o[i-1]][o[i]];return s};
+  let melhor=custo(ord),mel=true,v=0;
+  while(mel&&v++<80){mel=false;for(let i=0;i<n-1;i++)for(let j=i+1;j<n;j++){
+    const t=ord.slice(0,i).concat(ord.slice(i,j+1).reverse(),ord.slice(j+1)),c=custo(t);
+    if(c<melhor-1e-6){ord.splice(0,n,...t);melhor=c;mel=true}}}
+  return ord;
+}
 /* items: [{id,dest}] ; devolve os ids na ordem da rota (quem não for localizado vai no fim, por CEP) */
 async function geoOrdenar(items,saidaTxt,prog){
   const ini=await geoTexto(geoSaidaTent(saidaTxt));
   if(!ini)throw new Error('saida');
   const ok=[],sem=[];let k=0;
   for(const it of items){
-    const g=await geoTexto(geoDest(it.dest));k++;if(prog)prog(k,items.length);
+    const g=await endPonto(it.dest||{});k++;if(prog)prog(k,items.length);
     if(g)ok.push({id:it.id,lat:g.lat,lon:g.lon});else sem.push(it);
   }
-  const ord=geoOrdem(ini,ok).map(p=>p.id);
+  const M=await rotaMatriz([ini].concat(ok));
+  const ord=rotaMelhor(M).map(i=>ok[i-1].id);
   sem.sort((a,b)=>String((a.dest||{}).cep).localeCompare(String((b.dest||{}).cep))).forEach(x=>ord.push(x.id));
   return ord;
 }
