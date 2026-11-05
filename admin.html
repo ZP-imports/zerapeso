@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-05-2496 -->
+<!-- v2026-11-05-2497 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5114,7 +5114,7 @@ function tabUsuarios(){
   if(!A9.eq){if(!A9.eqBusy){A9.eqBusy=true;eqCarregar().finally(()=>{A9.eqBusy=false})}return '<div class="box">Carregando...</div>'}
   const eu=(A9.eq.rows.find(x=>String(x.email||'').toLowerCase()===String(ADMIN.email||'').toLowerCase())||{}).id;
   const opt=p=>Object.keys(EQ_PAPEL).map(k=>'<option value="'+k+'"'+(p===k?' selected':'')+'>'+esc(EQ_PAPEL[k])+'</option>').join('');
-  const lin=x=>'<tr'+(x.ativo?'':' style="opacity:.55"')+'><td><b>'+esc(eqNome(x))+'</b>'+(x.id===eu?' <span class="pgsub">(você)</span>':'')+'</td><td>'+esc(x.email||'')+'</td><td><select '+(x.id===eu?'disabled ':'')+'onchange="eqDefinir(\''+x.id+'\',this.value,'+x.ativo+')" style="width:auto">'+opt(x.papel)+'</select></td><td>'+(x.ativo?'Ativo':'Desativado')+'<div class="pgsub">Último acesso: '+esc(eqAcesso(x))+'</div></td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="eqNomeEditar(\''+x.id+'\')">Editar nome</button> <button class="btn ghost sm" onclick="eqSenha(\''+x.id+'\')">Nova senha</button> '+(x.id===eu?'':'<button class="btn ghost sm" onclick="eqDefinir(\''+x.id+'\',\''+x.papel+'\','+!x.ativo+')">'+(x.ativo?'Desativar':'Ativar')+'</button> <button class="btn ghost sm danger" onclick="eqExcluir(\''+x.id+'\')">Excluir</button>')+'</td></tr>';
+  const lin=x=>'<tr'+(x.ativo?'':' style="opacity:.55"')+'><td><b>'+esc(eqNome(x))+'</b>'+(x.master?' <span class="selo" style="background:#fef3c7;color:#92400e">⭐ Master</span>':'')+(x.id===eu?' <span class="pgsub">(você)</span>':'')+'</td><td>'+esc(x.email||'')+'</td><td><select '+(x.id===eu?'disabled ':'')+'onchange="eqDefinir(\''+x.id+'\',this.value,'+x.ativo+')" style="width:auto">'+opt(x.papel)+'</select></td><td>'+(x.ativo?'Ativo':'Desativado')+'<div class="pgsub">Último acesso: '+esc(eqAcesso(x))+'</div></td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="eqNomeEditar(\''+x.id+'\')">Editar nome</button> <button class="btn ghost sm" onclick="eqSenha(\''+x.id+'\')">Nova senha</button> '+(x.id===eu?'':'<button class="btn ghost sm" onclick="eqDefinir(\''+x.id+'\',\''+x.papel+'\','+!x.ativo+')">'+(x.ativo?'Desativar':'Ativar')+'</button> <button class="btn ghost sm danger" onclick="eqExcluir(\''+x.id+'\')">Excluir</button>')+'</td></tr>';
   const res=A9.eqRes;
   const linRes=x=>{const eq=['admin','logistica','separador'].includes(x.papel);return '<tr><td><b>'+esc(eqNome(x))+'</b></td><td>'+esc(x.email||'')+'</td><td>'+(eq?esc(EQ_PAPEL[x.papel])+' (já na equipe)':'Cliente')+'</td><td>'+(eq?'':'<select id="eqR_'+x.id+'" style="width:auto">'+opt('admin')+'</select> <button class="btn acc sm" onclick="eqDefinir(\''+x.id+'\',document.getElementById(\'eqR_'+x.id+'\').value,true)">Dar acesso</button>')+'</td></tr>'};
   return '<div class="box">'+msgBox()+(A9.eq.erro?'<div class="note err">'+esc(A9.eq.erro)+'</div>':'')+
@@ -5657,30 +5657,53 @@ function pendChipsHtml(nCart){
   const card=(k,t,num,cor,on)=>'<button class="kc '+(on?'sel':'')+'" style="--c:'+cor+'" onclick="A9.cartSub=\''+k+'\';route()"><div class="n">'+num+'</div><div class="t"><b>'+t+'</b></div></button>';
   return '<div class="kcards" style="margin-bottom:12px">'+card('prog','Cobranças programadas',nCart,'#2563eb',!s)+card('pend','Outras pendências',n+(n?' <span class="pgblink"></span>':''),'#d97706',s)+'</div>';
 }
+function pendHistHtml(p){
+  const hs=p.hist||[];if(hs.length<2)return '';
+  return '<details style="margin-top:4px"><summary style="cursor:pointer;font-size:.78rem;color:var(--muted)">Histórico ('+hs.length+')</summary><ul class="pghl" style="margin:4px 0 0">'+hs.slice().reverse().map(x=>'<li><b>'+esc(dataBr(String(x.em||'').slice(0,10)))+'</b>'+(x.por?' · '+esc(x.por):'')+': '+esc(x.txt||'')+(x.data?' <span class="pgx">(combinado '+esc(dataBr(x.data))+')</span>':'')+'</li>').join('')+'</ul></details>';
+}
 function pendTabelaHtml(){
-  const L=pendLista().sort((a,b)=>String((b.extra.pend||{}).em).localeCompare(String((a.extra.pend||{}).em)));
+  const L=pendLista().sort((a,b)=>String((a.extra.pend||{}).data||'9999').localeCompare(String((b.extra.pend||{}).data||'9999'))||String((b.extra.pend||{}).em).localeCompare(String((a.extra.pend||{}).em)));
+  const hoje=hojeS();
   const linha=o=>{const p=(o.extra||{}).pend||{},e=o.entrega||{};
-    return '<tr><td style="white-space:nowrap"><b>'+codPed(o)+'</b></td><td class="pgcli"><b>'+esc(e.nome||'')+'</b><div class="pgsub">'+esc(cidadeDe(o))+'</div></td><td>'+brl(totalPag(o))+'</td><td style="min-width:200px">'+esc(p.obs||'')+'<div class="pgsub">Desde '+esc(dataBr(p.em||''))+(p.por?' · '+esc(p.por):'')+'</div></td><td style="white-space:nowrap"><button class="btn wa sm" onclick="pendWa('+o.id+')">WhatsApp</button> <button class="btn ghost sm" onclick="pagProg('+o.id+')">Programar</button> <button class="btn ghost sm" onclick="retAtribuirAbrir('+o.id+')">🏍 Retirada</button> <button class="btn ghost sm" onclick="pendTirar('+o.id+')">Tirar</button></td></tr>'};
-  return '<div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Valor</th><th>Por que está aqui</th><th>Ações</th></tr></thead><tbody>'+(L.map(linha).join('')||'<tr><td colspan="5">Nenhuma pendência. Use <b>📌 Adicionar em outras pendências</b> para incluir um pedido sem forma de pagamento definida.</td></tr>')+'</tbody></table></div>';
+    const comb=p.data?'<b style="color:'+(p.data<hoje?'#b42318':p.data===hoje?'#d97706':'inherit')+'">'+esc(dataBr(p.data))+'</b>'+(p.data<hoje?'<div class="pgsub" style="color:#b42318">venceu</div>':p.data===hoje?'<div class="pgsub" style="color:#d97706">hoje</div>':''):'<span style="color:var(--muted)">—</span>';
+    return '<tr><td style="white-space:nowrap"><b>'+codPed(o)+'</b></td><td class="pgcli"><b>'+esc(e.nome||'')+'</b><div class="pgsub">'+esc(cidadeDe(o))+'</div></td><td>'+brl(totalPag(o))+'</td><td style="min-width:200px">'+esc(p.obs||'')+'<div class="pgsub">Desde '+esc(dataBr(p.em||''))+(p.por?' · '+esc(p.por):'')+'</div>'+pendHistHtml(p)+'</td><td>'+comb+'</td><td style="white-space:nowrap"><button class="btn wa sm" onclick="pendWa('+o.id+')">WhatsApp</button> <button class="btn ghost sm" onclick="pendEditar('+o.id+')">✏️ Editar</button> <button class="btn ghost sm" onclick="pagProg('+o.id+')">Programar</button> <button class="btn ghost sm" onclick="retAtribuirAbrir('+o.id+')">🏍 Retirada</button> <button class="btn ghost sm" onclick="pendTirar('+o.id+')">Tirar</button></td></tr>'};
+  return '<div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Valor</th><th>Por que está aqui</th><th>Combinado para</th><th>Ações</th></tr></thead><tbody>'+(L.map(linha).join('')||'<tr><td colspan="6">Nenhuma pendência. Use <b>📌 Adicionar em outras pendências</b> para incluir um pedido sem forma de pagamento definida.</td></tr>')+'</tbody></table></div>';
+}
+/* editar a pendência: o que ficou combinado e a data (o histórico guarda cada alteração) */
+function pendEditar(id){
+  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;const p=(o.extra||{}).pend||{};
+  zpModal('pdnbox','<h3 style="margin:0 0 4px">Editar pendência</h3><p style="margin:0 0 10px;color:#667085;font-size:.88rem">'+esc(codPed(o))+' · '+esc((o.entrega||{}).nome||'')+'. Anote o que ficou combinado e a data. Cada alteração fica no histórico.</p><label for="pdeObs" style="font-size:.85rem">O que ficou combinado</label><textarea id="pdeObs" rows="4" style="width:100%" placeholder="Ex.: pagou uma parte, vai devolver o restante">'+esc(p.obs||'')+'</textarea><label for="pdeData" style="font-size:.85rem;margin-top:8px;display:block">Combinado para o dia</label><input id="pdeData" type="date" value="'+esc(p.data||'')+'" style="width:auto"><div class="btns" style="margin-top:10px"><button class="btn acc" onclick="pendEditarSalvar('+id+')">Salvar</button><button class="btn ghost" onclick="document.getElementById(\'pdnbox\').remove()">Fechar</button></div>');
+}
+async function pendEditarSalvar(id){
+  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o||A9.busy)return;const p=(o.extra||{}).pend||{};
+  const obs=v_('pdeObs').trim(),data=v_('pdeData');
+  if(!obs){toast('Escreva o que ficou combinado.');return}
+  const hist=(p.hist||[]).concat([{em:new Date().toISOString(),por:ADMIN.nome,txt:obs,data:data||''}]);
+  const ex=Object.assign({},o.extra||{},{pend:Object.assign({},p,{obs,data:data||'',hist})});
+  A9.busy=true;const r=await SB.from('pedidos').update({extra:ex}).eq('id',id);A9.busy=false;
+  if(r.error){toast('Erro: '+r.error.message);return}
+  o.extra=ex;const b=document.getElementById('pdnbox');if(b)b.remove();
+  pedEvento({pedido_id:id,tipo:'pagamento',publico:false,texto:'Pendência editada: '+obs+(data?' · combinado para '+dataBr(data):''),por:ADMIN.nome}).then(()=>{},()=>{});
+  toast('Pendência atualizada.');route();
 }
 function pendAbrir(id){
   const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
-  zpModal('pdnbox','<h3 style="margin:0 0 4px">Outra pendência</h3><p style="margin:0 0 10px;color:#667085;font-size:.88rem">'+esc(codPed(o))+' · '+esc((o.entrega||{}).nome||'')+'. Para quem ainda não tem pagamento definido (parcelado, passar o cartão...). O motivo aparece na lista.</p><label for="pdnObs" style="font-size:.85rem">Por que está nas pendências?</label><textarea id="pdnObs" rows="4" style="width:100%" placeholder="Ex.: cartão não passou, vai passar o cartão físico"></textarea><div class="btns" style="margin-top:10px"><button class="btn acc" onclick="pendSalvar(['+id+'],\'pdnObs\')">Mover para pendências</button><button class="btn ghost" onclick="document.getElementById(\'pdnbox\').remove()">Fechar</button></div>');
+  zpModal('pdnbox','<h3 style="margin:0 0 4px">Outra pendência</h3><p style="margin:0 0 10px;color:#667085;font-size:.88rem">'+esc(codPed(o))+' · '+esc((o.entrega||{}).nome||'')+'. Para quem ainda não tem pagamento definido (parcelado, passar o cartão...). O motivo aparece na lista.</p><label for="pdnObs" style="font-size:.85rem">Por que está nas pendências?</label><textarea id="pdnObs" rows="4" style="width:100%" placeholder="Ex.: cartão não passou, vai passar o cartão físico"></textarea><label for="pdnData" style="font-size:.85rem;margin-top:8px;display:block">Combinado para o dia (opcional)</label><input id="pdnData" type="date" style="width:auto"><div class="btns" style="margin-top:10px"><button class="btn acc" onclick="pendSalvar(['+id+'],\'pdnObs\',\'pdnData\')">Mover para pendências</button><button class="btn ghost" onclick="document.getElementById(\'pdnbox\').remove()">Fechar</button></div>');
 }
 function pendEscolherAbrir(){
   const L=(A9.pedidos||[]).filter(o=>o.id>0&&o.status!=='cancelado'&&(o.pagamento||{}).status!=='pago'&&!pendAtiva(o)&&!(o.extra||{}).pag_unido_em&&!['rota','retirado','taxa'].includes((o.extra||{}).ret)).sort((a,b)=>b.id-a.id).slice(0,150);
   if(!L.length){toast('Não há pedido em aberto para incluir.');return}
-  zpModal('pdnbox','<h3 style="margin:0 0 4px">Adicionar em outras pendências</h3><p style="margin:0 0 8px;color:#667085;font-size:.88rem">Marque quem ainda não tem pagamento definido e escreva o motivo.</p><input id="pkBusca" placeholder="Buscar pelo nome ou telefone" oninput="pkFiltra(this.value)" style="width:100%;margin-bottom:6px"><div style="max-height:36vh;overflow:auto">'+L.map(o=>'<label class="pklin" data-q="'+esc(pagNz(((o.entrega||{}).nome||'')+' '+((o.entrega||{}).fone||'')))+'" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:6px 0;font-size:.88rem"><input type="checkbox" name="pk" value="'+o.id+'" style="width:auto;margin-top:3px"><span><b>'+esc(codPed(o))+'</b> · '+esc((o.entrega||{}).nome||'')+' · '+brl(totalPag(o))+'</span></label>').join('')+'</div><label for="pkObs" style="font-size:.85rem;margin-top:8px;display:block">Por que estão nas pendências?</label><textarea id="pkObs" rows="3" style="width:100%" placeholder="Ex.: ainda não escolheu a forma de pagamento"></textarea><div class="btns" style="margin-top:10px"><button class="btn acc" onclick="pendSalvar([...document.querySelectorAll(\'input[name=pk]:checked\')].map(e=>+e.value),\'pkObs\')">Mover para pendências</button><button class="btn ghost" onclick="document.getElementById(\'pdnbox\').remove()">Fechar</button></div>',560);
+  zpModal('pdnbox','<h3 style="margin:0 0 4px">Adicionar em outras pendências</h3><p style="margin:0 0 8px;color:#667085;font-size:.88rem">Marque quem ainda não tem pagamento definido e escreva o motivo.</p><input id="pkBusca" placeholder="Buscar pelo nome ou telefone" oninput="pkFiltra(this.value)" style="width:100%;margin-bottom:6px"><div style="max-height:36vh;overflow:auto">'+L.map(o=>'<label class="pklin" data-q="'+esc(pagNz(((o.entrega||{}).nome||'')+' '+((o.entrega||{}).fone||'')))+'" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:6px 0;font-size:.88rem"><input type="checkbox" name="pk" value="'+o.id+'" style="width:auto;margin-top:3px"><span><b>'+esc(codPed(o))+'</b> · '+esc((o.entrega||{}).nome||'')+' · '+brl(totalPag(o))+'</span></label>').join('')+'</div><label for="pkObs" style="font-size:.85rem;margin-top:8px;display:block">Por que estão nas pendências?</label><textarea id="pkObs" rows="3" style="width:100%" placeholder="Ex.: ainda não escolheu a forma de pagamento"></textarea><label for="pkData" style="font-size:.85rem;margin-top:8px;display:block">Combinado para o dia (opcional)</label><input id="pkData" type="date" style="width:auto"><div class="btns" style="margin-top:10px"><button class="btn acc" onclick="pendSalvar([...document.querySelectorAll(\'input[name=pk]:checked\')].map(e=>+e.value),\'pkObs\',\'pkData\')">Mover para pendências</button><button class="btn ghost" onclick="document.getElementById(\'pdnbox\').remove()">Fechar</button></div>',560);
 }
 function pkFiltra(v){const q=pagNz(v).trim();document.querySelectorAll('#pdnbox .pklin,#rtbox .pklin').forEach(e=>{e.style.display=(!q||(e.dataset.q||'').includes(q))?'':'none'})}
-async function pendSalvar(ids,campo){
-  const obs=((document.getElementById(campo)||{}).value||'').trim();
+async function pendSalvar(ids,campo,campoData){
+  const obs=((document.getElementById(campo)||{}).value||'').trim();const data=campoData?((document.getElementById(campoData)||{}).value||''):'';
   if(!ids.length){toast('Marque pelo menos um pedido.');return}
   if(!obs){toast('Escreva o motivo.');return}
   if(A9.busy)return;A9.busy=true;let erros=0;
   for(const id of ids){
     const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)continue;
-    const ex=Object.assign({},o.extra||{},{pend:{obs,em:hojeS(),por:ADMIN.nome,pv:o.extra&&o.extra.pag_prev?JSON.stringify(o.extra.pag_prev):''}});
+    const ex=Object.assign({},o.extra||{},{pend:{obs,data,em:hojeS(),por:ADMIN.nome,pv:o.extra&&o.extra.pag_prev?JSON.stringify(o.extra.pag_prev):'',hist:[{em:new Date().toISOString(),por:ADMIN.nome,txt:obs,data}]}});
     const r=await SB.from('pedidos').update({extra:ex}).eq('id',id);
     if(r.error){erros++;continue}o.extra=ex;
     pedEvento({pedido_id:id,tipo:'pagamento',publico:false,texto:'Movido para outras pendências: '+obs,por:ADMIN.nome}).then(()=>{},()=>{});
