@@ -2878,7 +2878,7 @@ function admLogoRem(){LBL.logo=null;LBL.logoKey='';saveLbl();toast('Logomarca re
 /* ======================= ROTAS, SINCRONIZAÇÃO E INÍCIO ======================= */
 function route(fromHash){
   if(window.__ADMIN_APP&&location.hash.indexOf('#/operador')!==0){location.replace(location.href.split('#')[0]+'#/operador');return}
-  if(window.__banco&&!window.__bancoProd&&location.hash.indexOf('#/entrega/')!==0){$('#app').innerHTML='<div class="wrap pg"><p style="text-align:center;padding:60px 0;color:var(--muted)">Carregando a loja...</p></div>';return}
+  if(window.__banco&&!window.__bancoProd&&location.hash.indexOf('#/entrega/')!==0&&location.hash.indexOf('#/retirada/')!==0){$('#app').innerHTML='<div class="wrap pg"><p style="text-align:center;padding:60px 0;color:var(--muted)">Carregando a loja...</p></div>';return}
   const h=location.hash.replace(/^#/,'')||'/';const [_,a,b,c]=h.split('/');let html='';
   clearInterval(slT);
   switch(a){
@@ -2898,7 +2898,7 @@ function route(fromHash){
    case 'ajuda':html=pageInfo('como-comprar');break;
    case 'perfil':html=pagePerfil();break;
    case 'acompanhar':html=pageAcompanhar(b,c);break;
-   case 'entrega':html=pageEntregador(b,c);break;case 'foto':html=pageFotoEntrega(b,c);break;
+   case 'entrega':html=pageEntregador(b,c);break;case 'novoend':html=pageNovoEnd(b,c);break;case 'retirada':html=pageRetirada(b,c);break;case 'foto':html=pageFotoEntrega(b,c);break;
    case 'notificacoes':html=pageNotificacoes();break;
    case 'info':html=pageInfo(b);break;
    case 'reg':html=pageReg(b);break;
@@ -4270,14 +4270,56 @@ function endTxt(d){
   const a=[[d.rua,d.num].filter(Boolean).join(', '),d.bairro,d.cidade].filter(Boolean).join(', ');
   return a+(d.uf?' - '+String(d.uf).toUpperCase():'')+(d.cep?', '+d.cep:'');
 }
-var mapsDest=t=>'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(t)+'&travelmode=driving';
-var wazeDest=t=>'https://waze.com/ul?q='+encodeURIComponent(t)+'&navigate=yes';
+/* ---- localização exata do endereço: o link do Maps leva coordenadas (CEP), para o Google não adivinhar o texto ---- */
+var ENDGEO=(function(){try{return JSON.parse(localStorage.getItem('zp_endgeo')||'{}')}catch(x){return{}}})();
+function endGeoSalva(){try{localStorage.setItem('zp_endgeo',JSON.stringify(ENDGEO))}catch(x){}}
+function endLoc(t){const c=ENDGEO[t];return c&&c.lat!=null?c.lat.toFixed(6)+','+c.lon.toFixed(6):''}
+async function cepCoord(cep){
+  const r=await fetch('https://cep.awesomeapi.com.br/json/'+cep);
+  if(r.status===404)return null;if(!r.ok)throw new Error('geo');
+  const j=await r.json(),la=+j.lat,lo=+j.lng;
+  return la&&lo&&la<6&&la>-34&&lo<-33&&lo>-74?{lat:la,lon:lo}:null;
+}
+/* 1ª fase (rápida): CEP. 2ª fase (devagar, 1 por segundo): rua + número, aceito só se ficar a menos de 1,5 km do ponto do CEP */
+var endQ=[],endRQ=[],endBusy=false,endRBusy=false,endT=null;
+function endPrepara(list){
+  (list||[]).forEach(d=>{
+    if(!d||!d.rua)return;const t=endTxt(d),c=ENDGEO[t];
+    if(c&&c.r)return;
+    if(c){if(!endRQ.some(x=>x.t===t))endRQ.push({t,d});return}
+    if(!endQ.some(x=>x.t===t))endQ.push({t,d});
+  });
+  endRoda();endRefina();
+}
+async function endRoda(){
+  if(endBusy)return;endBusy=true;
+  try{while(endQ.length){
+    const it=endQ.shift(),cep=String(it.d.cep||'').replace(/\D/g,'');let g=null;
+    if(cep.length===8){try{g=await cepCoord(cep)}catch(x){continue}}
+    ENDGEO[it.t]=g?{lat:g.lat,lon:g.lon,p:'cep'}:{lat:null,lon:null};endGeoSalva();
+    endRQ.push(it);clearTimeout(endT);endT=setTimeout(endRefresh,500);
+  }}finally{endBusy=false}
+}
+async function endRefina(){
+  if(endRBusy)return;endRBusy=true;
+  try{while(endRQ.length||endQ.length){
+    if(!endRQ.length){await new Promise(r=>setTimeout(r,400));continue}
+    const it=endRQ.shift(),d=it.d,c=ENDGEO[it.t]||{lat:null,lon:null};
+    if(!d.num||!d.cidade){c.r=1;ENDGEO[it.t]=c;continue}
+    let n=null;try{n=await geoBusca([d.rua+', '+d.num,d.bairro,d.cidade,d.uf,'Brasil'].filter(Boolean).join(', '))}catch(x){continue}
+    if(n&&(c.lat==null||geoKm({lat:c.lat,lon:c.lon},n)<=1.5)){c.lat=n.lat;c.lon=n.lon;c.p='num';clearTimeout(endT);endT=setTimeout(endRefresh,500)}
+    c.r=1;ENDGEO[it.t]=c;endGeoSalva();
+  }}finally{endRBusy=false}
+}
+function endRefresh(){if(/^#\/(entrega|retirada)\//.test(location.hash))route()}
+var mapsDest=t=>'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(endLoc(t)||t)+'&travelmode=driving';
+var wazeDest=t=>endLoc(t)?'https://waze.com/ul?ll='+endLoc(t)+'&navigate=yes':'https://waze.com/ul?q='+encodeURIComponent(t)+'&navigate=yes';
 /* rota com várias paradas: o Maps aceita até 10 (9 intermediárias + o destino) e segue a ordem da lista */
 function mapsRota(lista){
   const L=(lista||[]).filter(Boolean).slice(0,10);
   if(!L.length)return '';
   if(L.length===1)return mapsDest(L[0]);
-  return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(L[L.length-1])+'&waypoints='+encodeURIComponent(L.slice(0,-1).join('|'))+'&travelmode=driving';
+  return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(endLoc(L[L.length-1])||L[L.length-1])+'&waypoints='+encodeURIComponent(L.slice(0,-1).map(x=>endLoc(x)||x).join('|'))+'&travelmode=driving';
 }
 var entUrl=r=>r&&r.token?location.origin+'/#/entrega/'+r.id+'/'+r.token:'';
 
@@ -4361,6 +4403,7 @@ function pageEntregador(rid,tk){
   if(R===null)return caixa('<p style="color:var(--muted)">Buscando a rota...</p>');
   if(R===false)return caixa('<div class="note err">Este link não é válido ou a rota não existe mais. Peça à loja um link novo.</div>');
   const ps=R.paradas||[];const abertas=ps.filter(p=>!['entregue','cancelado'].includes(p.status));
+  endPrepara(ps.map(p=>p.dest));
   return `<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota ${R.n}</h1>
   <p style="margin:0 0 12px;color:var(--muted)">${esc(dataBr(R.data))} · ${ps.length-abertas.length} de ${ps.length} entregas concluídas</p>
   ${R.saiu?'':'<div class="note warn">Esta rota ainda não foi liberada pela loja. Quando ela sair, os botões Cheguei e Entreguei aparecem aqui.</div>'}
@@ -4371,6 +4414,70 @@ function pageEntregador(rid,tk){
 function entRecarrega(rid,tk){
   if(!SB)return;
   SB.rpc('rota_entregador',{p_rota:rid,p_token:tk}).then(r=>{ENT_R[rid+'/'+tk]=(r.error||!r.data)?false:r.data;if(/^#\/entrega\//.test(location.hash))route()});
+}
+var BASE_ZP='Base ZP';
+var RET_R={};
+function pageRetirada(rid,tk){
+  const caixa=t=>'<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota de devolução</h1>'+t+'</div>';
+  if(!rid||!tk)return caixa('<div class="note err">Este link não é válido. Peça à loja o link da rota.</div>');
+  if(!SB)return caixa('<p style="color:var(--muted)">Carregando...</p>');
+  const key=rid+'/'+tk;
+  if(RET_R[key]===undefined){
+    RET_R[key]=null;
+    SB.rpc('retirada_entregador',{p_rota:rid,p_token:tk}).then(r=>{RET_R[key]=(r.error||!r.data)?false:r.data;if(/^#\/retirada\//.test(location.hash))route()});
+  }
+  const R=RET_R[key];
+  if(R===null)return caixa('<p style="color:var(--muted)">Buscando a rota...</p>');
+  if(R===false)return caixa('<div class="note err">Este link não é válido ou a rota não existe mais. Peça à loja um link novo.</div>');
+  const ps=R.paradas||[],abertas=ps.filter(p=>p.status==='rota');
+  endPrepara(ps.map(p=>p.dest));
+  const stop=(p,k)=>{
+    const t=endTxt(p.dest||{}),fim=p.status!=='rota';
+    const st=fim?'✅ Pedido devolvido':p.chegou_em?'📍 Cheguei às '+horaBr(p.chegou_em):'A caminho';
+    return `<div class="stop ${fim?'ok':''}"><h3>${k+1}. ${esc(p.nome||'')}</h3><div class="ad">${esc(t)}${p.dest&&p.dest.ref?'<div style="color:var(--muted);font-size:.85rem">Ref.: '+esc(p.dest.ref)+'</div>':''}</div>${p.fone?`<div style="margin:4px 0 6px;font-size:.9rem">📱 <a href="https://wa.me/${foneWa(p.fone)}" target="_blank" rel="noopener" style="color:var(--pd)">${esc(p.fone)}</a></div>`:''}
+    <div style="font-size:.88rem;margin-bottom:10px"><b>${st}</b></div>
+    <div class="acts"><a class="btn sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">Google Maps</a><a class="btn ghost sm" href="${esc(wazeDest(t))}" target="_blank" rel="noopener">Waze</a>${fim?'':(p.chegou_em?'':`<button class="btn sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','cheguei')">📍 Cheguei</button>`)+`<button class="btn acc sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','finalizar')">✅ Finalizar: voltei com o pedido</button>`}</div></div>`;
+  };
+  return `<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota de devolução</h1>
+  <p style="margin:0 0 12px;color:var(--muted)">Busque o pedido na casa do cliente e devolva na <b>${esc(BASE_ZP)}</b>. ${ps.length-abertas.length} de ${ps.length} concluídas.</p>
+  ${abertas.length>1?`<p style="margin-bottom:14px"><a class="btn acc full" style="padding:1em" href="${esc(mapsRota(abertas.map(p=>endTxt(p.dest||{}))))}" target="_blank" rel="noopener">Abrir a rota completa no Google Maps</a></p>`:''}
+  ${ps.map(stop).join('')}
+  <p style="text-align:center"><button class="btn ghost sm" onclick="delete RET_R['${key}'];route()">Atualizar</button></p></div>`;
+}
+async function retAcao(rid,tk,id,acao){
+  if(acao==='finalizar'&&!confirm('Finalizar esta retirada? Confirme que você voltou com o pedido para a '+BASE_ZP+'.'))return;
+  const r=await SB.rpc('retirada_acao',{p_rota:rid,p_token:tk,p_retirada:id,p_acao:acao});
+  if(r.error){toast(msgRpc(r.error));return}
+  toast(acao==='cheguei'?'Chegada registrada. 📍':'Retirada finalizada. Obrigado! ✅');
+  delete RET_R[rid+'/'+tk];route();
+}
+
+/* ---------- o cliente informa um novo endereço de entrega (link enviado pela loja) ---------- */
+var NOVOEND={};
+function pageNovoEnd(pid,tk){
+  const caixa=t=>'<div class="wrap pg" style="max-width:560px"><h1 class="t">Novo endereço de entrega</h1>'+t+'</div>';
+  if(!pid||!tk)return caixa('<div class="note err">Este link não é válido. Fale com a loja.</div>');
+  if(!SB)return caixa('<p style="color:var(--muted)">Carregando...</p>');
+  const key=pid+'/'+tk;
+  if(NOVOEND[key]===undefined){NOVOEND[key]=null;SB.rpc('endereco_pedido_cliente',{p_pedido:+pid,p_token:tk}).then(r=>{NOVOEND[key]=(r.error||!r.data)?false:r.data;if(/^#\/novoend\//.test(location.hash))route()})}
+  const D=NOVOEND[key];
+  if(D===null)return caixa('<p style="color:var(--muted)">Buscando o pedido...</p>');
+  if(D===false)return caixa('<div class="note err">Este link não é válido. Fale com a loja.</div>');
+  const cod='ZP-'+String(pid).padStart(6,'0');
+  if(D.feito)return caixa('<div class="note ok"><b>Endereço enviado! ✅</b><p style="margin:6px 0 0">O entregador já recebe o endereço novo. Acompanhe a sua entrega pelo botão abaixo.</p></div><p><a class="btn acc full" href="#/acompanhar/'+cod+'/'+esc(tk)+'">Acompanhar minha entrega</a></p><p><a class="btn wa full" href="'+esc(waUrl('Olá! Acabei de informar o novo endereço de entrega do pedido '+cod+'.'))+'">Avisar a loja no WhatsApp</a></p>');
+  if(!D.aberto)return caixa('<div class="note warn">Este link não está disponível: o pedido já foi entregue ou o endereço já foi enviado. Se precisar, fale com a loja.</div>');
+  return caixa('<p style="margin:0 0 12px;color:var(--muted)">Olá'+(D.nome?', '+esc(D.nome):'')+'! Informe o endereço onde você quer receber o pedido <b>'+cod+'</b>. Vale só para esta entrega.</p>'+
+   '<div class="fr"><div class="c2"><label for="neCep">CEP</label><input id="neCep" required placeholder="00000-000" inputmode="numeric" autocomplete="postal-code" oninput="cepAuto(this,{uf:\'neUf\',cidade:\'neCid\',bairro:\'neBai\',rua:\'neRua\',num:\'neNum\'})"></div><div class="c2"><label for="neUf">UF</label><input id="neUf" maxlength="2"></div><div class="c2"><label for="neCid">Cidade</label><input id="neCid"></div>'+
+   '<div class="c3"><label for="neBai">Bairro</label><input id="neBai"></div><div class="c4"><label for="neRua">Rua</label><input id="neRua"></div><div class="c2"><label for="neNum">Número</label><input id="neNum" inputmode="numeric"></div><div class="c2"><label for="neCom">Complemento</label><input id="neCom"></div><div class="c3"><label for="neRef">Ponto de referência</label><input id="neRef"></div></div>'+
+   '<label for="neObs">Observação para o entregador (opcional)</label><input id="neObs" maxlength="200"><p style="margin-top:14px"><button class="btn acc full" onclick="novoEndEnviar(\''+pid+'\',\''+esc(tk)+'\')">Enviar novo endereço</button></p>');
+}
+async function novoEndEnviar(pid,tk){
+  const g=id=>(($('#'+id)||{}).value||'').trim();
+  const dest={cep:fmtCep(g('neCep')),uf:g('neUf').toUpperCase(),cidade:g('neCid'),bairro:g('neBai'),rua:g('neRua'),num:g('neNum'),comp:g('neCom'),ref:g('neRef')};
+  if(!dest.cep||!dest.rua||!dest.num||!dest.cidade||!dest.uf||!dest.bairro){toast('Preencha CEP, rua, número, bairro, cidade e UF.');return}
+  const r=await SB.rpc('cliente_alterar_endereco',{p_pedido:+pid,p_token:tk,p_dest:dest,p_obs:g('neObs')});
+  if(r.error){toast(msgRpc(r.error));return}
+  NOVOEND[pid+'/'+tk]=Object.assign({},NOVOEND[pid+'/'+tk]||{},{feito:true});route();
 }
 async function entAcao(rid,tk,pid,acao){
   const msg={cheguei:'Confirmar que você chegou ao endereço?',entregue:'Confirmar que o pedido foi entregue?',tentativa:'Registrar que não foi possível entregar? A loja será avisada.'}[acao];
