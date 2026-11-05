@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-05-2499 -->
+<!-- v2026-11-05-2500 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -1314,7 +1314,7 @@ function snapOrder(o){
   const itens=o.items.map(i=>({qtd:i.qty,nome:i.base||i.name,opt:i.opt||(i.base?'':''),sku:i.sku}));
   return {id:o.id,at:o.at,codigo:codigoPedido(o),nome:e.nome,fone:e.fone,
    dest:{rua:d.rua,num:d.num,comp:d.comp||'',bairro:d.bairro,cidade:d.cidade,uf:String(d.uf).toUpperCase(),cep:d.cep,ref:d.ref||''},
-   sec:!!e.secundario,data:e.data,turno:e.turno,janela:e.janela||'',...(o.rev?{rev:1}:{}),
+   sec:!!e.secundario,data:e.data,turno:e.turno,janela:e.janela||'',...(o.rev?{rev:o.rev===true?1:o.rev}:{}),
    obsEntregador:e.obsEntregador!=null?e.obsEntregador:(e.obs||''),
    itens,totalItens:itens.reduce((s,i)=>s+i.qtd,0),pag:{metodo:pag.metodo,status:pag.status},obs:e.obs||'',obsInt:o.obsInt||'',obsSep:o.obsSep||''};
 }
@@ -1468,7 +1468,7 @@ function etiquetaInterna(S,cfg,logo){
   const novo=cont=>{
     const pg=new Pg(W,H);pg.rect(1.6,1.6,W-3.2,H-3.2,'S',0.5);pages.push(pg);
     pg.text(m,m+4.6,cfg.remetente||'ZP IMPORTS',fs+3,true);pg.text(W-m,m+4.6,S.codigo,fs+3,true,{align:'right'});
-    if(S.rev&&!cont){const tx='REVENDEDOR',sz=6.2,w=tw(tx,sz,true),tot=4.4+1.4+w,x0=W/2-tot/2;pg.star(x0+2.2,m+3.1,2.2);pg.text(x0+5.8,m+4.6,tx,sz,true)}
+    if(S.rev&&!cont){const tx='REVENDEDOR'+(typeof S.rev==='string'?' '+S.rev:''),sz=6.2,w=tw(tx,sz,true),tot=4.4+1.4+w,x0=W/2-tot/2;pg.star(x0+2.2,m+3.1,2.2);pg.text(x0+5.8,m+4.6,tx,sz,true)}
     if(cont)pg.text(W/2,m+4.6,'continuação',6.5,false,{align:'center',gray:0.45});
     pg.line(m,m+7,W-m,m+7,0.5);
     let y=m+9.5;
@@ -2928,6 +2928,7 @@ function tabRevendedores(){
                 <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
                   <span class="badge ${rv.status==='ativo'?'badge-e':rv.status==='pendente'?'badge-n':'badge-x'}">${{ativo:'Ativo',pendente:'Aguardando aprovação',bloqueado:'Bloqueado'}[rv.status]||rv.status}</span>
                   <span class="badge ${rv.tipo==='consignado'?'badge-er':'badge-c'}">${rv.tipo==='consignado'?'Consignado':'Comprador'}</span>
+                  ${(rv.config||{}).categoria?`<span class="badge" style="background:#fef3c7;color:#92400e">⭐ Revendedor ${esc((rv.config||{}).categoria)}</span>`:''}
                   ${rv.desconto_pct?`<span class="badge" style="background:#e0f2fe;color:#075985">${rv.desconto_pct}% de desconto</span>`:''}
                 </div>
               </div>
@@ -2949,6 +2950,7 @@ function tabRevendedores(){
                 <div class="c3"><label>E-mail</label><input id="rv-email" value="${esc(rv.email||'')}"></div>
                 <div class="c3"><label>Cidade</label><input id="rv-cid" value="${esc(rv.cidade||'')}"></div>
                 <div class="c3"><label>Nova senha de acesso</label><input id="rv-senha" autocomplete="off" placeholder="Deixe vazio para manter"></div>
+                <div class="c3"><label>Categoria</label><select id="rv-cat" style="width:100%"><option value="">Sem categoria</option><option value="A"${sel==='A'?' selected':''}>Revendedor A</option><option value="B"${sel==='B'?' selected':''}>Revendedor B</option><option value="C"${sel==='C'?' selected':''}>Revendedor C</option></select></div>
                 <div class="c3"><label>Tipo</label><select id="rv-tipo" style="width:100%"><option value="comprador" ${rv.tipo==='comprador'?'selected':''}>Comprador (paga antes)</option><option value="consignado" ${rv.tipo==='consignado'?'selected':''}>Consignado (paga ao vender)</option></select></div>
                 <div class="c3"><label>Desconto % (preço ao revendedor)</label><input id="rv-desc" type="number" min="0" max="80" value="${rv.desconto_pct||0}"></div>
                 <div class="c6"><label>Observações internas</label><textarea id="rv-obs" rows="2">${esc(rv.obs||'')}</textarea></div>
@@ -3236,6 +3238,7 @@ async function admRevSalvar(id){
   const basico={nome,telefone:tel,tipo,desconto_pct:desc,obs};
   let {error}=await SB.from('revendedores').update(Object.assign({},basico,{cpf:cpf||null,cidade:cidade||null},email?{email}:{})).eq('id',id);
   if(error&&/cpf|cidade|column|schema/i.test(error.message||''))({error}=await SB.from('revendedores').update(basico).eq('id',id));
+  if(!error){const rv0=((A9.revs||{}).lista||[]).find(r=>r.id===id)||{};const cat=(document.getElementById('rv-cat')||{}).value||'';await SB.from('revendedores').update({config:Object.assign({},rv0.config||{},{categoria:cat})}).eq('id',id)}
   const sn=rvv('rv-senha');
   if(!error&&sn){const rs=await SB.rpc('admin_definir_senha_revendedor',{p_id:id,p_senha:sn});if(rs.error)error=rs.error}
   if(error){A9.msg=sn&&/senha|funct|schema/i.test(error.message||'')?'Dados salvos, mas a senha não foi definida: '+error.message+' (rode o arquivo 24 no Supabase).':'Erro ao salvar.';A9.erro=true}else{A9.msg='Dados salvos.'+(sn?' Senha de acesso definida.':'');A9.erro=false;A9.revEdit=null;A9.revs=null}
@@ -4715,8 +4718,8 @@ function tabLogistica(){
 A9.revFone=null;A9.revFoneP=null;
 function revFoneCarregar(forca){
   if(A9.revFoneP&&!forca)return A9.revFoneP;
-  A9.revFoneP=SB.from('revendedores').select('telefone,status').then(r=>{
-    const m={};(r.data||[]).forEach(x=>{const f=String(x.telefone||'').replace(/\D/g,'').slice(-8);if(f.length===8&&x.status!=='inativo'&&x.status!=='bloqueado')m[f]=1});
+  A9.revFoneP=SB.from('revendedores').select('telefone,status,config').then(r=>{
+    const m={};(r.data||[]).forEach(x=>{const f=String(x.telefone||'').replace(/\D/g,'').slice(-8);if(f.length===8&&x.status!=='inativo'&&x.status!=='bloqueado')m[f]=String(((x.config||{}).categoria)||'*')});
     A9.revFone=m;return m;
   },()=>{A9.revFone=A9.revFone||{};return A9.revFone});
   return A9.revFoneP;
@@ -4724,7 +4727,8 @@ function revFoneCarregar(forca){
 function ehRevPed(o){
   const e=o.extra||{};if(e.revendedor)return true;
   const f=String(((o.entrega||{}).fone)||'').replace(/\D/g,'').slice(-8);
-  return !!(f.length===8&&A9.revFone&&A9.revFone[f]);
+  const c=f.length===8&&A9.revFone?A9.revFone[f]:'';
+  return c?(c==='*'?true:c):false;
 }
 var ordAdm=o=>({rev:ehRevPed(o),id:o.id,items:o.itens||[],entrega:o.entrega||{},obsInt:o.obs_interna||'',obsSep:o.obs_separacao||''});
 var etqUlt=o=>(o.etiquetas||[]).slice(-1)[0]||null;
@@ -8710,6 +8714,7 @@ function revForm(b){
    +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+campo('rvEmail','E-mail',b.email)+campo('rvFone','WhatsApp',b.fone,'(12) 99999-9999',160)+'</div>'
    +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+campo('rvSenha','Senha de acesso ao portal (opcional, mínimo 6)','','',200)+campo('rvCidade','Cidade',b.cidade,'',160)
    +'<div style="flex:1;min-width:200px"><label style="font-size:.82rem" for="rvTipo">Tipo</label><select id="rvTipo" style="width:100%"><option value="comprador">Comprador (paga antes)</option><option value="consignado">Consignado (paga ao vender)</option></select></div>'
+   +'<div style="flex:1;min-width:140px"><label style="font-size:.82rem" for="rvCat">Categoria</label><select id="rvCat" style="width:100%"><option value="">Sem categoria</option><option value="A">Revendedor A</option><option value="B">Revendedor B</option><option value="C">Revendedor C</option></select></div>'
    +'<div style="flex:1;min-width:120px"><label style="font-size:.82rem" for="rvDesc">Desconto %</label><input id="rvDesc" type="number" min="0" max="80" value="0" style="width:100%"></div></div>'
    +'<label style="font-size:.82rem" for="rvObs">Observações internas (opcional)</label><textarea id="rvObs" rows="2" style="width:100%"></textarea>'
    +'<div class="btns" style="margin-top:14px"><button class="btn acc" onclick="revSalvar()">Salvar revendedor</button><button class="btn ghost" onclick="document.getElementById(\'rvbox\').remove()">Cancelar</button></div>'
@@ -8755,7 +8760,7 @@ async function revSalvar(){
   A9.busy=false;
   if(r.error){erro(/criar_revendedor|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 23_revendedor_do_cliente.sql no Supabase.':'Não foi possível salvar: '+r.error.message);return}
   const el=document.getElementById('rvbox');if(el)el.remove();
-  if(r.data){try{await SB.from('revendedores').update({config:{preco_individual:true,clientes_ativo:true}}).eq('id',r.data)}catch(x){}}
+  if(r.data){try{await SB.from('revendedores').update({config:{preco_individual:true,clientes_ativo:true,categoria:v('rvCat')||''}}).eq('id',r.data)}catch(x){}}
   let senhaFinal=sn;if(!senhaFinal&&email)senhaFinal=gerarSenhaRev();
   let senhaOk=false;
   if(senhaFinal&&r.data){const rs=await SB.rpc('admin_definir_senha_revendedor',{p_id:r.data,p_senha:senhaFinal});if(rs.error)toast('Revendedor criado, mas a senha não foi definida: '+rs.error.message);else senhaOk=true}
