@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-05-2504 -->
+<!-- v2026-11-06-2506 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -490,6 +490,16 @@ tr[data-sc] td:first-child{box-shadow:inset 4px 0 0 var(--sc)}
 .stopts{display:grid;gap:8px;margin:6px 0 10px}.stopt{text-align:left;border:2px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;cursor:pointer;font:inherit;color:inherit}
 .stopt b{display:block}.stopt span{font-size:.82rem;color:var(--muted)}.stopt.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 10%,#fff)}.stopt:disabled{opacity:.55;cursor:default}
 .btn.danger{border-color:#d92d20;color:#d92d20}
+.prgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:12px}
+.prcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 1px 3px rgba(16,24,40,.06);display:flex;flex-direction:column;gap:8px}
+.prtop{display:flex;gap:10px;align-items:center}.prtop img,.prph{width:46px;height:46px;border-radius:10px;object-fit:contain;background:#f3f4f6;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--p)}
+.prck{display:flex;align-items:center}.prck input{width:18px;height:18px}
+.prvars{display:flex;flex-direction:column;gap:6px}
+.prvar{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:7px 9px;cursor:pointer;font-size:.88rem}.prvar.sel{border-color:var(--p);background:#eef5f2}.prvar.off{opacity:.5}
+.prvar input{width:17px;height:17px;flex:none}.prvn{flex:1;min-width:0}.prvn small{display:block;color:var(--muted);font-size:.74rem}.prvp{text-align:right;white-space:nowrap}
+.prbar{position:sticky;top:0;z-index:30;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:0 0 6px;box-shadow:0 4px 14px rgba(16,24,40,.08)}.prbar.on{border-color:var(--p);background:#f6fbf9}
+.prn{margin-bottom:6px}.prcampos{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}.prcampos>div{min-width:120px}.prcampos input{width:100%}
+.prh{border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:8px 0;background:#fff}.prh summary{cursor:pointer}
 .gearwrap{position:relative;display:inline-block}.gearbtn{background:#fff;border:1px solid var(--line);border-radius:10px;font-size:1.25rem;line-height:1;padding:8px 11px;cursor:pointer}.gearbtn.on{border-color:var(--p);background:#eef5f2}.gearmenu{position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.16);min-width:230px;z-index:60;padding:6px}.gearmenu button{display:block;width:100%;text-align:left;background:none;border:0;padding:10px 12px;border-radius:8px;font-size:.95rem;cursor:pointer}.gearmenu button:hover{background:#f3f4f6}.gearmenu button.on{background:#eef5f2;font-weight:700}
 .tabs.adm.sec{margin-top:-8px}.maisb{background:#fff!important;border:1px dashed var(--line)!important}
 
@@ -1651,7 +1661,7 @@ function pageRev(){
     <p style="font-size:.8rem;color:var(--muted);margin:10px 0 0">Um desconto por pedido, não cumulativo. <a style="cursor:pointer" onclick="nav('/reg/amigo')">Ver regulamento</a></p></div>`}
   const min=addDias(hojeS(),LOG.antecedencia),max=addDias(hojeS(),LOG.janela);
   const verr=ent.data?validarEntrega(ent.data,ent.turno||'manha'):'';
-  const pronto=!!(perfilOk()&&endOk()&&ent.data&&!verr&&ent.turno&&ent.pag);
+  const pronto=!!(perfilOk()&&endOk()&&ent.data&&!verr&&ent.turno);
   const turnos=Object.keys(TURNOS).filter(t=>LOG.turnos[t]);
   const sv=k=>esc(ent.s[k]||'');
   const entrega=`<h3>Dados de entrega</h3>
@@ -1662,7 +1672,7 @@ function pageRev(){
    ${verr&&ent.data?`<div class="note err">${verr}</div>`:''}
    <p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">Datas de ${fmtDay(min)} a ${fmtDay(max)}. A data é uma preferência: a loja confirma a programação e você acompanha tudo em Rastrear pedido.</p>
    <label for="obs">Observações sobre o pedido ou a entrega (opcional)</label><textarea id="obs" rows="2" maxlength="500" oninput="ent.obs=this.value" placeholder="Ex.: portão azul, deixar com o porteiro">${esc(ent.obs)}</textarea>`;
-  const pagInfo=`<h3 class="pref-h">Forma de pagamento</h3><div class="turnos3 pagos">${PAGS.map(x=>`<label class="turno3 ${ent.pag===x[0]?'on':''}" data-p="${x[0]}"><input type="radio" name="pag" value="${x[0]}" ${ent.pag===x[0]?'checked':''} onchange="ent.pag=this.value;route()">${x[1]}</label>`).join('')}</div><p style="font-size:.82rem;color:var(--muted);margin:6px 0 0">O pagamento é combinado com a nossa equipe pelo WhatsApp.</p>`;
+  const pagInfo='';
   return `<div class="wrap pg"><h1 class="t">Finalizar compra</h1><div class="two"><div class="box"><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td>${esc(p.n)} (${esc(i.opt)})</td><td>${i.qty}</td><td class="r">${precoTxt(i)}</td></tr>`}).join('')}</tbody></table></div>
   <div class="tot"><span>Subtotal dos produtos</span><span>${cartSP()?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span><span>Entrega</span><span>${freteLinha()}</span>${d?`<span class="dsc">${dLabel(d)} (${d.pct}%)</span><span class="dsc">- ${brl(d.valor)}</span>`:''}<span class="big">Total</span><span class="big">${cartSP()?(sub>0?brl(tot)+' + a confirmar':'A confirmar'):brl(tot)}</span></div>
   ${freteNota()}${nota}${amigo}
@@ -1671,7 +1681,7 @@ function pageRev(){
   ${pagInfo}
   ${ent.erros.length?`<div class="note err"><b>Confira antes de finalizar:</b><ul style="margin:6px 0 0;padding-left:18px">${ent.erros.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
   <p><button class="btn acc full finbtn" id="fin" onclick="finish()">CONCLUIR PEDIDO</button></p>${pronto?'':'<p style="color:var(--muted);font-size:.82rem;margin:0">Toque em CONCLUIR PEDIDO e mostramos em vermelho o que ainda falta.</p>'}${LEGAL}</div>
-  <div class="box"><h3 style="margin-top:0">Como funciona</h3><ol style="padding-left:18px;margin:0"><li>Você escolhe a entrega e o pagamento.</li><li>Ao tocar em Concluir pedido, o pedido é registrado e a conversa abre já com os dados.</li><li>Nossa equipe confirma tudo com você pelo WhatsApp.</li><li>Acompanhe cada etapa em Rastrear pedido.</li></ol></div></div></div>`;
+  <div class="box"><h3 style="margin-top:0">Como funciona</h3><ol style="padding-left:18px;margin:0"><li>Você escolhe a data e o horário da entrega.</li><li>Ao tocar em Concluir pedido, o pedido é registrado e a conversa abre já com os dados.</li><li>Nossa equipe confirma tudo com você pelo WhatsApp.</li><li>Acompanhe cada etapa em Rastrear pedido.</li></ol></div></div></div>`;
 }
 const STEPDESC={realizado:'Recebemos o seu pedido.',confirmado:'A loja confere o pedido e libera para preparação.',preparacao:'A equipe prepara os itens do seu pedido.',separacao:'Os itens são separados e conferidos com a etiqueta do pedido.','aguardando-programacao':'A loja organiza a rota e define a programação da entrega.',programada:'A entrega está programada para a data e o turno do pedido.','em-rota':'O pedido saiu para entrega. Fique atento ao telefone informado.',entregue:'Pedido entregue.'};
 function enderecoHtml(d){return esc(d.rua)+', '+esc(d.num)+(d.comp?', '+esc(d.comp):'')+'<br>'+esc(d.bairro)+'<br>'+esc(d.cidade)+'/'+esc(String(d.uf).toUpperCase())+', CEP '+esc(d.cep)+(d.ref?'<br><small>Referência: '+esc(d.ref)+'</small>':'')}
@@ -3970,7 +3980,7 @@ async function bancoInit(){
    Roda depois de tudo. Só funções e var aqui: as funções substituem as anteriores de mesmo nome. */
 
 var PAGS=[['pix','Pix'],['credito','Cartão de crédito'],['debito','Cartão de débito']];
-var PAGNOME={pix:'Pix',credito:'Cartão de crédito',debito:'Cartão de débito'};
+var PAGNOME={};
 var ICO_CART='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.6 12.2a1 1 0 0 0 1 .8h8.8a1 1 0 0 0 1-.8L20 8H6"/></svg>';
 var ICO_SHIELD='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>';
 var LEGAL='<div class="legal"><div class="lh">'+ICO_SHIELD+'<b>Seus dados estão protegidos</b></div><span>As informações são usadas exclusivamente para o atendimento e a entrega do seu pedido.</span></div>';
@@ -4108,19 +4118,18 @@ async function finish(){
   if(ent.sec)validarEnd(ent.s,'Endereço secundário: ').forEach(x=>er.push(x));
   const v=validarEntrega(ent.data,ent.turno);if(v)er.push(v);
   if(!ent.turno)er.push('Escolha o melhor horário para a entrega.');
-  if(!ent.pag)er.push('Escolha a forma de pagamento.');
   if(cart.find(i=>!vOf(i)||i.qty>maxVar(byId(i.id),vOf(i),i)))er.push('Um item ficou sem estoque suficiente. Ajuste o carrinho.');
   ent.erros=er;if(er.length){route();return}
   busy2=true;const b=$('#fin');b.disabled=true;b.textContent='Registrando o pedido...';
   const movel=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'');
   const w=movel?null:window.open('about:blank','_blank');
   const itens=cart.map(i=>i.v===SP?{id:i.id,qty:i.qty}:{var:i.v,qty:i.qty});
-  const entrega={data:ent.data,turno:ent.turno,pagamento:ent.pag,obs:ent.obs.trim(),sec:ent.sec?Object.assign({},normEnd(ent.s),{cep:fmtCep(ent.s.cep)}):null};
+  const entrega={data:ent.data,turno:ent.turno,pagamento:'pix',obs:ent.obs.trim(),sec:ent.sec?Object.assign({},normEnd(ent.s),{cep:fmtCep(ent.s.cep)}):null};
   const r=await SB.rpc('criar_pedido',{p_itens:itens,p_entrega:entrega,p_codigo:(rv.ref&&rv.code)?rv.code:null,p_usar_credito:!!rv.use});
   busy2=false;
   if(r.error){if(w)w.close();ent.erros=[msgRpc(r.error)];try{await bancoProdutos()}catch(x){}route();return}
   const d=r.data,e=u.end||{},dest=ent.sec?ent.s:e;
-  const msg=nl(msgTxt('s_pedido',{pedido:d.codigo,itens:linhasCarrinho(),valores:valMsg(d),data:dataBr(ent.data),turno:TURNOS[ent.turno],pagamento:PAGNOME[ent.pag],
+  const msg=nl(msgTxt('s_pedido',{pedido:d.codigo,itens:linhasCarrinho(),valores:valMsg(d),data:dataBr(ent.data),turno:TURNOS[ent.turno],pagamento:'',
     endereco:dest.rua+', '+dest.num+(dest.comp?', '+dest.comp:'')+', '+dest.bairro+', '+dest.cidade+'/'+dest.uf,
     cliente:u.nome+' '+u.sobrenome+(u.fone?' ('+u.fone+')':''),obs:ent.obs.trim(),link:trackUrl(d.codigo,d.token),frete:(function(){const f=freteTxtCli();return f.v!=null?brl(f.v)+' ('+f.c+'), pago junto, na entrega':''})()}));
   const url=waUrl(msg);WA_P={id:d.id,url};
@@ -4367,7 +4376,7 @@ function admDetalhe(){
   ${['entregue','cancelado'].includes(o.status)?'':'<p style="margin:-6px 0 10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="admEndAbrir(\'atual\')">✏️ Editar endereço</button><button class="btn ghost sm" onclick="neAbrir()" title="Vale só para este pedido. Não muda o cadastro do cliente.">➕ Novo endereço de entrega</button><button class="btn ghost sm" onclick="endLinkEnviar('+o.id+')" title="O cliente informa o novo endereço por um link">📍 Link para o cliente alterar o endereço</button></p>'}
   <p style="margin:-2px 0 10px"><button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Ver foto do entregador</button></p>
   ${endAltBanner(o)}
-  <p style="margin:0">Entrega desejada: <b>${dataBr(en.data)} (${esc(TURNOS[en.turno]||'')})</b>${o.entregadorNome?'<br>Entregador: <b>'+esc(o.entregadorNome)+'</b>':''}<br>Forma de pagamento escolhida: <b>${esc(PAGNOME[pg.preferencia]||'não informada')}</b>${en.obs?'<br>Observação do cliente: '+esc(en.obs):''}</p>
+  <p style="margin:0">Entrega desejada: <b>${dataBr(en.data)} (${esc(TURNOS[en.turno]||'')})</b>${o.entregadorNome?'<br>Entregador: <b>'+esc(o.entregadorNome)+'</b>':''}${en.obs?'<br>Observação do cliente: '+esc(en.obs):''}</p>
   <h3>Itens</h3><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${(o.itens||[]).map(i=>`<tr><td>${esc(i.name)}<div style="color:var(--muted);font-size:.8rem">SKU ${esc(i.sku||'')}</div></td><td>${i.qty}</td><td class="r">${i.semPreco?'a confirmar':brl(i.unit*i.qty)}</td></tr>`).join('')}</tbody></table></div>
   <div class="tot"><span>Subtotal</span><span>${temSP(o)?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span>${o.desconto?`<span class="dsc">Desconto (${o.desconto.pct}%)</span><span class="dsc">- ${brl(o.desconto.valor)}</span>`:''}<span class="big">Total</span><span class="big">${totAdm(o)}</span></div>${freteHtmlAdm(o)}
   </div><div>
@@ -4574,14 +4583,14 @@ function pageOp(){
     if(me)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div class="note err">Esta conta não tem acesso à área administrativa.</div><p><button class="btn" onclick="admSair()">Sair</button></p></div></div>`;
     return '<div class="adlogin"><div class="adcard"><div class="adico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><h1>Acesso da equipe</h1><p class="adsub">Entre com o seu e-mail e senha para acessar o painel da loja.</p><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username" placeholder="voce@empresa.com"><label for="ap">Senha</label><div class="adsenha"><input id="ap" type="password" required autocomplete="current-password" placeholder="Sua senha"><button type="button" class="adver" onclick="admVerSenha(this)">Mostrar</button></div><button class="adbtn">Entrar</button></form><p class="adnota">Acesso restrito. Se você é cliente, <a href="./">volte para a loja</a>.</p></div></div>';
   }
-  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['retirada','Rota de devolução'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['clientes','Clientes'],['revendedores','Revendedores'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações'],['usuarios','Usuários']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['retirada','Rota de devolução'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
+  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['retirada','Rota de devolução'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['clientes','Clientes'],['revendedores','Revendedores'],['campanhas','Campanhas'],['produtos','Produtos'],['precos','Catálogo / Preços'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações'],['usuarios','Usuários']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['retirada','Rota de devolução'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
   const EXTRA_T=['cartao','atrasados','clientes','revendedores','campanhas','produtos','etiquetas','mensagens','config','usuarios'];
   const GEAR_T=['cartao','atrasados','campanhas','produtos','etiquetas','mensagens','config','usuarios'];
   const gearItens=tabs.filter(t=>GEAR_T.includes(t[0]));
   const gearHtml=gearItens.length?'<span class="gearwrap"><button class="gearbtn'+(gearItens.some(t=>t[0]===A.tab)?' on':'')+'" onclick="A9.gear=!A9.gear;route()" title="Configurações e mais opções" aria-label="Configurações">⚙️</button>'+(A9.gear?'<div class="gearmenu">'+gearItens.map(t=>'<button class="'+(A.tab===t[0]?'on':'')+'" onclick="A9.gear=false;A9.mais=null;admTab(\''+t[0]+'\')">'+(t[0]==='config'?'Configurações do site':t[1])+'</button>').join('')+'</div>':'')+'</span>':'';
   if(!tabs.some(t=>t[0]===A.tab)&&!(A.tab==='manual'&&tabs.some(t=>t[0]==='manual')))A.tab=tabs[0][0];
   msgGarante();
-  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,manual:tabManual,pagamentos:tabPagamentos,pendentes:tabPendentes,cartao:tabCartao,campanhas:tabCampanhas,logistica:tabLogistica,entregadores:tabEntregadores,retirada:tabRetirada,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,mensagens:tabMensagens,config:tabConfig,clientes:tabClientes,revendedores:tabRevendedores,usuarios:tabUsuarios})[A.tab]();
+  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,manual:tabManual,pagamentos:tabPagamentos,pendentes:tabPendentes,cartao:tabCartao,campanhas:tabCampanhas,logistica:tabLogistica,entregadores:tabEntregadores,retirada:tabRetirada,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,mensagens:tabMensagens,config:tabConfig,clientes:tabClientes,revendedores:tabRevendedores,usuarios:tabUsuarios,precos:tabPrecos})[A.tab]();
   return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:.9rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]})</span>${gearHtml}<button class="btn" style="font-size:1rem;padding:9px 20px" onclick="admSair()">Sair</button></div></div>
   ${abasHtml(tabs.filter(t=>t[0]!=='manual'),EXTRA_T)}${body}</div>`;
 }
@@ -4590,7 +4599,7 @@ function payCliente(o){
   const p=o.pagamento||{};
   if(pago(o))return `<div class="paybox ok"><b>Pagamento recebido</b><div>${p.pagoEm?'Recebido em '+fmtD(p.pagoEm)+'. ':''}Obrigado!</div></div>`;
   if(o.status==='cancelado')return '';
-  return `<div class="paybox wait"><b>Como será o pagamento</b><p style="margin:6px 0 0">Forma escolhida: <b>${esc(PAGNOME[p.preferencia]||'a combinar')}</b>. ${temSPo(o)?'Nossa equipe confirma o valor com você pelo WhatsApp e envia o link de pagamento.':'Nossa equipe envia o link de pagamento pelo WhatsApp. Valor do pedido: <b>'+brl(total(o))+'</b>.'}</p></div>`;
+  return `<div class="paybox wait"><b>Como será o pagamento</b><p style="margin:6px 0 0">${temSPo(o)?'Nossa equipe confirma o valor com você pelo WhatsApp e envia o link de pagamento.':'Nossa equipe envia o link de pagamento pelo WhatsApp. Valor do pedido: <b>'+brl(total(o))+'</b>.'}</p></div>`;
 }
 
 
@@ -5196,6 +5205,103 @@ async function eqSenha(id){
 }
 /* fecha o menu da engrenagem ao clicar fora */
 if(window.__ADMIN_APP)document.addEventListener('click',function(ev){if(A9.gear&&!(ev.target.closest&&ev.target.closest('.gearwrap'))){A9.gear=false;route()}});
+/* ======================= CATÁLOGO / PREÇOS: cartões, preço e desconto em massa, histórico ======================= */
+var pr={sel:{},q:'',cat:'',tipo:'',v:'',d:'',p:'',m:'',vista:'preco',hist:null,aberto:{}};
+function prKey(v){return String(v)}
+function prLista(){
+  const q=pagNz(pr.q);
+  return (A9.prods||[]).filter(p=>p.ativo!==false).sort((a,b)=>(a.ordem??9999)-(b.ordem??9999)).map(p=>{
+    const vars=(p.vars||[]).filter(v=>(!pr.tipo||String(v.unidades)===pr.tipo)&&(!q||pagNz(p.nome+' '+(p.sku||'')+' '+(v.nome||'')).includes(q)));
+    return {p,vars};
+  }).filter(x=>x.vars.length&&(!pr.cat||(x.p.categoria||[])[0]===pr.cat));
+}
+function prVarSel(){const o=[];(A9.prods||[]).forEach(p=>(p.vars||[]).forEach(v=>{if(pr.sel[prKey(v.id)])o.push({p,v})}));return o}
+function prPreco(v){return v.preco==null?'<span style="color:var(--muted)">sob consulta</span>':(v.preco_promo!=null&&+v.preco_promo<+v.preco?'<s style="color:var(--muted)">'+brl(+v.preco)+'</s> <b style="color:#16a34a">'+brl(+v.preco_promo)+'</b>':'<b>'+brl(+v.preco)+'</b>')}
+function prTog(id,on){if(on)pr.sel[prKey(id)]=true;else delete pr.sel[prKey(id)];route()}
+function prTogProd(pid,on){const x=(A9.prods||[]).find(p=>p.id===pid);if(!x)return;const vis=prLista().find(y=>y.p.id===pid);(vis?vis.vars:x.vars||[]).forEach(v=>{if(on)pr.sel[prKey(v.id)]=true;else delete pr.sel[prKey(v.id)]});route()}
+function prTodos(on){prLista().forEach(x=>x.vars.forEach(v=>{if(on)pr.sel[prKey(v.id)]=true;else delete pr.sel[prKey(v.id)]}));route()}
+function prLimpa(){pr.sel={};route()}
+function prFiltro(k,v){pr[k]=v;route()}
+function prBuscaLive(el){const id=el.id,v=el.value,pos=el.selectionStart;pr.q=v;clearTimeout(window.__prT);window.__prT=setTimeout(()=>{route();const n=document.getElementById(id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}}},200)}
+function tabPrecos(){
+  if(!A9.prods){if(!A9.busy){A9.busy=true;admCarregarProdutos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando produtos...</div>'}
+  if(A9.catOpen&&A9.cat)return catTela();
+  if(pr.vista==='hist')return prHistHtml();
+  const L=prLista(),n=Object.keys(pr.sel).length;
+  const cats=[...new Set((A9.prods||[]).filter(p=>p.ativo!==false).map(p=>(p.categoria||[])[0]).filter(Boolean))];
+  const tipos=[...new Set((A9.prods||[]).flatMap(p=>(p.vars||[]).map(v=>String(v.unidades))))].sort((a,b)=>(+a)-(+b));
+  const filtros='<div class="fbar" style="margin-bottom:10px"><div style="flex:1;min-width:200px"><label for="prQ">Buscar produto ou variação</label><input id="prQ" value="'+esc(pr.q)+'" placeholder="Ex.: tirzepatida, caixa..." oninput="prBuscaLive(this)"></div>'+
+   '<div><label for="prC">Categoria</label><select id="prC" onchange="prFiltro(\'cat\',this.value)"><option value="">Todas</option>'+cats.map(c=>'<option value="'+esc(c)+'"'+(pr.cat===c?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></div>'+
+   '<div><label for="prT">Tipo da variação</label><select id="prT" onchange="prFiltro(\'tipo\',this.value)"><option value="">Todas</option>'+tipos.map(t=>'<option value="'+esc(t)+'"'+(pr.tipo===t?' selected':'')+'>'+(t==='1'?'1 unidade':esc(t)+' unidades (caixa)')+'</option>').join('')+'</select></div>'+
+   '<button class="btn ghost sm" onclick="prTodos(true)">Selecionar todos os visíveis</button><button class="btn ghost sm" onclick="prLimpa()">Limpar seleção</button></div>';
+  const barra='<div class="prbar'+(n?' on':'')+'"><div class="prn"><b>'+n+'</b> variaç'+(n===1?'ão selecionada':'ões selecionadas')+'</div>'+(n?
+   '<div class="prcampos"><div><label for="prV">Novo preço (R$)</label><input id="prV" inputmode="decimal" value="'+esc(pr.v)+'" oninput="pr.v=this.value" placeholder="0,00"></div>'+
+   '<div><label for="prD">Desconto (%)</label><input id="prD" inputmode="decimal" value="'+esc(pr.d)+'" oninput="pr.d=this.value" placeholder="10"></div>'+
+   '<div><label for="prP">Preço promocional (R$)</label><input id="prP" inputmode="decimal" value="'+esc(pr.p)+'" oninput="pr.p=this.value" placeholder="de... por..."></div>'+
+   '<div style="flex:1;min-width:160px"><label for="prM">Motivo (fica no histórico)</label><input id="prM" value="'+esc(pr.m)+'" oninput="pr.m=this.value" placeholder="Ex.: reajuste de novembro"></div></div>'+
+   '<div class="btns"><button class="btn acc sm" onclick="prAplicar(\'preco\')">💲 Definir preço</button><button class="btn sm" onclick="prAplicar(\'desc\')">🏷 Aplicar desconto %</button><button class="btn sm" onclick="prAplicar(\'promo\')">De... por... (promoção)</button><button class="btn ghost sm" onclick="prAplicar(\'tirar\')">Tirar promoção</button></div>':'<div class="pgsub">Marque as variações nos cartões para mudar o preço ou aplicar desconto de uma vez. A loja do cliente atualiza na hora.</div>')+'</div>';
+  const cards=L.map(({p,vars})=>{
+    const todos=vars.every(v=>pr.sel[prKey(v.id)]);
+    return '<div class="prcard"><div class="prtop"><label class="prck"><input type="checkbox" '+(todos?'checked':'')+' onchange="prTogProd('+p.id+',this.checked)" aria-label="Selecionar todas as variações"></label>'+(p.imagem?'<img src="'+esc(admFotoUrl(p.imagem))+'" alt="" onerror="this.remove()">':'<span class="prph">'+esc((p.nome||'?').charAt(0))+'</span>')+'<div style="min-width:0"><b>'+esc(p.nome)+'</b><div class="pgsub">'+esc((p.categoria||[]).join(' / '))+(p.sku?' · '+esc(p.sku):'')+'</div></div></div>'+
+     '<div class="prvars">'+vars.map(v=>'<label class="prvar'+(pr.sel[prKey(v.id)]?' sel':'')+(v.ativo===false?' off':'')+'"><input type="checkbox" '+(pr.sel[prKey(v.id)]?'checked':'')+' onchange="prTog(\''+v.id+'\',this.checked)"><span class="prvn">'+esc(v.nome||'')+'<small>'+(+v.unidades>1?v.unidades+' un.':'1 un.')+'</small></span><span class="prvp">'+prPreco(v)+'</span></label>').join('')+'</div></div>';
+  }).join('')||'<p style="color:var(--muted)">Nenhum produto com esses filtros.</p>';
+  return '<div class="box">'+msgBox()+'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><p style="margin:0;color:var(--muted)">Escolha as variações e mude o preço ou o desconto de uma vez. O que você muda aqui vale na hora no site do cliente.</p><div class="btns"><button class="btn ghost" onclick="catAbrir()">📄 Gerar catálogo (PDF)</button><button class="btn ghost" onclick="pr.vista=\'hist\';pr.hist=null;route()">🕘 Histórico de preços</button></div></div>'+filtros+barra+'<div class="prgrid">'+cards+'</div></div>';
+}
+/* aplica o preço/desconto nas variações marcadas, grava e registra no histórico */
+async function prAplicar(modo){
+  const S=prVarSel();if(!S.length){toast('Marque pelo menos uma variação.');return}
+  if(A9.busy)return;
+  const val=pdNum(pr.v),pct=pdNum(pr.d),promo=pdNum(pr.p);
+  const R=x=>Math.round(x*100)/100;
+  const mudar=[];
+  for(const {p,v} of S){
+    const de={preco:v.preco==null?null:+v.preco,promo:v.preco_promo==null?null:+v.preco_promo};
+    let para={preco:de.preco,promo:de.promo};
+    if(modo==='preco'){if(!(val>0)){toast('Informe o novo preço.');return}para.preco=R(val);if(para.promo!=null&&para.promo>=para.preco)para.promo=null}
+    else if(modo==='desc'){if(!(pct>0&&pct<100)){toast('Informe um desconto entre 1 e 99%.');return}if(para.preco==null)continue;para.promo=R(para.preco*(100-pct)/100)}
+    else if(modo==='promo'){if(!(promo>0)){toast('Informe o preço promocional.');return}if(para.preco==null||promo>=para.preco)continue;para.promo=R(promo)}
+    else if(modo==='tirar'){para.promo=null}
+    if(para.preco!==de.preco||para.promo!==de.promo)mudar.push({id:v.id,produto:p.nome,nome:v.nome,unidades:v.unidades,de,para});
+  }
+  if(!mudar.length){toast('Nada mudou: confira os valores e as variações marcadas.');return}
+  const txt={preco:'Definir preço',desc:'Desconto de '+pr.d+'%',promo:'Preço promocional',tirar:'Tirar promoção'}[modo];
+  if(!confirm(txt+' em '+mudar.length+' variaç'+(mudar.length===1?'ão':'ões')+'?\n\nExemplo: '+mudar[0].produto+' · '+mudar[0].nome+'\nDe '+prTxt(mudar[0].de)+' para '+prTxt(mudar[0].para)+'\n\nA loja do cliente atualiza na hora.'))return;
+  A9.busy=true;let erro=null;
+  for(const c of mudar){const r=await SB.from('produto_variacoes').update({preco:c.para.preco,preco_promo:c.para.promo}).eq('id',c.id);if(r.error){erro=r.error;break}}
+  let hist=true;
+  if(!erro){const h=await SB.from('precos_historico').insert({por:ADMIN.nome,acao:txt,motivo:pr.m.trim()||null,itens:mudar});if(h.error)hist=false}
+  A9.busy=false;
+  if(erro){toast('Não foi possível salvar todos os preços. Atualize e confira.');}
+  else{toast(mudar.length+' variaç'+(mudar.length===1?'ão atualizada':'ões atualizadas')+'. A loja já está com os preços novos.'+(hist?'':' (O histórico não foi gravado: rode o arquivo 41 no Supabase.)'))}
+  pr.sel={};pr.v='';pr.d='';pr.p='';pr.m='';
+  try{await bancoProdutos()}catch(x){}
+  await admCarregarProdutos();
+}
+function prTxt(x){return x.preco==null?'sob consulta':(x.promo!=null?brl(x.preco)+' (promo '+brl(x.promo)+')':brl(x.preco))}
+/* histórico */
+async function prHistCarrega(){
+  const r=await SB.from('precos_historico').select('*').order('criado_em',{ascending:false}).limit(100);
+  pr.hist=r.error?{erro:/precos_historico|relation|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 41 no Supabase para guardar o histórico.':r.error.message,rows:[]}:{rows:r.data||[]};route();
+}
+function prHistHtml(){
+  if(!pr.hist){prHistCarrega();return '<div class="box">Carregando o histórico...</div>'}
+  const topo='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><h3 style="margin:0">🕘 Histórico de preços</h3><button class="btn ghost" onclick="pr.vista=\'preco\';route()">← Voltar para os preços</button></div>';
+  if(pr.hist.erro)return '<div class="box">'+topo+'<div class="note warn">'+esc(pr.hist.erro)+'</div></div>';
+  const lin=e=>{const it=e.itens||[];return '<details class="prh"><summary><b>'+esc(fmtD(Date.parse(e.criado_em)))+'</b> · '+esc(e.por||'')+' · '+esc(e.acao||'')+' · '+it.length+' variaç'+(it.length===1?'ão':'ões')+(e.motivo?' · <i>'+esc(e.motivo)+'</i>':'')+'</summary><div class="tbl"><table><thead><tr><th>Produto</th><th>Variação</th><th>De</th><th>Para</th></tr></thead><tbody>'+it.map(c=>'<tr><td>'+esc(c.produto||'')+'</td><td>'+esc(c.nome||'')+'</td><td>'+esc(prTxt(c.de||{}))+'</td><td><b>'+esc(prTxt(c.para||{}))+'</b></td></tr>').join('')+'</tbody></table></div><p style="margin:6px 0 0"><button class="btn ghost sm" onclick="prDesfazer(\''+e.id+'\')">↩ Desfazer esta alteração</button></p></details>'};
+  return '<div class="box">'+topo+(pr.hist.rows.map(lin).join('')||'<p style="color:var(--muted)">Nenhuma alteração de preço registrada ainda.</p>')+'</div>';
+}
+async function prDesfazer(id){
+  const e=(pr.hist.rows||[]).find(x=>x.id===id);if(!e||A9.busy)return;
+  const it=e.itens||[];
+  if(!confirm('Voltar os preços de '+it.length+' variaç'+(it.length===1?'ão':'ões')+' para os valores de antes desta alteração?'))return;
+  A9.busy=true;let erro=null;
+  for(const c of it){const r=await SB.from('produto_variacoes').update({preco:(c.de||{}).preco==null?null:c.de.preco,preco_promo:(c.de||{}).promo==null?null:c.de.promo}).eq('id',c.id);if(r.error){erro=r.error;break}}
+  if(!erro)await SB.from('precos_historico').insert({por:ADMIN.nome,acao:'Desfeito: '+(e.acao||''),motivo:'Volta ao valor anterior',itens:it.map(c=>({id:c.id,produto:c.produto,nome:c.nome,unidades:c.unidades,de:c.para,para:c.de}))});
+  A9.busy=false;toast(erro?'Não foi possível desfazer tudo.':'Alteração desfeita. A loja já está com os preços anteriores.');
+  try{await bancoProdutos()}catch(x){}
+  pr.hist=null;await admCarregarProdutos();
+}
+
 /* virou o dia: os atrasados de ontem passam a contar em hoje, sem precisar recarregar */
 (function(){let d0=hojeS();setInterval(()=>{const d=hojeS();if(d!==d0){d0=d;if(window.__ADMIN_APP&&!emEdicao())route()}},60000)})();
 /* ======================= O CLIENTE ALTERA O ENDEREÇO COM O PEDIDO EM ROTA ======================= */
@@ -6308,7 +6414,7 @@ function pagVars(o){
   const base=cb&&cb.valorProd!=null?cb.valorProd:pedTotal(o);
   const fr=cb&&cb.valorFrete!=null?cb.valorFrete:(freteDoPedido(o)||0);
   const cidade=cidadeDe(o);
-  return {nome:nome||'cliente',pedido:codPed(o),valor:brl(base),frete:brl(fr)+(cidade?' ('+freteNome(cidade)+')':''),total:brl(+(base+fr).toFixed(2)),link:A9.link,forma:(PAGNOME[(o.pagamento||{}).preferencia]||'a combinar')};
+  return {nome:nome||'cliente',pedido:codPed(o),valor:brl(base),frete:brl(fr)+(cidade?' ('+freteNome(cidade)+')':''),total:brl(+(base+fr).toFixed(2)),link:A9.link,forma:''};
 }
 function admMsgPagamento(o){return nl(msgTxt(o.status==='entregue'?'pagamento_entregue':'pagamento',pagVars(o)))}
 /* carteira / pré-datado: mensagem conforme a situação da parcela (vencida, a vencer) com o que já foi pago e o que falta */
