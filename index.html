@@ -2878,7 +2878,7 @@ function admLogoRem(){LBL.logo=null;LBL.logoKey='';saveLbl();toast('Logomarca re
 /* ======================= ROTAS, SINCRONIZAÇÃO E INÍCIO ======================= */
 function route(fromHash){
   if(window.__ADMIN_APP&&location.hash.indexOf('#/operador')!==0){location.replace(location.href.split('#')[0]+'#/operador');return}
-  if(window.__banco&&!window.__bancoProd&&location.hash.indexOf('#/entrega/')!==0&&location.hash.indexOf('#/retirada/')!==0){$('#app').innerHTML='<div class="wrap pg"><p style="text-align:center;padding:60px 0;color:var(--muted)">Carregando a loja...</p></div>';return}
+  if(window.__banco&&!window.__bancoProd&&location.hash.indexOf('#/entrega/')!==0&&location.hash.indexOf('#/parada/')!==0&&location.hash.indexOf('#/retirada/')!==0){$('#app').innerHTML='<div class="wrap pg"><p style="text-align:center;padding:60px 0;color:var(--muted)">Carregando a loja...</p></div>';return}
   const h=location.hash.replace(/^#/,'')||'/';const [_,a,b,c]=h.split('/');let html='';
   clearInterval(slT);
   switch(a){
@@ -2898,7 +2898,7 @@ function route(fromHash){
    case 'ajuda':html=pageInfo('como-comprar');break;
    case 'perfil':html=pagePerfil();break;
    case 'acompanhar':html=pageAcompanhar(b,c);break;
-   case 'entrega':html=pageEntregador(b,c);break;case 'novoend':html=pageNovoEnd(b,c);break;case 'retirada':html=pageRetirada(b,c);break;case 'foto':html=pageFotoEntrega(b,c);break;
+   case 'entrega':html=pageEntregador(b,c);break;case 'parada':html=pageParada(b,c);break;case 'novoend':html=pageNovoEnd(b,c);break;case 'retirada':html=pageRetirada(b,c);break;case 'foto':html=pageFotoEntrega(b,c);break;
    case 'notificacoes':html=pageNotificacoes();break;
    case 'info':html=pageInfo(b);break;
    case 'reg':html=pageReg(b);break;
@@ -3370,6 +3370,7 @@ async function finish(){
     endereco:dest.rua+', '+dest.num+(dest.comp?', '+dest.comp:'')+', '+dest.bairro+', '+dest.cidade+'/'+dest.uf,
     cliente:u.nome+' '+u.sobrenome+(u.fone?' ('+u.fone+')':''),obs:ent.obs.trim(),link:trackUrl(d.codigo,d.token),frete:(function(){const f=freteTxtCli();return f.v!=null?brl(f.v)+' ('+f.c+'), pago junto, na entrega':''})()}));
   const url=waUrl(msg);WA_P={id:d.id,url};
+  try{localStorage.setItem('zp_wa_pend',JSON.stringify({id:d.id,url,me,t:Date.now()}))}catch(x){}
   cart=[];rv={code:'',use:false,msg:'',ref:null};
   ent={sec:false,slock:false,s:{cep:'',uf:'',cidade:'',bairro:'',rua:'',num:'',comp:'',ref:''},data:ymd(new Date()),turno:'',pag:'',obs:'',erros:[]};
   sessionStorage.removeItem('xp_ind');
@@ -3379,6 +3380,20 @@ async function finish(){
   nav('/pedido/'+d.id);
   if(movel)setTimeout(()=>{location.href=url},400);
 }
+/* depois de finalizar, a tela fica travada até a pessoa enviar o pedido no WhatsApp da ZP (leva o link de acompanhamento) */
+function waObrigRender(){
+  let p=null;try{p=JSON.parse(localStorage.getItem('zp_wa_pend')||'null')}catch(x){}
+  const old=document.getElementById('waobrig');
+  const vencido=p&&(Date.now()-p.t>3*864e5);
+  if(vencido){try{localStorage.removeItem('zp_wa_pend')}catch(x){}}
+  if(!p||vencido||(p.me&&p.me!==me)){if(old)old.remove();return}
+  if(old)return;
+  const d=document.createElement('div');d.id='waobrig';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+  d.innerHTML='<div style="background:#fff;border-radius:18px;max-width:440px;width:100%;padding:22px;text-align:center"><div style="font-size:2.6rem">📲</div><h3 style="margin:8px 0 6px">Falta só um passo</h3><p style="margin:0 0 16px;color:#475467">Seu pedido foi registrado. Para concluir, envie o pedido para a nossa equipe pelo WhatsApp. É por lá que você recebe o link para acompanhar a entrega.</p><a class="btn wa full" style="padding:1em" href="'+esc(p.url)+'" target="_blank" rel="noopener" onclick="waObrigFeito()">Enviar pedido no WhatsApp</a><p style="margin:12px 0 0;font-size:.8rem;color:#667085">Se o WhatsApp não abrir, toque de novo no botão.</p></div>';
+  document.body.appendChild(d);
+}
+function waObrigFeito(){try{localStorage.removeItem('zp_wa_pend')}catch(x){}const d=document.getElementById('waobrig');if(d)setTimeout(()=>d.remove(),700)}
+(function(){const r0=route;route=function(){const x=r0.apply(this,arguments);try{waObrigRender()}catch(e){}return x};setTimeout(()=>{try{waObrigRender()}catch(e){}},600)})();
 function pageOrder(id){
   const h=pageOrderBase(id);
   if(typeof h==='string'&&WA_P&&String(WA_P.id)===String(id)){
@@ -3864,11 +3879,27 @@ var TRK=window.TRK||{};
 function trackUrl(codigo,token){return location.href.split('#')[0]+'#/acompanhar/'+codigo+'/'+token}
 function msgRastreio(o){const nome=String((o.entrega||{}).nome||'').split(' ')[0];return nl(msgTxt('rastreio',{nome:nome||'cliente',pedido:codPed(o),link:trackUrl(codPed(o),o.token)}))}
 /* ---------- o cliente altera o endereço de entrega na própria página de acompanhamento ---------- */
-var TRKEDIT={};
+var TRKEDIT={},TRKAV={};
+function trkAviso(r,code,token){
+  const k=code+'/'+token,av=TRKAV[k];
+  if(av===undefined&&['programada','em-rota','tentativa'].includes(r.status)){
+    TRKAV[k]=null;
+    SB.rpc('cliente_endereco_aviso',{p_codigo:decodeURIComponent(code),p_token:token}).then(x=>{TRKAV[k]=(x.error||!x.data)?false:x.data;if(/^#\/acompanhar/.test(location.hash)&&!emEdicao())route()});
+    return '';
+  }
+  if(!av||!av.alterado)return '';
+  const pid=String(parseInt(String(r.codigo).replace(/\D/g,''),10));
+  if(!av.whats||!av.tok)return '<div class="note" style="margin:12px 0">✅ Endereço alterado. O entregador recebe o endereço novo assim que o pedido sair para entrega.</div>';
+  const link=location.origin+'/#/parada/'+pid+'/'+av.tok;
+  const msg='Olá! Sou o cliente do pedido '+r.codigo+'. Mudei o endereço de entrega. Veja o endereço e finalize esta entrega por este link: '+link;
+  const fw=String(av.whats).replace(/\D/g,'');
+  return '<div class="note ok" style="margin:12px 0"><b>✅ Endereço alterado.</b><p style="margin:6px 0 10px">Agora avise o entregador: o botão abre o WhatsApp dele com a mensagem pronta. É só enviar.</p><a class="btn wa full" href="https://wa.me/'+(fw.length<=11?'55'+fw:fw)+'?text='+encodeURIComponent(msg)+'" target="_blank" rel="noopener">📲 Enviar o endereço para o entregador</a></div>';
+}
 function trkEndHtml(r,code,token){
   if(['entregue','cancelado'].includes(r.status))return '';
   const k=code+'/'+token;
-  if(!TRKEDIT[k])return '<div class="note" style="margin:12px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between"><span>📍 Precisa mudar o endereço de entrega?</span><button class="btn acc sm" onclick="TRKEDIT[\''+k+'\']=true;route()">Alterar endereço</button></div>';
+  const av=trkAviso(r,code,token);
+  if(!TRKEDIT[k])return av+ '<div class="note" style="margin:12px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between"><span>📍 Precisa mudar o endereço de entrega?</span><button class="btn acc sm" onclick="TRKEDIT[\''+k+'\']=true;route()">Alterar endereço</button></div>';
   return '<div class="box" style="box-shadow:none;border:1px solid var(--line);margin:12px 0"><h3 style="margin:0 0 4px">Novo endereço de entrega</h3><p style="margin:0 0 10px;color:var(--muted);font-size:.88rem">Vale só para este pedido. O entregador recebe o endereço novo na hora.</p>'+
    '<div class="fr"><div class="c2"><label for="tkCep">CEP</label><input id="tkCep" placeholder="00000-000" inputmode="numeric" autocomplete="postal-code" oninput="cepAuto(this,{uf:\'tkUf\',cidade:\'tkCid\',bairro:\'tkBai\',rua:\'tkRua\',num:\'tkNum\'})"></div><div class="c2"><label for="tkUf">UF</label><input id="tkUf" maxlength="2"></div><div class="c2"><label for="tkCid">Cidade</label><input id="tkCid"></div>'+
    '<div class="c3"><label for="tkBai">Bairro</label><input id="tkBai"></div><div class="c4"><label for="tkRua">Rua</label><input id="tkRua"></div><div class="c2"><label for="tkNum">Número</label><input id="tkNum" inputmode="numeric"></div><div class="c2"><label for="tkCom">Complemento</label><input id="tkCom"></div><div class="c3"><label for="tkRef">Ponto de referência</label><input id="tkRef"></div></div>'+
@@ -3880,7 +3911,8 @@ async function trkEndEnviar(code,token){
   if(!dest.cep||!dest.rua||!dest.num||!dest.cidade||!dest.uf||!dest.bairro){toast('Preencha CEP, rua, número, bairro, cidade e UF.');return}
   const r=await SB.rpc('cliente_novo_endereco',{p_codigo:decodeURIComponent(code),p_token:token,p_dest:dest,p_obs:g('tkObs')});
   if(r.error){toast(/cliente_novo_endereco|function|schema cache/i.test(r.error.message||'')?'Não foi possível alterar agora. Fale com a loja.':msgRpc(r.error));return}
-  TRKEDIT[code+'/'+token]=false;toast('Endereço enviado! O entregador já recebe o endereço novo. ✅');
+  TRKEDIT[code+'/'+token]=false;toast('Endereço enviado! Agora avise o entregador pelo WhatsApp. ✅');
+  const rd=r.data||{};TRKAV[code+'/'+token]={alterado:true,whats:rd.whats||'',tok:rd.tok||''};
   trkRecarrega(code,token);
 }
 function trkRecarrega(code,token){
@@ -4452,6 +4484,45 @@ function entRecarrega(rid,tk){
   SB.rpc('rota_entregador',{p_rota:rid,p_token:tk}).then(r=>{ENT_R[rid+'/'+tk]=(r.error||!r.data)?false:r.data;if(/^#\/entrega\//.test(location.hash))route()});
 }
 var BASE_ZP='Base ZP';
+var PAR_R={};
+function pageParada(pid,tok){
+  const caixa=t=>'<div class="wrap pg" style="max-width:640px"><h1 class="t">Entrega com endereço alterado</h1>'+t+'</div>';
+  if(!pid||!tok)return caixa('<div class="note err">Este link não é válido.</div>');
+  if(!SB)return caixa('<p style="color:var(--muted)">Carregando...</p>');
+  const key=pid+'/'+tok;
+  if(PAR_R[key]===undefined){PAR_R[key]=null;SB.rpc('parada_entregador',{p_pedido:+pid,p_tok:tok}).then(r=>{PAR_R[key]=(r.error||!r.data)?false:r.data;if(/^#\/parada\//.test(location.hash))route()})}
+  const p=PAR_R[key];
+  if(p===null)return caixa('<p style="color:var(--muted)">Buscando a entrega...</p>');
+  if(p===false)return caixa('<div class="note err">Este link não é válido ou a entrega não existe mais.</div>');
+  const t=endTxt(p.dest||{}),fim=p.status==='entregue',canc=p.status==='cancelado',tent=p.status==='tentativa';
+  const st=fim?'✅ Entregue':canc?'Cancelado':tent?'Tentativa sem sucesso':p.chegou_em?'📍 Cheguei às '+horaBr(p.chegou_em):'A caminho';
+  const ativo=!fim&&!canc&&p.saiu;
+  return caixa('<div class="note" style="margin-bottom:12px">O cliente alterou o endereço desta entrega. Finalize por aqui e depois siga a sua rota normal: a entrega já fica baixada na rota que a loja enviou.</div>'+
+   '<div class="stop '+(fim?'ok':'')+'"><h3>'+esc(p.nome||'')+'</h3><div class="ad">'+esc(t)+(p.dest&&p.dest.ref?'<div style="color:var(--muted);font-size:.85rem">Ref.: '+esc(p.dest.ref)+'</div>':'')+'</div>'+
+   (p.fone?'<div style="margin:4px 0 6px;font-size:.9rem">📱 <a href="https://wa.me/'+foneWa(p.fone)+'" target="_blank" rel="noopener" style="color:var(--pd)">'+esc(p.fone)+'</a></div>':'')+
+   '<div style="font-size:.88rem;margin-bottom:10px"><b>'+st+'</b></div>'+
+   (canc?'':'<div class="acts"><a class="btn acc sm" href="'+esc(mapsDest(t))+'" target="_blank" rel="noopener">📍 Pino exato</a>'+
+   (ativo?(p.chegou_em?'<button class="btn acc full2" onclick="paradaAcao(\''+pid+'\',\''+tok+'\',\'entregue\')">Entreguei</button><button class="btn ghost sm full2" onclick="paradaAcao(\''+pid+'\',\''+tok+'\',\'tentativa\')">Não consegui entregar</button>':'<button class="btn sm full2" onclick="paradaCheguei(\''+pid+'\',\''+tok+'\')">📷 Cheguei: tirar foto do local</button>'):(fim?'':'<span style="font-size:.85rem;color:var(--muted)">Os botões aparecem quando a rota sair.</span>'))+'</div>')+'</div>'+
+   '<p style="text-align:center"><button class="btn ghost sm" onclick="delete PAR_R[\''+key+'\'];route()">Atualizar</button></p>');
+}
+function paradaCheguei(pid,tok){
+  const i=document.createElement('input');i.type='file';i.accept='image/*';i.setAttribute('capture','environment');
+  i.onchange=async()=>{
+    const f=i.files&&i.files[0];if(!f)return;toast('Enviando a foto...');
+    let d;try{d=await fotoReduz(f)}catch(x){toast('Não consegui ler a foto. Tire de novo.');return}
+    const a=await SB.rpc('parada_foto',{p_pedido:+pid,p_tok:tok,p_foto:d});
+    if(a.error){toast(msgRpc(a.error));return}
+    toast('Chegada registrada com foto. 📍');delete PAR_R[pid+'/'+tok];route();
+  };
+  i.click();
+}
+async function paradaAcao(pid,tok,acao){
+  const msg={entregue:'Confirmar que o pedido foi entregue?',tentativa:'Registrar que não foi possível entregar? A loja será avisada.'}[acao];
+  if(!msg||!confirm(msg))return;
+  const r=await SB.rpc('parada_acao',{p_pedido:+pid,p_tok:tok,p_acao:acao});
+  if(r.error){toast(msgRpc(r.error));return}
+  toast(acao==='entregue'?'Entrega registrada. ✅ Siga a sua rota.':'Tentativa registrada.');delete PAR_R[pid+'/'+tok];route();
+}
 var RET_R={};
 function pageRetirada(rid,tk){
   const caixa=t=>'<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota de devolução</h1>'+t+'</div>';
