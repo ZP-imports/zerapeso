@@ -2898,7 +2898,7 @@ function route(fromHash){
    case 'ajuda':html=pageInfo('como-comprar');break;
    case 'perfil':html=pagePerfil();break;
    case 'acompanhar':html=pageAcompanhar(b,c);break;
-   case 'entrega':html=pageEntregador(b,c);break;case 'retirada':html=pageRetirada(b,c);break;case 'foto':html=pageFotoEntrega(b,c);break;
+   case 'entrega':html=pageEntregador(b,c);break;case 'novoend':html=pageNovoEnd(b,c);break;case 'retirada':html=pageRetirada(b,c);break;case 'foto':html=pageFotoEntrega(b,c);break;
    case 'notificacoes':html=pageNotificacoes();break;
    case 'info':html=pageInfo(b);break;
    case 'reg':html=pageReg(b);break;
@@ -4452,6 +4452,33 @@ async function retAcao(rid,tk,id,acao){
   delete RET_R[rid+'/'+tk];route();
 }
 
+/* ---------- o cliente informa um novo endereço de entrega (link enviado pela loja) ---------- */
+var NOVOEND={};
+function pageNovoEnd(pid,tk){
+  const caixa=t=>'<div class="wrap pg" style="max-width:560px"><h1 class="t">Novo endereço de entrega</h1>'+t+'</div>';
+  if(!pid||!tk)return caixa('<div class="note err">Este link não é válido. Fale com a loja.</div>');
+  if(!SB)return caixa('<p style="color:var(--muted)">Carregando...</p>');
+  const key=pid+'/'+tk;
+  if(NOVOEND[key]===undefined){NOVOEND[key]=null;SB.rpc('endereco_pedido_cliente',{p_pedido:+pid,p_token:tk}).then(r=>{NOVOEND[key]=(r.error||!r.data)?false:r.data;if(/^#\/novoend\//.test(location.hash))route()})}
+  const D=NOVOEND[key];
+  if(D===null)return caixa('<p style="color:var(--muted)">Buscando o pedido...</p>');
+  if(D===false)return caixa('<div class="note err">Este link não é válido. Fale com a loja.</div>');
+  const cod='ZP-'+String(pid).padStart(6,'0');
+  if(D.feito)return caixa('<div class="note ok"><b>Endereço enviado! ✅</b><p style="margin:6px 0 0">O entregador já recebe o endereço novo. Acompanhe a sua entrega pelo botão abaixo.</p></div><p><a class="btn acc full" href="#/acompanhar/'+cod+'/'+esc(tk)+'">Acompanhar minha entrega</a></p><p><a class="btn wa full" href="'+esc(waUrl('Olá! Acabei de informar o novo endereço de entrega do pedido '+cod+'.'))+'">Avisar a loja no WhatsApp</a></p>');
+  if(!D.aberto)return caixa('<div class="note warn">Este link não está disponível: o pedido já foi entregue ou o endereço já foi enviado. Se precisar, fale com a loja.</div>');
+  return caixa('<p style="margin:0 0 12px;color:var(--muted)">Olá'+(D.nome?', '+esc(D.nome):'')+'! Informe o endereço onde você quer receber o pedido <b>'+cod+'</b>. Vale só para esta entrega.</p>'+
+   '<div class="fr"><div class="c2"><label for="neCep">CEP</label><input id="neCep" required placeholder="00000-000" inputmode="numeric" autocomplete="postal-code" oninput="cepAuto(this,{uf:\'neUf\',cidade:\'neCid\',bairro:\'neBai\',rua:\'neRua\',num:\'neNum\'})"></div><div class="c2"><label for="neUf">UF</label><input id="neUf" maxlength="2"></div><div class="c2"><label for="neCid">Cidade</label><input id="neCid"></div>'+
+   '<div class="c3"><label for="neBai">Bairro</label><input id="neBai"></div><div class="c4"><label for="neRua">Rua</label><input id="neRua"></div><div class="c2"><label for="neNum">Número</label><input id="neNum" inputmode="numeric"></div><div class="c2"><label for="neCom">Complemento</label><input id="neCom"></div><div class="c3"><label for="neRef">Ponto de referência</label><input id="neRef"></div></div>'+
+   '<label for="neObs">Observação para o entregador (opcional)</label><input id="neObs" maxlength="200"><p style="margin-top:14px"><button class="btn acc full" onclick="novoEndEnviar(\''+pid+'\',\''+esc(tk)+'\')">Enviar novo endereço</button></p>');
+}
+async function novoEndEnviar(pid,tk){
+  const g=id=>(($('#'+id)||{}).value||'').trim();
+  const dest={cep:fmtCep(g('neCep')),uf:g('neUf').toUpperCase(),cidade:g('neCid'),bairro:g('neBai'),rua:g('neRua'),num:g('neNum'),comp:g('neCom'),ref:g('neRef')};
+  if(!dest.cep||!dest.rua||!dest.num||!dest.cidade||!dest.uf||!dest.bairro){toast('Preencha CEP, rua, número, bairro, cidade e UF.');return}
+  const r=await SB.rpc('cliente_alterar_endereco',{p_pedido:+pid,p_token:tk,p_dest:dest,p_obs:g('neObs')});
+  if(r.error){toast(msgRpc(r.error));return}
+  NOVOEND[pid+'/'+tk]=Object.assign({},NOVOEND[pid+'/'+tk]||{},{feito:true});route();
+}
 async function entAcao(rid,tk,pid,acao){
   const msg={cheguei:'Confirmar que você chegou ao endereço?',entregue:'Confirmar que o pedido foi entregue?',tentativa:'Registrar que não foi possível entregar? A loja será avisada.'}[acao];
   if(!msg||!confirm(msg))return;
