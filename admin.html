@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-05-2495 -->
+<!-- v2026-11-05-2496 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5114,7 +5114,7 @@ function tabUsuarios(){
   if(!A9.eq){if(!A9.eqBusy){A9.eqBusy=true;eqCarregar().finally(()=>{A9.eqBusy=false})}return '<div class="box">Carregando...</div>'}
   const eu=(A9.eq.rows.find(x=>String(x.email||'').toLowerCase()===String(ADMIN.email||'').toLowerCase())||{}).id;
   const opt=p=>Object.keys(EQ_PAPEL).map(k=>'<option value="'+k+'"'+(p===k?' selected':'')+'>'+esc(EQ_PAPEL[k])+'</option>').join('');
-  const lin=x=>'<tr'+(x.ativo?'':' style="opacity:.55"')+'><td><b>'+esc(eqNome(x))+'</b>'+(x.id===eu?' <span class="pgsub">(você)</span>':'')+'</td><td>'+esc(x.email||'')+'</td><td><select '+(x.id===eu?'disabled ':'')+'onchange="eqDefinir(\''+x.id+'\',this.value,'+x.ativo+')" style="width:auto">'+opt(x.papel)+'</select></td><td>'+(x.ativo?'Ativo':'Desativado')+'<div class="pgsub">Último acesso: '+esc(eqAcesso(x))+'</div></td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="eqSenha(\''+x.id+'\')">Nova senha</button> '+(x.id===eu?'':'<button class="btn ghost sm" onclick="eqDefinir(\''+x.id+'\',\''+x.papel+'\','+!x.ativo+')">'+(x.ativo?'Desativar':'Ativar')+'</button> <button class="btn ghost sm danger" onclick="eqExcluir(\''+x.id+'\')">Excluir</button>')+'</td></tr>';
+  const lin=x=>'<tr'+(x.ativo?'':' style="opacity:.55"')+'><td><b>'+esc(eqNome(x))+'</b>'+(x.id===eu?' <span class="pgsub">(você)</span>':'')+'</td><td>'+esc(x.email||'')+'</td><td><select '+(x.id===eu?'disabled ':'')+'onchange="eqDefinir(\''+x.id+'\',this.value,'+x.ativo+')" style="width:auto">'+opt(x.papel)+'</select></td><td>'+(x.ativo?'Ativo':'Desativado')+'<div class="pgsub">Último acesso: '+esc(eqAcesso(x))+'</div></td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="eqNomeEditar(\''+x.id+'\')">Editar nome</button> <button class="btn ghost sm" onclick="eqSenha(\''+x.id+'\')">Nova senha</button> '+(x.id===eu?'':'<button class="btn ghost sm" onclick="eqDefinir(\''+x.id+'\',\''+x.papel+'\','+!x.ativo+')">'+(x.ativo?'Desativar':'Ativar')+'</button> <button class="btn ghost sm danger" onclick="eqExcluir(\''+x.id+'\')">Excluir</button>')+'</td></tr>';
   const res=A9.eqRes;
   const linRes=x=>{const eq=['admin','logistica','separador'].includes(x.papel);return '<tr><td><b>'+esc(eqNome(x))+'</b></td><td>'+esc(x.email||'')+'</td><td>'+(eq?esc(EQ_PAPEL[x.papel])+' (já na equipe)':'Cliente')+'</td><td>'+(eq?'':'<select id="eqR_'+x.id+'" style="width:auto">'+opt('admin')+'</select> <button class="btn acc sm" onclick="eqDefinir(\''+x.id+'\',document.getElementById(\'eqR_'+x.id+'\').value,true)">Dar acesso</button>')+'</td></tr>'};
   return '<div class="box">'+msgBox()+(A9.eq.erro?'<div class="note err">'+esc(A9.eq.erro)+'</div>':'')+
@@ -5155,6 +5155,14 @@ async function eqExcluir(id){
   const r=await SB.rpc('equipe_excluir',{p_id:id});
   if(r.error){A9.msg=/equipe_excluir|function|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 36 no Supabase.':msgRpc(r.error);A9.erro=true;route();return}
   A9.eq=null;A9.eqRes=null;A9.msg=r.data==='rebaixado'?'Acesso da equipe removido. A conta de cliente foi mantida.':'Usuário excluído.';A9.erro=false;route();
+}
+async function eqNomeEditar(id){
+  const x=(A9.eq&&A9.eq.rows||[]).find(u=>u.id===id);if(!x)return;
+  const n=prompt('Nome do usuário (aparece nas ações dele):',eqNome(x)==='(sem nome)'?'':eqNome(x));if(n===null)return;
+  const nome=n.trim();if(!nome){toast('Informe o nome.');return}
+  const r=await SB.from('perfis').update({nome,sobrenome:''}).eq('id',id);
+  if(r.error){A9.msg='Não foi possível alterar o nome: '+r.error.message;A9.erro=true;route();return}
+  A9.eq=null;A9.msg='Nome alterado para '+nome+'. Vale no próximo acesso da pessoa.';A9.erro=false;route();
 }
 async function eqSenha(id){
   const s=prompt('Nova senha para este usuário (mínimo 6 caracteres):');if(!s)return;
