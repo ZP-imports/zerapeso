@@ -3863,6 +3863,36 @@ function prefHtml(turnos){
 var TRK=window.TRK||{};
 function trackUrl(codigo,token){return location.href.split('#')[0]+'#/acompanhar/'+codigo+'/'+token}
 function msgRastreio(o){const nome=String((o.entrega||{}).nome||'').split(' ')[0];return nl(msgTxt('rastreio',{nome:nome||'cliente',pedido:codPed(o),link:trackUrl(codPed(o),o.token)}))}
+/* ---------- o cliente altera o endereço de entrega na própria página de acompanhamento ---------- */
+var TRKEDIT={};
+function trkEndHtml(r,code,token){
+  if(['entregue','cancelado'].includes(r.status))return '';
+  const k=code+'/'+token;
+  if(!TRKEDIT[k])return '<div class="note" style="margin:12px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between"><span>📍 Precisa mudar o endereço de entrega?</span><button class="btn acc sm" onclick="TRKEDIT[\''+k+'\']=true;route()">Alterar endereço</button></div>';
+  return '<div class="box" style="box-shadow:none;border:1px solid var(--line);margin:12px 0"><h3 style="margin:0 0 4px">Novo endereço de entrega</h3><p style="margin:0 0 10px;color:var(--muted);font-size:.88rem">Vale só para este pedido. O entregador recebe o endereço novo na hora.</p>'+
+   '<div class="fr"><div class="c2"><label for="tkCep">CEP</label><input id="tkCep" placeholder="00000-000" inputmode="numeric" autocomplete="postal-code" oninput="cepAuto(this,{uf:\'tkUf\',cidade:\'tkCid\',bairro:\'tkBai\',rua:\'tkRua\',num:\'tkNum\'})"></div><div class="c2"><label for="tkUf">UF</label><input id="tkUf" maxlength="2"></div><div class="c2"><label for="tkCid">Cidade</label><input id="tkCid"></div>'+
+   '<div class="c3"><label for="tkBai">Bairro</label><input id="tkBai"></div><div class="c4"><label for="tkRua">Rua</label><input id="tkRua"></div><div class="c2"><label for="tkNum">Número</label><input id="tkNum" inputmode="numeric"></div><div class="c2"><label for="tkCom">Complemento</label><input id="tkCom"></div><div class="c3"><label for="tkRef">Ponto de referência</label><input id="tkRef"></div></div>'+
+   '<label for="tkObs">Observação para o entregador (opcional)</label><input id="tkObs" maxlength="200"><p style="margin:12px 0 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn acc" onclick="trkEndEnviar(\''+code+'\',\''+token+'\')">Enviar novo endereço</button><button class="btn ghost" onclick="TRKEDIT[\''+k+'\']=false;route()">Cancelar</button></p></div>';
+}
+async function trkEndEnviar(code,token){
+  const g=id=>(($('#'+id)||{}).value||'').trim();
+  const dest={cep:fmtCep(g('tkCep')),uf:g('tkUf').toUpperCase(),cidade:g('tkCid'),bairro:g('tkBai'),rua:g('tkRua'),num:g('tkNum'),comp:g('tkCom'),ref:g('tkRef')};
+  if(!dest.cep||!dest.rua||!dest.num||!dest.cidade||!dest.uf||!dest.bairro){toast('Preencha CEP, rua, número, bairro, cidade e UF.');return}
+  const r=await SB.rpc('cliente_novo_endereco',{p_codigo:decodeURIComponent(code),p_token:token,p_dest:dest,p_obs:g('tkObs')});
+  if(r.error){toast(/cliente_novo_endereco|function|schema cache/i.test(r.error.message||'')?'Não foi possível alterar agora. Fale com a loja.':msgRpc(r.error));return}
+  TRKEDIT[code+'/'+token]=false;toast('Endereço enviado! O entregador já recebe o endereço novo. ✅');
+  trkRecarrega(code,token);
+}
+function trkRecarrega(code,token){
+  if(!SB)return;
+  SB.rpc('rastrear_pedido',{p_codigo:decodeURIComponent(code),p_token:token}).then(r=>{if(!r.error&&r.data){TRK[code+'/'+token]=r.data;if(/^#\/acompanhar/.test(location.hash)&&!emEdicao())route()}});
+}
+/* acompanhamento ao vivo: enquanto o pedido está a caminho, a página se atualiza sozinha */
+function trkAuto(r,code,token){
+  clearTimeout(window.__trkT);
+  if(['programada','em-rota','tentativa'].includes(r.status))window.__trkT=setTimeout(()=>{if(/^#\/acompanhar/.test(location.hash))trkRecarrega(code,token)},20000);
+  return '';
+}
 function pageAcompanhar(code,token){
   if(!window.TRK)window.TRK={};
   const caixa=t=>'<div class="wrap pg"><h1 class="t">Acompanhe o seu pedido</h1><div class="box" style="max-width:560px">'+t+'</div></div>';
@@ -3883,9 +3913,9 @@ function pageAcompanhar(code,token){
    +'<div class="pgrid"><div class="pbox"><small>Previsão de entrega</small><b>'+fmtDay(r.data)+'</b><div>'+esc(TURNOS[r.turno]||'')+'</div></div>'
    +'<div class="pbox"><small>Entrega em</small><b>'+esc(r.cidade||'')+(r.uf?'/'+esc(r.uf):'')+'</b></div>'
    +'<div class="pbox"><small>Pagamento</small><b>'+(r.pago?'Pago':'A combinar pelo WhatsApp')+'</b></div></div>'
-   +fotoTrkBox(r.codigo,token)+'<h3>Itens do pedido</h3><div class="tbl"><table><tbody>'+r.itens.map(i=>'<tr><td>'+esc(i.name)+'</td><td>'+i.qty+'</td></tr>').join('')+'</tbody></table></div>'
+   +trkEndHtml(r,code,token)+fotoTrkBox(r.codigo,token)+'<h3>Itens do pedido</h3><div class="tbl"><table><tbody>'+r.itens.map(i=>'<tr><td>'+esc(i.name)+'</td><td>'+i.qty+'</td></tr>').join('')+'</tbody></table></div>'
    +'<h3>Andamento</h3>'+(evs.length?'<div class="tbl"><table><tbody>'+evs.map(e=>'<tr><td style="white-space:nowrap">'+fmtD(Date.parse(e.t))+'</td><td>'+esc(e.texto||'')+(e.motivo?'<div style="color:var(--muted);font-size:.82rem">Motivo: '+esc(e.motivo)+'</div>':'')+'</td></tr>').join('')+'</tbody></table></div>':'<p style="color:var(--muted)">Ainda sem atualizações.</p>')
-   +'</div></div>';
+   +'</div></div>'+trkAuto(r,code,token);
 }
 
 /* ---------- etiqueta direto da lista de pedidos ---------- */
