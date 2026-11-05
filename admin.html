@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-04-2491 -->
+<!-- v2026-11-05-2494 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -4563,11 +4563,11 @@ function pageOp(){
     if(me)return `<div class="wrap pg"><h1 class="t">Área administrativa</h1><div class="box" style="max-width:480px"><div class="note err">Esta conta não tem acesso à área administrativa.</div><p><button class="btn" onclick="admSair()">Sair</button></p></div></div>`;
     return '<div class="adlogin"><div class="adcard"><div class="adico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><h1>Acesso da equipe</h1><p class="adsub">Entre com o seu e-mail e senha para acessar o painel da loja.</p><div id="amsg"></div><form onsubmit="return admLogin(event)"><label for="ae">E-mail</label><input id="ae" type="email" required autocomplete="username" placeholder="voce@empresa.com"><label for="ap">Senha</label><div class="adsenha"><input id="ap" type="password" required autocomplete="current-password" placeholder="Sua senha"><button type="button" class="adver" onclick="admVerSenha(this)">Mostrar</button></div><button class="adbtn">Entrar</button></form><p class="adnota">Acesso restrito. Se você é cliente, <a href="./">volte para a loja</a>.</p></div></div>';
   }
-  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['retirada','Rota de devolução'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['clientes','Clientes'],['revendedores','Revendedores'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['retirada','Rota de devolução'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
+  const tabs=ADMIN.papel==='admin'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['retirada','Rota de devolução'],['entregadores','Entregadores'],['pagamentos','Pagamentos'],['cartao','Cartão e retiradas'],['atrasados','Atrasados'],['clientes','Clientes'],['revendedores','Revendedores'],['campanhas','Campanhas'],['produtos','Produtos'],['etiquetas','Ajustes de etiqueta'],['mensagens','Mensagens'],['config','Configurações'],['usuarios','Usuários']]:ADMIN.papel==='logistica'?[['dash','Visão geral'],['pedidos','Pedidos'],['manual','Pedido manual'],['logistica','Logística'],['retirada','Rota de devolução'],['entregadores','Entregadores'],['atrasados','Atrasados']]:[['pedidos','Pedidos']];
   const EXTRA_T=['cartao','atrasados','clientes','revendedores','campanhas','produtos','etiquetas','mensagens','config'];
   if(!tabs.some(t=>t[0]===A.tab)&&!(A.tab==='manual'&&tabs.some(t=>t[0]==='manual')))A.tab=tabs[0][0];
   msgGarante();
-  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,manual:tabManual,pagamentos:tabPagamentos,pendentes:tabPendentes,cartao:tabCartao,campanhas:tabCampanhas,logistica:tabLogistica,entregadores:tabEntregadores,retirada:tabRetirada,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,mensagens:tabMensagens,config:tabConfig,clientes:tabClientes,revendedores:tabRevendedores})[A.tab]();
+  const body=({dash:tabDash,aberto:tabAberto,pedidos:tabPedidos,manual:tabManual,pagamentos:tabPagamentos,pendentes:tabPendentes,cartao:tabCartao,campanhas:tabCampanhas,logistica:tabLogistica,entregadores:tabEntregadores,retirada:tabRetirada,atrasados:tabAtrasados,produtos:tabProdutos,etiquetas:tabEtiquetas,mensagens:tabMensagens,config:tabConfig,clientes:tabClientes,revendedores:tabRevendedores,usuarios:tabUsuarios})[A.tab]();
   return `<div class="wrap pg"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h1 class="t" style="margin:0">Área administrativa</h1><div style="font-size:.85rem;color:var(--muted)">${esc(ADMIN.nome)} (${({admin:'administrador',logistica:'logística',separador:'separação'})[ADMIN.papel]}) · <a style="cursor:pointer" onclick="admSair()">Sair</a></div></div>
   ${abasHtml(tabs.filter(t=>t[0]!=='manual'),EXTRA_T)}${body}</div>`;
 }
@@ -5094,6 +5094,48 @@ function admEndAbrir(modo){
   A9.editOpen=true;const d=document.querySelector('.editbox');if(d)d.open=true;
   admEndModo(modo);const t=document.getElementById('edEndTit');if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
 }
+/* ======================= USUÁRIOS DA EQUIPE (o nome de quem agiu aparece nos históricos) ======================= */
+var EQ_PAPEL={admin:'Administrador (tudo)',logistica:'Logística',separador:'Separação'};
+async function eqCarregar(){
+  const r=await SB.from('perfis').select('id,nome,sobrenome,email,papel,ativo,criado_em').in('papel',['admin','logistica','separador']).order('criado_em');
+  A9.eq={rows:r.data||[],erro:r.error?r.error.message:''};route();
+}
+function tabUsuarios(){
+  if(ADMIN.papel!=='admin')return '<div class="box">Só o administrador gerencia os usuários.</div>';
+  if(!A9.eq){if(!A9.eqBusy){A9.eqBusy=true;eqCarregar().finally(()=>{A9.eqBusy=false})}return '<div class="box">Carregando...</div>'}
+  const eu=(A9.eq.rows.find(x=>String(x.email||'').toLowerCase()===String(ADMIN.email||'').toLowerCase())||{}).id;
+  const opt=p=>Object.keys(EQ_PAPEL).map(k=>'<option value="'+k+'"'+(p===k?' selected':'')+'>'+esc(EQ_PAPEL[k])+'</option>').join('');
+  const lin=x=>'<tr'+(x.ativo?'':' style="opacity:.55"')+'><td><b>'+esc(((x.nome||'')+' '+(x.sobrenome||'')).trim()||'(sem nome)')+'</b>'+(x.id===eu?' <span class="pgsub">(você)</span>':'')+'</td><td>'+esc(x.email||'')+'</td><td><select '+(x.id===eu?'disabled ':'')+'onchange="eqDefinir(\''+x.id+'\',this.value,'+x.ativo+')" style="width:auto">'+opt(x.papel)+'</select></td><td>'+(x.ativo?'Ativo':'Desativado')+'</td><td style="white-space:nowrap"><button class="btn ghost sm" onclick="eqSenha(\''+x.id+'\')">Nova senha</button> '+(x.id===eu?'':'<button class="btn ghost sm" onclick="eqDefinir(\''+x.id+'\',\''+x.papel+'\','+!x.ativo+')">'+(x.ativo?'Desativar':'Ativar')+'</button>')+'</td></tr>';
+  return '<div class="box">'+msgBox()+(A9.eq.erro?'<div class="note err">Não foi possível carregar a equipe. Confira se o arquivo 35 foi rodado no Supabase.</div>':'')+
+   '<p style="margin:0 0 10px;color:var(--muted)">Cada pessoa da equipe tem o seu próprio acesso. O nome dela aparece no histórico das ações (por exemplo, quem editou um pedido).</p>'+
+   '<div class="box" style="box-shadow:none;background:#fafafa"><h3 style="margin-top:0">Criar acesso</h3><div class="fr"><div class="c3"><label for="eqN">Nome</label><input id="eqN" placeholder="Ex.: Wesley"></div><div class="c3"><label for="eqE">E-mail (será o login)</label><input id="eqE" type="email" autocomplete="off"></div><div class="c2"><label for="eqS">Senha</label><input id="eqS" autocomplete="off" placeholder="mínimo 6"></div><div class="c3"><label for="eqP">Perfil</label><select id="eqP">'+opt('admin')+'</select></div><div class="c3"><label for="eqF">WhatsApp da pessoa (para enviar o acesso)</label><input id="eqF" inputmode="tel" placeholder="(12) 9 9999-9999"></div></div>'+
+   '<p style="margin:10px 0 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="document.getElementById(\'eqS\').value=Math.random().toString(36).slice(2,6)+Math.random().toString(36).slice(2,6)">Gerar senha</button><button class="btn acc" onclick="eqCriar()">Criar acesso</button></p></div>'+
+   '<h3>Equipe</h3><div class="tbl"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Situação</th><th></th></tr></thead><tbody>'+(A9.eq.rows.map(lin).join('')||'<tr><td colspan="5">Nenhum usuário.</td></tr>')+'</tbody></table></div></div>';
+}
+async function eqCriar(){
+  const nome=v_('eqN').trim(),email=v_('eqE').trim().toLowerCase(),senha=v_('eqS'),papel=v_('eqP'),fone=v_('eqF').trim();
+  if(!nome||!/^\S+@\S+\.\S+$/.test(email)){toast('Informe o nome e um e-mail válido.');return}
+  if(senha.length<6){toast('A senha precisa ter pelo menos 6 caracteres.');return}
+  if(A9.busy)return;A9.busy=true;
+  const r=await SB.rpc('equipe_criar_usuario',{p_nome:nome,p_email:email,p_senha:senha,p_papel:papel});A9.busy=false;
+  if(r.error){A9.msg=/equipe_criar_usuario|function|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 35 no Supabase.':msgRpc(r.error);A9.erro=true;route();return}
+  A9.eq=null;A9.msg='Acesso criado para '+nome+'.';A9.erro=false;route();
+  const txt='Olá, '+nome.split(' ')[0]+'! Seu acesso ao painel da ZP Imports:\n\n🔗 '+location.origin+'/admin\n📧 Login: '+email+'\n🔑 Senha: '+senha+'\n\nPor segurança, peça para trocar a senha no primeiro acesso.';
+  if(fone)msgPrevia('Enviar o acesso',nome,fone,txt);
+  else zpModal('eqbox','<h3 style="margin:0 0 6px">Acesso criado</h3><p style="margin:0 0 8px;color:#667085;font-size:.88rem">Copie e envie para '+esc(nome)+'. A senha não aparece de novo.</p><textarea rows="8" style="width:100%" readonly onclick="this.select()">'+esc(txt)+'</textarea><div class="btns" style="margin-top:10px"><button class="btn ghost" onclick="document.getElementById(\'eqbox\').remove()">Fechar</button></div>');
+}
+async function eqDefinir(id,papel,ativo){
+  const r=await SB.rpc('equipe_definir',{p_id:id,p_papel:papel,p_ativo:ativo});
+  if(r.error){A9.msg=msgRpc(r.error);A9.erro=true;route();return}
+  A9.eq=null;A9.msg='Usuário atualizado.';A9.erro=false;route();
+}
+async function eqSenha(id){
+  const s=prompt('Nova senha para este usuário (mínimo 6 caracteres):');if(!s)return;
+  if(s.length<6){toast('A senha precisa ter pelo menos 6 caracteres.');return}
+  const r=await SB.rpc('equipe_definir_senha',{p_id:id,p_senha:s});
+  if(r.error){toast(msgRpc(r.error));return}
+  toast('Senha alterada. Avise a pessoa.');
+}
 /* ======================= NOVO ENDEREÇO SÓ DE ENTREGA (não mexe no cadastro do cliente) ======================= */
 function neAbrir(){
   const o=A9.po;if(!o)return;const en=o.entrega||{};
@@ -5515,7 +5557,7 @@ async function retTaxaPaga(id){
 
 /* ======================= OUTRAS PENDÊNCIAS (dentro da Carteira), ENVIO EM LOTE PARA A RETIRADA E PRÉVIA DE MENSAGEM ======================= */
 A9.cartSub='prog';
-var pendAtiva=o=>{const e=o.extra||{};return !!e.pend&&!e.pag_prev&&!['rota','retirado','taxa'].includes(e.ret)};
+var pendAtiva=o=>{const e=o.extra||{},p=e.pend;if(!p||['rota','retirado','taxa'].includes(e.ret))return false;return p.pv===undefined||p.pv===(e.pag_prev?JSON.stringify(e.pag_prev):'')};
 function pendLista(){return (A9.pedidos||[]).filter(o=>o.id>0&&o.status!=='cancelado'&&(o.pagamento||{}).status!=='pago'&&pendAtiva(o))}
 function zpModal(id,corpo,largura){
   const old=document.getElementById(id);if(old)old.remove();
@@ -5535,10 +5577,10 @@ function mpEnviar(){
   const d=document.getElementById('mpDica');if(d)d.innerHTML='<b style="color:#16a34a">WhatsApp aberto.</b> Depois toque em Fechar.';
 }
 /* chips dentro da Carteira: o aviso de pendências só pisca aqui dentro */
-function pendChipsHtml(){
+function pendChipsHtml(nCart){
   const n=pendLista().length,s=A9.cartSub==='pend';
-  const chip=(k,t,on)=>'<button class="btn '+(on?'':'ghost ')+'sm" onclick="A9.cartSub=\''+k+'\';route()">'+t+'</button>';
-  return '<div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap">'+chip('prog','Cobranças programadas',!s)+chip('pend','Outras pendências ('+n+')'+(n?' <span class="pgblink"></span>':''),s)+'</div>';
+  const card=(k,t,num,cor,on)=>'<button class="kc '+(on?'sel':'')+'" style="--c:'+cor+'" onclick="A9.cartSub=\''+k+'\';route()"><div class="n">'+num+'</div><div class="t"><b>'+t+'</b></div></button>';
+  return '<div class="kcards" style="margin-bottom:12px">'+card('prog','Cobranças programadas',nCart,'#2563eb',!s)+card('pend','Outras pendências',n+(n?' <span class="pgblink"></span>':''),'#d97706',s)+'</div>';
 }
 function pendTabelaHtml(){
   const L=pendLista().sort((a,b)=>String((b.extra.pend||{}).em).localeCompare(String((a.extra.pend||{}).em)));
@@ -5551,7 +5593,7 @@ function pendAbrir(id){
   zpModal('pdnbox','<h3 style="margin:0 0 4px">Outra pendência</h3><p style="margin:0 0 10px;color:#667085;font-size:.88rem">'+esc(codPed(o))+' · '+esc((o.entrega||{}).nome||'')+'. Para quem ainda não tem pagamento definido (parcelado, passar o cartão...). O motivo aparece na lista.</p><label for="pdnObs" style="font-size:.85rem">Por que está nas pendências?</label><textarea id="pdnObs" rows="4" style="width:100%" placeholder="Ex.: cartão não passou, vai passar o cartão físico"></textarea><div class="btns" style="margin-top:10px"><button class="btn acc" onclick="pendSalvar(['+id+'],\'pdnObs\')">Mover para pendências</button><button class="btn ghost" onclick="document.getElementById(\'pdnbox\').remove()">Fechar</button></div>');
 }
 function pendEscolherAbrir(){
-  const L=(A9.pedidos||[]).filter(o=>o.id>0&&o.status!=='cancelado'&&(o.pagamento||{}).status!=='pago'&&!pendAtiva(o)&&!(o.extra||{}).pag_prev&&!(o.extra||{}).pag_unido_em&&!['rota','retirado','taxa'].includes((o.extra||{}).ret)).sort((a,b)=>b.id-a.id).slice(0,150);
+  const L=(A9.pedidos||[]).filter(o=>o.id>0&&o.status!=='cancelado'&&(o.pagamento||{}).status!=='pago'&&!pendAtiva(o)&&!(o.extra||{}).pag_unido_em&&!['rota','retirado','taxa'].includes((o.extra||{}).ret)).sort((a,b)=>b.id-a.id).slice(0,150);
   if(!L.length){toast('Não há pedido em aberto para incluir.');return}
   zpModal('pdnbox','<h3 style="margin:0 0 4px">Adicionar em outras pendências</h3><p style="margin:0 0 8px;color:#667085;font-size:.88rem">Marque quem ainda não tem pagamento definido e escreva o motivo.</p><input id="pkBusca" placeholder="Buscar pelo nome ou telefone" oninput="pkFiltra(this.value)" style="width:100%;margin-bottom:6px"><div style="max-height:36vh;overflow:auto">'+L.map(o=>'<label class="pklin" data-q="'+esc(pagNz(((o.entrega||{}).nome||'')+' '+((o.entrega||{}).fone||'')))+'" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:6px 0;font-size:.88rem"><input type="checkbox" name="pk" value="'+o.id+'" style="width:auto;margin-top:3px"><span><b>'+esc(codPed(o))+'</b> · '+esc((o.entrega||{}).nome||'')+' · '+brl(totalPag(o))+'</span></label>').join('')+'</div><label for="pkObs" style="font-size:.85rem;margin-top:8px;display:block">Por que estão nas pendências?</label><textarea id="pkObs" rows="3" style="width:100%" placeholder="Ex.: ainda não escolheu a forma de pagamento"></textarea><div class="btns" style="margin-top:10px"><button class="btn acc" onclick="pendSalvar([...document.querySelectorAll(\'input[name=pk]:checked\')].map(e=>+e.value),\'pkObs\')">Mover para pendências</button><button class="btn ghost" onclick="document.getElementById(\'pdnbox\').remove()">Fechar</button></div>',560);
 }
@@ -5563,7 +5605,7 @@ async function pendSalvar(ids,campo){
   if(A9.busy)return;A9.busy=true;let erros=0;
   for(const id of ids){
     const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)continue;
-    const ex=Object.assign({},o.extra||{},{pend:{obs,em:hojeS(),por:ADMIN.nome}});
+    const ex=Object.assign({},o.extra||{},{pend:{obs,em:hojeS(),por:ADMIN.nome,pv:o.extra&&o.extra.pag_prev?JSON.stringify(o.extra.pag_prev):''}});
     const r=await SB.from('pedidos').update({extra:ex}).eq('id',id);
     if(r.error){erros++;continue}o.extra=ex;
     pedEvento({pedido_id:id,tipo:'pagamento',publico:false,texto:'Movido para outras pendências: '+obs,por:ADMIN.nome}).then(()=>{},()=>{});
@@ -6182,7 +6224,7 @@ function tabPagamentos(){
   <div class="kcards" style="margin-bottom:12px">${aba('cobrar','Pagamentos pendentes',pendentes,'#d92d20')}${aba('andamento','Cobrança em andamento',andamento,'#d97706')}${aba('carteira','<span style="font-size:.82em">Carteira · Pré-datados</span>',carteira,'#2563eb')}${aba('pagos','Concluídos (pagos)',pagos,'#16a34a')}</div>
   ${barraFiltros()}
   <div class="fbar" style="margin-bottom:8px"><div><label for="pgQ">Buscar por nome</label><input id="pgQ" value="${esc(A9.pagQ||'')}" placeholder="Nome ou telefone" oninput="buscaLive(this,'pagQ')"></div><div><label for="pgD1">${f==='carteira'?'Vence de':'Data de'}</label><input id="pgD1" type="date" value="${esc(A9.pagD1||'')}" onchange="A9.pagD1=this.value;route()" style="width:auto"></div><div><label for="pgD2">até</label><input id="pgD2" type="date" value="${esc(A9.pagD2||'')}" onchange="A9.pagD2=this.value;route()" style="width:auto"></div>${(A9.pagQ||A9.pagD1||A9.pagD2||A9.pagSort)?'<button class="btn ghost sm" onclick="A9.pagQ=\'\';A9.pagD1=\'\';A9.pagD2=\'\';A9.pagSort=null;route()">Limpar</button>':''}<span style="align-self:center;color:var(--muted);font-size:.82rem">${lista.length} na lista</span></div>
-  ${isCarteira?pendChipsHtml():''}
+  ${isCarteira?pendChipsHtml(carteira.length):''}
   <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn acc sm" onclick="cobNova()">➕ Nova cobrança</button>${btnFrete}${isCarteira?'<button class="btn ghost sm" onclick="retEscolherAbrir()">🏍 Enviar para rota de devolução</button><button class="btn ghost sm" onclick="pendEscolherAbrir()">📌 Adicionar em outras pendências</button>':''}</div>
   ${(isCarteira&&A9.cartSub==='pend')?pendTabelaHtml():`<div class="tbl"><table>${thead}<tbody>${lista.map(o=>rowPag(o,mostraFrete)).join('')||`<tr><td colspan="${mostraFrete?7:6}">Nenhum pedido nesta lista.</td></tr>`}</tbody></table></div>`}
   </div>`;
