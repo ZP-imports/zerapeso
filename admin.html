@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-05-2500 -->
+<!-- v2026-11-05-2501 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5686,7 +5686,7 @@ function pendTabelaHtml(){
   const hoje=hojeS();
   const linha=o=>{const p=(o.extra||{}).pend||{},e=o.entrega||{};
     const comb=p.data?'<b style="color:'+(p.data<hoje?'#b42318':p.data===hoje?'#d97706':'inherit')+'">'+esc(dataBr(p.data))+'</b>'+(p.data<hoje?'<div class="pgsub" style="color:#b42318">venceu</div>':p.data===hoje?'<div class="pgsub" style="color:#d97706">hoje</div>':''):'<span style="color:var(--muted)">—</span>';
-    return '<tr><td style="white-space:nowrap"><b>'+codPed(o)+'</b></td><td class="pgcli"><b>'+esc(e.nome||'')+'</b><div class="pgsub">'+esc(cidadeDe(o))+'</div></td><td>'+brl(totalPag(o))+'</td><td style="min-width:200px">'+esc(p.obs||'')+'<div class="pgsub">Desde '+esc(dataBr(p.em||''))+(p.por?' · '+esc(p.por):'')+'</div>'+pendHistHtml(p)+'</td><td>'+comb+'</td><td style="white-space:nowrap"><button class="btn wa sm" onclick="pendWa('+o.id+')">WhatsApp</button> <button class="btn ghost sm" onclick="pendEditar('+o.id+')">✏️ Editar</button> <button class="btn ghost sm" onclick="pagProg('+o.id+')">Programar</button> <button class="btn ghost sm" onclick="retAtribuirAbrir('+o.id+')">🏍 Retirada</button> <button class="btn ghost sm" onclick="pendTirar('+o.id+')">Tirar</button></td></tr>'};
+    return '<tr><td style="white-space:nowrap"><b>'+codPed(o)+'</b></td><td class="pgcli"><b>'+esc(e.nome||'')+'</b><div class="pgsub">'+esc(cidadeDe(o))+'</div></td><td>'+brl(totalPag(o))+'</td><td style="min-width:200px">'+esc(p.obs||'')+'<div class="pgsub">Desde '+esc(dataBr(p.em||''))+(p.por?' · '+esc(p.por):'')+'</div>'+pendHistHtml(p)+'</td><td>'+comb+'</td><td style="white-space:nowrap"><button class="btn wa sm" title="Enviar mensagem no WhatsApp" onclick="pendWa('+o.id+')">💬</button> <button class="btn ghost sm" onclick="pendEditar('+o.id+')">✏️ Editar</button> <button class="btn ghost sm" onclick="pendProgramar('+o.id+')">Programar</button> <button class="btn ghost sm" title="Mover para outro lugar" onclick="pendMover('+o.id+')">↩ Mover</button></td></tr>'};
   return '<div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Valor</th><th>Por que está aqui</th><th>Combinado para</th><th>Ações</th></tr></thead><tbody>'+(L.map(linha).join('')||'<tr><td colspan="6">Nenhuma pendência. Use <b>📌 Adicionar em outras pendências</b> para incluir um pedido sem forma de pagamento definida.</td></tr>')+'</tbody></table></div>';
 }
 /* editar a pendência: o que ficou combinado e a data (o histórico guarda cada alteração) */
@@ -5730,6 +5730,36 @@ async function pendSalvar(ids,campo,campoData){
   }
   A9.busy=false;const b=document.getElementById('pdnbox');if(b)b.remove();
   A9.pf='carteira';A9.cartSub='pend';A9.msg=erros?erros+' pedido(s) não puderam ser movidos.':'Movido para outras pendências.';A9.erro=!!erros;route();
+}
+/* Programar: escolhe se é pagamento (vai para a Carteira) ou retirada do pedido */
+function pendProgramar(id){
+  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
+  zpModal('pdnbox','<h3 style="margin:0 0 4px">Programar</h3><p style="margin:0 0 12px;color:#667085;font-size:.88rem">'+esc(codPed(o))+' · '+esc((o.entrega||{}).nome||'')+'. O que ficou combinado?</p><div style="display:flex;flex-direction:column;gap:8px"><button class="btn acc" onclick="document.getElementById(\'pdnbox\').remove();pagProg('+id+')">💰 Programar o pagamento (vai para a Carteira)</button><button class="btn" onclick="document.getElementById(\'pdnbox\').remove();retAtribuirAbrir('+id+')">🏍 Retirar o pedido (rota de devolução)</button><button class="btn ghost" onclick="document.getElementById(\'pdnbox\').remove()">Fechar</button></div>');
+}
+/* Mover: o pedido sai das pendências e vai para o lugar que a pessoa escolher */
+function pendMover(id){
+  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o)return;
+  const rd=(v,t,c)=>'<label style="display:flex;gap:8px;align-items:flex-start;margin:8px 0;cursor:pointer"><input type="radio" name="pdmDest" value="'+v+'"'+(c?' checked':'')+' style="margin-top:3px"><span>'+t+'</span></label>';
+  zpModal('pdnbox','<h3 style="margin:0 0 4px">Mover pedido</h3><p style="margin:0 0 8px;color:#667085;font-size:.88rem">'+esc(codPed(o))+' · '+esc((o.entrega||{}).nome||'')+'. Para onde ele vai?</p>'+rd('pendentes','<b>Pagamentos pendentes</b> · sem data programada',true)+rd('carteira','<b>Carteira (pré-datado)</b> · com datas de pagamento')+rd('pagos','<b>Pagamentos concluídos</b> · marcar como pago')+'<div class="btns" style="margin-top:12px"><button class="btn acc" onclick="pendMoverOk('+id+')">Mover</button><button class="btn ghost" onclick="document.getElementById(\'pdnbox\').remove()">Fechar</button></div>');
+}
+async function pendMoverOk(id){
+  const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o||A9.busy)return;
+  const sel=document.querySelector('input[name="pdmDest"]:checked'),dest=sel?sel.value:'pendentes';
+  const ex=Object.assign({},o.extra||{});delete ex.pend;
+  if(dest==='pendentes'&&ex.pag_prev&&!confirm('Este pedido tem datas de pagamento programadas. Para ir para Pagamentos pendentes, as datas serão apagadas. Continuar?'))return;
+  if(dest==='pendentes')delete ex.pag_prev;
+  const b=document.getElementById('pdnbox');if(b)b.remove();
+  A9.busy=true;let r=await SB.from('pedidos').update({extra:ex}).eq('id',id);
+  if(!r.error&&dest==='pagos')r=await SB.rpc('registrar_pagamento',{p_pedido:id,p_pago:true});
+  A9.busy=false;
+  if(r.error){toast('Erro: '+(r.error.message||'não foi possível mover'));return}
+  o.extra=ex;
+  const nome={pendentes:'Pagamentos pendentes',carteira:'Carteira',pagos:'Pagamentos concluídos'}[dest];
+  pedEvento({pedido_id:id,tipo:'pagamento',publico:false,texto:'Saiu das outras pendências e foi para '+nome,por:ADMIN.nome}).then(()=>{},()=>{});
+  A9.pf=dest==='pendentes'?'cobrar':dest==='carteira'?'carteira':'pagos';A9.cartSub='prog';
+  if(dest==='pagos')A9.pedidos=null;
+  A9.msg='Pedido movido para '+nome+'.';A9.erro=false;route();
+  if(dest==='carteira'&&!ex.pag_prev){toast('Defina as datas de pagamento para ele aparecer na Carteira.');pagProg(id)}
 }
 async function pendTirar(id){
   const o=(A9.pedidos||[]).find(x=>x.id===id);if(!o||A9.busy)return;
