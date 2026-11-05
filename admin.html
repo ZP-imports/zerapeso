@@ -1,9 +1,5 @@
 <!doctype html>
-<<<<<<< HEAD
 <!-- v2026-11-05-2494 -->
-=======
-<!-- v2026-11-05-2493 -->
->>>>>>> origin/main
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5101,7 +5097,6 @@ function admEndAbrir(modo){
   A9.editOpen=true;const d=document.querySelector('.editbox');if(d)d.open=true;
   admEndModo(modo);const t=document.getElementById('edEndTit');if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
 }
-<<<<<<< HEAD
 /* ======================= USUÁRIOS DA EQUIPE (o nome de quem agiu aparece nos históricos) ======================= */
 var EQ_PAPEL={admin:'Administrador (tudo)',logistica:'Logística',separador:'Separação'};
 async function eqCarregar(){
@@ -5143,7 +5138,7 @@ async function eqSenha(id){
   const r=await SB.rpc('equipe_definir_senha',{p_id:id,p_senha:s});
   if(r.error){toast(msgRpc(r.error));return}
   toast('Senha alterada. Avise a pessoa.');
-=======
+}
 /* virou o dia: os atrasados de ontem passam a contar em hoje, sem precisar recarregar */
 (function(){let d0=hojeS();setInterval(()=>{const d=hojeS();if(d!==d0){d0=d;if(window.__ADMIN_APP&&!emEdicao())route()}},60000)})();
 /* ======================= O CLIENTE ALTERA O ENDEREÇO COM O PEDIDO EM ROTA ======================= */
@@ -5181,7 +5176,6 @@ function endAvisarEntregador(id){
   const rota=L.rotas.find(r=>(r.pedidos||[]).includes(id)),end=endTxt((o.entrega||{}).dest||{});
   const txt=nl('Olá, '+(primeiro(en.nome)||'')+'! ⚠️\n\nO cliente '+((o.entrega||{}).nome||'')+' mudou o endereço do pedido '+codPed(o)+'.\n\n🏠 Novo endereço: '+end+'\n📍 '+mapsDest(end)+(rota&&entUrl(rota)?'\n\nA sua rota já está atualizada: '+entUrl(rota):''));
   msgPrevia('Avisar o entregador',codPed(o)+' · '+en.nome,en.whats,txt);
->>>>>>> origin/main
 }
 /* ======================= NOVO ENDEREÇO SÓ DE ENTREGA (não mexe no cadastro do cliente) ======================= */
 function neAbrir(){
