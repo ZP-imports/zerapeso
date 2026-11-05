@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-05-2502 -->
+<!-- v2026-11-05-2503 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -4677,7 +4677,7 @@ function paradaRota(o,k,end){
   const e=o.entrega||{},d=e.dest||{};
   const dig=String(e.fone||'').replace(/\D/g,'');
   const f=dig?fmtFone(dig.length>11&&dig.startsWith('55')?dig.slice(2):dig,dig.length===10):'';
-  let t=msgTxt('rota_parada',{n:k+1,cliente:e.nome||'',fone:f,endereco:end,ref:d.ref||'',maps:mapsDest(end)});
+  let t=msgTxt('rota_parada',{n:k+1,cliente:e.nome||'',fone:f,endereco:end,ref:d.ref||'',maps:mapsTxt(end)});
   if(f&&t.indexOf(f)<0&&t.indexOf(dig)<0){const i=t.indexOf('\n');t=i<0?t+'\n📞 '+f:t.slice(0,i)+'\n📞 '+f+t.slice(i)}
   return t;
 }
@@ -5228,7 +5228,7 @@ function endAvisarEntregador(id){
   const L=A9.lg;const en=L&&L.ent.find(x=>x.id===o.entregador_id);
   if(!en||!en.whats){toast('Este pedido não está com um entregador que tenha WhatsApp cadastrado.');return}
   const rota=L.rotas.find(r=>(r.pedidos||[]).includes(id)),end=endTxt((o.entrega||{}).dest||{});
-  const txt=nl('Olá, '+(primeiro(en.nome)||'')+'! ⚠️\n\nO cliente '+((o.entrega||{}).nome||'')+' mudou o endereço do pedido '+codPed(o)+'.\n\n🏠 Novo endereço: '+end+'\n📍 '+mapsDest(end)+(rota&&entUrl(rota)?'\n\nA sua rota já está atualizada: '+entUrl(rota):''));
+  const txt=nl('Olá, '+(primeiro(en.nome)||'')+'! ⚠️\n\nO cliente '+((o.entrega||{}).nome||'')+' mudou o endereço do pedido '+codPed(o)+'.\n\n🏠 Novo endereço: '+end+'\n📍 '+mapsTxt(end)+(rota&&entUrl(rota)?'\n\nA sua rota já está atualizada: '+entUrl(rota):''));
   msgPrevia('Avisar o entregador',codPed(o)+' · '+en.nome,en.whats,txt);
 }
 /* ======================= NOVO ENDEREÇO SÓ DE ENTREGA (não mexe no cadastro do cliente) ======================= */
@@ -5432,8 +5432,11 @@ function endTxt(d){
   const a=[[d.rua,d.num].filter(Boolean).join(', '),d.bairro,d.cidade].filter(Boolean).join(', ');
   return a+(d.uf?' - '+String(d.uf).toUpperCase():'')+(d.cep?', '+d.cep:'');
 }
-var mapsDest=t=>'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(endLoc(t)||t)+'&travelmode=driving';
-var wazeDest=t=>endLoc(t)?'https://waze.com/ul?ll='+endLoc(t)+'&navigate=yes':'https://waze.com/ul?q='+encodeURIComponent(t)+'&navigate=yes';
+/* o link principal leva o ENDEREÇO que o cliente informou; o pino por coordenadas (CEP) fica de reserva, para quando o Maps trocar o local */
+var mapsDest=t=>'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(t)+'&travelmode=driving';
+var mapsPino=t=>endLoc(t)?'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(endLoc(t))+'&travelmode=driving':'';
+var mapsTxt=t=>mapsDest(t)+(mapsPino(t)?'\n📌 Se o Maps errar o local, use o pino exato: '+mapsPino(t):'');
+var wazeDest=t=>'https://waze.com/ul?q='+encodeURIComponent(t)+'&navigate=yes';
 /* Uber: é um "entregador" chamado Uber. O botão abre o app (ou o site, no computador) com o endereço do cliente como destino */
 var ehUber=x=>/uber/i.test(String((x||{}).nome||''));
 function uberUrl(o){const e=o.entrega||{};return 'https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[nickname]='+encodeURIComponent(e.nome||'Cliente')+'&dropoff[formatted_address]='+encodeURIComponent(endTxt(e.dest))}
@@ -5455,7 +5458,7 @@ function mapsRota(lista){
   const L=(lista||[]).filter(Boolean).slice(0,10);
   if(!L.length)return '';
   if(L.length===1)return mapsDest(L[0]);
-  return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(endLoc(L[L.length-1])||L[L.length-1])+'&waypoints='+encodeURIComponent(L.slice(0,-1).map(x=>endLoc(x)||x).join('|'))+'&travelmode=driving';
+  return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(L[L.length-1])+'&waypoints='+encodeURIComponent(L.slice(0,-1).join('|'))+'&travelmode=driving';
 }
 var entUrl=r=>r&&r.token?location.origin+'/#/entrega/'+r.id+'/'+r.token:'';
 
@@ -5533,7 +5536,7 @@ function retMsgRota(g){
   const ps=g.rows.map(x=>A9.ret.peds[x.pedido_id]).filter(Boolean);
   const ends=ps.map(o=>endTxt(retDest(o)));
   const par=ps.map((o,k)=>{const e=o.entrega||{},d=retDest(o);const f=String(e.fone||'');
-    return (k+1)+') '+(e.nome||'')+(f?'\n📞 '+f:'')+'\n🏠 '+ends[k]+(d.ref?'\n📌 Ref.: '+d.ref:'')+'\n📍 '+mapsDest(ends[k])}).join('\n\n');
+    return (k+1)+') '+(e.nome||'')+(f?'\n📞 '+f:'')+'\n🏠 '+ends[k]+(d.ref?'\n📌 Ref.: '+d.ref:'')+'\n📍 '+mapsTxt(ends[k])}).join('\n\n');
   return nl('Olá, '+(primeiro(en.nome)||'')+'! 🛵\n\nRota de DEVOLUÇÃO: você vai buscar '+ps.length+' pedido'+(ps.length>1?'s':'')+' na casa do cliente e levar de volta para a '+BASE_ZP+'.\n\n'+par+(ps.length>1?'\n\n🗺️ Rota completa no Maps: '+mapsRota(ends):'')+'\n\n✅ Marque por aqui (não precisa de foto): '+retUrl(g.rows[0])+'\n\nQuando voltar com o pedido, toque em Finalizar.');
 }
 function retGrupos(){
@@ -5829,7 +5832,7 @@ function pageRetirada(rid,tk){
     const st=fim?'✅ Pedido devolvido':p.chegou_em?'📍 Cheguei às '+horaBr(p.chegou_em):'A caminho';
     return `<div class="stop ${fim?'ok':''}"><h3>${k+1}. ${esc(p.nome||'')}</h3><div class="ad">${esc(t)}${p.dest&&p.dest.ref?'<div style="color:var(--muted);font-size:.85rem">Ref.: '+esc(p.dest.ref)+'</div>':''}</div>${p.fone?`<div style="margin:4px 0 6px;font-size:.9rem">📱 <a href="https://wa.me/${foneWa(p.fone)}" target="_blank" rel="noopener" style="color:var(--pd)">${esc(p.fone)}</a></div>`:''}
     <div style="font-size:.88rem;margin-bottom:10px"><b>${st}</b></div>
-    <div class="acts"><a class="btn sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">Google Maps</a><a class="btn ghost sm" href="${esc(wazeDest(t))}" target="_blank" rel="noopener">Waze</a>${fim?'':(p.chegou_em?'':`<button class="btn sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','cheguei')">📍 Cheguei</button>`)+`<button class="btn acc sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','finalizar')">✅ Finalizar: voltei com o pedido</button>`}</div></div>`;
+    <div class="acts"><a class="btn sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">Google Maps</a><a class="btn ghost sm" href="${esc(wazeDest(t))}" target="_blank" rel="noopener">Waze</a>${endLoc(t)?`<a class="btn ghost sm" href="${esc(mapsPino(t))}" target="_blank" rel="noopener">📌 Pino exato</a>`:''}${fim?'':(p.chegou_em?'':`<button class="btn sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','cheguei')">📍 Cheguei</button>`)+`<button class="btn acc sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','finalizar')">✅ Finalizar: voltei com o pedido</button>`}</div></div>`;
   };
   return `<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota de devolução</h1>
   <p style="margin:0 0 12px;color:var(--muted)">Busque o pedido na casa do cliente e devolva na <b>${esc(BASE_ZP)}</b>. ${ps.length-abertas.length} de ${ps.length} concluídas.</p>
@@ -5855,7 +5858,7 @@ function stopHtml(p,k,rid,tk,saiu){
   return `<div class="stop ${fim?'ok':''}"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><h3>${k+1}. ${esc(p.nome||'')}</h3><small style="color:var(--muted);white-space:nowrap">${esc(TURNOS[p.turno]||'')}</small></div>
   <div class="ad">${esc(t)}${p.dest&&p.dest.ref?'<div style="color:var(--muted);font-size:.85rem">Ref.: '+esc(p.dest.ref)+'</div>':''}</div>${p.fone?`<div style="margin:4px 0 6px;font-size:.9rem">📱 <a href="https://wa.me/${foneWa(p.fone)}" target="_blank" rel="noopener" style="color:var(--pd)">${esc(p.fone)}</a></div>`:''}
   <div style="font-size:.88rem;margin-bottom:10px"><b>${st}</b></div>
-  ${canc?'':`<div class="acts"><a class="btn sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">Google Maps</a><a class="btn ghost sm" href="${esc(wazeDest(t))}" target="_blank" rel="noopener">Waze</a>${saiu&&!fim&&(emRota||tent)?(emRota&&!p.chegou_em?`<button class="btn sm full2" onclick="entCheguei('${rid}','${tk}',${p.pedido})">📷 Cheguei: tirar foto do local</button>`:'')+bt('entregue','Entreguei','acc')+(emRota?bt('tentativa','Não consegui entregar','ghost sm'):''):''}</div>`}</div>`;
+  ${canc?'':`<div class="acts"><a class="btn sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">Google Maps</a><a class="btn ghost sm" href="${esc(wazeDest(t))}" target="_blank" rel="noopener">Waze</a>${endLoc(t)?`<a class="btn ghost sm" href="${esc(mapsPino(t))}" target="_blank" rel="noopener">📌 Pino exato</a>`:''}${saiu&&!fim&&(emRota||tent)?(emRota&&!p.chegou_em?`<button class="btn sm full2" onclick="entCheguei('${rid}','${tk}',${p.pedido})">📷 Cheguei: tirar foto do local</button>`:'')+bt('entregue','Entreguei','acc')+(emRota?bt('tentativa','Não consegui entregar','ghost sm'):''):''}</div>`}</div>`;
 }
 function pageEntregador(rid,tk){
   const caixa=t=>'<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota de entregas</h1>'+t+'</div>';
@@ -7071,9 +7074,9 @@ function otFechar(){A9.otim=null;route()}
 function otPs(){const T=A9.otim,L=A9.lg;return T.ids.map(id=>L.peds[id]).filter(Boolean)}
 function mapsTrecho(lista,origem){
   const L=(lista||[]).filter(Boolean);if(!L.length)return '';
-  let u='https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+encodeURIComponent(endLoc(L[L.length-1])||L[L.length-1]);
-  if(origem)u+='&origin='+encodeURIComponent(endLoc(origem)||origem);
-  if(L.length>1)u+='&waypoints='+encodeURIComponent(L.slice(0,-1).map(x=>endLoc(x)||x).join('|'));
+  let u='https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+encodeURIComponent(L[L.length-1]);
+  if(origem)u+='&origin='+encodeURIComponent(origem);
+  if(L.length>1)u+='&waypoints='+encodeURIComponent(L.slice(0,-1).join('|'));
   return u;
 }
 function otTrechos(ends){const out=[];for(let i=0;i<ends.length;i+=10){out.push({de:i+1,ate:Math.min(i+10,ends.length),url:mapsTrecho(ends.slice(i,i+10),i?ends[i-1]:'')})}return out}
