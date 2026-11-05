@@ -3863,6 +3863,36 @@ function prefHtml(turnos){
 var TRK=window.TRK||{};
 function trackUrl(codigo,token){return location.href.split('#')[0]+'#/acompanhar/'+codigo+'/'+token}
 function msgRastreio(o){const nome=String((o.entrega||{}).nome||'').split(' ')[0];return nl(msgTxt('rastreio',{nome:nome||'cliente',pedido:codPed(o),link:trackUrl(codPed(o),o.token)}))}
+/* ---------- o cliente altera o endereço de entrega na própria página de acompanhamento ---------- */
+var TRKEDIT={};
+function trkEndHtml(r,code,token){
+  if(['entregue','cancelado'].includes(r.status))return '';
+  const k=code+'/'+token;
+  if(!TRKEDIT[k])return '<div class="note" style="margin:12px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between"><span>📍 Precisa mudar o endereço de entrega?</span><button class="btn acc sm" onclick="TRKEDIT[\''+k+'\']=true;route()">Alterar endereço</button></div>';
+  return '<div class="box" style="box-shadow:none;border:1px solid var(--line);margin:12px 0"><h3 style="margin:0 0 4px">Novo endereço de entrega</h3><p style="margin:0 0 10px;color:var(--muted);font-size:.88rem">Vale só para este pedido. O entregador recebe o endereço novo na hora.</p>'+
+   '<div class="fr"><div class="c2"><label for="tkCep">CEP</label><input id="tkCep" placeholder="00000-000" inputmode="numeric" autocomplete="postal-code" oninput="cepAuto(this,{uf:\'tkUf\',cidade:\'tkCid\',bairro:\'tkBai\',rua:\'tkRua\',num:\'tkNum\'})"></div><div class="c2"><label for="tkUf">UF</label><input id="tkUf" maxlength="2"></div><div class="c2"><label for="tkCid">Cidade</label><input id="tkCid"></div>'+
+   '<div class="c3"><label for="tkBai">Bairro</label><input id="tkBai"></div><div class="c4"><label for="tkRua">Rua</label><input id="tkRua"></div><div class="c2"><label for="tkNum">Número</label><input id="tkNum" inputmode="numeric"></div><div class="c2"><label for="tkCom">Complemento</label><input id="tkCom"></div><div class="c3"><label for="tkRef">Ponto de referência</label><input id="tkRef"></div></div>'+
+   '<label for="tkObs">Observação para o entregador (opcional)</label><input id="tkObs" maxlength="200"><p style="margin:12px 0 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn acc" onclick="trkEndEnviar(\''+code+'\',\''+token+'\')">Enviar novo endereço</button><button class="btn ghost" onclick="TRKEDIT[\''+k+'\']=false;route()">Cancelar</button></p></div>';
+}
+async function trkEndEnviar(code,token){
+  const g=id=>(($('#'+id)||{}).value||'').trim();
+  const dest={cep:fmtCep(g('tkCep')),uf:g('tkUf').toUpperCase(),cidade:g('tkCid'),bairro:g('tkBai'),rua:g('tkRua'),num:g('tkNum'),comp:g('tkCom'),ref:g('tkRef')};
+  if(!dest.cep||!dest.rua||!dest.num||!dest.cidade||!dest.uf||!dest.bairro){toast('Preencha CEP, rua, número, bairro, cidade e UF.');return}
+  const r=await SB.rpc('cliente_novo_endereco',{p_codigo:decodeURIComponent(code),p_token:token,p_dest:dest,p_obs:g('tkObs')});
+  if(r.error){toast(/cliente_novo_endereco|function|schema cache/i.test(r.error.message||'')?'Não foi possível alterar agora. Fale com a loja.':msgRpc(r.error));return}
+  TRKEDIT[code+'/'+token]=false;toast('Endereço enviado! O entregador já recebe o endereço novo. ✅');
+  trkRecarrega(code,token);
+}
+function trkRecarrega(code,token){
+  if(!SB)return;
+  SB.rpc('rastrear_pedido',{p_codigo:decodeURIComponent(code),p_token:token}).then(r=>{if(!r.error&&r.data){TRK[code+'/'+token]=r.data;if(/^#\/acompanhar/.test(location.hash)&&!emEdicao())route()}});
+}
+/* acompanhamento ao vivo: enquanto o pedido está a caminho, a página se atualiza sozinha */
+function trkAuto(r,code,token){
+  clearTimeout(window.__trkT);
+  if(['programada','em-rota','tentativa'].includes(r.status))window.__trkT=setTimeout(()=>{if(/^#\/acompanhar/.test(location.hash))trkRecarrega(code,token)},20000);
+  return '';
+}
 function pageAcompanhar(code,token){
   if(!window.TRK)window.TRK={};
   const caixa=t=>'<div class="wrap pg"><h1 class="t">Acompanhe o seu pedido</h1><div class="box" style="max-width:560px">'+t+'</div></div>';
@@ -3883,9 +3913,9 @@ function pageAcompanhar(code,token){
    +'<div class="pgrid"><div class="pbox"><small>Previsão de entrega</small><b>'+fmtDay(r.data)+'</b><div>'+esc(TURNOS[r.turno]||'')+'</div></div>'
    +'<div class="pbox"><small>Entrega em</small><b>'+esc(r.cidade||'')+(r.uf?'/'+esc(r.uf):'')+'</b></div>'
    +'<div class="pbox"><small>Pagamento</small><b>'+(r.pago?'Pago':'A combinar pelo WhatsApp')+'</b></div></div>'
-   +fotoTrkBox(r.codigo,token)+'<h3>Itens do pedido</h3><div class="tbl"><table><tbody>'+r.itens.map(i=>'<tr><td>'+esc(i.name)+'</td><td>'+i.qty+'</td></tr>').join('')+'</tbody></table></div>'
+   +trkEndHtml(r,code,token)+fotoTrkBox(r.codigo,token)+'<h3>Itens do pedido</h3><div class="tbl"><table><tbody>'+r.itens.map(i=>'<tr><td>'+esc(i.name)+'</td><td>'+i.qty+'</td></tr>').join('')+'</tbody></table></div>'
    +'<h3>Andamento</h3>'+(evs.length?'<div class="tbl"><table><tbody>'+evs.map(e=>'<tr><td style="white-space:nowrap">'+fmtD(Date.parse(e.t))+'</td><td>'+esc(e.texto||'')+(e.motivo?'<div style="color:var(--muted);font-size:.82rem">Motivo: '+esc(e.motivo)+'</div>':'')+'</td></tr>').join('')+'</tbody></table></div>':'<p style="color:var(--muted)">Ainda sem atualizações.</p>')
-   +'</div></div>';
+   +'</div></div>'+trkAuto(r,code,token);
 }
 
 /* ---------- etiqueta direto da lista de pedidos ---------- */
@@ -4312,14 +4342,20 @@ async function endRefina(){
   }}finally{endRBusy=false}
 }
 function endRefresh(){if(/^#\/(entrega|retirada)\//.test(location.hash))route()}
-var mapsDest=t=>'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(endLoc(t)||t)+'&travelmode=driving';
-var wazeDest=t=>endLoc(t)?'https://waze.com/ul?ll='+endLoc(t)+'&navigate=yes':'https://waze.com/ul?q='+encodeURIComponent(t)+'&navigate=yes';
+/* um só link por cliente: vai direto ao endereço que o cliente informou, escrito do jeito que o Google Maps entende (rua, número - bairro, cidade - UF, CEP, Brasil) */
+function mapsAddr(t){
+  const p=String(t||'').split(', ');
+  const r=p.length===5?p[0]+', '+p[1]+' - '+p[2]+', '+p[3]+', '+p[4]:p.join(', ');
+  return /brasil/i.test(r)?r:r+', Brasil';
+}
+var mapsDest=t=>'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(mapsAddr(t))+'&travelmode=driving';
+var wazeDest=t=>'https://waze.com/ul?q='+encodeURIComponent(mapsAddr(t))+'&navigate=yes';
 /* rota com várias paradas: o Maps aceita até 10 (9 intermediárias + o destino) e segue a ordem da lista */
 function mapsRota(lista){
   const L=(lista||[]).filter(Boolean).slice(0,10);
   if(!L.length)return '';
   if(L.length===1)return mapsDest(L[0]);
-  return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(endLoc(L[L.length-1])||L[L.length-1])+'&waypoints='+encodeURIComponent(L.slice(0,-1).map(x=>endLoc(x)||x).join('|'))+'&travelmode=driving';
+  return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(mapsAddr(L[L.length-1]))+'&waypoints='+encodeURIComponent(L.slice(0,-1).map(mapsAddr).join('|'))+'&travelmode=driving';
 }
 var entUrl=r=>r&&r.token?location.origin+'/#/entrega/'+r.id+'/'+r.token:'';
 
@@ -4386,9 +4422,9 @@ function stopHtml(p,k,rid,tk,saiu){
   const st=fim?'✅ Entregue':canc?'Cancelado':tent?'Tentativa sem sucesso':p.chegou_em?'📍 Cheguei às '+horaBr(p.chegou_em):emRota?'A caminho':'Aguardando a saída da rota';
   const bt=(a,txt,cls)=>`<button class="btn ${cls} full2" onclick="entAcao('${rid}','${tk}',${p.pedido},'${a}')">${txt}</button>`;
   return `<div class="stop ${fim?'ok':''}"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><h3>${k+1}. ${esc(p.nome||'')}</h3><small style="color:var(--muted);white-space:nowrap">${esc(TURNOS[p.turno]||'')}</small></div>
-  <div class="ad">${esc(t)}${p.dest&&p.dest.ref?'<div style="color:var(--muted);font-size:.85rem">Ref.: '+esc(p.dest.ref)+'</div>':''}</div>
+  <div class="ad">${esc(t)}${p.dest&&p.dest.ref?'<div style="color:var(--muted);font-size:.85rem">Ref.: '+esc(p.dest.ref)+'</div>':''}</div>${p.fone?`<div style="margin:4px 0 6px;font-size:.9rem">📱 <a href="https://wa.me/${foneWa(p.fone)}" target="_blank" rel="noopener" style="color:var(--pd)">${esc(p.fone)}</a></div>`:''}
   <div style="font-size:.88rem;margin-bottom:10px"><b>${st}</b></div>
-  ${canc?'':`<div class="acts"><a class="btn sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">Google Maps</a><a class="btn ghost sm" href="${esc(wazeDest(t))}" target="_blank" rel="noopener">Waze</a>${saiu&&!fim&&(emRota||tent)?(emRota&&!p.chegou_em?`<button class="btn sm full2" onclick="entCheguei('${rid}','${tk}',${p.pedido})">📷 Cheguei: tirar foto do local</button>`:'')+bt('entregue','Entreguei','acc')+(emRota?bt('tentativa','Não consegui entregar','ghost sm'):''):''}</div>`}</div>`;
+  ${canc?'':`<div class="acts"><a class="btn acc sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">📍 Pino exato</a>${saiu&&!fim&&(emRota||tent)?(emRota&&!p.chegou_em?`<button class="btn sm full2" onclick="entCheguei('${rid}','${tk}',${p.pedido})">📷 Cheguei: tirar foto do local</button>`:'')+bt('entregue','Entreguei','acc')+(emRota?bt('tentativa','Não consegui entregar','ghost sm'):''):''}</div>`}</div>`;
 }
 function pageEntregador(rid,tk){
   const caixa=t=>'<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota de entregas</h1>'+t+'</div>';
@@ -4436,7 +4472,7 @@ function pageRetirada(rid,tk){
     const st=fim?'✅ Pedido devolvido':p.chegou_em?'📍 Cheguei às '+horaBr(p.chegou_em):'A caminho';
     return `<div class="stop ${fim?'ok':''}"><h3>${k+1}. ${esc(p.nome||'')}</h3><div class="ad">${esc(t)}${p.dest&&p.dest.ref?'<div style="color:var(--muted);font-size:.85rem">Ref.: '+esc(p.dest.ref)+'</div>':''}</div>${p.fone?`<div style="margin:4px 0 6px;font-size:.9rem">📱 <a href="https://wa.me/${foneWa(p.fone)}" target="_blank" rel="noopener" style="color:var(--pd)">${esc(p.fone)}</a></div>`:''}
     <div style="font-size:.88rem;margin-bottom:10px"><b>${st}</b></div>
-    <div class="acts"><a class="btn sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">Google Maps</a><a class="btn ghost sm" href="${esc(wazeDest(t))}" target="_blank" rel="noopener">Waze</a>${fim?'':(p.chegou_em?'':`<button class="btn sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','cheguei')">📍 Cheguei</button>`)+`<button class="btn acc sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','finalizar')">✅ Finalizar: voltei com o pedido</button>`}</div></div>`;
+    <div class="acts"><a class="btn acc sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">📍 Pino exato</a>${fim?'':(p.chegou_em?'':`<button class="btn sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','cheguei')">📍 Cheguei</button>`)+`<button class="btn acc sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','finalizar')">✅ Finalizar: voltei com o pedido</button>`}</div></div>`;
   };
   return `<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota de devolução</h1>
   <p style="margin:0 0 12px;color:var(--muted)">Busque o pedido na casa do cliente e devolva na <b>${esc(BASE_ZP)}</b>. ${ps.length-abertas.length} de ${ps.length} concluídas.</p>
