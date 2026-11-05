@@ -639,6 +639,8 @@ var MSG_DEF={
   p:'Olá, {nome}! 😊\n\nSeu pedido {pedido} foi retirado e já está de volta conosco.\n\nValor da taxa de retirada: {valor}\nPara pagar, é só usar o link abaixo:\n{link}\n\nQualquer dúvida, é só chamar. Obrigado! 🙏'},
  pendencia:{g:'adm',t:'Outras pendências (sem pagamento definido)',q:'Botão WhatsApp na lista Outras pendências, dentro da Carteira.',v:['nome','pedido'],ex:{nome:'Natália',pedido:'ZP-000114'},
   p:'Olá, {nome}, tudo bem? 😊\n\nVerifiquei que o seu pedido {pedido} ainda não tem uma opção de pagamento definida.\n\nResponda por aqui para a gente verificar qual meio de pagamento é possível. 🙏'},
+ end_link:{g:'adm',t:'Link para o cliente alterar o endereço',q:'Botão Link para alterar o endereço, no pedido que já está em rota.',v:['nome','pedido','link'],ex:{nome:'Natália',pedido:'ZP-000114',link:'https://zpimports.netlify.app/#/novoend/...'},
+  p:'Olá, {nome}! 😊\n\nPara informar o novo endereço de entrega do pedido {pedido}, clique no link e preencha:\n{link}\n\nAssim que você enviar, o entregador já recebe o endereço novo e você acompanha a entrega. 🛵'},
  etiqueta:{g:'adm',t:'Etiqueta enviada ao cliente',q:'Mensagem que abre junto com o PDF da etiqueta (aba Etiquetas do pedido).',v:['nome','pedido','loja','data','turno'],ex:{nome:'Sirlene',pedido:'ZP-000114',loja:'ZP Imports',data:'17/10/2026',turno:'Tarde'},
   p:'Olá, {nome}! 😊\n\nRecebemos o seu pedido {pedido} na {loja}.\nData e horário solicitados: {data}, {turno}.'},
  s_pedido:{g:'site',t:'Pedido enviado pelo cliente à loja',q:'Mensagem que abre no WhatsApp quando o cliente finaliza o pedido no site.',v:['pedido','itens','valores','data','turno','pagamento','frete','endereco','cliente','obs','link'],ex:{pedido:'ZP-000114',itens:'1x TG Tirzepatida (Caixa) - A confirmar',valores:'',data:'17/10/2026',turno:'Tarde',pagamento:'Pix',frete:'R$ 15,00 (São José dos Campos), pago junto, na entrega',endereco:'Rua A, 10, Centro, São José dos Campos/SP',cliente:'Sirlene Souza (12) 9 9999-8888',obs:'',link:'https://zpimports.netlify.app/#/acompanhar/...'},
@@ -4354,8 +4356,9 @@ function admDetalhe(){
   <h3 style="margin-top:0">Cliente e entrega</h3>
   <p style="margin:0"><b>${esc(en.nome||'')}</b><br>${fone?`<a href="https://wa.me/${fone}" target="_blank" rel="noopener">${esc(en.fone)}</a>`:esc(en.fone||'')}</p>
   <p>${esc(d.rua||'')}, ${esc(d.num||'')}${d.comp?', '+esc(d.comp):''}<br>${esc(d.bairro||'')}<br>${esc(d.cidade||'')}/${esc(d.uf||'')}, CEP ${esc(d.cep||'')}${d.ref?'<br>Referência: '+esc(d.ref):''}${en.secundario?'<br><i>Endereço secundário informado pelo cliente</i>':''}${d.rua?'<br><a href="'+esc(mapsDest(endTxt(d)))+'" target="_blank" rel="noopener" style="font-size:.85rem">📍 Ver no mapa</a>':''}</p>
-  ${['entregue','cancelado'].includes(o.status)?'':'<p style="margin:-6px 0 10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="admEndAbrir(\'atual\')">✏️ Editar endereço</button><button class="btn ghost sm" onclick="neAbrir()" title="Vale só para este pedido. Não muda o cadastro do cliente.">➕ Novo endereço de entrega</button></p>'}
+  ${['entregue','cancelado'].includes(o.status)?'':'<p style="margin:-6px 0 10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="admEndAbrir(\'atual\')">✏️ Editar endereço</button><button class="btn ghost sm" onclick="neAbrir()" title="Vale só para este pedido. Não muda o cadastro do cliente.">➕ Novo endereço de entrega</button><button class="btn ghost sm" onclick="endLinkEnviar('+o.id+')" title="O cliente informa o novo endereço por um link">📍 Link para o cliente alterar o endereço</button></p>'}
   <p style="margin:-2px 0 10px"><button class="btn ghost sm" onclick="fotoVer(${o.id})">📷 Ver foto do entregador</button></p>
+  ${endAltBanner(o)}
   <p style="margin:0">Entrega desejada: <b>${dataBr(en.data)} (${esc(TURNOS[en.turno]||'')})</b>${o.entregadorNome?'<br>Entregador: <b>'+esc(o.entregadorNome)+'</b>':''}<br>Forma de pagamento escolhida: <b>${esc(PAGNOME[pg.preferencia]||'não informada')}</b>${en.obs?'<br>Observação do cliente: '+esc(en.obs):''}</p>
   <h3>Itens</h3><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${(o.itens||[]).map(i=>`<tr><td>${esc(i.name)}<div style="color:var(--muted);font-size:.8rem">SKU ${esc(i.sku||'')}</div></td><td>${i.qty}</td><td class="r">${i.semPreco?'a confirmar':brl(i.unit*i.qty)}</td></tr>`).join('')}</tbody></table></div>
   <div class="tot"><span>Subtotal</span><span>${temSP(o)?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span>${o.desconto?`<span class="dsc">Desconto (${o.desconto.pct}%)</span><span class="dsc">- ${brl(o.desconto.valor)}</span>`:''}<span class="big">Total</span><span class="big">${totAdm(o)}</span></div>${freteHtmlAdm(o)}
@@ -5093,6 +5096,44 @@ function admEndModo(modo){
 function admEndAbrir(modo){
   A9.editOpen=true;const d=document.querySelector('.editbox');if(d)d.open=true;
   admEndModo(modo);const t=document.getElementById('edEndTit');if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
+}
+/* virou o dia: os atrasados de ontem passam a contar em hoje, sem precisar recarregar */
+(function(){let d0=hojeS();setInterval(()=>{const d=hojeS();if(d!==d0){d0=d;if(window.__ADMIN_APP&&!emEdicao())route()}},60000)})();
+/* ======================= O CLIENTE ALTERA O ENDEREÇO COM O PEDIDO EM ROTA ======================= */
+function endLinkUrl(o){return location.origin+'/#/novoend/'+o.id+'/'+o.token}
+function endPedido(id){return (A9.po&&A9.po.id===id&&A9.po)||(A9.lg&&A9.lg.peds&&A9.lg.peds[id])||(A9.pedidos||[]).find(x=>x.id===id)}
+async function endMarca(id,v){
+  const o=endPedido(id);if(!o)return false;
+  const ex=Object.assign({},o.extra||{},{end_alt:v});
+  const r=await SB.from('pedidos').update({extra:ex}).eq('id',id);
+  if(r.error){toast('Erro: '+r.error.message);return false}
+  [A9.po,A9.lg&&A9.lg.peds&&A9.lg.peds[id],(A9.pedidos||[]).find(x=>x.id===id)].forEach(x=>{if(x&&x.id===id)x.extra=ex});return true;
+}
+async function endLinkEnviar(id){
+  const o=endPedido(id);if(!o)return;
+  if(!o.token){toast('Este pedido não tem link de acompanhamento.');return}
+  if(['entregue','cancelado'].includes(o.status)){toast('Este pedido já foi encerrado.');return}
+  if(!(await endMarca(id,'aberto')))return;
+  const nome=String((o.entrega||{}).nome||'').split(' ')[0]||'cliente';
+  msgPrevia('Link para alterar o endereço',codPed(o)+' · '+((o.entrega||{}).nome||''),(o.entrega||{}).fone,nl(msgTxt('end_link',{nome,pedido:codPed(o),link:endLinkUrl(o)})),()=>{
+    pedEvento({pedido_id:id,tipo:'whatsapp',publico:false,texto:'Link para o cliente alterar o endereço aberto no WhatsApp (envio não confirmado pelo sistema)',por:ADMIN.nome}).then(()=>{},()=>{});
+  });
+  route();
+}
+function endAltBanner(o){
+  const e=o.extra||{};
+  if(e.end_alt==='aberto'&&!['entregue','cancelado'].includes(o.status))return '<div class="note" style="margin:6px 0 10px">📍 Link de alteração de endereço enviado. Aguardando o cliente informar.</div>';
+  if(e.end_alt!=='respondido'||['entregue','cancelado'].includes(o.status))return '';
+  const novo=endTxt((o.entrega||{}).dest||{}),ant=e.end_ant?endTxt(e.end_ant):'';
+  return '<div class="note warn" style="margin:6px 0 10px"><b>📍 O cliente informou um novo endereço.</b><br>Agora: '+esc(novo)+(ant?'<br>Antes: '+esc(ant):'')+(e.end_alt_obs?'<br>Obs.: '+esc(e.end_alt_obs):'')+'<div class="btns" style="margin-top:6px"><button class="btn wa sm" onclick="endAvisarEntregador('+o.id+')">📲 Avisar o entregador</button><button class="btn ghost sm" onclick="endMarca('+o.id+',\'visto\').then(()=>route())">Entendi</button></div></div>';
+}
+function endAvisarEntregador(id){
+  const o=endPedido(id);if(!o)return;
+  const L=A9.lg;const en=L&&L.ent.find(x=>x.id===o.entregador_id);
+  if(!en||!en.whats){toast('Este pedido não está com um entregador que tenha WhatsApp cadastrado.');return}
+  const rota=L.rotas.find(r=>(r.pedidos||[]).includes(id)),end=endTxt((o.entrega||{}).dest||{});
+  const txt=nl('Olá, '+(primeiro(en.nome)||'')+'! ⚠️\n\nO cliente '+((o.entrega||{}).nome||'')+' mudou o endereço do pedido '+codPed(o)+'.\n\n🏠 Novo endereço: '+end+'\n📍 '+mapsDest(end)+(rota&&entUrl(rota)?'\n\nA sua rota já está atualizada: '+entUrl(rota):''));
+  msgPrevia('Avisar o entregador',codPed(o)+' · '+en.nome,en.whats,txt);
 }
 /* ======================= NOVO ENDEREÇO SÓ DE ENTREGA (não mexe no cadastro do cliente) ======================= */
 function neAbrir(){
@@ -5910,7 +5951,7 @@ function filtroExtra(o,f){
   if(f.fe==='fin'&&!(o.extra&&o.extra.etq_em))return false;
   if(f.fe==='pend'&&(o.extra&&o.extra.etq_em))return false;
   if(f.fc){const l=String(f.fc).split('|').map(cidNorm);if(!l.includes(cidNorm(cidadeDe(o))))return false}
-  if(f.fd&&e.data!==f.fd)return false;
+  if(f.fd&&e.data!==f.fd&&!(f.fd===hojeS()&&e.data&&e.data<f.fd&&!ENC(o)&&f.fq==='agenda'))return false;
   if(f.ft&&e.turno!==f.ft)return false;
   if(f.fq==='abertos'&&(ENC(o)||['programada','em-rota'].includes(o.status)))return false;
   if(f.fq==='agenda'&&o.status==='cancelado')return false;
@@ -6435,7 +6476,7 @@ function tabDash(){
       const d=addDias(hoje,i);
       const dow=new Date(d+'T12:00').getDay();
       const isHoje=d===hoje,isOntem=false;
-      const peds=agenda.filter(o=>(o.entrega||{}).data===d);
+      const peds=agenda.filter(o=>(o.entrega||{}).data===d||(isHoje&&(o.entrega||{}).data&&(o.entrega||{}).data<hoje&&!ENC(o)));
       const byT={};peds.forEach(o=>{const t=(o.entrega||{}).turno||'';byT[t]=(byT[t]||0)+1});
       const chips=Object.entries(TC).map(([t,cfg])=>byT[t]?`<span style="display:inline-flex;align-items:center;gap:2px;background:${cfg.bg};color:${cfg.c};border:1px solid ${cfg.c};border-radius:6px;padding:1px 5px;font-size:.7rem;font-weight:700">${cfg.label} ${byT[t]}</span>`:'').join('');
       const border=isHoje?'2px solid #2563eb':'1px solid var(--line)';
@@ -6563,7 +6604,7 @@ const en=L.ent.find(x=>x.id===r.entregador_id)||{nome:'?',whats:''};const ps=r.p
     const fim=ps.length&&ps.every(o=>ENC(o));const uber=ehUber(en);const fw=uber?'':foneWa(en.whats);
     const cr=corEnt(r.entregador_id);return `<div class="box" style="box-shadow:none;background:#fafafa;margin-top:12px;border-left:8px solid ${cr}"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div><b>Rota ${r.n}</b> · ${dataBr(r.data)} · <span class="entdot" style="background:${cr}"></span><b style="color:${cr}">${esc(en.nome)}</b><div style="color:var(--muted);font-size:.82rem">${r.saiu_em?'Saiu em '+fmtD(Date.parse(r.saiu_em)):'Ainda não saiu'}${fim?' · Concluída':''}</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">${!fim?`<button class="btn wa sm" onclick="avAbrir('${r.id}')">Avisar clientes</button>`:''}${fw&&!fim?`<a class="btn wa sm" href="${waUrlPara(fw,msgRota(r))}" target="_blank" rel="noopener" onclick="admEnviouRota('${r.id}')">Enviar rota ao entregador</a>`:''}${!r.saiu_em?`<button class="btn acc sm" onclick="admSaiuRota('${r.id}')">Saiu para entrega</button>`:''}${!fim?`<button class="btn ghost sm" onclick="entCopiarLink('${r.id}')">Copiar link do entregador</button><button class="btn ghost sm" onclick="rotaCopiar('${r.id}')">Copiar mensagem da rota</button>`:''}${!fim?`<button class="btn ghost sm" onclick="rotaTrfAbrir('${r.id}')">Passar para outro entregador</button>`:''}${!r.saiu_em?`<button class="btn ghost sm" onclick="admDesfazRota('${r.id}')">Desfazer rota</button>`:''}${ADMIN.papel==='admin'?`<button class="btn ghost sm danger" onclick="rotaExcluir('${r.id}')">Excluir rota</button>`:''}</div></div>
-    ${A9.trf===r.id?rotaTrfHtml(r):''}<div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Endereço</th><th>Horário</th><th>Situação</th><th></th></tr></thead><tbody>${ps.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td style="box-shadow:inset 5px 0 0 ${cr}"><b>${codPed(o)}</b></td><td>${esc(e.nome||'')}${e.fone?`<div style="color:var(--muted);font-size:.8rem">${esc(e.fone)}</div>`:''}</td><td>${esc((d.rua||'')+', '+(d.num||'')+' - '+(d.bairro||'')+', '+(d.cidade||''))}${d.rua?`<div><a href="${esc(mapsDest(endTxt(d)))}" target="_blank" rel="noopener" style="font-size:.82rem">📍 Ver no mapa</a></div>`:''}</td><td>${esc(TURNOS[e.turno]||'')}</td><td>${esc(ADM_LB[o.status]||STLB[o.status]||o.status)}${o.chegou_em?'<div style="color:var(--muted);font-size:.78rem">Chegou às '+horaBr(o.chegou_em)+'</div>':''}</td><td style="white-space:nowrap">${uber&&!['entregue','cancelado'].includes(o.status)?`<a class="btn wa sm" href="${uberUrl(o)}" target="_blank" rel="noopener">🚗 Chamar Uber</a> `:''}${['em-rota','tentativa'].includes(o.status)?`<button class="btn sm" onclick="admResultado(${o.id},'entregue')">Entregue</button> `:''}${o.status==='em-rota'?`<button class="btn ghost sm" onclick="admResultado(${o.id},'tentativa')">Tentativa</button> `:''}${o.status==='tentativa'?`<button class="btn ghost sm" onclick="admVoltarRota(${o.id},'em-rota')">Voltar p/ em rota</button> <button class="btn ghost sm" onclick="admVoltarRota(${o.id},'confirmado')">Voltar p/ confirmado</button> `:''}${!['entregue','cancelado'].includes(o.status)?`<button class="btn ghost sm" onclick="admTirarRota(${o.id})">Tirar da rota</button> `:''}${o.chegou_em?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">Ver foto</button> `:''}<button class="btn ghost sm" onclick="A9.po=null;A.tab='pedidos';admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div>${A9.av&&A9.av.rota===r.id?avPanel(r,ps):''}</div>`
+    ${A9.trf===r.id?rotaTrfHtml(r):''}<div class="tbl"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Endereço</th><th>Horário</th><th>Situação</th><th></th></tr></thead><tbody>${ps.map(o=>{const e=o.entrega||{},d=e.dest||{};return `<tr><td style="box-shadow:inset 5px 0 0 ${cr}"><b>${codPed(o)}</b></td><td>${esc(e.nome||'')}${e.fone?`<div style="color:var(--muted);font-size:.8rem">${esc(e.fone)}</div>`:''}</td><td>${esc((d.rua||'')+', '+(d.num||'')+' - '+(d.bairro||'')+', '+(d.cidade||''))}${d.rua?`<div><a href="${esc(mapsDest(endTxt(d)))}" target="_blank" rel="noopener" style="font-size:.82rem">📍 Ver no mapa</a>${ENC(o)?'':` · <a class="pglnk" style="font-size:.82rem" onclick="endLinkEnviar(${o.id})">Link p/ alterar endereço</a>`}</div>${(o.extra||{}).end_alt==='respondido'&&!ENC(o)?`<div style="color:#b45309;font-size:.8rem;font-weight:700">📍 Endereço alterado pelo cliente <a class="pglnk" onclick="endAvisarEntregador(${o.id})">avisar entregador</a></div>`:''}`:''}</td><td>${esc(TURNOS[e.turno]||'')}</td><td>${esc(ADM_LB[o.status]||STLB[o.status]||o.status)}${o.chegou_em?'<div style="color:var(--muted);font-size:.78rem">Chegou às '+horaBr(o.chegou_em)+'</div>':''}</td><td style="white-space:nowrap">${uber&&!['entregue','cancelado'].includes(o.status)?`<a class="btn wa sm" href="${uberUrl(o)}" target="_blank" rel="noopener">🚗 Chamar Uber</a> `:''}${['em-rota','tentativa'].includes(o.status)?`<button class="btn sm" onclick="admResultado(${o.id},'entregue')">Entregue</button> `:''}${o.status==='em-rota'?`<button class="btn ghost sm" onclick="admResultado(${o.id},'tentativa')">Tentativa</button> `:''}${o.status==='tentativa'?`<button class="btn ghost sm" onclick="admVoltarRota(${o.id},'em-rota')">Voltar p/ em rota</button> <button class="btn ghost sm" onclick="admVoltarRota(${o.id},'confirmado')">Voltar p/ confirmado</button> `:''}${!['entregue','cancelado'].includes(o.status)?`<button class="btn ghost sm" onclick="admTirarRota(${o.id})">Tirar da rota</button> `:''}${o.chegou_em?`<button class="btn ghost sm" onclick="fotoVer(${o.id})">Ver foto</button> `:''}<button class="btn ghost sm" onclick="A9.po=null;A.tab='pedidos';admAbrirPedido(${o.id})">Abrir</button></td></tr>`}).join('')}</tbody></table></div>${A9.av&&A9.av.rota===r.id?avPanel(r,ps):''}</div>`
 }
 A9.trf=null;
 function rotaTrfAbrir(rid){A9.trf=A9.trf===rid?null:rid;route()}
