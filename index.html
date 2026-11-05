@@ -3359,7 +3359,7 @@ async function finish(){
   ent.erros=er;if(er.length){route();return}
   busy2=true;const b=$('#fin');b.disabled=true;b.textContent='Registrando o pedido...';
   const movel=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'');
-  const w=movel?null:window.open('about:blank','_blank');
+  const w=null;
   const itens=cart.map(i=>i.v===SP?{id:i.id,qty:i.qty}:{var:i.v,qty:i.qty});
   const entrega={data:ent.data,turno:ent.turno,pagamento:ent.pag,obs:ent.obs.trim(),sec:ent.sec?Object.assign({},normEnd(ent.s),{cep:fmtCep(ent.s.cep)}):null};
   const r=await SB.rpc('criar_pedido',{p_itens:itens,p_entrega:entrega,p_codigo:(rv.ref&&rv.code)?rv.code:null,p_usar_credito:!!rv.use});
@@ -3376,9 +3376,13 @@ async function finish(){
   sessionStorage.removeItem('xp_ind');
   try{await bancoPedidos();await bancoCreditos();await bancoProdutos()}catch(x){}
   save();updHead();
-  if(w)w.location.href=url;
+  if(!movel)waDireto(url);
   nav('/pedido/'+d.id);
   if(movel)setTimeout(()=>{location.href=url},400);
+}
+/* abre o WhatsApp direto, com a mensagem pronta: a pessoa só toca em enviar */
+function waDireto(url){
+  const a=document.createElement('a');a.href=url;a.rel='noopener';a.style.display='none';document.body.appendChild(a);a.click();setTimeout(()=>a.remove(),800);
 }
 /* depois de finalizar, a tela fica travada até a pessoa enviar o pedido no WhatsApp da ZP (leva o link de acompanhamento) */
 function waObrigRender(){
@@ -3889,7 +3893,7 @@ function trkAviso(r,code,token){
   }
   if(!av||!av.alterado)return '';
   const pid=String(parseInt(String(r.codigo).replace(/\D/g,''),10));
-  if(!av.whats||!av.tok)return '<div class="note" style="margin:12px 0">✅ Endereço alterado. O entregador recebe o endereço novo assim que o pedido sair para entrega.</div>';
+  if(!av.whats||!av.tok)return '<div class="note ok" style="margin:12px 0"><b>✅ Endereço alterado.</b><p style="margin:6px 0 10px">A loja avisa o entregador. Se o WhatsApp não abriu, toque no botão.</p><a class="btn wa full" href="'+esc(waUrl('Olá! Mudei o endereço de entrega do pedido '+r.codigo+'. Pode avisar o entregador?'))+'" target="_blank" rel="noopener">📲 Avisar a loja no WhatsApp</a></div>';
   const link=location.origin+'/#/parada/'+pid+'/'+av.tok;
   const msg='Olá! Sou o cliente do pedido '+r.codigo+'. Mudei o endereço de entrega. Veja o endereço e finalize esta entrega por este link: '+link;
   const fw=String(av.whats).replace(/\D/g,'');
@@ -3911,8 +3915,20 @@ async function trkEndEnviar(code,token){
   if(!dest.cep||!dest.rua||!dest.num||!dest.cidade||!dest.uf||!dest.bairro){toast('Preencha CEP, rua, número, bairro, cidade e UF.');return}
   const r=await SB.rpc('cliente_novo_endereco',{p_codigo:decodeURIComponent(code),p_token:token,p_dest:dest,p_obs:g('tkObs')});
   if(r.error){toast(/cliente_novo_endereco|function|schema cache/i.test(r.error.message||'')?'Não foi possível alterar agora. Fale com a loja.':msgRpc(r.error));return}
-  TRKEDIT[code+'/'+token]=false;toast('Endereço enviado! Agora avise o entregador pelo WhatsApp. ✅');
+  TRKEDIT[code+'/'+token]=false;
   const rd=r.data||{};TRKAV[code+'/'+token]={alterado:true,whats:rd.whats||'',tok:rd.tok||''};
+  const cod='ZP-'+String(parseInt(String(code).replace(/\D/g,''),10)).padStart(6,'0');
+  const end=dest.rua+', '+dest.num+(dest.comp?', '+dest.comp:'')+' - '+dest.bairro+', '+dest.cidade+'/'+dest.uf+', CEP '+dest.cep;
+  const fw=String(rd.whats||'').replace(/\D/g,'');
+  let url;
+  if(fw&&rd.tok){
+    const link=location.origin+'/#/parada/'+parseInt(String(code).replace(/\D/g,''),10)+'/'+rd.tok;
+    url='whatsapp://send?phone='+(fw.length<=11?'55'+fw:fw)+'&text='+encodeURIComponent('Olá! Sou o cliente do pedido '+cod+'. Mudei o endereço de entrega para:\n'+end+'\n\nFinalize esta entrega por este link: '+link);
+  }else{
+    url=waUrl('Olá! Mudei o endereço de entrega do pedido '+cod+' para:\n'+end+'\n\nPode avisar o entregador?');
+  }
+  toast('Endereço enviado! Abrindo o WhatsApp... ✅');
+  waDireto(url);
   trkRecarrega(code,token);
 }
 function trkRecarrega(code,token){
