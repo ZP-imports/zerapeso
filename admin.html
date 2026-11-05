@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-06-2506 -->
+<!-- v2026-11-06-2507 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -2975,7 +2975,7 @@ function tabRevendedores(){
             </div>`:''}
           </div>
 
-          ${revProdutosPrecosHtml(rv)}${(()=>{
+          ${(()=>{
             const prodNome={};(A9.revs.produtos||[]).forEach(p=>{prodNome[p.id]=p.nome});
             const bs=repasseMapa();const prods=(A9.revs.variacoes||[]).filter(v=>prodNome[v.produto_id]).map(v=>({id:v.id,nome:prodNome[v.produto_id]+' — '+v.nome,preco:(v.preco==null||v.preco==='')?null:+v.preco,rep:bs[v.id]!=null?bs[v.id]:null})).sort((a,b)=>a.nome.localeCompare(b.nome));
             const mapa={};(A9.revs.precos||[]).filter(x=>x.revendedor_id===rv.id).forEach(x=>{mapa[x.variacao_id]=+x.preco});
@@ -3153,7 +3153,7 @@ function tabRevendedores(){
         <button class="btn acc sm" onclick="revAdicionar()">➕ Adicionar revendedor</button>
         <button class="btn acc sm" onclick="A9.revAba='pedidos';route()">📥 Pedidos dos revendedores${(()=>{const n=(A9.revs&&A9.revs.pedidos||[]).filter(p=>p.status==='novo').length;return n?` <b>(${n} novo${n===1?'':'s'})</b>`:''})()}</button>
         <button class="btn ghost sm" onclick="A9.revAba='links';A9.linkEd=null;route()">🔗 Links de pedidos</button>
-        <button class="btn ghost sm" onclick="A9.revAba='repasse';route()">💲 Tabela de preços (todos)</button>
+        <button class="btn ghost sm" onclick="admTab('precos')" title="Os preços dos revendedores ficam em Catálogo / Preços">💲 Preços dos revendedores</button>
         <button class="btn ghost sm" onclick="A9.revAba='ranking';route()">📊 Ranking</button>
         <button class="btn ghost sm" onclick="A9.revAba='avisos';route()">📢 Avisos${avisos.filter(a=>a.ativo).length?` <b style="color:var(--p)">(${avisos.filter(a=>a.ativo).length})</b>`:''}</button>
         <button class="btn sm" onclick="A9.revs=null;A9.busy=false;admCarregarRevs()">↻ Atualizar</button>
@@ -5205,7 +5205,7 @@ async function eqSenha(id){
 }
 /* fecha o menu da engrenagem ao clicar fora */
 if(window.__ADMIN_APP)document.addEventListener('click',function(ev){if(A9.gear&&!(ev.target.closest&&ev.target.closest('.gearwrap'))){A9.gear=false;route()}});
-/* ======================= CATÁLOGO / PREÇOS: cartões, preço e desconto em massa, histórico ======================= */
+/* ======================= CATÁLOGO / PREÇOS: cartões, preço e desconto em massa, categorias de revendedor, histórico ======================= */
 var pr={sel:{},q:'',cat:'',tipo:'',v:'',d:'',p:'',m:'',vista:'preco',hist:null,aberto:{}};
 function prKey(v){return String(v)}
 function prLista(){
@@ -5222,32 +5222,71 @@ function prTogProd(pid,on){const x=(A9.prods||[]).find(p=>p.id===pid);if(!x)retu
 function prTodos(on){prLista().forEach(x=>x.vars.forEach(v=>{if(on)pr.sel[prKey(v.id)]=true;else delete pr.sel[prKey(v.id)]}));route()}
 function prLimpa(){pr.sel={};route()}
 function prFiltro(k,v){pr[k]=v;route()}
+function prVista(v){pr.vista=v;pr.sel={};pr.v='';pr.d='';pr.p='';pr.m='';pr.hist=null;route()}
 function prBuscaLive(el){const id=el.id,v=el.value,pos=el.selectionStart;pr.q=v;clearTimeout(window.__prT);window.__prT=setTimeout(()=>{route();const n=document.getElementById(id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}}},200)}
+/* preços das categorias de revendedor (A, B e C): a variação que tem preço na categoria é a que ela vende */
+async function prCatCarrega(){
+  const r=await SB.from('revenda_categoria_precos').select('categoria,variacao_id,preco');
+  const m={A:{},B:{},C:{}};
+  if(r.error){A9.prCat=m;A9.prCatErro=/revenda_categoria_precos|relation|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 42 no Supabase para guardar os preços dos revendedores.':r.error.message;route();return}
+  (r.data||[]).forEach(x=>{if(m[x.categoria])m[x.categoria][x.variacao_id]=+x.preco});
+  A9.prCat=m;A9.prCatErro='';route();
+}
+function prSeg(){
+  const n=c=>A9.prCat?Object.keys(A9.prCat[c]||{}).length:'';
+  const b=(k,t)=>'<button class="btn '+(pr.vista===k?'acc':'ghost')+'" onclick="prVista(\''+k+'\')">'+t+'</button>';
+  return '<div class="btns" style="margin-bottom:12px">'+b('preco','🛍 Preço da loja')+b('A','⭐ Revendedor A'+(A9.prCat?' ('+n('A')+')':''))+b('B','⭐ Revendedor B'+(A9.prCat?' ('+n('B')+')':''))+b('C','⭐ Revendedor C'+(A9.prCat?' ('+n('C')+')':''))+'<span style="flex:1"></span><button class="btn ghost" onclick="pr.vista=\'hist\';pr.hist=null;route()">🕘 Histórico de preços</button></div>';
+}
+function prFiltrosHtml(){
+  const cats=[...new Set((A9.prods||[]).filter(p=>p.ativo!==false).map(p=>(p.categoria||[])[0]).filter(Boolean))];
+  const tipos=[...new Set((A9.prods||[]).flatMap(p=>(p.vars||[]).map(v=>String(v.unidades))))].sort((a,b)=>(+a)-(+b));
+  return '<div class="fbar" style="margin-bottom:10px"><div style="flex:1;min-width:200px"><label for="prQ">Buscar produto ou variação</label><input id="prQ" value="'+esc(pr.q)+'" placeholder="Ex.: tirzepatida, caixa..." oninput="prBuscaLive(this)"></div>'+
+   '<div><label for="prC">Categoria</label><select id="prC" onchange="prFiltro(\'cat\',this.value)"><option value="">Todas</option>'+cats.map(c=>'<option value="'+esc(c)+'"'+(pr.cat===c?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></div>'+
+   '<div><label for="prT">Tipo da variação</label><select id="prT" onchange="prFiltro(\'tipo\',this.value)"><option value="">Todas</option>'+tipos.map(t=>'<option value="'+esc(t)+'"'+(pr.tipo===t?' selected':'')+'>'+(t==='1'?'1 unidade':esc(t)+' unidades (caixa)')+'</option>').join('')+'</select></div>'+
+   '<button class="btn ghost sm" onclick="prTodos(true)">Selecionar todos os visíveis</button><button class="btn ghost sm" onclick="prLimpa()">Limpar seleção</button></div>';
+}
+function prCards(cat){
+  const CP=cat&&A9.prCat?A9.prCat[cat]||{}:null;
+  return prLista().map(({p,vars})=>{
+    const todos=vars.every(v=>pr.sel[prKey(v.id)]);
+    return '<div class="prcard"><div class="prtop"><label class="prck"><input type="checkbox" '+(todos?'checked':'')+' onchange="prTogProd('+p.id+',this.checked)" aria-label="Selecionar todas as variações"></label>'+(p.imagem?'<img src="'+esc(admFotoUrl(p.imagem))+'" alt="" onerror="this.remove()">':'<span class="prph">'+esc((p.nome||'?').charAt(0))+'</span>')+'<div style="min-width:0"><b>'+esc(p.nome)+'</b><div class="pgsub">'+esc((p.categoria||[]).join(' / '))+(p.sku?' · '+esc(p.sku):'')+'</div></div></div>'+
+     '<div class="prvars">'+vars.map(v=>{
+       const sel=pr.sel[prKey(v.id)];
+       const preco=CP?(CP[v.id]!=null?'<b style="color:#16a34a">'+brl(CP[v.id])+'</b><small style="display:block;color:var(--muted)">loja '+(v.preco==null?'—':brl(+v.preco))+'</small>':'<span style="color:var(--muted)">não vende<small style="display:block">loja '+(v.preco==null?'—':brl(+v.preco))+'</small></span>'):prPreco(v);
+       return '<label class="prvar'+(sel?' sel':'')+(v.ativo===false?' off':'')+'"><input type="checkbox" '+(sel?'checked':'')+' onchange="prTog(\''+v.id+'\',this.checked)"><span class="prvn">'+esc(v.nome||'')+'<small>'+(+v.unidades>1?v.unidades+' un.':'1 un.')+'</small></span><span class="prvp">'+preco+'</span></label>';
+     }).join('')+'</div></div>';
+  }).join('')||'<p style="color:var(--muted)">Nenhum produto com esses filtros.</p>';
+}
 function tabPrecos(){
   if(!A9.prods){if(!A9.busy){A9.busy=true;admCarregarProdutos().finally(()=>{A9.busy=false})}return '<div class="box">Carregando produtos...</div>'}
   if(A9.catOpen&&A9.cat)return catTela();
   if(pr.vista==='hist')return prHistHtml();
-  const L=prLista(),n=Object.keys(pr.sel).length;
-  const cats=[...new Set((A9.prods||[]).filter(p=>p.ativo!==false).map(p=>(p.categoria||[])[0]).filter(Boolean))];
-  const tipos=[...new Set((A9.prods||[]).flatMap(p=>(p.vars||[]).map(v=>String(v.unidades))))].sort((a,b)=>(+a)-(+b));
-  const filtros='<div class="fbar" style="margin-bottom:10px"><div style="flex:1;min-width:200px"><label for="prQ">Buscar produto ou variação</label><input id="prQ" value="'+esc(pr.q)+'" placeholder="Ex.: tirzepatida, caixa..." oninput="prBuscaLive(this)"></div>'+
-   '<div><label for="prC">Categoria</label><select id="prC" onchange="prFiltro(\'cat\',this.value)"><option value="">Todas</option>'+cats.map(c=>'<option value="'+esc(c)+'"'+(pr.cat===c?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></div>'+
-   '<div><label for="prT">Tipo da variação</label><select id="prT" onchange="prFiltro(\'tipo\',this.value)"><option value="">Todas</option>'+tipos.map(t=>'<option value="'+esc(t)+'"'+(pr.tipo===t?' selected':'')+'>'+(t==='1'?'1 unidade':esc(t)+' unidades (caixa)')+'</option>').join('')+'</select></div>'+
-   '<button class="btn ghost sm" onclick="prTodos(true)">Selecionar todos os visíveis</button><button class="btn ghost sm" onclick="prLimpa()">Limpar seleção</button></div>';
-  const barra='<div class="prbar'+(n?' on':'')+'"><div class="prn"><b>'+n+'</b> variaç'+(n===1?'ão selecionada':'ões selecionadas')+'</div>'+(n?
-   '<div class="prcampos"><div><label for="prV">Novo preço (R$)</label><input id="prV" inputmode="decimal" value="'+esc(pr.v)+'" oninput="pr.v=this.value" placeholder="0,00"></div>'+
-   '<div><label for="prD">Desconto (%)</label><input id="prD" inputmode="decimal" value="'+esc(pr.d)+'" oninput="pr.d=this.value" placeholder="10"></div>'+
-   '<div><label for="prP">Preço promocional (R$)</label><input id="prP" inputmode="decimal" value="'+esc(pr.p)+'" oninput="pr.p=this.value" placeholder="de... por..."></div>'+
-   '<div style="flex:1;min-width:160px"><label for="prM">Motivo (fica no histórico)</label><input id="prM" value="'+esc(pr.m)+'" oninput="pr.m=this.value" placeholder="Ex.: reajuste de novembro"></div></div>'+
-   '<div class="btns"><button class="btn acc sm" onclick="prAplicar(\'preco\')">💲 Definir preço</button><button class="btn sm" onclick="prAplicar(\'desc\')">🏷 Aplicar desconto %</button><button class="btn sm" onclick="prAplicar(\'promo\')">De... por... (promoção)</button><button class="btn ghost sm" onclick="prAplicar(\'tirar\')">Tirar promoção</button></div>':'<div class="pgsub">Marque as variações nos cartões para mudar o preço ou aplicar desconto de uma vez. A loja do cliente atualiza na hora.</div>')+'</div>';
-  const cards=L.map(({p,vars})=>{
-    const todos=vars.every(v=>pr.sel[prKey(v.id)]);
-    return '<div class="prcard"><div class="prtop"><label class="prck"><input type="checkbox" '+(todos?'checked':'')+' onchange="prTogProd('+p.id+',this.checked)" aria-label="Selecionar todas as variações"></label>'+(p.imagem?'<img src="'+esc(admFotoUrl(p.imagem))+'" alt="" onerror="this.remove()">':'<span class="prph">'+esc((p.nome||'?').charAt(0))+'</span>')+'<div style="min-width:0"><b>'+esc(p.nome)+'</b><div class="pgsub">'+esc((p.categoria||[]).join(' / '))+(p.sku?' · '+esc(p.sku):'')+'</div></div></div>'+
-     '<div class="prvars">'+vars.map(v=>'<label class="prvar'+(pr.sel[prKey(v.id)]?' sel':'')+(v.ativo===false?' off':'')+'"><input type="checkbox" '+(pr.sel[prKey(v.id)]?'checked':'')+' onchange="prTog(\''+v.id+'\',this.checked)"><span class="prvn">'+esc(v.nome||'')+'<small>'+(+v.unidades>1?v.unidades+' un.':'1 un.')+'</small></span><span class="prvp">'+prPreco(v)+'</span></label>').join('')+'</div></div>';
-  }).join('')||'<p style="color:var(--muted)">Nenhum produto com esses filtros.</p>';
-  return '<div class="box">'+msgBox()+'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><p style="margin:0;color:var(--muted)">Escolha as variações e mude o preço ou o desconto de uma vez. O que você muda aqui vale na hora no site do cliente.</p><div class="btns"><button class="btn ghost" onclick="catAbrir()">📄 Gerar catálogo (PDF)</button><button class="btn ghost" onclick="pr.vista=\'hist\';pr.hist=null;route()">🕘 Histórico de preços</button></div></div>'+filtros+barra+'<div class="prgrid">'+cards+'</div></div>';
+  if(!A9.prCat&&!A9.prCatBusy){A9.prCatBusy=true;prCatCarrega().finally(()=>{A9.prCatBusy=false})}
+  const ehCat=['A','B','C'].includes(pr.vista);
+  const n=Object.keys(pr.sel).length;
+  const campo=(id,rot,k,ph)=>'<div><label for="'+id+'">'+rot+'</label><input id="'+id+'" inputmode="decimal" value="'+esc(pr[k])+'" oninput="pr.'+k+'=this.value" placeholder="'+ph+'"></div>';
+  const mot='<div style="flex:1;min-width:160px"><label for="prM">Motivo (fica no histórico)</label><input id="prM" value="'+esc(pr.m)+'" oninput="pr.m=this.value" placeholder="Ex.: reajuste de novembro"></div>';
+  let barra;
+  if(!ehCat){
+    barra='<div class="prbar'+(n?' on':'')+'"><div class="prn"><b>'+n+'</b> variaç'+(n===1?'ão selecionada':'ões selecionadas')+'</div>'+(n?
+     '<div class="prcampos">'+campo('prV','Novo preço (R$)','v','0,00')+campo('prD','Desconto (%)','d','10')+campo('prP','Preço promocional (R$)','p','de... por...')+mot+'</div>'+
+     '<div class="btns"><button class="btn acc sm" onclick="prAplicar(\'preco\')">💲 Definir preço</button><button class="btn sm" onclick="prAplicar(\'desc\')">🏷 Aplicar desconto %</button><button class="btn sm" onclick="prAplicar(\'promo\')">De... por... (promoção)</button><button class="btn ghost sm" onclick="prAplicar(\'tirar\')">Tirar promoção</button></div>':'<div class="pgsub">Marque as variações nos cartões para mudar o preço ou aplicar desconto de uma vez. A loja do cliente atualiza na hora.</div>')+'</div>';
+  }else{
+    barra='<div class="prbar'+(n?' on':'')+'"><div class="prn"><b>'+n+'</b> variaç'+(n===1?'ão selecionada':'ões selecionadas')+' · Revendedor '+pr.vista+'</div>'+(n?
+     '<div class="prcampos">'+campo('prV','Preço do revendedor '+pr.vista+' (R$)','v','0,00')+campo('prD','Desconto (%) sobre o preço da loja','d','30')+mot+'</div>'+
+     '<div class="btns"><button class="btn acc sm" onclick="prCatAplicar(\'preco\')">💲 Definir preço (entra na categoria)</button><button class="btn sm" onclick="prCatAplicar(\'desc\')">🏷 Desconto % sobre a loja</button><button class="btn ghost sm" onclick="prCatAplicar(\'tirar\')">Tirar da categoria</button></div>':'<div class="pgsub">Marque as variações que o <b>Revendedor '+pr.vista+'</b> vende e defina o preço dele. Quem não tem preço aqui não aparece no catálogo desse revendedor.</div>')+'</div>';
+  }
+  const topo='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><p style="margin:0;color:var(--muted)">'+(ehCat?'Preços do <b>Revendedor '+pr.vista+'</b>: valem no portal e nos links de pedido de quem está nessa categoria.':'Escolha as variações e mude o preço ou o desconto de uma vez. O que você muda aqui vale na hora no site do cliente.')+'</p><div class="btns"><button class="btn ghost" onclick="'+(ehCat?'prCatalogoPdf(\''+pr.vista+'\')':'catAbrir()')+'">📄 Gerar catálogo (PDF)'+(ehCat?' do '+pr.vista:'')+'</button></div></div>';
+  return '<div class="box">'+msgBox()+topo+prSeg()+(ehCat&&A9.prCatErro?'<div class="note warn">'+esc(A9.prCatErro)+'</div>':'')+prFiltrosHtml()+barra+'<div class="prgrid">'+prCards(ehCat?pr.vista:null)+'</div></div>';
 }
-/* aplica o preço/desconto nas variações marcadas, grava e registra no histórico */
+function prTxt(x){return x.preco==null?'sob consulta':(x.promo!=null?brl(x.preco)+' (promo '+brl(x.promo)+')':brl(x.preco))}
+function prTxtCat(x){return x.preco==null?'fora da categoria':brl(x.preco)}
+async function prPosGravar(){
+  pr.sel={};pr.v='';pr.d='';pr.p='';pr.m='';
+  try{await bancoProdutos()}catch(x){}
+  A9.prCat=null;await admCarregarProdutos();
+}
+/* loja: aplica o preço/desconto nas variações marcadas, grava e registra no histórico */
 async function prAplicar(modo){
   const S=prVarSel();if(!S.length){toast('Marque pelo menos uma variação.');return}
   if(A9.busy)return;
@@ -5271,13 +5310,49 @@ async function prAplicar(modo){
   let hist=true;
   if(!erro){const h=await SB.from('precos_historico').insert({por:ADMIN.nome,acao:txt,motivo:pr.m.trim()||null,itens:mudar});if(h.error)hist=false}
   A9.busy=false;
-  if(erro){toast('Não foi possível salvar todos os preços. Atualize e confira.');}
-  else{toast(mudar.length+' variaç'+(mudar.length===1?'ão atualizada':'ões atualizadas')+'. A loja já está com os preços novos.'+(hist?'':' (O histórico não foi gravado: rode o arquivo 41 no Supabase.)'))}
-  pr.sel={};pr.v='';pr.d='';pr.p='';pr.m='';
-  try{await bancoProdutos()}catch(x){}
-  await admCarregarProdutos();
+  if(erro)toast('Não foi possível salvar todos os preços. Atualize e confira.');
+  else toast(mudar.length+' variaç'+(mudar.length===1?'ão atualizada':'ões atualizadas')+'. A loja já está com os preços novos.'+(hist?'':' (O histórico não foi gravado: rode o arquivo 41 no Supabase.)'));
+  await prPosGravar();
 }
-function prTxt(x){return x.preco==null?'sob consulta':(x.promo!=null?brl(x.preco)+' (promo '+brl(x.promo)+')':brl(x.preco))}
+/* categoria de revendedor: define o preço (a variação entra na categoria), desconto sobre a loja ou tira da categoria */
+async function prCatAplicar(modo){
+  const cat=pr.vista,S=prVarSel();if(!S.length){toast('Marque pelo menos uma variação.');return}
+  if(A9.busy||!A9.prCat)return;
+  const val=pdNum(pr.v),pct=pdNum(pr.d),R=x=>Math.round(x*100)/100,CP=A9.prCat[cat]||{};
+  const mudar=[];
+  for(const {p,v} of S){
+    const de=CP[v.id]!=null?CP[v.id]:null;let para=de;
+    if(modo==='preco'){if(!(val>0)){toast('Informe o preço do revendedor.');return}para=R(val)}
+    else if(modo==='desc'){if(!(pct>0&&pct<100)){toast('Informe um desconto entre 1 e 99%.');return}if(v.preco==null)continue;para=R(+v.preco*(100-pct)/100)}
+    else if(modo==='tirar'){para=null}
+    if(para!==de)mudar.push({id:v.id,cat,produto:p.nome,nome:v.nome,unidades:v.unidades,de:{preco:de},para:{preco:para}});
+  }
+  if(!mudar.length){toast('Nada mudou: confira os valores e as variações marcadas.');return}
+  const txt='Revendedor '+cat+': '+{preco:'definir preço',desc:'desconto de '+pr.d+'% sobre a loja',tirar:'tirar da categoria'}[modo];
+  if(!confirm(txt+' em '+mudar.length+' variaç'+(mudar.length===1?'ão':'ões')+'?\n\nExemplo: '+mudar[0].produto+' · '+mudar[0].nome+'\nDe '+prTxtCat(mudar[0].de)+' para '+prTxtCat(mudar[0].para)))return;
+  A9.busy=true;
+  const erro=await prCatGrava(cat,mudar.map(c=>({id:c.id,preco:c.para.preco})));
+  let hist=true;
+  if(!erro){const h=await SB.from('precos_historico').insert({por:ADMIN.nome,acao:txt,motivo:pr.m.trim()||null,itens:mudar});if(h.error)hist=false}
+  A9.busy=false;
+  toast(erro?'Não foi possível salvar. Confira se o arquivo 42 foi rodado no Supabase.':mudar.length+' variaç'+(mudar.length===1?'ão atualizada':'ões atualizadas')+' no Revendedor '+cat+'.'+(hist?'':' (O histórico não foi gravado: rode o arquivo 41.)'));
+  await prPosGravar();
+}
+async function prCatGrava(cat,lista){
+  const up=lista.filter(x=>x.preco!=null).map(x=>({categoria:cat,variacao_id:x.id,preco:x.preco,atualizado_em:new Date().toISOString()}));
+  const del=lista.filter(x=>x.preco==null).map(x=>x.id);
+  if(up.length){const r=await SB.from('revenda_categoria_precos').upsert(up,{onConflict:'categoria,variacao_id'});if(r.error)return r.error}
+  if(del.length){const r=await SB.from('revenda_categoria_precos').delete().eq('categoria',cat).in('variacao_id',del);if(r.error)return r.error}
+  return null;
+}
+/* catálogo em PDF só com o que a categoria vende, pelos preços dela */
+function prCatalogoPdf(cat){
+  const CP=(A9.prCat||{})[cat]||{};
+  if(!Object.keys(CP).length){toast('O Revendedor '+cat+' ainda não tem itens. Defina os preços primeiro.');return}
+  const C=catPadrao();C.titulo='Catálogo Revendedor '+cat;C.sel={};C.vsel={};C.vval={};
+  (A9.prods||[]).filter(p=>p.ativo!==false).forEach(p=>{(p.vars||[]).forEach(v=>{if(CP[v.id]!=null){C.sel[p.id]=true;C.vsel[v.id]=true;C.vval[v.id]=pdMoeda(CP[v.id])}})});
+  A9.cat=C;A9.catMsg='Preços do Revendedor '+cat;A9.catOpen=true;route();window.scrollTo(0,0);
+}
 /* histórico */
 async function prHistCarrega(){
   const r=await SB.from('precos_historico').select('*').order('criado_em',{ascending:false}).limit(100);
@@ -5287,7 +5362,7 @@ function prHistHtml(){
   if(!pr.hist){prHistCarrega();return '<div class="box">Carregando o histórico...</div>'}
   const topo='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><h3 style="margin:0">🕘 Histórico de preços</h3><button class="btn ghost" onclick="pr.vista=\'preco\';route()">← Voltar para os preços</button></div>';
   if(pr.hist.erro)return '<div class="box">'+topo+'<div class="note warn">'+esc(pr.hist.erro)+'</div></div>';
-  const lin=e=>{const it=e.itens||[];return '<details class="prh"><summary><b>'+esc(fmtD(Date.parse(e.criado_em)))+'</b> · '+esc(e.por||'')+' · '+esc(e.acao||'')+' · '+it.length+' variaç'+(it.length===1?'ão':'ões')+(e.motivo?' · <i>'+esc(e.motivo)+'</i>':'')+'</summary><div class="tbl"><table><thead><tr><th>Produto</th><th>Variação</th><th>De</th><th>Para</th></tr></thead><tbody>'+it.map(c=>'<tr><td>'+esc(c.produto||'')+'</td><td>'+esc(c.nome||'')+'</td><td>'+esc(prTxt(c.de||{}))+'</td><td><b>'+esc(prTxt(c.para||{}))+'</b></td></tr>').join('')+'</tbody></table></div><p style="margin:6px 0 0"><button class="btn ghost sm" onclick="prDesfazer(\''+e.id+'\')">↩ Desfazer esta alteração</button></p></details>'};
+  const lin=e=>{const it=e.itens||[];return '<details class="prh"><summary><b>'+esc(fmtD(Date.parse(e.criado_em)))+'</b> · '+esc(e.por||'')+' · '+esc(e.acao||'')+' · '+it.length+' variaç'+(it.length===1?'ão':'ões')+(e.motivo?' · <i>'+esc(e.motivo)+'</i>':'')+'</summary><div class="tbl"><table><thead><tr><th>Produto</th><th>Variação</th><th>De</th><th>Para</th></tr></thead><tbody>'+it.map(c=>{const t=c.cat?prTxtCat:prTxt;return '<tr><td>'+esc(c.produto||'')+'</td><td>'+esc(c.nome||'')+'</td><td>'+esc(t(c.de||{}))+'</td><td><b>'+esc(t(c.para||{}))+'</b></td></tr>'}).join('')+'</tbody></table></div><p style="margin:6px 0 0"><button class="btn ghost sm" onclick="prDesfazer(\''+e.id+'\')">↩ Desfazer esta alteração</button></p></details>'};
   return '<div class="box">'+topo+(pr.hist.rows.map(lin).join('')||'<p style="color:var(--muted)">Nenhuma alteração de preço registrada ainda.</p>')+'</div>';
 }
 async function prDesfazer(id){
@@ -5295,13 +5370,14 @@ async function prDesfazer(id){
   const it=e.itens||[];
   if(!confirm('Voltar os preços de '+it.length+' variaç'+(it.length===1?'ão':'ões')+' para os valores de antes desta alteração?'))return;
   A9.busy=true;let erro=null;
-  for(const c of it){const r=await SB.from('produto_variacoes').update({preco:(c.de||{}).preco==null?null:c.de.preco,preco_promo:(c.de||{}).promo==null?null:c.de.promo}).eq('id',c.id);if(r.error){erro=r.error;break}}
-  if(!erro)await SB.from('precos_historico').insert({por:ADMIN.nome,acao:'Desfeito: '+(e.acao||''),motivo:'Volta ao valor anterior',itens:it.map(c=>({id:c.id,produto:c.produto,nome:c.nome,unidades:c.unidades,de:c.para,para:c.de}))});
-  A9.busy=false;toast(erro?'Não foi possível desfazer tudo.':'Alteração desfeita. A loja já está com os preços anteriores.');
+  const loja=it.filter(c=>!c.cat),cats={};it.filter(c=>c.cat).forEach(c=>{(cats[c.cat]=cats[c.cat]||[]).push({id:c.id,preco:(c.de||{}).preco==null?null:c.de.preco})});
+  for(const c of loja){const r=await SB.from('produto_variacoes').update({preco:(c.de||{}).preco==null?null:c.de.preco,preco_promo:(c.de||{}).promo==null?null:c.de.promo}).eq('id',c.id);if(r.error){erro=r.error;break}}
+  for(const k of Object.keys(cats)){if(erro)break;const x=await prCatGrava(k,cats[k]);if(x)erro=x}
+  if(!erro)await SB.from('precos_historico').insert({por:ADMIN.nome,acao:'Desfeito: '+(e.acao||''),motivo:'Volta ao valor anterior',itens:it.map(c=>({id:c.id,cat:c.cat,produto:c.produto,nome:c.nome,unidades:c.unidades,de:c.para,para:c.de}))});
+  A9.busy=false;toast(erro?'Não foi possível desfazer tudo.':'Alteração desfeita.');
   try{await bancoProdutos()}catch(x){}
-  pr.hist=null;await admCarregarProdutos();
+  pr.hist=null;A9.prCat=null;await admCarregarProdutos();
 }
-
 /* virou o dia: os atrasados de ontem passam a contar em hoje, sem precisar recarregar */
 (function(){let d0=hojeS();setInterval(()=>{const d=hojeS();if(d!==d0){d0=d;if(window.__ADMIN_APP&&!emEdicao())route()}},60000)})();
 /* ======================= O CLIENTE ALTERA O ENDEREÇO COM O PEDIDO EM ROTA ======================= */

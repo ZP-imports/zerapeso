@@ -72,18 +72,21 @@ window.addEventListener('DOMContentLoaded',async()=>{
 function erro(m){$('#root').innerHTML='<div class="box note err">'+esc(m)+'</div>'}
 
 async function carregarCatalogo(){
-  const [pr,vr,rp,pz,vd,bs]=await Promise.all([
+  const [pr,vr,rp,pz,vd,bs,rcp]=await Promise.all([
     SB.from('produtos').select('id,nome,imagem,estoque,ativo,ordem').eq('ativo',true),
     SB.from('produto_variacoes').select('id,produto_id,nome,unidades,preco,ativo,ordem,descricao').eq('ativo',true).order('ordem'),
     SB.from('revendedor_produtos').select('variacao_id,habilitado,preco').eq('revendedor_id',REV.id),
     SB.from('revendedor_precos_var').select('variacao_id,preco').eq('revendedor_id',REV.id),
     SB.from('revendedor_venda_var').select('variacao_id,preco_venda').eq('revendedor_id',REV.id),
-    SB.from('catalogo_revenda').select('variacao_id,preco')
+    SB.from('catalogo_revenda').select('variacao_id,preco'),
+    (['A','B','C'].includes((REV.config||{}).categoria)?SB.from('revenda_categoria_precos').select('variacao_id,preco').eq('categoria',REV.config.categoria):Promise.resolve({data:[]}))
   ]);
   const RP={};(rp.data||[]).forEach(r=>{RP[r.variacao_id]={h:r.habilitado!==false,p:r.preco==null?null:+r.preco}});
   const PZ={};(pz.data||[]).forEach(r=>{PZ[r.variacao_id]=+r.preco});
   const VD={};(vd.data||[]).forEach(r=>{VD[r.variacao_id]=+r.preco_venda});
   const BS={};(bs.data||[]).forEach(r=>{BS[r.variacao_id]=+r.preco});
+  const CAT=['A','B','C'].includes((REV.config||{}).categoria)?REV.config.categoria:'';
+  const CP={};(rcp.data||[]).forEach(r=>{CP[r.variacao_id]=+r.preco});
   const indiv=(REV.config||{}).preco_individual===true,desc=REV.desconto_pct||0;
   const foto=f=>!f?'':(/^https?:/.test(f)?f:SB_URL+'/storage/v1/object/public/produtos/'+encodeURIComponent(f));
   const conf=Array.isArray(LINK.produtos)?LINK.produtos:[];
@@ -95,6 +98,7 @@ async function carregarCatalogo(){
     let custo=null;const r0=RP[v.id];
     if(r0&&!r0.h)return;                          // desabilitado só para este revendedor
     if(r0&&r0.p!=null)custo=r0.p;                // preço individual (exceção)
+    else if(CAT)custo=CP[v.id]!=null?CP[v.id]:null; // categoria A, B ou C: só o que ela vende, pelo preço dela
     else if(PZ[v.id]!=null)custo=PZ[v.id];       // preço exclusivo antigo
     else if(BS[v.id]!=null)custo=BS[v.id];       // tabela única do Wesley (vale para todos)
     else if(!indiv&&loja!=null)custo=Math.round(loja*(1-desc/100)*100)/100; // modelo antigo com porcentagem
