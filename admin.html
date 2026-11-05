@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-05-2492 -->
+<!-- v2026-11-05-2493 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -6458,7 +6458,7 @@ function tabDash(){
   const _bKey='zpBannerVenc_'+hojeS();const _bDism=(()=>{try{const x=sessionStorage.getItem(_bKey);return x&&(Date.now()-+x)<7200000}catch(e){return false}})();
   const bannerDash=(!_bDism&&vencDash.length)?`<div class="note" style="background:#fee2e2;border-color:#ef4444;color:#991b1b;margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="flex:1"><b>⚠️ ${vencDash.length} parcela${vencDash.length>1?'s':''} da carteira vencendo!</b> ${vencDash.map(o=>esc((o.entrega||{}).nome||codPed(o))).join(', ')}</span><button class="btn ghost sm" onclick="A9.pf='carteira';admTab('pagamentos')">Ver carteira</button><button class="btn ghost sm" onclick="try{sessionStorage.setItem('${_bKey}',Date.now())}catch(e){}A9.pedidos=null;route()" title="Fechar por 2h" style="font-size:1rem;padding:2px 8px">✕</button></div>`:'';
 
-  return `<div class="box">${msgBox()}${bannerDash}<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="margin:0">Visão geral</h2><div><span style="color:var(--muted);font-size:.82rem">Atualiza sozinha a cada 20 segundos. </span><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar agora</button></div></div>
+  return `<div class="box">${msgBox()}<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="margin:0">Visão geral</h2><div><span style="color:var(--muted);font-size:.82rem">Atualiza sozinha a cada 20 segundos. </span><button class="btn ghost sm" onclick="A9.pedidos=null;route()">Atualizar agora</button></div></div>
   <div class="kcards" style="margin-top:14px">
    ${k('#ea580c','Em aberto',ab.length,'ainda não saíram para rota',"admIr('pedidos',{fq:'abertos'})")}
    ${k('#0891b2','Entrega hoje',entH.length,'ainda pendentes para hoje',"admIr('pedidos',{fq:'pend-dia',fd:'"+hoje+"'})")}
