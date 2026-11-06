@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-06-2507 -->
+<!-- v2026-11-06-2508 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -874,7 +874,7 @@ const dTxt=d=>d.tipo==='primeira'?' (primeira compra, '+d.pct+'%)':d.tipo==='ind
 function calcDisc(sub){
   if(!me)return null;const c=[];
   const mk=(tipo,pct,extra)=>Object.assign({tipo,pct,valor:+(sub*pct/100).toFixed(2)},extra||{});
-  if(firstEligible())c.push(mk('primeira',PC.pct));
+  if(PC.pct>0&&firstEligible())c.push(mk('primeira',PC.pct));
   if(amOn()){
     if(rv.code){const v=validateRef(rv.code);if(v.ok)c.push(mk('indicacao',v.pct,{code:rv.code.trim().toUpperCase(),owner:v.owner}))}
     if(rv.use){const k=credits(me);if(k.avail>0)c.push(mk('credito',k.earned[k.used].pct))}
@@ -900,7 +900,7 @@ function friendRows(owner){
 /* ======================= CABEÇALHO, MENU, RODAPÉ ======================= */
 function paintShell(){
   if(LOGO_URL){$('.mark').innerHTML=`<img src="${LOGO_URL}" alt="${esc(CFG.brand)}" style="width:56px;height:56px;object-fit:contain;border-radius:13px">`;$('#brand').textContent='';}else{$('.mark').innerHTML='<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="18" rx="1.5"/><rect x="3" y="9" width="18" height="6" rx="1.5"/></svg>';$('#brand').textContent=CFG.brand;}
-  if(CAMPVIS.primeira){$('#faixa').innerHTML='<span class="fxi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg></span><span><b>'+PC.pct+'% OFF</b> na sua primeira compra de medicamentos para emagrecimento</span>';$('#faixa').style.cursor='pointer';$('#faixa').onclick=()=>nav('/reg/primeira-compra');$('#faixa').style.display='';}
+  if(CAMPVIS.primeira&&PC.pct>0){$('#faixa').innerHTML='<span class="fxi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg></span><span><b>'+PC.pct+'% OFF</b> na sua primeira compra de medicamentos para emagrecimento</span>';$('#faixa').style.cursor='pointer';$('#faixa').onclick=()=>nav('/reg/primeira-compra');$('#faixa').style.display='';}
   else{$('#faixa').innerHTML='';$('#faixa').style.display='none';}
   $('#wafloat').href=waUrl();
   document.title=window.__ADMIN_APP?CFG.brand+' | Administração':CFG.brand;buildMenu();buildFoot();
@@ -4972,8 +4972,9 @@ function tabCampanhas(){
   <p><button class="btn acc" onclick="admSalvaAmigo()">Salvar campanha</button></p><div class="note ${ativaHoje?'':'warn'}">${ativaHoje?'Campanha ativa hoje.':'Campanha desligada ou fora do período.'}</div></div>
 
   <div class="box"><h3 style="margin-top:0">Primeira compra</h3>
-  <div class="fr"><div class="c3"><label for="pcP">Desconto (%)</label><input id="pcP" type="number" min="1" max="90" value="${p.pct}"></div></div>
-  <p><button class="btn acc" onclick="admSalvaPC()">Salvar</button></p>
+  <p style="margin:0 0 8px"><label style="font-weight:600;display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="pcA" style="width:auto" ${p.pct>0?'checked':''}> Campanha ativa</label></p>
+  <div class="fr"><div class="c3"><label for="pcP">Desconto (%)</label><input id="pcP" type="number" min="1" max="90" value="${p.pct>0?p.pct:(p.pct_antes||10)}"></div></div>
+  <p><button class="btn acc" onclick="admSalvaPC()">Salvar</button></p><div class="note ${p.pct>0?'':'warn'}">${p.pct>0?'Campanha ativa: '+p.pct+'% de desconto na primeira compra.':'Campanha desligada: a loja não dá desconto de primeira compra e a faixa some do site.'}</div>
   <h3>Indicações</h3>${A9.camp.ind.length?`<div class="tbl"><table><thead><tr><th>Quem comprou</th><th>Indicado por</th><th>Pedido</th><th>Situação</th></tr></thead><tbody>${A9.camp.ind.map(o=>`<tr><td>${esc((o.entrega||{}).nome||'')}</td><td>${esc(A9.camp.donos[o.indicacao.owner]||'')} <small>(${esc(o.indicacao.code||'')})</small></td><td>${codPed(o)}</td><td>${esc(STLB[o.status]||o.status)}</td></tr>`).join('')}</tbody></table></div>`:'<p style="color:var(--muted)">Nenhuma indicação ainda.</p>'}</div></div>
 
   <div class="box" style="grid-column:1/-1"><h3 style="margin-top:0">Banners do carrossel</h3>
@@ -5007,11 +5008,14 @@ async function admSalvaAmigo(){
   A9.camp.am=valor;A9.msg='Campanha salva. A loja já usa os novos valores.';A9.erro=false;try{await bancoConfig()}catch(x){}route();
 }
 async function admSalvaPC(){
-  const pct=+v_('pcP');
-  if(!(pct>=1&&pct<=90)){A9.msg='Informe um desconto de 1 a 90%.';A9.erro=true;route();return}
-  const r=await SB.from('configuracao').upsert({chave:'primeira_compra',valor:{pct},publica:true,atualizado_em:new Date().toISOString()});
+  const ativa=c_('pcA'),pctIn=+v_('pcP');
+  if(ativa&&!(pctIn>=1&&pctIn<=90)){A9.msg='Informe um desconto de 1 a 90%.';A9.erro=true;route();return}
+  const valor=ativa?{pct:pctIn,ativa:true}:{pct:0,ativa:false,pct_antes:(pctIn>=1&&pctIn<=90)?pctIn:(A9.camp.pc.pct_antes||10)};
+  const r=await SB.from('configuracao').upsert({chave:'primeira_compra',valor,publica:true,atualizado_em:new Date().toISOString()});
   if(r.error){A9.msg='Não foi possível salvar. Confirme que está com a conta de administrador.';A9.erro=true;route();return}
-  A9.camp.pc={pct};A9.msg='Desconto de primeira compra salvo.';A9.erro=false;try{await bancoConfig()}catch(x){}route();
+  const vis=Object.assign({},A9.camp.vis,{primeira:ativa});
+  await SB.from('configuracao').upsert({chave:'camp_vis',valor:vis,publica:true,atualizado_em:new Date().toISOString()});
+  A9.camp.pc=valor;A9.camp.vis=vis;A9.msg=ativa?'Campanha de primeira compra ativada.':'Campanha de primeira compra desligada. A loja já não dá esse desconto.';A9.erro=false;try{await bancoConfig()}catch(x){}route();
 }
 async function banSalvar(){
   const bans=A9.camp.bans||[];
