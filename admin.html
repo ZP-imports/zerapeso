@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-06-2508 -->
+<!-- v2026-11-06-2509 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -5210,7 +5210,7 @@ async function eqSenha(id){
 /* fecha o menu da engrenagem ao clicar fora */
 if(window.__ADMIN_APP)document.addEventListener('click',function(ev){if(A9.gear&&!(ev.target.closest&&ev.target.closest('.gearwrap'))){A9.gear=false;route()}});
 /* ======================= CATÁLOGO / PREÇOS: cartões, preço e desconto em massa, categorias de revendedor, histórico ======================= */
-var pr={sel:{},q:'',cat:'',tipo:'',v:'',d:'',p:'',m:'',vista:'preco',hist:null,aberto:{}};
+var pr={sel:{},q:'',cat:'',tipo:'',v:'',d:'',p:'',m:'',nm:'',vista:'preco',hist:null,aberto:{}};
 function prKey(v){return String(v)}
 function prLista(){
   const q=pagNz(pr.q);
@@ -5226,7 +5226,7 @@ function prTogProd(pid,on){const x=(A9.prods||[]).find(p=>p.id===pid);if(!x)retu
 function prTodos(on){prLista().forEach(x=>x.vars.forEach(v=>{if(on)pr.sel[prKey(v.id)]=true;else delete pr.sel[prKey(v.id)]}));route()}
 function prLimpa(){pr.sel={};route()}
 function prFiltro(k,v){pr[k]=v;route()}
-function prVista(v){pr.vista=v;pr.sel={};pr.v='';pr.d='';pr.p='';pr.m='';pr.hist=null;route()}
+function prVista(v){pr.vista=v;pr.sel={};pr.v='';pr.d='';pr.p='';pr.m='';pr.nm='';pr.hist=null;route()}
 function prBuscaLive(el){const id=el.id,v=el.value,pos=el.selectionStart;pr.q=v;clearTimeout(window.__prT);window.__prT=setTimeout(()=>{route();const n=document.getElementById(id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}}},200)}
 /* preços das categorias de revendedor (A, B e C): a variação que tem preço na categoria é a que ela vende */
 async function prCatCarrega(){
@@ -5273,8 +5273,8 @@ function tabPrecos(){
   let barra;
   if(!ehCat){
     barra='<div class="prbar'+(n?' on':'')+'"><div class="prn"><b>'+n+'</b> variaç'+(n===1?'ão selecionada':'ões selecionadas')+'</div>'+(n?
-     '<div class="prcampos">'+campo('prV','Novo preço (R$)','v','0,00')+campo('prD','Desconto (%)','d','10')+campo('prP','Preço promocional (R$)','p','de... por...')+mot+'</div>'+
-     '<div class="btns"><button class="btn acc sm" onclick="prAplicar(\'preco\')">💲 Definir preço</button><button class="btn sm" onclick="prAplicar(\'desc\')">🏷 Aplicar desconto %</button><button class="btn sm" onclick="prAplicar(\'promo\')">De... por... (promoção)</button><button class="btn ghost sm" onclick="prAplicar(\'tirar\')">Tirar promoção</button></div>':'<div class="pgsub">Marque as variações nos cartões para mudar o preço ou aplicar desconto de uma vez. A loja do cliente atualiza na hora.</div>')+'</div>';
+     '<div class="prcampos">'+campo('prV','Novo preço (R$)','v','0,00')+campo('prD','Desconto (%)','d','10')+campo('prP','Preço promocional (R$)','p','de... por...')+'<div><label for="prN">Novo nome da variação</label><input id="prN" value="'+esc(pr.nm)+'" oninput="pr.nm=this.value" placeholder="Ex.: Ampola avulsa"></div>'+mot+'</div>'+
+     '<div class="btns"><button class="btn acc sm" onclick="prAplicar(\'preco\')">💲 Definir preço</button><button class="btn sm" onclick="prAplicar(\'desc\')">🏷 Aplicar desconto %</button><button class="btn sm" onclick="prAplicar(\'promo\')">De... por... (promoção)</button><button class="btn ghost sm" onclick="prAplicar(\'tirar\')">Tirar promoção</button><button class="btn ghost sm" onclick="prRenomear()">✏️ Renomear variação</button></div>':'<div class="pgsub">Marque as variações nos cartões para mudar o preço ou aplicar desconto de uma vez. A loja do cliente atualiza na hora.</div>')+'</div>';
   }else{
     barra='<div class="prbar'+(n?' on':'')+'"><div class="prn"><b>'+n+'</b> variaç'+(n===1?'ão selecionada':'ões selecionadas')+' · Revendedor '+pr.vista+'</div>'+(n?
      '<div class="prcampos">'+campo('prV','Preço do revendedor '+pr.vista+' (R$)','v','0,00')+campo('prD','Desconto (%) sobre o preço da loja','d','30')+mot+'</div>'+
@@ -5317,6 +5317,21 @@ async function prAplicar(modo){
   if(erro)toast('Não foi possível salvar todos os preços. Atualize e confira.');
   else toast(mudar.length+' variaç'+(mudar.length===1?'ão atualizada':'ões atualizadas')+'. A loja já está com os preços novos.'+(hist?'':' (O histórico não foi gravado: rode o arquivo 41 no Supabase.)'));
   await prPosGravar();
+}
+async function prRenomear(){
+  const S=prVarSel();if(!S.length){toast('Marque pelo menos uma variação.');return}
+  const nome=(pr.nm||'').trim();if(!nome){toast('Escreva o novo nome da variação.');return}
+  if(A9.busy)return;
+  const mudar=S.filter(({v})=>v.nome!==nome).map(({p,v})=>({id:v.id,produto:p.nome,nome:v.nome,unidades:v.unidades,renome:{de:v.nome,para:nome}}));
+  if(!mudar.length){toast('Nada mudou: as variações já têm esse nome.');return}
+  if(!confirm('Renomear '+mudar.length+' variaç'+(mudar.length===1?'ão':'ões')+' para "'+nome+'"?\n\nExemplo: '+mudar[0].produto+' · de "'+mudar[0].renome.de+'" para "'+nome+'"\n\nA loja do cliente e o portal do revendedor atualizam na hora.'))return;
+  A9.busy=true;let erro=null;
+  for(const c of mudar){const r=await SB.from('produto_variacoes').update({nome}).eq('id',c.id);if(r.error){erro=r.error;break}}
+  let hist=true;
+  if(!erro){const h=await SB.from('precos_historico').insert({por:ADMIN.nome,acao:'Renomear variação',motivo:pr.m.trim()||null,itens:mudar});if(h.error)hist=false}
+  A9.busy=false;
+  toast(erro?'Não foi possível renomear tudo. Atualize e confira.':mudar.length+' variaç'+(mudar.length===1?'ão renomeada':'ões renomeadas')+'.'+(hist?'':' (O histórico não foi gravado: rode o arquivo 41.)'));
+  pr.nm='';await prPosGravar();
 }
 /* categoria de revendedor: define o preço (a variação entra na categoria), desconto sobre a loja ou tira da categoria */
 async function prCatAplicar(modo){
@@ -5366,7 +5381,7 @@ function prHistHtml(){
   if(!pr.hist){prHistCarrega();return '<div class="box">Carregando o histórico...</div>'}
   const topo='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><h3 style="margin:0">🕘 Histórico de preços</h3><button class="btn ghost" onclick="pr.vista=\'preco\';route()">← Voltar para os preços</button></div>';
   if(pr.hist.erro)return '<div class="box">'+topo+'<div class="note warn">'+esc(pr.hist.erro)+'</div></div>';
-  const lin=e=>{const it=e.itens||[];return '<details class="prh"><summary><b>'+esc(fmtD(Date.parse(e.criado_em)))+'</b> · '+esc(e.por||'')+' · '+esc(e.acao||'')+' · '+it.length+' variaç'+(it.length===1?'ão':'ões')+(e.motivo?' · <i>'+esc(e.motivo)+'</i>':'')+'</summary><div class="tbl"><table><thead><tr><th>Produto</th><th>Variação</th><th>De</th><th>Para</th></tr></thead><tbody>'+it.map(c=>{const t=c.cat?prTxtCat:prTxt;return '<tr><td>'+esc(c.produto||'')+'</td><td>'+esc(c.nome||'')+'</td><td>'+esc(t(c.de||{}))+'</td><td><b>'+esc(t(c.para||{}))+'</b></td></tr>'}).join('')+'</tbody></table></div><p style="margin:6px 0 0"><button class="btn ghost sm" onclick="prDesfazer(\''+e.id+'\')">↩ Desfazer esta alteração</button></p></details>'};
+  const lin=e=>{const it=e.itens||[];return '<details class="prh"><summary><b>'+esc(fmtD(Date.parse(e.criado_em)))+'</b> · '+esc(e.por||'')+' · '+esc(e.acao||'')+' · '+it.length+' variaç'+(it.length===1?'ão':'ões')+(e.motivo?' · <i>'+esc(e.motivo)+'</i>':'')+'</summary><div class="tbl"><table><thead><tr><th>Produto</th><th>Variação</th><th>De</th><th>Para</th></tr></thead><tbody>'+it.map(c=>{if(c.renome)return '<tr><td>'+esc(c.produto||'')+'</td><td>nome</td><td>'+esc(c.renome.de||'')+'</td><td><b>'+esc(c.renome.para||'')+'</b></td></tr>';const t=c.cat?prTxtCat:prTxt;return '<tr><td>'+esc(c.produto||'')+'</td><td>'+esc(c.nome||'')+'</td><td>'+esc(t(c.de||{}))+'</td><td><b>'+esc(t(c.para||{}))+'</b></td></tr>'}).join('')+'</tbody></table></div><p style="margin:6px 0 0"><button class="btn ghost sm" onclick="prDesfazer(\''+e.id+'\')">↩ Desfazer esta alteração</button></p></details>'};
   return '<div class="box">'+topo+(pr.hist.rows.map(lin).join('')||'<p style="color:var(--muted)">Nenhuma alteração de preço registrada ainda.</p>')+'</div>';
 }
 async function prDesfazer(id){
@@ -5374,10 +5389,11 @@ async function prDesfazer(id){
   const it=e.itens||[];
   if(!confirm('Voltar os preços de '+it.length+' variaç'+(it.length===1?'ão':'ões')+' para os valores de antes desta alteração?'))return;
   A9.busy=true;let erro=null;
-  const loja=it.filter(c=>!c.cat),cats={};it.filter(c=>c.cat).forEach(c=>{(cats[c.cat]=cats[c.cat]||[]).push({id:c.id,preco:(c.de||{}).preco==null?null:c.de.preco})});
+  const nomes=it.filter(c=>c.renome),loja=it.filter(c=>!c.cat&&!c.renome),cats={};it.filter(c=>c.cat).forEach(c=>{(cats[c.cat]=cats[c.cat]||[]).push({id:c.id,preco:(c.de||{}).preco==null?null:c.de.preco})});
   for(const c of loja){const r=await SB.from('produto_variacoes').update({preco:(c.de||{}).preco==null?null:c.de.preco,preco_promo:(c.de||{}).promo==null?null:c.de.promo}).eq('id',c.id);if(r.error){erro=r.error;break}}
+  for(const c of nomes){const r=await SB.from('produto_variacoes').update({nome:c.renome.de}).eq('id',c.id);if(r.error){erro=r.error;break}}
   for(const k of Object.keys(cats)){if(erro)break;const x=await prCatGrava(k,cats[k]);if(x)erro=x}
-  if(!erro)await SB.from('precos_historico').insert({por:ADMIN.nome,acao:'Desfeito: '+(e.acao||''),motivo:'Volta ao valor anterior',itens:it.map(c=>({id:c.id,cat:c.cat,produto:c.produto,nome:c.nome,unidades:c.unidades,de:c.para,para:c.de}))});
+  if(!erro)await SB.from('precos_historico').insert({por:ADMIN.nome,acao:'Desfeito: '+(e.acao||''),motivo:'Volta ao valor anterior',itens:it.map(c=>c.renome?{id:c.id,produto:c.produto,nome:c.renome.para,unidades:c.unidades,renome:{de:c.renome.para,para:c.renome.de}}:{id:c.id,cat:c.cat,produto:c.produto,nome:c.nome,unidades:c.unidades,de:c.para,para:c.de})});
   A9.busy=false;toast(erro?'Não foi possível desfazer tudo.':'Alteração desfeita.');
   try{await bancoProdutos()}catch(x){}
   pr.hist=null;A9.prCat=null;await admCarregarProdutos();

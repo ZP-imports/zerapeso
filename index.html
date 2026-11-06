@@ -85,7 +85,7 @@ nav.main>ul>li:hover>.mega{display:block}
 .pimg{height:180px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;cursor:pointer;color:#fff;overflow:hidden;flex-shrink:0}
 .pimg img{width:100%;height:100%;object-fit:contain;background:#fff}
 .pn{font-size:.9rem;font-weight:500;color:var(--ink);line-height:1.35;min-height:4em;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:1}
-.price{margin:8px 0;font-weight:700;font-size:1.1rem;color:var(--ink);text-align:center}.price del{display:block;color:var(--muted);font-weight:400;font-size:.8rem}
+.price{margin:8px 0;font-weight:800;font-size:1.3rem;color:var(--ink);text-align:center}.price del{display:block;color:var(--muted);font-weight:400;font-size:.8rem}
 .sale{position:absolute;top:10px;left:10px;background:var(--acc);color:#3b2a00;border-radius:999px;padding:.35em .9em;font-weight:700;font-size:.72rem;z-index:2}
 .out{position:absolute;top:10px;left:10px;background:#9aa5a0;color:#fff;border-radius:999px;padding:.35em .9em;font-weight:700;font-size:.72rem;z-index:2}
 .btn{background:var(--p);color:#fff;border:0;border-radius:20px;padding:.75em 1.4em;font-weight:600;transition:.15s;text-align:center;display:inline-block}
@@ -296,7 +296,7 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 .vars{display:grid;gap:12px;margin:14px 0}
 .vcard{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff}
 .vh{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.vst{font-size:.78rem;font-weight:600;border-radius:999px;padding:2px 10px}.vst.ok{background:var(--pl);color:var(--pd);animation:pagpulsa 1.4s ease-in-out infinite}.vst.no{background:#fdecea;color:#8a1c14}
+.vst{font-size:.82rem;font-weight:800;border-radius:999px;padding:2px 10px}.vst.ok{background:var(--pl);color:var(--pd)}.vst.no{background:#fdecea;color:#8a1c14}
 .vp{margin:8px 0;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;font-size:.95rem;color:var(--muted)}.vp b{font-size:1.3rem;color:var(--ink)}.vp del{color:#9a9a9a}
 .vq{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.vl{font-size:.9rem;color:var(--ink2);font-weight:600}
 .ptot{display:flex;justify-content:space-between;align-items:center;margin:16px 0 10px;padding:12px 0;border-top:1px solid var(--line);font-size:.85rem;letter-spacing:.04em;color:var(--muted)}.ptot b{font-size:1.5rem;color:var(--ink);letter-spacing:0}
@@ -512,7 +512,7 @@ tr[data-sc] td:first-child{box-shadow:inset 4px 0 0 var(--sc)}
 .entq{cursor:pointer}.entq.sel{outline:3px solid var(--ink);box-shadow:0 10px 26px rgba(0,0,0,.14)}
 .entblk{margin-top:16px;padding:14px 14px 14px 16px;border:1px solid var(--line);border-radius:var(--r);background:#fff}
 
-.qa{margin-top:auto;display:flex;flex-direction:column;gap:6px}.qar{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;border:1px solid var(--line);border-radius:12px;padding:10px 8px}.qan{display:flex;flex-direction:column;align-items:center;gap:4px;line-height:1.2;min-width:0}.qan b{font-size:.9rem}.qan small{color:var(--muted)}.qa .qty button{width:26px;height:26px}.qal{text-align:center;font-size:.8rem;cursor:pointer;color:var(--muted)}
+.qa{margin-top:auto;display:flex;flex-direction:column;gap:6px}.qar{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;border:1px solid var(--line);border-radius:12px;padding:10px 8px}.qan{display:flex;flex-direction:column;align-items:center;gap:4px;line-height:1.2;min-width:0}.qan b{font-size:.95rem;font-weight:800}.qan small{color:var(--ink);font-size:1.15rem;font-weight:800}.qa .qty button{width:26px;height:26px}.qal{text-align:center;font-size:.8rem;cursor:pointer;color:var(--muted)}
 
 a[href*="netlify.com"],[class*="netlify" i],[id*="netlify" i]{display:none!important}
 @keyframes pulo{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
@@ -665,7 +665,7 @@ function msgModelo(k){
 function msgTxt(k,vars){return msgFill(msgModelo(k),vars||{})}
 const waUrl=msg=>'whatsapp://send?phone='+CFG.wa+'&text='+encodeURIComponent(msg||msgTxt('s_atend',{loja:CFG.brand}));
 function abrWa(url){const a=document.createElement('a');a.href=url;a.rel='noopener';document.body.appendChild(a);a.click();setTimeout(()=>document.body.removeChild(a),300);}
-const EXTRA=[{t:'Campanhas',go:'/amigo',sub:[['Amigo Emagrece Amigo','/amigo'],['Regulamento Amigo Emagrece Amigo','/reg/amigo'],['Desconto na primeira compra','/reg/primeira-compra']]},{t:'Atendimento',go:'wa:',sub:[['Falar com o atendimento','wa:'],['Dúvidas frequentes','/info/duvidas'],['Como comprar','/info/como-comprar'],['Entregas','/info/entregas'],['Formas de pagamento','/info/pagamento']]}];
+const EXTRA=[{t:'Campanhas',go:'/amigo',sub:[['Amigo Emagrece Amigo','/amigo'],['Regulamento Amigo Emagrece Amigo','/reg/amigo']]},{t:'Atendimento',go:'wa:',sub:[['Falar com o atendimento','wa:'],['Dúvidas frequentes','/info/duvidas'],['Como comprar','/info/como-comprar'],['Entregas','/info/entregas'],['Formas de pagamento','/info/pagamento']]}];
 const PRODUCTS=[
 ];
 const BASE=JSON.parse(JSON.stringify(PRODUCTS));
@@ -879,7 +879,7 @@ function friendRows(owner){
 /* ======================= CABEÇALHO, MENU, RODAPÉ ======================= */
 function paintShell(){
   if(LOGO_URL){$('.mark').innerHTML=`<img src="${LOGO_URL}" alt="${esc(CFG.brand)}" style="width:56px;height:56px;object-fit:contain;border-radius:13px">`;$('#brand').textContent='';}else{$('.mark').innerHTML='<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="18" rx="1.5"/><rect x="3" y="9" width="18" height="6" rx="1.5"/></svg>';$('#brand').textContent=CFG.brand;}
-  if(CAMPVIS.primeira&&PC.pct>0){$('#faixa').innerHTML='<span class="fxi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg></span><span><b>'+PC.pct+'% OFF</b> na sua primeira compra de medicamentos para emagrecimento</span>';$('#faixa').style.cursor='pointer';$('#faixa').onclick=()=>nav('/reg/primeira-compra');$('#faixa').style.display='';}
+  if(false){$('#faixa').innerHTML='<span class="fxi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg></span><span><b>'+PC.pct+'% OFF</b> na sua primeira compra de medicamentos para emagrecimento</span>';$('#faixa').style.cursor='pointer';$('#faixa').onclick=()=>nav('/reg/primeira-compra');$('#faixa').style.display='';}
   else{$('#faixa').innerHTML='';$('#faixa').style.display='none';}
   $('#wafloat').href=waUrl();
   document.title=window.__ADMIN_APP?CFG.brand+' | Administração':CFG.brand;buildMenu();buildFoot();
@@ -2131,7 +2131,6 @@ function faqHtml(){
    ['Posso escolher a data e o turno da entrega?','Sim, ao finalizar a compra. É uma preferência: a loja confirma a programação. Se algo mudar, você é avisado no pedido.'],
    ['E se eu não estiver para receber?','Se a entrega não puder ser concluída, entramos em contato para reprogramar. Você vê o aviso no pedido.'],
    ['Posso alterar um pedido depois de pago?','Fale com o atendimento. Toda alteração feita pela loja aparece no seu pedido com o motivo.'],
-   ['Como funciona o desconto da primeira compra?','São '+PC.pct+'% de desconto, aplicados automaticamente no primeiro pedido, sem cupom. Veja o regulamento na página da campanha.'],
    ['Como funciona o Amigo Emagrece Amigo?','Você indica um amigo com o seu código pessoal. Ele ganha desconto na primeira compra e você ganha desconto a cada amigo que comprar, dentro do limite mensal. Veja o regulamento.'],
    ['Como altero meus dados?','Clique em "Olá, seu nome" no topo e escolha Editar perfil. O endereço de entrega também pode ser alterado por lá.'],
    ['Como falo com a equipe?','Pela Central de Atendimento, no rodapé, ou pelo botão de WhatsApp no canto da tela.']
@@ -3281,13 +3280,13 @@ function card(p){
   return `<div class="card" style="${centroSt}">${ok?'':'<span class="out">Sem estoque</span>'}
   <div class="pimg" onclick="nav('/produto/${p.id}')">${fotoHtml(p)}</div>
   <div class="pn" onclick="nav('/produto/${p.id}')">${esc(p.n)}</div>
-  <div class="price">${p.consulta||p.semValor?'<span class="consulte">Valor sob consulta</span>':'<small class="apart">A partir de</small> '+brl(unit(p))}</div>
+  <div class="price">${p.consulta||p.semValor?'<span class="consulte">Valor sob consulta</span>':brl(unit(p))}</div>
   ${qaHtml(p)}</div>`;
 }
 var QA={};
 function qaHtml(p){
   if(p.consulta||!(p.vars||[]).length)return `<button class="btn acc" onclick="nav('/produto/${p.id}')">Ver produto</button>`;
-  return `<div class="qa">${p.vars.map((v,k)=>{const m=maxVar(p,v);const q=QA[p.id+'_'+k]||0;return `<div class="qar"><div class="qan"><b>${esc(v.n)}</b><span class="vst ${m>0?'ok':'no'}">${m>0?'Disponível':'Sem estoque'}</span>${v.sp?'':`<small>${brl(vPreco(v))}</small>`}</div>${m>0?`<div class="qty"><button onclick="qaq(${p.id},${k},-1)" aria-label="Diminuir">−</button><span id="qa${p.id}_${k}">${q}</span><button onclick="qaq(${p.id},${k},1)" aria-label="Aumentar">+</button></div>`:''}</div>`}).join('')}<button class="btn acc full" id="qab${p.id}" onclick="qaAdd(${p.id})" disabled>${ICO_CART}<span>ADICIONAR AO CARRINHO</span></button><a class="qal" onclick="nav('/produto/${p.id}')">Ver detalhes</a></div>`;
+  return `<div class="qa">${p.vars.map((v,k)=>{const m=maxVar(p,v);const q=QA[p.id+'_'+k]||0;return `<div class="qar"><div class="qan"><b>${esc(v.n)}</b>${v.sp?'':`<small>${brl(vPreco(v))}</small>`}<span class="vst ${m>0?'ok':'no'}">${m>0?'Disponível':'Sem estoque'}</span></div>${m>0?`<div class="qty"><button onclick="qaq(${p.id},${k},-1)" aria-label="Diminuir">−</button><span id="qa${p.id}_${k}">${q}</span><button onclick="qaq(${p.id},${k},1)" aria-label="Aumentar">+</button></div>`:''}</div>`}).join('')}<button class="btn acc full" id="qab${p.id}" onclick="qaAdd(${p.id})" disabled>${ICO_CART}<span>ADICIONAR AO CARRINHO</span></button><a class="qal" onclick="nav('/produto/${p.id}')">Ver detalhes</a></div>`;
 }
 function qaq(id,k,d){const p=byId(id);if(!p)return;const v=p.vars[k],m=maxVar(p,v);const key=id+'_'+k;const q=Math.min(m,Math.max(0,(QA[key]||0)+d));QA[key]=q;const e=document.getElementById('qa'+key);if(e)e.textContent=q;const b=document.getElementById('qab'+id);if(b)b.disabled=!p.vars.some((x,j)=>QA[id+'_'+j]>0)}
 function qaAdd(id){const p=byId(id);if(!p)return;let n=0;p.vars.forEach((v,k)=>{const q=QA[id+'_'+k]||0;if(q>0&&cartAdd(id,v.id,q))n++;QA[id+'_'+k]=0;const e=document.getElementById('qa'+id+'_'+k);if(e)e.textContent=0});if(!n)return;const b=document.getElementById('qab'+id);if(b)b.disabled=true;save();updHead();bump();addPop()}
