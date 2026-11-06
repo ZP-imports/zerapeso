@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-06-2510 -->
+<!-- v2026-11-06-2511 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -2975,6 +2975,8 @@ function tabRevendedores(){
             </div>`:''}
           </div>
 
+          ${revCatalogoHtml(rv)}
+
           ${(()=>{
             const prodNome={};(A9.revs.produtos||[]).forEach(p=>{prodNome[p.id]=p.nome});
             const bs=repasseMapa();const prods=(A9.revs.variacoes||[]).filter(v=>prodNome[v.produto_id]).map(v=>({id:v.id,nome:prodNome[v.produto_id]+' — '+v.nome,preco:(v.preco==null||v.preco==='')?null:+v.preco,rep:bs[v.id]!=null?bs[v.id]:null})).sort((a,b)=>a.nome.localeCompare(b.nome));
@@ -3240,6 +3242,19 @@ async function admRevAtivar(id){
   const {error}=await SB.from('revendedores').update({status:'ativo'}).eq('id',id);
   if(error){A9.msg='Erro ao ativar.';A9.erro=true}else{A9.msg='Revendedor reativado.';A9.erro=false;A9.revs=null}
   route();
+}
+/* catálogo da categoria (A, B ou C) atribuída ao revendedor: o mesmo que ele vê no portal */
+function revCatalogoHtml(rv){
+  const cat=(rv.config||{}).categoria||'';
+  const cab='<div class="box"><h3 style="margin:0 0 8px">Catálogo do revendedor'+(cat?' · ⭐ Revendedor '+esc(cat):'')+'</h3>';
+  if(!cat)return cab+'<p style="margin:0;color:var(--muted)">Sem categoria. Em <b>Editar</b>, escolha Revendedor A, B ou C para ele receber o catálogo e os preços da categoria.</p></div>';
+  if(!A9.prCat){if(!A9.prCatLoading){A9.prCatLoading=true;prCatCarrega().finally(()=>{A9.prCatLoading=false})}return cab+'<p style="margin:0">Carregando...</p></div>'}
+  if(A9.prCatErro)return cab+'<div class="note err">'+esc(A9.prCatErro)+'</div></div>';
+  const CP=A9.prCat[cat]||{},vs={};((A9.revs&&A9.revs.variacoes)||[]).forEach(v=>{vs[v.id]=v});
+  const pn={};((A9.revs&&A9.revs.produtos)||[]).forEach(p=>{pn[p.id]=p.nome});
+  const rows=Object.keys(CP).map(id=>{const v=vs[id]||{};return {p:pn[v.produto_id]||'(produto)',n:vnNormC(v.nome||''),u:v.unidades,preco:CP[id]}}).sort((a,b)=>a.p.localeCompare(b.p)||String(a.n).localeCompare(String(b.n)));
+  if(!rows.length)return cab+'<div class="note warn">O Revendedor '+esc(cat)+' ainda não tem itens. Defina os preços em <b>Catálogo / Preços</b> (aba Revendedor '+esc(cat)+'). Enquanto estiver vazio, o catálogo dele no portal também fica vazio.</div></div>';
+  return cab+'<p style="margin:0 0 8px;color:var(--muted);font-size:.88rem">'+rows.length+' ite'+(rows.length===1?'m':'ns')+' no catálogo dele. Aparece no portal na aba <b>Catálogo</b> e em <b>Tabela de preços</b>.</p><div class="tbl" style="max-height:340px;overflow:auto"><table><thead><tr><th>Produto</th><th>Variação</th><th class="r">Preço dele</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.p)+'</td><td>'+esc(r.n)+(+r.u>1?' <small style="color:var(--muted)">('+r.u+' un.)</small>':'')+'</td><td class="r"><b>'+brl(r.preco)+'</b></td></tr>').join('')+'</tbody></table></div></div>';
 }
 async function admRevSalvar(id){
   const nome=document.getElementById('rv-nome')&&document.getElementById('rv-nome').value.trim();
