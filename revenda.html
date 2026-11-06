@@ -181,6 +181,7 @@ select{width:auto}
 .tl-item strong{font-size:.9rem;color:var(--ink)}
 .tl-item small{display:block;color:var(--muted);font-size:.78rem}
 
+@media print{body *{visibility:hidden}#tabelaPrint,#tabelaPrint *{visibility:visible}#tabelaPrint{position:absolute;left:0;top:0;width:100%}.noprint{display:none!important}}
 /* extrato consignado */
 .extrato{border:2px solid var(--pl);border-radius:var(--r);padding:20px;background:#f0f9f7}
 .extrato h3{color:var(--p);margin-bottom:14px}
@@ -500,6 +501,7 @@ function renderNav(){
   const tabs=[
     ['dashboard','Início'],
     ['catalogo','Catálogo'],
+    ['tabela','Tabela de preços'],
     ['meucat','Meu catálogo'],
     ...(clientesAtivo()?[['clientes','Clientes']]:[]),
     ['pedidos','Pedidos'],
@@ -515,6 +517,7 @@ function renderPage(){
   switch(PAGE){
     case 'dashboard':return pageDashboard();
     case 'catalogo':return pageCatalogo();
+    case 'tabela':return pageTabela();
     case 'meucat':return pageMeuCatalogo();
     case 'clientes':return pageClientes();
     case 'checkout':return pageCheckout();
@@ -612,6 +615,23 @@ function linhaVariacao(v,md){
     <div class="vac">${sem?'<span style="color:#b91c1c;font-size:.78rem">Sem estoque</span>':item
       ?`<div class="qty-ctrl"><button onclick="cartSet('${v.id}',${item.qty-1})">−</button><span>${item.qty}</span><button onclick="cartSet('${v.id}',${item.qty+1})">+</button></div>`
       :`<button class="btn sm" onclick="cartAdd(${JSON.stringify(v).replace(/"/g,'&quot;')})">Adicionar</button>`}</div></div>`;
+}
+/* tabela de preços do revendedor: o que a categoria dele vende, pelo preço dela, para ver, imprimir e baixar */
+function pageTabela(){
+  const cat=REV_CAT?'Revendedor '+REV_CAT:'Tabela do revendedor';
+  if(!PRODUTOS.length)return '<div class="pg"><div class="note">Ainda não há itens na sua tabela de preços. Fale com a ZP Imports.</div></div>';
+  const g=gruposProdutos(PRODUTOS);
+  return `<div class="pg" id="tabelaPrint">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px"><div><h2 style="margin:0;font-size:1.4rem;color:var(--ink)">Tabela de preços</h2><div style="color:var(--muted);font-size:.9rem">${esc(cat)} · ${esc(REV_USER.nome||'')} · atualizada em ${new Date().toLocaleDateString('pt-BR')}</div></div>
+      <div class="noprint" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="window.print()">📄 Baixar / imprimir (PDF)</button><button class="btn ghost" onclick="tabelaCsv()">📥 Baixar planilha</button></div></div>
+    <div class="box" style="padding:0;overflow:auto"><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#f3f4f6;text-align:left"><th style="padding:10px 12px">Produto</th><th style="padding:10px 12px">Variação</th><th style="padding:10px 12px;text-align:right">Seu preço</th></tr></thead><tbody>
+    ${g.map(x=>x.vars.map((v,i)=>`<tr style="border-top:1px solid var(--line)"><td style="padding:9px 12px;font-weight:600">${i===0?esc(x.nome):''}</td><td style="padding:9px 12px">${esc(v.nome_var||v.nome)}${+v.unidades>1?' <small style="color:var(--muted)">('+v.unidades+' un.)</small>':''}</td><td style="padding:9px 12px;text-align:right"><b>${brl(precoRev(v))}</b></td></tr>`).join('')).join('')}
+    </tbody></table></div></div>`;
+}
+function tabelaCsv(){
+  const L=['Produto;Variação;Seu preço (R$)'];
+  gruposProdutos(PRODUTOS).forEach(x=>x.vars.forEach(v=>L.push([x.nome,(v.nome_var||v.nome),String(precoRev(v)).replace('.',',')].map(s=>'"'+String(s).replace(/"/g,'""')+'"').join(';'))));
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+L.join('\r\n')],{type:'text/csv;charset=utf-8'}));a.download='tabela-de-precos.csv';document.body.appendChild(a);a.click();a.remove();
 }
 function pageCatalogo(){
   if(!PRODUTOS.length)return `<div class="pg"><div class="note">Nenhum produto disponível para você no momento. Fale com a ZP Imports para liberar o seu catálogo.</div><div class="grid gp" style="margin-top:14px">${outrosCardHtml()}</div></div>`;
