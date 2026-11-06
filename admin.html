@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-06-2509 -->
+<!-- v2026-11-06-2510 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -4937,15 +4937,18 @@ async function etqLote(){
 A9.camp=null;
 async function admCarregarCamp(){
   const [c,ind]=await Promise.all([
-    SB.from('configuracao').select('chave,valor').in('chave',['amigo','primeira_compra','camp_vis','banners']),
+    SB.from('configuracao').select('chave,valor').in('chave',['amigo','primeira_compra','camp_vis','banners','cupom','faixa_rodape']),
     SB.from('pedidos').select('id,status,criado_em,entrega,indicacao').not('indicacao','is',null).order('id',{ascending:false}).limit(100)]);
   const am=(c.data||[]).find(x=>x.chave==='amigo'),pc=(c.data||[]).find(x=>x.chave==='primeira_compra');
   const cv=(c.data||[]).find(x=>x.chave==='camp_vis'),bns=(c.data||[]).find(x=>x.chave==='banners');
+  const cup=(c.data||[]).find(x=>x.chave==='cupom'),fxr=(c.data||[]).find(x=>x.chave==='faixa_rodape');
   const donos={};const ids=[...new Set((ind.data||[]).map(o=>o.indicacao&&o.indicacao.owner).filter(Boolean))];
   if(ids.length){const pf=await SB.from('perfis').select('id,nome,sobrenome').in('id',ids);(pf.data||[]).forEach(x=>{donos[x.id]=((x.nome||'')+' '+(x.sobrenome||'')).trim()})}
   A9.camp={
     am:Object.assign({ativa:false,nome:'Amigo Emagrece Amigo',pct:10,inicio:'',fim:'',limite:10},am&&am.valor),
     pc:Object.assign({pct:10},pc&&pc.valor),
+    cp:Object.assign({ativo:false,codigo:'',pct:5,so_primeira:true},cup&&cup.valor),
+    fx:Object.assign({ativo:false,texto:''},fxr&&fxr.valor),
     vis:Object.assign({tab:true,amigo:true,primeira:true},cv&&cv.valor),
     bans:Array.isArray(bns&&bns.valor)?bns.valor:[],
     ind:ind.data||[],donos
@@ -4977,6 +4980,23 @@ function tabCampanhas(){
   <p><button class="btn acc" onclick="admSalvaPC()">Salvar</button></p><div class="note ${p.pct>0?'':'warn'}">${p.pct>0?'Campanha ativa: '+p.pct+'% de desconto na primeira compra.':'Campanha desligada: a loja não dá desconto de primeira compra e a faixa some do site.'}</div>
   <h3>Indicações</h3>${A9.camp.ind.length?`<div class="tbl"><table><thead><tr><th>Quem comprou</th><th>Indicado por</th><th>Pedido</th><th>Situação</th></tr></thead><tbody>${A9.camp.ind.map(o=>`<tr><td>${esc((o.entrega||{}).nome||'')}</td><td>${esc(A9.camp.donos[o.indicacao.owner]||'')} <small>(${esc(o.indicacao.code||'')})</small></td><td>${codPed(o)}</td><td>${esc(STLB[o.status]||o.status)}</td></tr>`).join('')}</tbody></table></div>`:'<p style="color:var(--muted)">Nenhuma indicação ainda.</p>'}</div></div>
 
+  <div class="two" style="grid-template-columns:1fr 1fr">
+  <div class="box"><h3 style="margin-top:0">Cupom de desconto</h3>
+  <p style="color:var(--muted);font-size:.88rem;margin:0 0 10px">O cliente digita o cupom no fim da compra e recebe o desconto. Um desconto por pedido: vale o maior.</p>
+  <p style="margin:0 0 8px"><label style="font-weight:600;display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="cpA" style="width:auto" ${A9.camp.cp.ativo?'checked':''}> Cupom ativo</label></p>
+  <div class="fr"><div class="c2"><label for="cpC">Cupom (o que o cliente digita)</label><input id="cpC" maxlength="30" value="${esc(A9.camp.cp.codigo)}" placeholder="Ex.: BEMVINDO5" style="text-transform:uppercase"></div><div class="c2"><label for="cpP">Desconto (%)</label><input id="cpP" type="number" min="1" max="90" value="${A9.camp.cp.pct||5}"></div></div>
+  <p style="margin:8px 0"><label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="cpS" style="width:auto" ${A9.camp.cp.so_primeira!==false?'checked':''}> Vale só na primeira compra do cliente</label></p>
+  <p><button class="btn acc" onclick="admSalvaCupom()">Salvar cupom</button></p>
+  <div class="note ${A9.camp.cp.ativo&&A9.camp.cp.codigo?'':'warn'}">${A9.camp.cp.ativo&&A9.camp.cp.codigo?'Cupom '+esc(A9.camp.cp.codigo)+' ativo: '+A9.camp.cp.pct+'% de desconto'+(A9.camp.cp.so_primeira!==false?' na primeira compra.':'.'):'Cupom desligado.'}</div></div>
+
+  <div class="box"><h3 style="margin-top:0">Faixa de rodapé (texto rodando)</h3>
+  <p style="color:var(--muted);font-size:.88rem;margin:0 0 10px">Uma faixa com o texto passando embaixo da tela da loja, no celular e no computador. Escreva a campanha que está valendo.</p>
+  <p style="margin:0 0 8px"><label style="font-weight:600;display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="fxA" style="width:auto" ${A9.camp.fx.ativo?'checked':''}> Faixa ativa</label></p>
+  <label for="fxT">Texto da faixa</label><input id="fxT" maxlength="160" value="${esc(A9.camp.fx.texto)}" placeholder="Ex.: Cupom BEMVINDO5: 5% de desconto na primeira compra. Aproveite!">
+  <p><button class="btn acc" onclick="admSalvaFaixa()">Salvar faixa</button></p>
+  <div class="note ${A9.camp.fx.ativo&&A9.camp.fx.texto?'':'warn'}">${A9.camp.fx.ativo&&A9.camp.fx.texto?'Faixa ativa na loja.':'Faixa desligada.'}</div></div>
+  </div>
+
   <div class="box" style="grid-column:1/-1"><h3 style="margin-top:0">Banners do carrossel</h3>
   <p style="color:var(--muted);font-size:.88rem;margin:0 0 12px">Adicione banners personalizados. Quando há banners aqui, eles substituem os banners padrão. Deixe a lista vazia para voltar aos banners padrão.</p>
   ${bans.length?`<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">${bans.map((b,i)=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid #e5e7eb;border-radius:10px;background:#fafafa"><div style="width:56px;height:32px;border-radius:6px;background:#ddd;overflow:hidden;flex-shrink:0">${b.url?`<img src="${esc(b.url)}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`:'<span style="font-size:.7rem;color:#999;padding:2px">sem img</span>'}</div><div style="flex:1;min-width:0"><b style="font-size:.9rem">${esc(b.titulo||'Banner '+(i+1))}</b><br><span style="font-size:.78rem;color:var(--muted)">${b.seg||4}s por slide</span></div><label style="font-size:.82rem;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" style="width:auto" ${b.ativo!==false?'checked':''} onchange="banSetAtivo(${i},this.checked)"> Ativo</label><button class="btn ghost sm" style="color:#b42318;flex-shrink:0" onclick="banRemover(${i})">Remover</button></div>`).join('')}</div>`:'<p style="color:var(--muted)">Nenhum banner. Usando banners padrão.</p>'}
@@ -5006,6 +5026,22 @@ async function admSalvaAmigo(){
   const r=await SB.from('configuracao').upsert({chave:'amigo',valor,publica:true,atualizado_em:new Date().toISOString()});
   if(r.error){A9.msg='Não foi possível salvar. Confirme que está com a conta de administrador.';A9.erro=true;route();return}
   A9.camp.am=valor;A9.msg='Campanha salva. A loja já usa os novos valores.';A9.erro=false;try{await bancoConfig()}catch(x){}route();
+}
+async function admSalvaCupom(){
+  const ativo=c_('cpA'),codigo=v_('cpC').trim().toUpperCase().replace(/\s+/g,''),pct=+v_('cpP'),so=c_('cpS');
+  if(ativo&&(!codigo||!(pct>=1&&pct<=90))){A9.msg='Para ativar, informe o cupom e um desconto de 1 a 90%.';A9.erro=true;route();return}
+  const valor={ativo,codigo,pct:(pct>=1&&pct<=90)?pct:5,so_primeira:so};
+  const r=await SB.from('configuracao').upsert({chave:'cupom',valor,publica:true,atualizado_em:new Date().toISOString()});
+  if(r.error){A9.msg='Não foi possível salvar. Confirme que está com a conta de administrador.';A9.erro=true;route();return}
+  A9.camp.cp=valor;A9.msg=ativo?'Cupom ativado. Para valer no pedido, rode também o arquivo 43 no Supabase (uma vez).':'Cupom desligado.';A9.erro=false;try{await bancoConfig()}catch(x){}route();
+}
+async function admSalvaFaixa(){
+  const ativo=c_('fxA'),texto=v_('fxT').trim();
+  if(ativo&&!texto){A9.msg='Escreva o texto da faixa para ativar.';A9.erro=true;route();return}
+  const valor={ativo,texto};
+  const r=await SB.from('configuracao').upsert({chave:'faixa_rodape',valor,publica:true,atualizado_em:new Date().toISOString()});
+  if(r.error){A9.msg='Não foi possível salvar. Confirme que está com a conta de administrador.';A9.erro=true;route();return}
+  A9.camp.fx=valor;A9.msg=ativo?'Faixa ativada. Ela aparece na loja em instantes.':'Faixa desligada.';A9.erro=false;try{await bancoConfig()}catch(x){}route();
 }
 async function admSalvaPC(){
   const ativa=c_('pcA'),pctIn=+v_('pcP');
@@ -8278,14 +8314,16 @@ function catalogoHtml(itens,op){
   ordem.forEach(function(c){const g=itens.filter(function(p){return (p.cat||'')===c});for(let i=0;i<g.length;i+=POR)paginas.push({cat:c,itens:g.slice(i,i+POR),cont:i>0})});
   const cruz='<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="18" rx="1.5"/><rect x="3" y="9" width="18" height="6" rx="1.5"/></svg>';
   const logo='<div class="logo"><span class="mk">'+cruz+'</span><span class="nm">'+catEsc(marca)+'</span></div>';
-  /* uma linha por variação: "Caixa com 4 unidades — R$ 380,00". Sem preço (ou com valores desligados), só o nome. */
+  function vnNormC(n){n=String(n||'');return /ampola\s+por\s+unidade/i.test(n)?'Ampola avulsa':n}
+function vnCurtoC(n,un){n=vnNormC(n);if(/^caixa\s+fechada/i.test(n))return 'Caixa fechada'+(+un>1?' · '+un+' unidades':'');return n}
+/* uma linha por variação: "Caixa com 4 unidades — R$ 380,00". Sem preço (ou com valores desligados), só o nome. */
   const linha=function(v){
     const tem=mostraValores&&v.preco!=null&&v.preco!==''&&!isNaN(+v.preco);
-    if(!tem)return '<div class="pv"><span class="vn">'+catEsc(v.nome)+'</span></div>';
+    if(!tem)return '<div class="pv"><span class="vn">'+catEsc(vnCurtoC(v.nome,v.unidades))+'</span></div>';
     const promo=v.preco_promo!=null&&v.preco_promo!==''&&+v.preco_promo>0&&+v.preco_promo<+v.preco;
     const un=+v.unidades>1?'<small>'+catBrl((promo?v.preco_promo:v.preco)/v.unidades)+' por unidade</small>':'';
     const val=promo?'<s>'+catBrl(v.preco)+'</s> <b>'+catBrl(v.preco_promo)+'</b>':'<b>'+catBrl(v.preco)+'</b>';
-    return '<div class="pv"><span class="vn">'+catEsc(v.nome)+' <span class="tr">—</span></span> <span class="vp">'+val+'</span>'+un+'</div>';
+    return '<div class="pv"><span class="vn">'+catEsc(vnCurtoC(v.nome,v.unidades))+' <span class="tr">—</span></span> <span class="vp">'+val+'</span>'+un+'</div>';
   };
   const card=function(p){
     const vs=(p.vars||[]);const lim=vs.length>4?3:4;/* colunas estreitas: um nome por linha, preço embaixo */const vis=vs.slice(0,lim);

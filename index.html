@@ -409,6 +409,20 @@ td .sem.a::after,td .sem.l::after,td .sem.r::after{inset:-3px}
 .faixa{background:#06344a;display:flex;align-items:center;justify-content:center;gap:10px;font-size:.9rem;padding:10px 14px;line-height:1.3}
 .faixa .fxi{display:inline-grid;place-items:center;flex:none;color:#fff}
 .faixa b{font-weight:700}
+.qan{display:flex;flex-direction:column;gap:5px;line-height:1.45}
+.qan b{letter-spacing:.02em;line-height:1.4}
+.qan small{margin-top:2px;letter-spacing:.02em}
+.vst{letter-spacing:.03em}
+#faixaRod{position:fixed;left:0;right:0;bottom:0;z-index:65;background:#06344a;color:#fff;overflow:hidden;height:36px;display:flex;align-items:center;font-size:.88rem;font-weight:600;box-shadow:0 -2px 10px rgba(0,0,0,.18)}
+#faixaRod .rodtrk{display:flex;width:max-content;animation:rodando 38s linear infinite}
+#faixaRod .rodgrp{display:flex;flex:none}
+#faixaRod span{padding:0 38px;white-space:nowrap}
+#faixaRod span::after{content:"•";margin-left:38px;opacity:.6}
+@keyframes rodando{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+body.tem-rod{padding-bottom:36px}
+body.tem-rod .wafloat{bottom:calc(84px + 36px)}
+.adm-mode #faixaRod,.mb-mode #faixaRod{display:none!important}
+@media print{#faixaRod{display:none!important}}
 
 /* evita o "piscar" do conteúdo de exemplo antes dos dados chegarem */
 body:not(.pronto) #menu,body:not(.pronto) #faixa{visibility:hidden}
@@ -836,7 +850,49 @@ function validateRefLocal(code){
   if(refMonthCount(oe)>=AM.limite)return {err:'Este código atingiu o limite de indicações deste mês. Peça ao seu amigo para indicar no mês que vem.'};
   return {ok:true,owner:oe,pct:AM.pct};
 }
-let rv={code:'',use:false,msg:''};
+let rv={code:'',use:false,msg:'',cupom:null,cmsg:''};
+var CUPOM={ativo:false,codigo:'',pct:0,so_primeira:true},FAIXA_R={ativo:false,texto:''};
+/* "Ampola por unidade" vira "Ampola avulsa"; nas listas, "Caixa fechada c/ 4 ampolas" aparece só como "Caixa fechada" com as unidades ao lado */
+function vnNorm(n){n=String(n||'');return /ampola\s+por\s+unidade/i.test(n)?'Ampola avulsa':n}
+function vnCurto(n,un){n=vnNorm(n);if(/^caixa\s+fechada/i.test(n))return 'Caixa fechada'+(+un>1?' · '+un+' unidades':'');return n}
+const cupomNorm=s=>String(s||'').trim().toUpperCase().replace(/\s+/g,'');
+function cupomOk(code){
+  if(!CUPOM.ativo||!CUPOM.codigo||!(CUPOM.pct>0)||!me)return false;
+  if(cupomNorm(code)!==cupomNorm(CUPOM.codigo))return false;
+  if(CUPOM.so_primeira&&orders.some(o=>o.user===me&&o.status!=='cancelado'))return false;
+  return true;
+}
+function applyCupom(){
+  const c=cupomNorm(($('#rvCupom')||{}).value);
+  if(!c){rv.cmsg='Digite o cupom.';route();return}
+  if(!CUPOM.ativo||cupomNorm(CUPOM.codigo)!==c){rv.cupom=null;rv.cmsg='Cupom inválido ou não está mais ativo.';route();return}
+  if(CUPOM.so_primeira&&orders.some(o=>o.user===me&&o.status!=='cancelado')){rv.cupom=null;rv.cmsg='Este cupom vale só para a primeira compra.';route();return}
+  rv.cupom={code:CUPOM.codigo};rv.cmsg='';route();
+}
+function removeCupom(){rv.cupom=null;rv.cmsg='';route()}
+function cupomBox(d){
+  if(!CUPOM.ativo||!CUPOM.codigo||!(CUPOM.pct>0))return '';
+  const ap=d&&d.tipo==='cupom',tem=rv.cupom&&cupomOk(rv.cupom.code);
+  let h='<h3>Cupom de desconto</h3><div class="box" style="box-shadow:none">';
+  if(ap)h+='<div class="note">Cupom <b>'+esc(d.code)+'</b> aplicado: '+d.pct+'% de desconto. <button class="btn ghost sm" onclick="removeCupom()">Remover</button></div>';
+  else{
+    if(tem)h+='<div class="note warn">O cupom '+esc(rv.cupom.code)+' é válido, mas neste pedido vale o maior desconto. Os descontos não se acumulam.</div>';
+    h+='<label for="rvCupom">Tem um cupom de desconto?</label><div style="display:flex;gap:8px"><input id="rvCupom" placeholder="Digite o cupom" value="'+esc(tem?rv.cupom.code:'')+'" style="text-transform:uppercase"><button class="btn" onclick="applyCupom()">Aplicar</button></div>';
+    if(rv.cmsg)h+='<div class="note err">'+esc(rv.cmsg)+'</div>';
+  }
+  return h+'<p style="font-size:.8rem;color:var(--muted);margin:10px 0 0">Um desconto por pedido, não cumulativo.</p></div>';
+}
+/* faixa de rodapé: texto rodando embaixo da tela, no celular e no computador */
+function faixaRodape(){
+  let el=document.getElementById('faixaRod');
+  const on=FAIXA_R&&FAIXA_R.ativo&&String(FAIXA_R.texto||'').trim();
+  if(!on){if(el)el.remove();document.body.classList.remove('tem-rod');return}
+  if(!el){el=document.createElement('div');el.id='faixaRod';el.setAttribute('role','status');document.body.appendChild(el)}
+  const t=esc(String(FAIXA_R.texto).trim()),g=Array(6).fill('<span>'+t+'</span>').join('');
+  const novo='<div class="rodtrk"><div class="rodgrp">'+g+'</div><div class="rodgrp" aria-hidden="true">'+g+'</div></div>';
+  if(el.getAttribute('data-t')!==novo){el.innerHTML=novo;el.setAttribute('data-t',novo)}
+  document.body.classList.add('tem-rod');
+}
 function firstEligible(){
   const u=user();if(!u||!PC.ativa)return false;
   if(orders.some(o=>o.user===me&&o.status!=='cancelado'))return false;
@@ -847,19 +903,20 @@ function firstEligible(){
   }
   return true;
 }
-const dNome=d=>d.tipo==='primeira'?'primeira compra':d.tipo==='indicacao'?'indicação (código '+d.code+')':'indicação usado';
-const dLabel=d=>d.tipo==='primeira'?'Desconto de primeira compra':d.tipo==='indicacao'?'Desconto de indicação':'Desconto de indicação usado';
-const dTxt=d=>d.tipo==='primeira'?' (primeira compra, '+d.pct+'%)':d.tipo==='indicacao'?' (indicação, código '+d.code+', '+d.pct+'%)':' (desconto de indicação usado, '+d.pct+'%)';
+const dNome=d=>d.tipo==='cupom'?'cupom '+d.code:d.tipo==='primeira'?'primeira compra':d.tipo==='indicacao'?'indicação (código '+d.code+')':'indicação usado';
+const dLabel=d=>d.tipo==='cupom'?'Desconto do cupom '+d.code:d.tipo==='primeira'?'Desconto de primeira compra':d.tipo==='indicacao'?'Desconto de indicação':'Desconto de indicação usado';
+const dTxt=d=>d.tipo==='cupom'?' (cupom '+d.code+', '+d.pct+'%)':d.tipo==='primeira'?' (primeira compra, '+d.pct+'%)':d.tipo==='indicacao'?' (indicação, código '+d.code+', '+d.pct+'%)':' (desconto de indicação usado, '+d.pct+'%)';
 function calcDisc(sub){
   if(!me)return null;const c=[];
   const mk=(tipo,pct,extra)=>Object.assign({tipo,pct,valor:+(sub*pct/100).toFixed(2)},extra||{});
   if(PC.pct>0&&firstEligible())c.push(mk('primeira',PC.pct));
+  if(rv.cupom&&cupomOk(rv.cupom.code))c.push(mk('cupom',CUPOM.pct,{code:CUPOM.codigo}));
   if(amOn()){
     if(rv.code){const v=validateRef(rv.code);if(v.ok)c.push(mk('indicacao',v.pct,{code:rv.code.trim().toUpperCase(),owner:v.owner}))}
     if(rv.use){const k=credits(me);if(k.avail>0)c.push(mk('credito',k.earned[k.used].pct))}
   }
   if(!c.length)return null;
-  const prio={indicacao:3,credito:2,primeira:1};
+  const prio={cupom:4,indicacao:3,credito:2,primeira:1};
   c.sort((x,y)=>y.valor-x.valor||prio[y.tipo]-prio[x.tipo]);
   return c[0];
 }
@@ -1701,7 +1758,7 @@ function pageRev(){
   const pagInfo='';
   return `<div class="wrap pg"><h1 class="t">Finalizar compra</h1><div class="two"><div class="box"><div class="tbl"><table><thead><tr><th>Produto</th><th>Qtd.</th><th class="r">Subtotal</th></tr></thead><tbody>${cart.map(i=>{const p=byId(i.id);return `<tr><td>${esc(p.n)} (${esc(i.opt)})</td><td>${i.qty}</td><td class="r">${precoTxt(i)}</td></tr>`}).join('')}</tbody></table></div>
   <div class="tot"><span>Subtotal dos produtos</span><span>${cartSP()?(sub>0?brl(sub)+' + a confirmar':'A confirmar'):brl(sub)}</span><span>Entrega</span><span>${freteLinha()}</span>${d?`<span class="dsc">${dLabel(d)} (${d.pct}%)</span><span class="dsc">- ${brl(d.valor)}</span>`:''}<span class="big">Total</span><span class="big">${cartSP()?(sub>0?brl(tot)+' + a confirmar':'A confirmar'):brl(tot)}</span></div>
-  ${freteNotaCliente()}${nota}${amigo}
+  ${freteNotaCliente()}${nota}${cupomBox(d)}${amigo}
   ${ckDados()}
   ${entrega}
   ${pagInfo}
@@ -2957,6 +3014,8 @@ async function bancoConfig(){
     const v=x.valor;
     if(x.chave==='site'){if(v&&typeof v==='object'&&(v.cfg||v.cores)){SITE.cfg=Object.assign({},v.cfg||{});if(v.pct!=null)SITE.pct=+v.pct;SITE.cores=Object.assign({},v.cores||{});}else{SITE.cfg=Object.assign({},v||{});SITE.cores={};} }
     else if(x.chave==='primeira_compra')SITE.pct=+v.pct;
+    else if(x.chave==='cupom')CUPOM=Object.assign({ativo:false,codigo:'',pct:0,so_primeira:true},v||{});
+    else if(x.chave==='faixa_rodape')FAIXA_R=Object.assign({ativo:false,texto:''},v||{});
     else if(x.chave==='amigo')AM=Object.assign({},AMDEF,v);
     else if(x.chave==='logistica')LOG=Object.assign({},LOGDEF,v,{dias:[0,1,2,3,4,5,6]});
     else if(x.chave==='frete')FRETE=Object.assign({lista:[]},v||{});
@@ -2969,6 +3028,7 @@ async function bancoConfig(){
     else if(x.chave==='logo_url'&&typeof v==='string')LOGO_URL=v||null;
   });
   DB.set('campvis',CAMPVIS);if(BANS!==null)DB.set('bans',BANS);DB.set('footvis',FOOTVIS);if(MENU_ITENS!==null)DB.set('menu_itens',MENU_ITENS);DB.set('logo_url',LOGO_URL);
+  try{faixaRodape()}catch(e){}
   applySite();
 }
 /* o menu e a página inicial seguem as categorias que vêm dos produtos */
@@ -2986,7 +3046,7 @@ async function bancoProdutos(){
   const rvar=await SB.from('produto_variacoes').select('*').eq('ativo',true).order('ordem');
   const dvar=rvar.error?[]:rvar.data;
   const arr=r.data.map(x=>{const p={id:x.id,sku:x.sku,n:x.nome,d:x.descricao,p:x.preco!=null?+x.preco:0,consulta:false,img:x.imagem?(/^https?:/.test(x.imagem)?x.imagem:SB_URL+'/storage/v1/object/public/produtos/'+encodeURIComponent(x.imagem)):'',st:x.estoque,c:x.cor,ic:x.icone,cat:x.categoria,ativo:x.ativo,centro:!!x.centralizado};
-    p.vars=dvar.filter(v=>v.produto_id===x.id).map(v=>({id:v.id,n:v.nome,un:v.unidades,p:v.preco!=null?+v.preco:0,sale:v.preco_promo!=null?+v.preco_promo:null,sp:v.preco==null}));
+    p.vars=dvar.filter(v=>v.produto_id===x.id).map(v=>({id:v.id,n:vnNorm(v.nome),un:v.unidades,p:v.preco!=null?+v.preco:0,sale:v.preco_promo!=null?+v.preco_promo:null,sp:v.preco==null})).filter((v,i,a)=>v.n!=='Ampola avulsa'||a.findIndex(w=>w.n===v.n)===i);
     p.consulta=!p.vars.length;p.semValor=!p.vars.some(v=>!v.sp);p.p=unit(p);
     return p});
   PRODUCTS.length=0;arr.forEach(p=>PRODUCTS.push(p));
@@ -3164,7 +3224,7 @@ async function finish(){
   busy2=true;const b=$('#fin');b.disabled=true;b.textContent='Registrando o pedido...';
   const itens=cart.map(i=>({id:i.id,qty:i.qty,opt:i.opt||''}));
   const entrega={data:ent.data,turno:ent.turno,obs:ent.obs.trim(),sec:ent.sec?Object.assign({},normEnd(ent.s),{cep:fmtCep(ent.s.cep)}):null};
-  const r=await SB.rpc('criar_pedido',{p_itens:itens,p_entrega:entrega,p_codigo:(rv.ref&&rv.code)?rv.code:null,p_usar_credito:!!rv.use});
+  const r=await SB.rpc('criar_pedido',Object.assign(rv.cupom&&cupomOk(rv.cupom.code)?{p_cupom:CUPOM.codigo}:{},{p_itens:itens,p_entrega:entrega,p_codigo:(rv.ref&&rv.code)?rv.code:null,p_usar_credito:!!rv.use}));
   busy2=false;
   if(r.error){ent.erros=[msgRpc(r.error)];try{await bancoProdutos()}catch(x){}route();return}
   cart=[];rv={code:'',use:false,msg:'',ref:null};
@@ -3286,7 +3346,7 @@ function card(p){
 var QA={};
 function qaHtml(p){
   if(p.consulta||!(p.vars||[]).length)return `<button class="btn acc" onclick="nav('/produto/${p.id}')">Ver produto</button>`;
-  return `<div class="qa">${p.vars.map((v,k)=>{const m=maxVar(p,v);const q=QA[p.id+'_'+k]||0;return `<div class="qar"><div class="qan"><b>${esc(v.n)}</b>${v.sp?'':`<small>${brl(vPreco(v))}</small>`}<span class="vst ${m>0?'ok':'no'}">${m>0?'Disponível':'Sem estoque'}</span></div>${m>0?`<div class="qty"><button onclick="qaq(${p.id},${k},-1)" aria-label="Diminuir">−</button><span id="qa${p.id}_${k}">${q}</span><button onclick="qaq(${p.id},${k},1)" aria-label="Aumentar">+</button></div>`:''}</div>`}).join('')}<button class="btn acc full" id="qab${p.id}" onclick="qaAdd(${p.id})" disabled>${ICO_CART}<span>ADICIONAR AO CARRINHO</span></button><a class="qal" onclick="nav('/produto/${p.id}')">Ver detalhes</a></div>`;
+  return `<div class="qa">${p.vars.map((v,k)=>{const m=maxVar(p,v);const q=QA[p.id+'_'+k]||0;return `<div class="qar"><div class="qan"><b>${esc(vnCurto(v.n,v.un))}</b>${v.sp?'':`<small>${brl(vPreco(v))}</small>`}<span class="vst ${m>0?'ok':'no'}">${m>0?'Disponível':'Sem estoque'}</span></div>${m>0?`<div class="qty"><button onclick="qaq(${p.id},${k},-1)" aria-label="Diminuir">−</button><span id="qa${p.id}_${k}">${q}</span><button onclick="qaq(${p.id},${k},1)" aria-label="Aumentar">+</button></div>`:''}</div>`}).join('')}<button class="btn acc full" id="qab${p.id}" onclick="qaAdd(${p.id})" disabled>${ICO_CART}<span>ADICIONAR AO CARRINHO</span></button><a class="qal" onclick="nav('/produto/${p.id}')">Ver detalhes</a></div>`;
 }
 function qaq(id,k,d){const p=byId(id);if(!p)return;const v=p.vars[k],m=maxVar(p,v);const key=id+'_'+k;const q=Math.min(m,Math.max(0,(QA[key]||0)+d));QA[key]=q;const e=document.getElementById('qa'+key);if(e)e.textContent=q;const b=document.getElementById('qab'+id);if(b)b.disabled=!p.vars.some((x,j)=>QA[id+'_'+j]>0)}
 function qaAdd(id){const p=byId(id);if(!p)return;let n=0;p.vars.forEach((v,k)=>{const q=QA[id+'_'+k]||0;if(q>0&&cartAdd(id,v.id,q))n++;QA[id+'_'+k]=0;const e=document.getElementById('qa'+id+'_'+k);if(e)e.textContent=0});if(!n)return;const b=document.getElementById('qab'+id);if(b)b.disabled=true;save();updHead();bump();addPop()}
@@ -3360,7 +3420,7 @@ async function finish(){
   const w=null;
   const itens=cart.map(i=>i.v===SP?{id:i.id,qty:i.qty}:{var:i.v,qty:i.qty});
   const entrega={data:ent.data,turno:ent.turno,pagamento:'pix',obs:ent.obs.trim(),sec:ent.sec?Object.assign({},normEnd(ent.s),{cep:fmtCep(ent.s.cep)}):null};
-  const r=await SB.rpc('criar_pedido',{p_itens:itens,p_entrega:entrega,p_codigo:(rv.ref&&rv.code)?rv.code:null,p_usar_credito:!!rv.use});
+  const r=await SB.rpc('criar_pedido',Object.assign(rv.cupom&&cupomOk(rv.cupom.code)?{p_cupom:CUPOM.codigo}:{},{p_itens:itens,p_entrega:entrega,p_codigo:(rv.ref&&rv.code)?rv.code:null,p_usar_credito:!!rv.use}));
   busy2=false;
   if(r.error){if(w)w.close();ent.erros=[msgRpc(r.error)];try{await bancoProdutos()}catch(x){}route();return}
   const d=r.data,e=u.end||{},dest=ent.sec?ent.s:e;

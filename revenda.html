@@ -303,6 +303,8 @@ function showErr(msg){$('#root').innerHTML=`<div style="padding:40px;text-align:
 
 async function carregarDados(){
   try{
+    // pega de novo a ficha do revendedor: categoria A/B/C e liberações mudadas no painel valem na hora, sem sair e entrar
+    if(REV_USER&&REV_USER.id){const fr=await SB.from('revendedores').select('*').eq('id',REV_USER.id).maybeSingle();if(fr&&fr.data)REV_USER=Object.assign({},REV_USER,fr.data,{senha:undefined})}
     const [pr,pe,mo,av,pz,vd,cl,vr,rp,rpd,rcp]=await Promise.all([
       SB.from('produtos').select('id,nome,imagem,estoque,ativo,categoria,sob_consulta,ordem').eq('ativo',true),
       SB.from('pedidos_revendedor').select('*').eq('revendedor_id',REV_USER.id).order('criado_em',{ascending:false}),
@@ -333,7 +335,8 @@ async function carregarDados(){
       if(cfg.produtos_visiveis&&cfg.produtos_visiveis.length&&!cfg.produtos_visiveis.includes(p.id))return;
       const preco=(v.preco==null||v.preco==='')?null:+v.preco;
       if(precoDeRev(v.id,preco)==null)return; // sem valor definido (tabela única, preço individual ou modelo antigo), não entra no catálogo
-      PRODUTOS.push({id:v.id,produto_id:p.id,nome:p.nome+' — '+v.nome,nome_produto:p.nome,nome_var:v.nome,unidades:+v.unidades||1,preco,imagem:foto(p.imagem),estoque:+p.estoque||0,categoria:p.categoria,consulta:false,descricao:v.descricao||'',ordem_prod:(p.ordem==null?9999:+p.ordem),ordem_var:(v.ordem==null?9999:+v.ordem)});
+      if(vnNorm(v.nome)==='Ampola avulsa'&&PRODUTOS.some(x=>x.produto_id===p.id&&x.nome_var==='Ampola avulsa'))return;
+      PRODUTOS.push({id:v.id,produto_id:p.id,nome:p.nome+' — '+v.nome,nome_produto:p.nome,nome_var:vnNorm(v.nome),unidades:+v.unidades||1,preco,imagem:foto(p.imagem),estoque:+p.estoque||0,categoria:p.categoria,consulta:false,descricao:v.descricao||'',ordem_prod:(p.ordem==null?9999:+p.ordem),ordem_var:(v.ordem==null?9999:+v.ordem)});
     });
     // a linha de tirzepatida (e o que o Wesley colocar primeiro) vem antes; depois segue a ordem do cadastro
     PRODUTOS.sort((a,b)=>(a.ordem_prod-b.ordem_prod)||String(a.nome_produto).localeCompare(String(b.nome_produto))||(a.ordem_var-b.ordem_var));
@@ -384,6 +387,8 @@ const temExclusivo=p=>!!(RPROD[p.id]&&RPROD[p.id].p!=null)||PRECOS[p.id]!=null;
 function precoVenda(id,custo){const v=VENDA[id];return v!=null?v:custo*(1+MARGEM_PCT/100)}
 /* Preço que ESTE revendedor paga, em ordem: desabilitado só para ele → some; preço individual (exceção); preço exclusivo antigo;
    TABELA ÚNICA do Wesley (vale para todos, sem porcentagem); por último o modelo antigo com porcentagem (só para quem ainda não tem valor na tabela). */
+function vnNorm(n){n=String(n||'');return /ampola\s+por\s+unidade/i.test(n)?'Ampola avulsa':n}
+function vnCurto(n,un){n=vnNorm(n);if(/^caixa\s+fechada/i.test(n))return 'Caixa fechada'+(+un>1?' · '+un+' unidades':'');return n}
 function precoDeRev(vid,loja){
   const r=RPROD[vid];
   if(r&&!r.h)return null;
@@ -470,7 +475,19 @@ const ORD={};
 function ordTab(t,c){const s=ORD[t]||{};ORD[t]={c,d:s.c===c?-s.d:1};render()}
 function ordTh(t,c,txt,cls){const s=ORD[t];return '<th'+(cls?' class="'+cls+'"':'')+' style="cursor:pointer;user-select:none" ondblclick="ordTab(\''+t+'\',\''+c+'\')" title="Dê dois cliques para ordenar">'+txt+((s&&s.c===c)?(s.d>0?' ▲':' ▼'):'')+'</th>'}
 function ordLista(t,list,vals){const s=ORD[t];if(!s||!vals[s.c])return list;const v=vals[s.c];return list.slice().sort((a,b)=>{const x=v(a),y=v(b);return (x<y?-1:x>y?1:0)*s.d})}
-function rPage(p,data){PAGE=p;PAGE_DATA=data||{};render()}
+function rPage(p,data){PAGE=p;PAGE_DATA=data||{};render();
+  // ao abrir o catálogo, a tabela ou o início, busca os preços mais novos do painel
+  if(REV_USER&&['catalogo','tabela','dashboard'].includes(p))revAtualiza(true)}
+let REV_SIG='',REV_BUSY=false;
+async function revAtualiza(forcar){
+  if(REV_BUSY||!REV_USER||document.hidden&&!forcar)return;REV_BUSY=true;
+  try{await carregarDados();
+    const sig=JSON.stringify([REV_CAT,CATP,PRECOS,BASE,RPROD,PRODUTOS.map(p=>[p.id,p.nome_var,p.preco])]);
+    if(sig!==REV_SIG){const ant=REV_SIG;REV_SIG=sig;if(ant&&['catalogo','tabela','dashboard'].includes(PAGE))render()}
+  }finally{REV_BUSY=false}
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)revAtualiza(false)});
+setInterval(()=>revAtualiza(false),60000);
 function render(){
   if(!REV_USER){renderLogin();updCartBar();return}
   const html=`
@@ -611,7 +628,7 @@ function imgProduto(g){
 }
 function linhaVariacao(v,md){
   const pr=precoRev(v),item=CART.find(i=>i.id===v.id),sem=v.estoque<=0;
-  return `<div class="vrow"><div class="vtx"><span class="vnm">${esc(v.nome_var||v.nome)}</span>${v.descricao?`<small style="display:block;color:var(--muted)">${esc(v.descricao)}</small>`:''}<span class="vpr"><b>${brl(pr)}</b>${md&&v.preco&&pr<v.preco?` <s>${brl(v.preco)}</s>`:''}</span><small class="marg-hint">Venda a ${brl(pr*(1+MARGEM_PCT/100))} → +${brl(pr*MARGEM_PCT/100)}</small></div>
+  return `<div class="vrow"><div class="vtx"><span class="vnm">${esc(vnCurto(v.nome_var||v.nome,v.unidades))}</span>${v.descricao?`<small style="display:block;color:var(--muted)">${esc(v.descricao)}</small>`:''}<span class="vpr"><b>${brl(pr)}</b>${md&&v.preco&&pr<v.preco?` <s>${brl(v.preco)}</s>`:''}</span><small class="marg-hint">Venda a ${brl(pr*(1+MARGEM_PCT/100))} → +${brl(pr*MARGEM_PCT/100)}</small></div>
     <div class="vac">${sem?'<span style="color:#b91c1c;font-size:.78rem">Sem estoque</span>':item
       ?`<div class="qty-ctrl"><button onclick="cartSet('${v.id}',${item.qty-1})">−</button><span>${item.qty}</span><button onclick="cartSet('${v.id}',${item.qty+1})">+</button></div>`
       :`<button class="btn sm" onclick="cartAdd(${JSON.stringify(v).replace(/"/g,'&quot;')})">Adicionar</button>`}</div></div>`;
@@ -693,7 +710,7 @@ function pageMeuCatalogo(){
         ${g.vars.map(v=>{
           const custo=precoRev(v),pv=precoVenda(v.id,custo),prop=VENDA[v.id]!=null;
           return `<div class="mvrow">
-            <div class="vnm">${esc(v.nome_var||v.nome)} <b class="vpv" id="tg-${v.id}">${brl(pv)}</b></div>
+            <div class="vnm">${esc(vnCurto(v.nome_var||v.nome,v.unidades))} <b class="vpv" id="tg-${v.id}">${brl(pv)}</b></div>
             <div class="no-print" style="font-size:.76rem;color:var(--muted)">Seu custo: <b>${brl(custo)}</b></div>
             <div class="vinp"><span>Vender a R$</span><input id="vp-${v.id}" inputmode="decimal" value="${prop?pv.toFixed(2).replace('.',','):''}" placeholder="${pv.toFixed(2).replace('.',',')}" onchange="salvarVenda('${v.id}',this.value)"></div>
             <div class="lucro no-print" id="lc-${v.id}">Lucro: ${brl(pv-custo)}/un.${prop?'':' (sugerido)'}</div>
@@ -1380,7 +1397,7 @@ function catalogoPdfGerar(){
   const marcados=[].slice.call(document.querySelectorAll('.cp-p:checked')).map(x=>x.value);
   if(!marcados.length){alert('Marque pelo menos um produto.');return}
   const valores=!!(document.getElementById('cp-val')||{}).checked;
-  const itens=marcados.map(id=>window.CATPDF[id]).filter(Boolean).map(p=>({nome:p.nome,cat:((p.itens[0].categoria||[])[0])||'',foto:p.itens[0].imagem,vars:p.itens.map(v=>({nome:v.nome_var||v.nome,unidades:v.unidades,preco:precoVenda(v.id,precoRev(v)),preco_promo:null}))}));
+  const itens=marcados.map(id=>window.CATPDF[id]).filter(Boolean).map(p=>({nome:p.nome,cat:((p.itens[0].categoria||[])[0])||'',foto:p.itens[0].imagem,vars:p.itens.map(v=>({nome:vnCurto(v.nome_var||v.nome,v.unidades),unidades:v.unidades,preco:precoVenda(v.id,precoRev(v)),preco_promo:null}))}));
   const d=String(REV_USER.telefone||'').replace(/\D/g,'');
   const fone=d.length>=10?'('+d.slice(-11,-9||undefined)+') '+d.slice(-9,-4)+'-'+d.slice(-4):'';
   const html=catalogoHtml(itens,{titulo:'Catálogo de Produtos',marca:'ZP Imports',fone,valores,imprimir:true});
