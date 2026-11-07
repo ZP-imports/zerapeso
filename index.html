@@ -4584,6 +4584,7 @@ function pageParada(pid,tok){
   const p=PAR_R[key];
   if(p===null)return caixa('<p style="color:var(--muted)">Buscando a entrega...</p>');
   if(p===false)return caixa('<div class="note err">Este link não é válido ou a entrega não existe mais.</div>');
+  endPrepara([p.dest]);
   const t=endTxt(p.dest||{}),fim=p.status==='entregue',canc=p.status==='cancelado',tent=p.status==='tentativa';
   const st=fim?'✅ Entregue':canc?'Cancelado':tent?'Tentativa sem sucesso':p.chegou_em?'📍 Cheguei às '+horaBr(p.chegou_em):'A caminho';
   const ativo=!fim&&!canc&&p.saiu;
