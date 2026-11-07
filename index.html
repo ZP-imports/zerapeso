@@ -4412,17 +4412,30 @@ function endGeoSalva(){try{localStorage.setItem('zp_endgeo',JSON.stringify(ENDGE
 function endLoc(t){const c=ENDGEO[t];return c&&c.lat!=null?c.lat.toFixed(6)+','+c.lon.toFixed(6):''}
 async function cepCoord(cep){
   const r=await fetch('https://cep.awesomeapi.com.br/json/'+cep);
-  if(r.status===404)return null;if(!r.ok)throw new Error('geo');
-  const j=await r.json(),la=+j.lat,lo=+j.lng;
-  return la&&lo&&la<6&&la>-34&&lo<-33&&lo>-74?{lat:la,lon:lo}:null;
+  if(r.status===404)return {lat:null,lon:null,rua:''};if(!r.ok)throw new Error('geo');
+  const j=await r.json(),la=+j.lat,lo=+j.lng,ok=la&&lo&&la<6&&la>-34&&lo<-33&&lo>-74;
+  return {lat:ok?la:null,lon:ok?lo:null,rua:String(j.address||'')};
 }
+/* compara a rua digitada com a rua do CEP (sem acento, sem "Rua/Av./de/da"): true = bate, false = é outra rua, null = não deu para saber */
+function ruaTokens(s){
+  const stop=new Set(['rua','r','avenida','av','travessa','tv','alameda','al','estrada','est','rodovia','rod','praca','pca','largo','viela','de','da','do','das','dos','e','dr','dra','prof','profa','professor','professora','doutor','doutora']);
+  return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w&&!stop.has(w));
+}
+function ruaConfere(digitada,doCep){
+  const a=ruaTokens(digitada),b=ruaTokens(doCep);
+  if(!a.length||!b.length)return null;
+  const igual=(x,y)=>x===y||(x.length>=3&&y.length>=3&&(x.startsWith(y)||y.startsWith(x)));
+  const comum=a.filter(x=>b.some(y=>igual(x,y))).length;
+  return comum/Math.min(a.length,b.length)>=0.5;
+}
+function endAviso(t){const c=ENDGEO[t];return c&&c.v&&c.ok===false&&c.cr?'<div class="note warn" style="margin:6px 0;font-size:.82rem">⚠ O CEP deste endereço é da rua "'+esc(c.cr)+'", diferente da rua digitada. O mapa usa a rua e o número digitados. Confirme com o cliente.</div>':''}
 /* 1ª fase (rápida): CEP. 2ª fase (devagar, 1 por segundo): rua + número, aceito só se ficar a menos de 1,5 km do ponto do CEP */
 var endQ=[],endRQ=[],endBusy=false,endRBusy=false,endT=null;
 function endPrepara(list){
   (list||[]).forEach(d=>{
     if(!d||!d.rua)return;const t=endTxt(d),c=ENDGEO[t];
-    if(c&&c.r)return;
-    if(c){if(!endRQ.some(x=>x.t===t))endRQ.push({t,d});return}
+    if(c&&c.v&&c.r)return;
+    if(c&&c.v){if(!endRQ.some(x=>x.t===t))endRQ.push({t,d});return}
     if(!endQ.some(x=>x.t===t))endQ.push({t,d});
   });
   endRoda();endRefina();
@@ -4432,7 +4445,8 @@ async function endRoda(){
   try{while(endQ.length){
     const it=endQ.shift(),cep=String(it.d.cep||'').replace(/\D/g,'');let g=null;
     if(cep.length===8){try{g=await cepCoord(cep)}catch(x){continue}}
-    ENDGEO[it.t]=g?{lat:g.lat,lon:g.lon,p:'cep'}:{lat:null,lon:null};endGeoSalva();
+    const cf=g?ruaConfere(it.d.rua,g.rua):null;
+    ENDGEO[it.t]={lat:g?g.lat:null,lon:g?g.lon:null,p:g&&g.lat!=null?'cep':undefined,v:1,ok:cf,cr:(g&&g.rua)||''};endGeoSalva();
     endRQ.push(it);clearTimeout(endT);endT=setTimeout(endRefresh,500);
   }}finally{endBusy=false}
 }
@@ -4447,11 +4461,13 @@ async function endRefina(){
     c.r=1;ENDGEO[it.t]=c;endGeoSalva();
   }}finally{endRBusy=false}
 }
-function endRefresh(){if(/^#\/(entrega|retirada)\//.test(location.hash))route()}
+function endRefresh(){if(/^#\/(entrega|retirada|parada)\//.test(location.hash))route()}
 /* um só link por cliente: vai direto ao endereço que o cliente informou, escrito do jeito que o Google Maps entende (rua, número - bairro, cidade - UF, CEP, Brasil) */
 function mapsAddr(t){
-  const p=String(t||'').split(', ');
-  const r=p.length===5?p[0]+', '+p[1]+' - '+p[2]+', '+p[3]+', '+p[4]:p.join(', ');
+  const p=String(t||'').split(', '),c=ENDGEO[t],ehCep=s=>/^\d{5}-?\d{3}$/.test(String(s||'').trim());
+  let cep='';
+  if(p.length&&ehCep(p[p.length-1])){cep=p.pop();if(!(c&&c.v&&c.ok===true))cep=''}  /* CEP só vai se a rua do CEP bater com a rua digitada */
+  const r=(p.length===4?p[0]+', '+p[1]+' - '+p[2]+', '+p[3]:p.join(', '))+(cep?', '+cep:'');
   return /brasil/i.test(r)?r:r+', Brasil';
 }
 var mapsDest=t=>'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(mapsAddr(t))+'&travelmode=driving';
@@ -4530,7 +4546,7 @@ function stopHtml(p,k,rid,tk,saiu){
   return `<div class="stop ${fim?'ok':''}"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><h3>${k+1}. ${esc(p.nome||'')}</h3><small style="color:var(--muted);white-space:nowrap">${esc(TURNOS[p.turno]||'')}</small></div>
   <div class="ad">${esc(t)}${p.dest&&p.dest.ref?'<div style="color:var(--muted);font-size:.85rem">Ref.: '+esc(p.dest.ref)+'</div>':''}</div>${p.fone?`<div style="margin:4px 0 6px;font-size:.9rem">📱 <a href="https://wa.me/${foneWa(p.fone)}" target="_blank" rel="noopener" style="color:var(--pd)">${esc(p.fone)}</a></div>`:''}
   <div style="font-size:.88rem;margin-bottom:10px"><b>${st}</b></div>
-  ${canc?'':`<div class="acts"><a class="btn acc sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">📍 Pino exato</a>${saiu&&!fim&&(emRota||tent)?(emRota&&!p.chegou_em?`<button class="btn sm full2" onclick="entCheguei('${rid}','${tk}',${p.pedido})">📷 Cheguei: tirar foto do local</button>`:'')+bt('entregue','Entreguei','acc')+(emRota?bt('tentativa','Não consegui entregar','ghost sm'):''):''}</div>`}</div>`;
+  ${canc?'':`${endAviso(t)}<div class="acts"><a class="btn acc sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">📍 Pino exato</a>${saiu&&!fim&&(emRota||tent)?(emRota&&!p.chegou_em?`<button class="btn sm full2" onclick="entCheguei('${rid}','${tk}',${p.pedido})">📷 Cheguei: tirar foto do local</button>`:'')+bt('entregue','Entreguei','acc')+(emRota?bt('tentativa','Não consegui entregar','ghost sm'):''):''}</div>`}</div>`;
 }
 function pageEntregador(rid,tk){
   const caixa=t=>'<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota de entregas</h1>'+t+'</div>';
@@ -4575,7 +4591,7 @@ function pageParada(pid,tok){
    '<div class="stop '+(fim?'ok':'')+'"><h3>'+esc(p.nome||'')+'</h3><div class="ad">'+esc(t)+(p.dest&&p.dest.ref?'<div style="color:var(--muted);font-size:.85rem">Ref.: '+esc(p.dest.ref)+'</div>':'')+'</div>'+
    (p.fone?'<div style="margin:4px 0 6px;font-size:.9rem">📱 <a href="https://wa.me/'+foneWa(p.fone)+'" target="_blank" rel="noopener" style="color:var(--pd)">'+esc(p.fone)+'</a></div>':'')+
    '<div style="font-size:.88rem;margin-bottom:10px"><b>'+st+'</b></div>'+
-   (canc?'':'<div class="acts"><a class="btn acc sm" href="'+esc(mapsDest(t))+'" target="_blank" rel="noopener">📍 Pino exato</a>'+
+   (canc?'':endAviso(t)+'<div class="acts"><a class="btn acc sm" href="'+esc(mapsDest(t))+'" target="_blank" rel="noopener">📍 Pino exato</a>'+
    (ativo?(p.chegou_em?'<button class="btn acc full2" onclick="paradaAcao(\''+pid+'\',\''+tok+'\',\'entregue\')">Entreguei</button><button class="btn ghost sm full2" onclick="paradaAcao(\''+pid+'\',\''+tok+'\',\'tentativa\')">Não consegui entregar</button>':'<button class="btn sm full2" onclick="paradaCheguei(\''+pid+'\',\''+tok+'\')">📷 Cheguei: tirar foto do local</button>'):(fim?'':'<span style="font-size:.85rem;color:var(--muted)">Os botões aparecem quando a rota sair.</span>'))+'</div>')+'</div>'+
    '<p style="text-align:center"><button class="btn ghost sm" onclick="delete PAR_R[\''+key+'\'];route()">Atualizar</button></p>');
 }
@@ -4617,7 +4633,7 @@ function pageRetirada(rid,tk){
     const st=fim?'✅ Pedido devolvido':p.chegou_em?'📍 Cheguei às '+horaBr(p.chegou_em):'A caminho';
     return `<div class="stop ${fim?'ok':''}"><h3>${k+1}. ${esc(p.nome||'')}</h3><div class="ad">${esc(t)}${p.dest&&p.dest.ref?'<div style="color:var(--muted);font-size:.85rem">Ref.: '+esc(p.dest.ref)+'</div>':''}</div>${p.fone?`<div style="margin:4px 0 6px;font-size:.9rem">📱 <a href="https://wa.me/${foneWa(p.fone)}" target="_blank" rel="noopener" style="color:var(--pd)">${esc(p.fone)}</a></div>`:''}
     <div style="font-size:.88rem;margin-bottom:10px"><b>${st}</b></div>
-    <div class="acts"><a class="btn acc sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">📍 Pino exato</a>${fim?'':(p.chegou_em?'':`<button class="btn sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','cheguei')">📍 Cheguei</button>`)+`<button class="btn acc sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','finalizar')">✅ Finalizar: voltei com o pedido</button>`}</div></div>`;
+    ${endAviso(t)}<div class="acts"><a class="btn acc sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">📍 Pino exato</a>${fim?'':(p.chegou_em?'':`<button class="btn sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','cheguei')">📍 Cheguei</button>`)+`<button class="btn acc sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','finalizar')">✅ Finalizar: voltei com o pedido</button>`}</div></div>`;
   };
   return `<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota de devolução</h1>
   <p style="margin:0 0 12px;color:var(--muted)">Busque o pedido na casa do cliente e devolva na <b>${esc(BASE_ZP)}</b>. ${ps.length-abertas.length} de ${ps.length} concluídas.</p>
@@ -5292,9 +5308,9 @@ function otFechar(){A9.otim=null;route()}
 function otPs(){const T=A9.otim,L=A9.lg;return T.ids.map(id=>L.peds[id]).filter(Boolean)}
 function mapsTrecho(lista,origem){
   const L=(lista||[]).filter(Boolean);if(!L.length)return '';
-  let u='https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+encodeURIComponent(L[L.length-1]);
-  if(origem)u+='&origin='+encodeURIComponent(origem);
-  if(L.length>1)u+='&waypoints='+encodeURIComponent(L.slice(0,-1).join('|'));
+  let u='https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+encodeURIComponent(mapsAddr(L[L.length-1]));
+  if(origem)u+='&origin='+encodeURIComponent(mapsAddr(origem));
+  if(L.length>1)u+='&waypoints='+encodeURIComponent(L.slice(0,-1).map(mapsAddr).join('|'));
   return u;
 }
 function otTrechos(ends){const out=[];for(let i=0;i<ends.length;i+=10){out.push({de:i+1,ate:Math.min(i+10,ends.length),url:mapsTrecho(ends.slice(i,i+10),i?ends[i-1]:'')})}return out}
