@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2026-11-06-2511 -->
+<!-- v2026-11-07-2512 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -495,6 +495,7 @@ tr[data-sc] td:first-child{box-shadow:inset 4px 0 0 var(--sc)}
 .prtop{display:flex;gap:10px;align-items:center}.prtop img,.prph{width:46px;height:46px;border-radius:10px;object-fit:contain;background:#f3f4f6;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--p)}
 .prck{display:flex;align-items:center}.prck input{width:18px;height:18px}
 .prvars{display:flex;flex-direction:column;gap:6px}
+.banlin.banalvo{outline:2px dashed var(--acc,#2563eb);outline-offset:2px;background:#eef4ff!important}
 .prvar{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:7px 9px;cursor:pointer;font-size:.88rem}.prvar.sel{border-color:var(--p);background:#eef5f2}.prvar.off{opacity:.5}
 .prvar input{width:17px;height:17px;flex:none}.prvn{flex:1;min-width:0}.prvn small{display:block;color:var(--muted);font-size:.74rem}.prvp{text-align:right;white-space:nowrap}
 .prbar{position:sticky;top:0;z-index:30;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:0 0 6px;box-shadow:0 4px 14px rgba(16,24,40,.08)}.prbar.on{border-color:var(--p);background:#f6fbf9}
@@ -3253,8 +3254,10 @@ function revCatalogoHtml(rv){
   const CP=A9.prCat[cat]||{},vs={};((A9.revs&&A9.revs.variacoes)||[]).forEach(v=>{vs[v.id]=v});
   const pn={};((A9.revs&&A9.revs.produtos)||[]).forEach(p=>{pn[p.id]=p.nome});
   const rows=Object.keys(CP).map(id=>{const v=vs[id]||{};return {p:pn[v.produto_id]||'(produto)',n:vnNormC(v.nome||''),u:v.unidades,preco:CP[id]}}).sort((a,b)=>a.p.localeCompare(b.p)||String(a.n).localeCompare(String(b.n)));
-  if(!rows.length)return cab+'<div class="note warn">O Revendedor '+esc(cat)+' ainda não tem itens. Defina os preços em <b>Catálogo / Preços</b> (aba Revendedor '+esc(cat)+'). Enquanto estiver vazio, o catálogo dele no portal também fica vazio.</div></div>';
-  return cab+'<p style="margin:0 0 8px;color:var(--muted);font-size:.88rem">'+rows.length+' ite'+(rows.length===1?'m':'ns')+' no catálogo dele. Aparece no portal na aba <b>Catálogo</b> e em <b>Tabela de preços</b>.</p><div class="tbl" style="max-height:340px;overflow:auto"><table><thead><tr><th>Produto</th><th>Variação</th><th class="r">Preço dele</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.p)+'</td><td>'+esc(r.n)+(+r.u>1?' <small style="color:var(--muted)">('+r.u+' un.)</small>':'')+'</td><td class="r"><b>'+brl(r.preco)+'</b></td></tr>').join('')+'</tbody></table></div></div>';
+  const lig=(A9.prCatOn||{})[cat]===true;
+  const aviso=lig?'':'<div class="note warn" style="margin-bottom:8px">O catálogo do Revendedor '+esc(cat)+' ainda <b>não está habilitado</b>. Em <b>Catálogo / Preços</b>, aba Revendedor '+esc(cat)+', marque <b>Habilitar catálogo de preços</b> e ele aparece para este revendedor na hora.</div>';
+  if(!rows.length)return cab+aviso+'<div class="note warn">O Revendedor '+esc(cat)+' ainda não tem itens. Defina os preços em <b>Catálogo / Preços</b> (aba Revendedor '+esc(cat)+'). Enquanto estiver vazio, o catálogo dele no portal também fica vazio.</div></div>';
+  return cab+aviso+'<p style="margin:0 0 8px;color:var(--muted);font-size:.88rem">'+rows.length+' ite'+(rows.length===1?'m':'ns')+' no catálogo dele. Aparece no portal na aba <b>Catálogo</b> e em <b>Tabela de preços</b>.</p><div class="tbl" style="max-height:340px;overflow:auto"><table><thead><tr><th>Produto</th><th>Variação</th><th class="r">Preço dele</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.p)+'</td><td>'+esc(r.n)+(+r.u>1?' <small style="color:var(--muted)">('+r.u+' un.)</small>':'')+'</td><td class="r"><b>'+brl(r.preco)+'</b></td></tr>').join('')+'</tbody></table></div></div>';
 }
 async function admRevSalvar(id){
   const nome=document.getElementById('rv-nome')&&document.getElementById('rv-nome').value.trim();
@@ -5014,7 +5017,7 @@ function tabCampanhas(){
 
   <div class="box" style="grid-column:1/-1"><h3 style="margin-top:0">Banners do carrossel</h3>
   <p style="color:var(--muted);font-size:.88rem;margin:0 0 12px">Adicione banners personalizados. Quando há banners aqui, eles substituem os banners padrão. Deixe a lista vazia para voltar aos banners padrão.</p>
-  ${bans.length?`<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">${bans.map((b,i)=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid #e5e7eb;border-radius:10px;background:#fafafa"><div style="width:56px;height:32px;border-radius:6px;background:#ddd;overflow:hidden;flex-shrink:0">${b.url?`<img src="${esc(b.url)}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`:'<span style="font-size:.7rem;color:#999;padding:2px">sem img</span>'}</div><div style="flex:1;min-width:0"><b style="font-size:.9rem">${esc(b.titulo||'Banner '+(i+1))}</b><br><span style="font-size:.78rem;color:var(--muted)">${b.seg||4}s por slide</span></div><label style="font-size:.82rem;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" style="width:auto" ${b.ativo!==false?'checked':''} onchange="banSetAtivo(${i},this.checked)"> Ativo</label><button class="btn ghost sm" style="color:#b42318;flex-shrink:0" onclick="banRemover(${i})">Remover</button></div>`).join('')}</div>`:'<p style="color:var(--muted)">Nenhum banner. Usando banners padrão.</p>'}
+  ${bans.length?`<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">${bans.map((b,i)=>`<div class="banlin" draggable="true" ondragstart="banDrag(event,${i})" ondragover="banOver(event,${i})" ondragleave="this.classList.remove('banalvo')" ondrop="banSolta(event,${i})" ondragend="banFimDrag()" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid #e5e7eb;border-radius:10px;background:#fafafa"><div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0"><span title="Arraste para mudar a ordem" style="cursor:grab;font-size:1.2rem;line-height:1;color:#6b7280;user-select:none">⠿</span><span style="font-size:.7rem;font-weight:700;color:var(--muted)">${i+1}º</span></div><div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0"><button class="btn ghost sm" style="padding:0 8px;line-height:1.3" ${i?'':'disabled'} onclick="banMover(${i},${i-1})" aria-label="Subir">▲</button><button class="btn ghost sm" style="padding:0 8px;line-height:1.3" ${i<bans.length-1?'':'disabled'} onclick="banMover(${i},${i+1})" aria-label="Descer">▼</button></div><div style="width:56px;height:32px;border-radius:6px;background:#ddd;overflow:hidden;flex-shrink:0">${b.url?`<img src="${esc(b.url)}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`:'<span style="font-size:.7rem;color:#999;padding:2px">sem img</span>'}</div><div style="flex:1;min-width:0"><b style="font-size:.9rem">${esc(b.titulo||'Banner '+(i+1))}</b><br><span style="font-size:.78rem;color:var(--muted)">${b.seg||4}s por slide</span></div><label style="font-size:.82rem;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" style="width:auto" ${b.ativo!==false?'checked':''} onchange="banSetAtivo(${i},this.checked)"> Ativo</label><button class="btn ghost sm" style="color:#b42318;flex-shrink:0" onclick="banRemover(${i})">Remover</button></div>`).join('')}</div>`:'<p style="color:var(--muted)">Nenhum banner. Usando banners padrão.</p>'}
   <div style="padding:14px;border:1px dashed #d1d5db;border-radius:10px;margin-top:4px">
     <p style="margin:0 0 10px;font-weight:600;font-size:.9rem">Adicionar banner</p>
     <div class="fr">
@@ -5067,6 +5070,17 @@ async function admSalvaPC(){
   const vis=Object.assign({},A9.camp.vis,{primeira:ativa});
   await SB.from('configuracao').upsert({chave:'camp_vis',valor:vis,publica:true,atualizado_em:new Date().toISOString()});
   A9.camp.pc=valor;A9.camp.vis=vis;A9.msg=ativa?'Campanha de primeira compra ativada.':'Campanha de primeira compra desligada. A loja já não dá esse desconto.';A9.erro=false;try{await bancoConfig()}catch(x){}route();
+}
+/* ordem dos banners: arrastar uma linha para cima ou para baixo (ou usar ▲ ▼); a ordem da lista é a ordem no carrossel */
+var BAN_DRAG=-1;
+function banDrag(ev,i){BAN_DRAG=i;try{ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(i))}catch(x){}ev.currentTarget.style.opacity='.5'}
+function banOver(ev,i){if(BAN_DRAG<0)return;ev.preventDefault();ev.currentTarget.classList.add('banalvo')}
+function banFimDrag(){BAN_DRAG=-1;document.querySelectorAll('.banlin').forEach(e=>{e.style.opacity='';e.classList.remove('banalvo')})}
+function banSolta(ev,i){ev.preventDefault();const de=BAN_DRAG;banFimDrag();if(de>=0&&de!==i)banMover(de,i)}
+async function banMover(de,para){
+  const b=A9.camp&&A9.camp.bans;if(!b||de<0||para<0||de>=b.length||para>=b.length||de===para)return;
+  const x=b.splice(de,1)[0];b.splice(para,0,x);
+  await banSalvar();
 }
 async function banSalvar(){
   const bans=A9.camp.bans||[];
@@ -5285,7 +5299,23 @@ async function prCatCarrega(){
   const m={A:{},B:{},C:{}};
   if(r.error){A9.prCat=m;A9.prCatErro=/revenda_categoria_precos|relation|schema cache/i.test(r.error.message||'')?'Falta rodar o arquivo 42 no Supabase para guardar os preços dos revendedores.':r.error.message;route();return}
   (r.data||[]).forEach(x=>{if(m[x.categoria])m[x.categoria][x.variacao_id]=+x.preco});
+  /* botão "Habilitar catálogo" de cada categoria e quantos revendedores há em cada uma */
+  try{
+    const [cf,rvs]=await Promise.all([SB.from('configuracao').select('valor').eq('chave','revenda_catalogo').maybeSingle(),SB.from('revendedores').select('config,status')]);
+    A9.prCatOn=(cf.data&&cf.data.valor)||{};A9.prCatQtd={A:0,B:0,C:0};
+    (rvs.data||[]).forEach(x=>{const c=(x.config||{}).categoria;if(A9.prCatQtd[c]!=null&&x.status!=='bloqueado')A9.prCatQtd[c]++});
+  }catch(e){A9.prCatOn=A9.prCatOn||{};A9.prCatQtd=A9.prCatQtd||{A:0,B:0,C:0}}
   A9.prCat=m;A9.prCatErro='';route();
+}
+function prCatToggle(cat){
+  const on=(A9.prCatOn||{})[cat]===true,n=(A9.prCatQtd||{})[cat]||0;
+  return '<div class="note '+(on?'':'warn')+'" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:8px 0"><label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer;margin:0"><input type="checkbox" style="width:auto" '+(on?'checked':'')+' onchange="prCatLiga('+"'"+cat+"'"+',this.checked)"> Habilitar catálogo de preços do Revendedor '+cat+'</label><span>'+(on?'Ligado: '+n+' revendedor'+(n===1?'':'es')+' '+cat+' já '+(n===1?'vê':'veem')+' este catálogo no portal.':'Desligado: os revendedores '+cat+' ('+n+') ainda não veem este catálogo.')+'</span></div>';
+}
+async function prCatLiga(cat,on){
+  const cur=Object.assign({A:false,B:false,C:false},A9.prCatOn||{});cur[cat]=on;
+  const r=await SB.from('configuracao').upsert({chave:'revenda_catalogo',valor:cur,publica:true,atualizado_em:new Date().toISOString()});
+  if(r.error){toast('Não foi possível salvar. Confirme que está com a conta de administrador.');route();return}
+  A9.prCatOn=cur;toast(on?'Catálogo habilitado: os revendedores '+cat+' já veem.':'Catálogo desligado para os revendedores '+cat+'.');route();
 }
 function prSeg(){
   const n=c=>A9.prCat?Object.keys(A9.prCat[c]||{}).length:'';
@@ -5332,7 +5362,7 @@ function tabPrecos(){
      '<div class="btns"><button class="btn acc sm" onclick="prCatAplicar(\'preco\')">💲 Definir preço (entra na categoria)</button><button class="btn sm" onclick="prCatAplicar(\'desc\')">🏷 Desconto % sobre a loja</button><button class="btn ghost sm" onclick="prCatAplicar(\'tirar\')">Tirar da categoria</button></div>':'<div class="pgsub">Marque as variações que o <b>Revendedor '+pr.vista+'</b> vende e defina o preço dele. Quem não tem preço aqui não aparece no catálogo desse revendedor.</div>')+'</div>';
   }
   const topo='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><p style="margin:0;color:var(--muted)">'+(ehCat?'Preços do <b>Revendedor '+pr.vista+'</b>: valem no portal e nos links de pedido de quem está nessa categoria.':'Escolha as variações e mude o preço ou o desconto de uma vez. O que você muda aqui vale na hora no site do cliente.')+'</p><div class="btns"><button class="btn ghost" onclick="'+(ehCat?'prCatalogoPdf(\''+pr.vista+'\')':'catAbrir()')+'">📄 Gerar catálogo (PDF)'+(ehCat?' do '+pr.vista:'')+'</button></div></div>';
-  return '<div class="box">'+msgBox()+topo+prSeg()+(ehCat&&A9.prCatErro?'<div class="note warn">'+esc(A9.prCatErro)+'</div>':'')+prFiltrosHtml()+barra+'<div class="prgrid">'+prCards(ehCat?pr.vista:null)+'</div></div>';
+  return '<div class="box">'+msgBox()+topo+prSeg()+(ehCat?prCatToggle(pr.vista):'')+(ehCat&&A9.prCatErro?'<div class="note warn">'+esc(A9.prCatErro)+'</div>':'')+prFiltrosHtml()+barra+'<div class="prgrid">'+prCards(ehCat?pr.vista:null)+'</div></div>';
 }
 function prTxt(x){return x.preco==null?'sob consulta':(x.promo!=null?brl(x.preco)+' (promo '+brl(x.promo)+')':brl(x.preco))}
 function prTxtCat(x){return x.preco==null?'fora da categoria':brl(x.preco)}
@@ -5690,8 +5720,10 @@ function endTxt(d){
 }
 /* um só link por cliente: vai direto ao endereço que o cliente informou, escrito do jeito que o Google Maps entende (rua, número - bairro, cidade - UF, CEP, Brasil) */
 function mapsAddr(t){
-  const p=String(t||'').split(', ');
-  const r=p.length===5?p[0]+', '+p[1]+' - '+p[2]+', '+p[3]+', '+p[4]:p.join(', ');
+  const p=String(t||'').split(', '),c=ENDGEO[t],ehCep=s=>/^\d{5}-?\d{3}$/.test(String(s||'').trim());
+  let cep='';
+  if(p.length&&ehCep(p[p.length-1])){cep=p.pop();if(!(c&&c.v&&c.ok===true))cep=''}  /* CEP só vai se a rua do CEP bater com a rua digitada */
+  const r=(p.length===4?p[0]+', '+p[1]+' - '+p[2]+', '+p[3]:p.join(', '))+(cep?', '+cep:'');
   return /brasil/i.test(r)?r:r+', Brasil';
 }
 var mapsDest=t=>'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(mapsAddr(t))+'&travelmode=driving';
@@ -6091,7 +6123,7 @@ function pageRetirada(rid,tk){
     const st=fim?'✅ Pedido devolvido':p.chegou_em?'📍 Cheguei às '+horaBr(p.chegou_em):'A caminho';
     return `<div class="stop ${fim?'ok':''}"><h3>${k+1}. ${esc(p.nome||'')}</h3><div class="ad">${esc(t)}${p.dest&&p.dest.ref?'<div style="color:var(--muted);font-size:.85rem">Ref.: '+esc(p.dest.ref)+'</div>':''}</div>${p.fone?`<div style="margin:4px 0 6px;font-size:.9rem">📱 <a href="https://wa.me/${foneWa(p.fone)}" target="_blank" rel="noopener" style="color:var(--pd)">${esc(p.fone)}</a></div>`:''}
     <div style="font-size:.88rem;margin-bottom:10px"><b>${st}</b></div>
-    <div class="acts"><a class="btn acc sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">📍 Pino exato</a>${fim?'':(p.chegou_em?'':`<button class="btn sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','cheguei')">📍 Cheguei</button>`)+`<button class="btn acc sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','finalizar')">✅ Finalizar: voltei com o pedido</button>`}</div></div>`;
+    ${endAviso(t)}<div class="acts"><a class="btn acc sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">📍 Pino exato</a>${fim?'':(p.chegou_em?'':`<button class="btn sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','cheguei')">📍 Cheguei</button>`)+`<button class="btn acc sm full2" onclick="retAcao('${rid}','${tk}','${p.id}','finalizar')">✅ Finalizar: voltei com o pedido</button>`}</div></div>`;
   };
   return `<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota de devolução</h1>
   <p style="margin:0 0 12px;color:var(--muted)">Busque o pedido na casa do cliente e devolva na <b>${esc(BASE_ZP)}</b>. ${ps.length-abertas.length} de ${ps.length} concluídas.</p>
@@ -6117,7 +6149,7 @@ function stopHtml(p,k,rid,tk,saiu){
   return `<div class="stop ${fim?'ok':''}"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><h3>${k+1}. ${esc(p.nome||'')}</h3><small style="color:var(--muted);white-space:nowrap">${esc(TURNOS[p.turno]||'')}</small></div>
   <div class="ad">${esc(t)}${p.dest&&p.dest.ref?'<div style="color:var(--muted);font-size:.85rem">Ref.: '+esc(p.dest.ref)+'</div>':''}</div>${p.fone?`<div style="margin:4px 0 6px;font-size:.9rem">📱 <a href="https://wa.me/${foneWa(p.fone)}" target="_blank" rel="noopener" style="color:var(--pd)">${esc(p.fone)}</a></div>`:''}
   <div style="font-size:.88rem;margin-bottom:10px"><b>${st}</b></div>
-  ${canc?'':`<div class="acts"><a class="btn acc sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">📍 Pino exato</a>${saiu&&!fim&&(emRota||tent)?(emRota&&!p.chegou_em?`<button class="btn sm full2" onclick="entCheguei('${rid}','${tk}',${p.pedido})">📷 Cheguei: tirar foto do local</button>`:'')+bt('entregue','Entreguei','acc')+(emRota?bt('tentativa','Não consegui entregar','ghost sm'):''):''}</div>`}</div>`;
+  ${canc?'':`${endAviso(t)}<div class="acts"><a class="btn acc sm" href="${esc(mapsDest(t))}" target="_blank" rel="noopener">📍 Pino exato</a>${saiu&&!fim&&(emRota||tent)?(emRota&&!p.chegou_em?`<button class="btn sm full2" onclick="entCheguei('${rid}','${tk}',${p.pedido})">📷 Cheguei: tirar foto do local</button>`:'')+bt('entregue','Entreguei','acc')+(emRota?bt('tentativa','Não consegui entregar','ghost sm'):''):''}</div>`}</div>`;
 }
 function pageEntregador(rid,tk){
   const caixa=t=>'<div class="wrap pg" style="max-width:640px"><h1 class="t">Rota de entregas</h1>'+t+'</div>';
@@ -7460,17 +7492,30 @@ function endGeoSalva(){try{localStorage.setItem('zp_endgeo',JSON.stringify(ENDGE
 function endLoc(t){const c=ENDGEO[t];return c&&c.lat!=null?c.lat.toFixed(6)+','+c.lon.toFixed(6):''}
 async function cepCoord(cep){
   const r=await fetch('https://cep.awesomeapi.com.br/json/'+cep);
-  if(r.status===404)return null;if(!r.ok)throw new Error('geo');
-  const j=await r.json(),la=+j.lat,lo=+j.lng;
-  return la&&lo&&la<6&&la>-34&&lo<-33&&lo>-74?{lat:la,lon:lo}:null;
+  if(r.status===404)return {lat:null,lon:null,rua:''};if(!r.ok)throw new Error('geo');
+  const j=await r.json(),la=+j.lat,lo=+j.lng,ok=la&&lo&&la<6&&la>-34&&lo<-33&&lo>-74;
+  return {lat:ok?la:null,lon:ok?lo:null,rua:String(j.address||'')};
 }
+/* compara a rua digitada com a rua do CEP (sem acento, sem "Rua/Av./de/da"): true = bate, false = é outra rua, null = não deu para saber */
+function ruaTokens(s){
+  const stop=new Set(['rua','r','avenida','av','travessa','tv','alameda','al','estrada','est','rodovia','rod','praca','pca','largo','viela','de','da','do','das','dos','e','dr','dra','prof','profa','professor','professora','doutor','doutora']);
+  return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w&&!stop.has(w));
+}
+function ruaConfere(digitada,doCep){
+  const a=ruaTokens(digitada),b=ruaTokens(doCep);
+  if(!a.length||!b.length)return null;
+  const igual=(x,y)=>x===y||(x.length>=3&&y.length>=3&&(x.startsWith(y)||y.startsWith(x)));
+  const comum=a.filter(x=>b.some(y=>igual(x,y))).length;
+  return comum/Math.min(a.length,b.length)>=0.5;
+}
+function endAviso(t){const c=ENDGEO[t];return c&&c.v&&c.ok===false&&c.cr?'<div class="note warn" style="margin:6px 0;font-size:.82rem">⚠ O CEP deste endereço é da rua "'+esc(c.cr)+'", diferente da rua digitada. O mapa usa a rua e o número digitados. Confirme com o cliente.</div>':''}
 /* 1ª fase (rápida): CEP. 2ª fase (devagar, 1 por segundo): rua + número, aceito só se ficar a menos de 1,5 km do ponto do CEP */
 var endQ=[],endRQ=[],endBusy=false,endRBusy=false,endT=null;
 function endPrepara(list){
   (list||[]).forEach(d=>{
     if(!d||!d.rua)return;const t=endTxt(d),c=ENDGEO[t];
-    if(c&&c.r)return;
-    if(c){if(!endRQ.some(x=>x.t===t))endRQ.push({t,d});return}
+    if(c&&c.v&&c.r)return;
+    if(c&&c.v){if(!endRQ.some(x=>x.t===t))endRQ.push({t,d});return}
     if(!endQ.some(x=>x.t===t))endQ.push({t,d});
   });
   endRoda();endRefina();
@@ -7480,7 +7525,8 @@ async function endRoda(){
   try{while(endQ.length){
     const it=endQ.shift(),cep=String(it.d.cep||'').replace(/\D/g,'');let g=null;
     if(cep.length===8){try{g=await cepCoord(cep)}catch(x){continue}}
-    ENDGEO[it.t]=g?{lat:g.lat,lon:g.lon,p:'cep'}:{lat:null,lon:null};endGeoSalva();
+    const cf=g?ruaConfere(it.d.rua,g.rua):null;
+    ENDGEO[it.t]={lat:g?g.lat:null,lon:g?g.lon:null,p:g&&g.lat!=null?'cep':undefined,v:1,ok:cf,cr:(g&&g.rua)||''};endGeoSalva();
     endRQ.push(it);clearTimeout(endT);endT=setTimeout(endRefresh,500);
   }}finally{endBusy=false}
 }
@@ -7496,7 +7542,7 @@ async function endRefina(){
   }}finally{endRBusy=false}
 }
 function endRefresh(){
-  if(/^#\/entrega\//.test(location.hash)){route();return}
+  if(/^#\/(entrega|retirada|parada)\//.test(location.hash)){route();return}
   if(window.__ADMIN_APP&&typeof A!=='undefined'&&(A.tab==='logistica'||A.tab==='entregadores')&&!emEdicao())route();
 }
 /* coordenadas de uma parada para ordenar a rota (mesma regra do link) */

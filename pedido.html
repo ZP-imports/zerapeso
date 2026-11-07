@@ -72,21 +72,23 @@ window.addEventListener('DOMContentLoaded',async()=>{
 function erro(m){$('#root').innerHTML='<div class="box note err">'+esc(m)+'</div>'}
 
 async function carregarCatalogo(){
-  const [pr,vr,rp,pz,vd,bs,rcp]=await Promise.all([
+  const [pr,vr,rp,pz,vd,bs,rcp,cfc]=await Promise.all([
     SB.from('produtos').select('id,nome,imagem,estoque,ativo,ordem').eq('ativo',true),
     SB.from('produto_variacoes').select('id,produto_id,nome,unidades,preco,ativo,ordem,descricao').eq('ativo',true).order('ordem'),
     SB.from('revendedor_produtos').select('variacao_id,habilitado,preco').eq('revendedor_id',REV.id),
     SB.from('revendedor_precos_var').select('variacao_id,preco').eq('revendedor_id',REV.id),
     SB.from('revendedor_venda_var').select('variacao_id,preco_venda').eq('revendedor_id',REV.id),
     SB.from('catalogo_revenda').select('variacao_id,preco'),
-    (['A','B','C'].includes((REV.config||{}).categoria)?SB.from('revenda_categoria_precos').select('variacao_id,preco').eq('categoria',REV.config.categoria):Promise.resolve({data:[]}))
+    (['A','B','C'].includes((REV.config||{}).categoria)?SB.from('revenda_categoria_precos').select('variacao_id,preco').eq('categoria',REV.config.categoria):Promise.resolve({data:[]})),
+    SB.from('configuracao').select('valor').eq('chave','revenda_catalogo').maybeSingle()
   ]);
   const RP={};(rp.data||[]).forEach(r=>{RP[r.variacao_id]={h:r.habilitado!==false,p:r.preco==null?null:+r.preco}});
   const PZ={};(pz.data||[]).forEach(r=>{PZ[r.variacao_id]=+r.preco});
   const VD={};(vd.data||[]).forEach(r=>{VD[r.variacao_id]=+r.preco_venda});
   const BS={};(bs.data||[]).forEach(r=>{BS[r.variacao_id]=+r.preco});
-  const CAT=['A','B','C'].includes((REV.config||{}).categoria)?REV.config.categoria:'';
-  const CP={};(rcp.data||[]).forEach(r=>{CP[r.variacao_id]=+r.preco});
+  const cat0=['A','B','C'].includes((REV.config||{}).categoria)?REV.config.categoria:'',lig=!!(cfc&&cfc.data&&cfc.data.valor&&cfc.data.valor[cat0]===true);
+  const CAT=cat0&&lig?cat0:'';
+  const CP={};if(CAT)(rcp.data||[]).forEach(r=>{CP[r.variacao_id]=+r.preco});
   const indiv=(REV.config||{}).preco_individual===true,desc=REV.desconto_pct||0;
   const foto=f=>!f?'':(/^https?:/.test(f)?f:SB_URL+'/storage/v1/object/public/produtos/'+encodeURIComponent(f));
   const conf=Array.isArray(LINK.produtos)?LINK.produtos:[];

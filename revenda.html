@@ -305,7 +305,7 @@ async function carregarDados(){
   try{
     // pega de novo a ficha do revendedor: categoria A/B/C e liberações mudadas no painel valem na hora, sem sair e entrar
     if(REV_USER&&REV_USER.id){const fr=await SB.from('revendedores').select('*').eq('id',REV_USER.id).maybeSingle();if(fr&&fr.data)REV_USER=Object.assign({},REV_USER,fr.data,{senha:undefined})}
-    const [pr,pe,mo,av,pz,vd,cl,vr,rp,rpd,rcp]=await Promise.all([
+    const [pr,pe,mo,av,pz,vd,cl,vr,rp,rpd,rcp,cfc]=await Promise.all([
       SB.from('produtos').select('id,nome,imagem,estoque,ativo,categoria,sob_consulta,ordem').eq('ativo',true),
       SB.from('pedidos_revendedor').select('*').eq('revendedor_id',REV_USER.id).order('criado_em',{ascending:false}),
       REV_USER.tipo==='consignado'?SB.from('consignado_movimentos').select('*').eq('revendedor_id',REV_USER.id).order('criado_em',{ascending:false}):Promise.resolve({data:[]}),
@@ -316,11 +316,14 @@ async function carregarDados(){
       SB.from('produto_variacoes').select('id,produto_id,nome,unidades,preco,ativo,ordem,descricao').eq('ativo',true).order('ordem'),
       SB.from('catalogo_revenda').select('variacao_id,preco'),
       SB.from('revendedor_produtos').select('variacao_id,habilitado,preco').eq('revendedor_id',REV_USER.id),
-      (['A','B','C'].includes((REV_USER.config||{}).categoria)?SB.from('revenda_categoria_precos').select('variacao_id,preco').eq('categoria',REV_USER.config.categoria):Promise.resolve({data:[]}))
+      (['A','B','C'].includes((REV_USER.config||{}).categoria)?SB.from('revenda_categoria_precos').select('variacao_id,preco').eq('categoria',REV_USER.config.categoria):Promise.resolve({data:[]})),
+      SB.from('configuracao').select('valor').eq('chave','revenda_catalogo').maybeSingle()
     ]);
     BASE={};((rp&&rp.data)||[]).forEach(r=>{BASE[r.variacao_id]=+r.preco});
-    REV_CAT=['A','B','C'].includes((REV_USER.config||{}).categoria)?REV_USER.config.categoria:'';
-    CATP={};((rcp&&rcp.data)||[]).forEach(r=>{CATP[r.variacao_id]=+r.preco});
+    /* o catálogo da categoria só vale depois que o painel habilita (Catálogo / Preços > Habilitar catálogo de preços) */
+    const cat0=['A','B','C'].includes((REV_USER.config||{}).categoria)?REV_USER.config.categoria:'',lig=!!(cfc&&cfc.data&&cfc.data.valor&&cfc.data.valor[cat0]===true);
+    REV_CAT=cat0&&lig?cat0:'';
+    CATP={};if(REV_CAT)((rcp&&rcp.data)||[]).forEach(r=>{CATP[r.variacao_id]=+r.preco});
     PRECOS={};(pz.data||[]).forEach(r=>{PRECOS[r.variacao_id]=+r.preco});
     VENDA={};(vd.data||[]).forEach(r=>{VENDA[r.variacao_id]=+r.preco_venda});
     CLIENTES=cl.data||[];
